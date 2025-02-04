@@ -33,7 +33,7 @@ header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload"
 
 // Atur Content-Security-Policy dengan nonce
 header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.datatables.net 'nonce-$nonce'; 
+    script-src 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
     style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'nonce-$nonce'; 
     img-src 'self'; 
     font-src 'self'; 
@@ -127,11 +127,18 @@ function LoadingEmployees($conn) {
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
-    // Filter jenjang pendidikan
+
+    // Inisialisasi filter jenjang dari POST
     $jenjangFilter = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
 
-    $sql = "SELECT SQL_CALC_FOUND_ROWS id, nip, nama, jenjang, job_title, status_kerja, no_rekening, email, masa_kerja_tahun, masa_kerja_bulan, gaji_pokok 
-            FROM anggota_sekolah WHERE 1=1";
+    // Query dengan LEFT JOIN ke tabel salary_indices agar dapat mengambil level indeks
+    $sql = "SELECT SQL_CALC_FOUND_ROWS 
+                a.id, a.nip, a.nama, a.jenjang, a.job_title, a.status_kerja, 
+                a.masa_kerja_tahun, a.masa_kerja_bulan, a.gaji_pokok, a.no_rekening, a.email,
+                si.level AS salary_index_level, si.base_salary AS salary_index_base
+            FROM anggota_sekolah a
+            LEFT JOIN salary_indices si ON a.salary_index_id = si.id
+            WHERE 1=1";
     $params = [];
     $types = "";
 
@@ -178,16 +185,24 @@ function LoadingEmployees($conn) {
     $resData = $stmt->get_result();
 
     // Total data tanpa filter
-    $stmtTotal = $conn->query("SELECT COUNT(*) AS total FROM anggota_sekolah");
-    $rowTotal = $stmtTotal->fetch_assoc();
-    $totalData = $rowTotal['total'];
-    $stmtTotal->close();
+    $resultTotal = $conn->query("SELECT COUNT(*) AS total FROM anggota_sekolah");
+    if ($resultTotal) {
+        $rowTotal = $resultTotal->fetch_assoc();
+        $totalData = $rowTotal['total'];
+        $resultTotal->free();
+    } else {
+        $totalData = 0;
+    }
 
     // Total data setelah filter
-    $stmtFiltered = $conn->query("SELECT FOUND_ROWS() AS total");
-    $rowFiltered = $stmtFiltered->fetch_assoc();
-    $totalFiltered = $rowFiltered['total'];
-    $stmtFiltered->close();
+    $resultFiltered = $conn->query("SELECT FOUND_ROWS() AS total");
+    if ($resultFiltered) {
+        $rowFiltered = $resultFiltered->fetch_assoc();
+        $totalFiltered = $rowFiltered['total'];
+        $resultFiltered->free();
+    } else {
+        $totalFiltered = 0;
+    }
 
     $data = [];
     while ($row = $resData->fetch_assoc()) {
@@ -226,17 +241,18 @@ function LoadingEmployees($conn) {
 </div>';
 
         $data[] = [
-            "id" => htmlspecialchars($row['id']),
-            "nip" => htmlspecialchars($row['nip']),
-            "nama" => htmlspecialchars($row['nama']),
-            "jenjang" => htmlspecialchars($row['jenjang']),
-            "job_title" => htmlspecialchars($row['job_title']),
-            "status_kerja" => htmlspecialchars($row['status_kerja']),
-            "masa_kerja" => $masaKerja,
-            "gaji_pokok" => 'Rp ' . $gajiPokok,
-            "no_rekening" => htmlspecialchars($row['no_rekening']),
-            "email" => htmlspecialchars($row['email']),
-            "aksi" => $aksi
+            "id"            => htmlspecialchars($row['id']),
+            "nip"           => htmlspecialchars($row['nip']),
+            "nama"          => htmlspecialchars($row['nama']),
+            "jenjang"       => htmlspecialchars($row['jenjang']),
+            "job_title"     => htmlspecialchars($row['job_title']),
+            "status_kerja"  => htmlspecialchars($row['status_kerja']),
+            "masa_kerja"    => $masaKerja,
+            "gaji_pokok"    => $gajiPokok,
+            "level_indeks"  => htmlspecialchars($row['salary_index_level'] ?? '-'),
+            "no_rekening"   => htmlspecialchars($row['no_rekening']),
+            "email"         => htmlspecialchars($row['email']),
+            "aksi"          => $aksi
         ];
     }
     $stmt->close();
@@ -322,7 +338,8 @@ function AssignPayheadsToEmployee($conn) {
         }
         foreach ($payheads as $payhead_id) {
             $payhead_id = intval($payhead_id);
-            $nilai = isset($pay_amounts[$payhead_id]) ? floatval($pay_amounts[$payhead_id]) : 0.0;
+            // Pastikan nilai dikonversi ke float (dan jika menggunakan AutoNumeric, pastikan di-deformat terlebih dahulu jika diperlukan)
+            $nilai = isset($pay_amounts[$payhead_id]) ? floatval(str_replace(['.', ','], ['', '.'], $pay_amounts[$payhead_id])) : 0.0;
             if ($nilai < 0) {
                 throw new Exception("Nilai payhead tidak boleh negatif.");
             }
@@ -608,17 +625,18 @@ function GetPayheadById($conn) {
                                 <table id="employees" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
                                     <thead class="thead">
                                         <tr>
-                                            <th>ID</th>
-                                            <th>NIP</th>
-                                            <th>Nama</th>
-                                            <th>Jenjang</th>
-                                            <th>Job Title</th>
-                                            <th>Status Kerja</th>
-                                            <th>Masa Kerja</th>
-                                            <th>Gaji Pokok</th>
-                                            <th>No Rekening</th>
-                                            <th>Email</th>
-                                            <th class="aksi-column">Aksi</th>
+                                        <th>ID</th>
+                    <th>NIP</th>
+                    <th>Nama</th>
+                    <th>Jenjang</th>
+                    <th>Job Title</th>
+                    <th>Status Kerja</th>
+                    <th>Masa Kerja</th>
+                    <th>Gaji Pokok</th>
+                    <th>Level Indeks</th>
+                    <th>No Rekening</th>
+                    <th>Email</th>
+                    <th>Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody><!-- Data diisi oleh DataTables --></tbody>
@@ -904,11 +922,26 @@ function GetPayheadById($conn) {
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- Sertakan plugin AutoNumeric -->
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
     <!-- Pastikan menyertakan SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
         $('[data-toggle="tooltip"]').tooltip();
+
+        // Inisialisasi AutoNumeric untuk input dengan class .currency-input
+        function initAutoNumeric() {
+            AutoNumeric.multiple('.currency-input', {
+                digitGroupSeparator: '.',
+                decimalCharacter: ',',
+                decimalPlaces: 2,
+                unformatOnSubmit: true // Agar data dikirim dalam format numerik
+            });
+        }
+
+        // Panggil fungsi inisialisasi saat dokumen siap
+        initAutoNumeric();
 
         // SweetAlert2 Toast Mixin
         const Toast = Swal.mixin({
@@ -957,6 +990,7 @@ function GetPayheadById($conn) {
                 { data: 'status_kerja' },
                 { data: 'masa_kerja' },
                 { data: 'gaji_pokok' },
+                { data: 'level_indeks' },
                 { data: 'no_rekening' },
                 { data: 'email' },
                 { data: 'aksi', orderable: false, searchable: false }
@@ -978,7 +1012,6 @@ function GetPayheadById($conn) {
 
         // Apply Filter
         $('#btnApplyFilter').on('click', function(){
-            // Contoh pencatatan audit log (jika diinginkan)
             $.ajax({
                 url: 'employees.php?ajax=1',
                 type: 'POST',
@@ -1207,11 +1240,14 @@ function GetPayheadById($conn) {
                                         var payheadAmount = `
                                             <div class="payhead-item">
                                                 <label>${payheadNameTranslated}</label>
-                                                <input type="number" name="pay_amounts[${payheadId}]" class="form-control" value="${ap.amount}" min="0" step="0.01" required>
+                                                <!-- Gunakan input type text dengan class .currency-input -->
+                                                <input type="text" name="pay_amounts[${payheadId}]" class="form-control currency-input" value="${ap.amount}" required>
                                             </div>
                                         `;
                                         $('#selected_payamount').append(payheadAmount);
                                     });
+                                    // Inisialisasi ulang AutoNumeric untuk input yang baru ditambahkan
+                                    initAutoNumeric();
                                     $('#ManageModal').modal('show');
                                 } else {
                                     showToast(allPayheadsResult.result, 'error');
@@ -1242,6 +1278,7 @@ function GetPayheadById($conn) {
             });
             var payAmounts = {};
             payHeads.forEach(function(payheadId){
+                // Karena AutoNumeric mengirimkan nilai terformat, kita pastikan untuk menghapus pemisah jika diperlukan
                 var amount = $('input[name="pay_amounts[' + payheadId + ']"]').val();
                 payAmounts[payheadId] = amount;
             });
@@ -1341,13 +1378,16 @@ function GetPayheadById($conn) {
                     var payheadAmount = `
                         <div class="payhead-item">
                             <label>${payheadName}</label>
-                            <input type="number" name="pay_amounts[${payheadId}]" class="form-control" value="0" min="0" step="0.01" required>
+                            <!-- Gunakan input text dengan class .currency-input -->
+                            <input type="text" name="pay_amounts[${payheadId}]" class="form-control currency-input" value="0" required>
                         </div>
                     `;
                     $('#selected_payamount').append(payheadAmount);
                     $(this).remove();
                 }
             });
+            // Inisialisasi ulang AutoNumeric untuk input baru
+            initAutoNumeric();
         });
 
         // Tombol Select Month
