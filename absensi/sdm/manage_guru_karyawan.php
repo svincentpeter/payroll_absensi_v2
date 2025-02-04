@@ -410,6 +410,7 @@ function GetGuruDetail($conn) {
 }
 
 function UpdateGuru($conn) {
+    // Ambil data POST
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $nip = isset($_POST['nip']) ? trim($_POST['nip']) : '';
     $nama = isset($_POST['nama']) ? trim($_POST['nama']) : '';
@@ -438,8 +439,19 @@ function UpdateGuru($conn) {
     $nama_anak_3 = isset($_POST['nama_anak_3']) ? trim($_POST['nama_anak_3']) : '';
     $salary_index_id = isset($_POST['salary_index_id']) ? intval($_POST['salary_index_id']) : 0;
     $password_plain = isset($_POST['password']) ? trim($_POST['password']) : '';
-
-    // Cek duplikasi NIP untuk data selain ID ini
+    
+    // --- Konversi nilai jenis kelamin ---
+    // Jika form mengirimkan "Laki-laki" atau "L", simpan 'L'
+    // Jika mengirimkan "Perempuan" atau "P", simpan 'P'
+    if ($jenis_kelamin === 'Laki-laki' || $jenis_kelamin === 'L') {
+        $jenis_kelamin = 'L';
+    } elseif ($jenis_kelamin === 'Perempuan' || $jenis_kelamin === 'P') {
+        $jenis_kelamin = 'P';
+    } else {
+        $jenis_kelamin = null; // atau bisa disesuaikan, misalnya ''
+    }
+    
+    // Cek duplikasi NIP untuk data selain ID ini (jika diperlukan)
     $stmtCheck = $conn->prepare("SELECT id FROM anggota_sekolah WHERE nip = ? AND id != ?");
     if ($stmtCheck) {
         $stmtCheck->bind_param("si", $nip, $id);
@@ -452,54 +464,131 @@ function UpdateGuru($conn) {
     } else {
         send_response(1, 'Query Error: ' . $conn->error);
     }
-
+    
+    // Siapkan query update berdasarkan apakah ada password baru
     if (!empty($password_plain)) {
+        // Jika ada password baru, enkripsi dengan MD5
         $password_hashed = md5($password_plain);
         $sqlUpdate = "UPDATE anggota_sekolah
-            SET nip=?, nama=?, jenjang=?, job_title=?, status_kerja=?, join_start=?, masa_kerja_tahun=?, masa_kerja_bulan=?,
-                remark=?, jenis_kelamin=?, tanggal_lahir=?, usia=?, agama=?, alamat_domisili=?, alamat_ktp=?, no_rekening=?,
-                no_hp=?, pendidikan=?, status_perkawinan=?, email=?, nama_suami=?, jumlah_anak=?, nama_anak_1=?, nama_anak_2=?, nama_anak_3=?, salary_index_id=?, password=?
+            SET nip=?, nama=?, jenjang=?, job_title=?, status_kerja=?, join_start=?,
+                masa_kerja_tahun=?, masa_kerja_bulan=?,
+                remark=?, jenis_kelamin=?, tanggal_lahir=?, usia=?, agama=?, alamat_domisili=?,
+                alamat_ktp=?, no_rekening=?, no_hp=?, pendidikan=?, status_perkawinan=?,
+                email=?, nama_suami=?, jumlah_anak=?, nama_anak_1=?, nama_anak_2=?,
+                nama_anak_3=?, salary_index_id=?, password=?
             WHERE id=?";
         $stmtUpdate = $conn->prepare($sqlUpdate);
-        if ($stmtUpdate) {
-            $stmtUpdate->bind_param("ssssssiisssisssssssssiisssi", 
-                $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
-                $masa_kerja_tahun, $masa_kerja_bulan, $remark, $jenis_kelamin, $tanggal_lahir, $usia, $agama,
-                $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan, $status_perkawinan, $email,
-                $nama_suami, $jumlah_anak, $nama_anak_1, $nama_anak_2, $nama_anak_3, $salary_index_id, $password_hashed, $id);
+        if ($stmtUpdate === false) {
+            send_response(1, 'Query Error: ' . $conn->error);
         }
+        /*  
+            Urutan parameter dan tipe (28 parameter):
+            1. nip                (s)
+            2. nama               (s)
+            3. jenjang            (s)
+            4. job_title          (s)
+            5. status_kerja       (s)
+            6. join_start         (s)
+            7. masa_kerja_tahun   (i)
+            8. masa_kerja_bulan   (i)
+            9. remark             (s)
+           10. jenis_kelamin      (s)
+           11. tanggal_lahir      (s)
+           12. usia               (i)
+           13. agama              (s)
+           14. alamat_domisili    (s)
+           15. alamat_ktp         (s)
+           16. no_rekening        (s)
+           17. no_hp              (s)
+           18. pendidikan         (s)
+           19. status_perkawinan  (s)
+           20. email              (s)
+           21. nama_suami         (s)
+           22. jumlah_anak        (i)
+           23. nama_anak_1        (s)
+           24. nama_anak_2        (s)
+           25. nama_anak_3        (s)
+           26. salary_index_id    (i)
+           27. password           (s)
+           28. id                 (i)
+        */
+        $types = "ssssssii" . "sss" . "i" . "sssssssss" . "i" . "sss" . "i" . "s" . "i";
+        $stmtUpdate->bind_param($types,
+            $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
+            $masa_kerja_tahun, $masa_kerja_bulan,
+            $remark, $jenis_kelamin, $tanggal_lahir,
+            $usia, $agama, $alamat_domisili, $alamat_ktp,
+            $no_rekening, $no_hp, $pendidikan, $status_perkawinan,
+            $email, $nama_suami, $jumlah_anak,
+            $nama_anak_1, $nama_anak_2, $nama_anak_3,
+            $salary_index_id, $password_hashed, $id
+        );
     } else {
         $sqlUpdate = "UPDATE anggota_sekolah
-            SET nip=?, nama=?, jenjang=?, job_title=?, status_kerja=?, join_start=?, masa_kerja_tahun=?, masa_kerja_bulan=?,
-                remark=?, jenis_kelamin=?, tanggal_lahir=?, usia=?, agama=?, alamat_domisili=?, alamat_ktp=?, no_rekening=?,
-                no_hp=?, pendidikan=?, status_perkawinan=?, email=?, nama_suami=?, jumlah_anak=?, nama_anak_1=?, nama_anak_2=?, nama_anak_3=?, salary_index_id=?
+            SET nip=?, nama=?, jenjang=?, job_title=?, status_kerja=?, join_start=?,
+                masa_kerja_tahun=?, masa_kerja_bulan=?,
+                remark=?, jenis_kelamin=?, tanggal_lahir=?, usia=?, agama=?, alamat_domisili=?,
+                alamat_ktp=?, no_rekening=?, no_hp=?, pendidikan=?, status_perkawinan=?,
+                email=?, nama_suami=?, jumlah_anak=?, nama_anak_1=?, nama_anak_2=?,
+                nama_anak_3=?, salary_index_id=?
             WHERE id=?";
         $stmtUpdate = $conn->prepare($sqlUpdate);
-        if ($stmtUpdate) {
-            $stmtUpdate->bind_param("ssssssiisssisssssssssiisssi", 
-                $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
-                $masa_kerja_tahun, $masa_kerja_bulan, $remark, $jenis_kelamin, $tanggal_lahir, $usia, $agama,
-                $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan, $status_perkawinan, $email,
-                $nama_suami, $jumlah_anak, $nama_anak_1, $nama_anak_2, $nama_anak_3, $salary_index_id, $id);
+        if ($stmtUpdate === false) {
+            send_response(1, 'Query Error: ' . $conn->error);
         }
+        /*  
+            Urutan parameter dan tipe (27 parameter):
+            1. nip                (s)
+            2. nama               (s)
+            3. jenjang            (s)
+            4. job_title          (s)
+            5. status_kerja       (s)
+            6. join_start         (s)
+            7. masa_kerja_tahun   (i)
+            8. masa_kerja_bulan   (i)
+            9. remark             (s)
+           10. jenis_kelamin      (s)
+           11. tanggal_lahir      (s)
+           12. usia               (i)
+           13. agama              (s)
+           14. alamat_domisili    (s)
+           15. alamat_ktp         (s)
+           16. no_rekening        (s)
+           17. no_hp              (s)
+           18. pendidikan         (s)
+           19. status_perkawinan  (s)
+           20. email              (s)
+           21. nama_suami         (s)
+           22. jumlah_anak        (i)
+           23. nama_anak_1        (s)
+           24. nama_anak_2        (s)
+           25. nama_anak_3        (s)
+           26. salary_index_id    (i)
+           27. id                 (i)
+        */
+        $types = "ssssssii" . "sss" . "i" . "sssssssss" . "i" . "sss" . "ii";
+        $stmtUpdate->bind_param($types,
+            $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
+            $masa_kerja_tahun, $masa_kerja_bulan,
+            $remark, $jenis_kelamin, $tanggal_lahir,
+            $usia, $agama, $alamat_domisili, $alamat_ktp,
+            $no_rekening, $no_hp, $pendidikan, $status_perkawinan,
+            $email, $nama_suami, $jumlah_anak,
+            $nama_anak_1, $nama_anak_2, $nama_anak_3,
+            $salary_index_id, $id
+        );
     }
-    if (isset($stmtUpdate) && $stmtUpdate) {
-        if ($stmtUpdate->execute()) {
-            $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-            $details_log = "Mengupdate data guru/karyawan ID $id: NIP='$nip', Nama='$nama'.";
-            if (!add_audit_log($conn, $user_id, 'UpdateGuru', $details_log)) {
-                log_error("Gagal mencatat audit log untuk UpdateGuru ID $id.");
-            }
-            send_response(0, 'Data guru/karyawan berhasil diupdate.');
-        } else {
-            send_response(1, 'Gagal memperbarui data: ' . $stmtUpdate->error);
-        }
-        $stmtUpdate->close();
+    
+    if ($stmtUpdate->execute()) {
+        // Jika diperlukan, catat juga audit log di sini
+        send_response(0, 'Data guru/karyawan berhasil diupdate.');
     } else {
-        send_response(1, 'Gagal menyiapkan SQL: ' . $conn->error);
+        send_response(1, 'Gagal memperbarui data: ' . $stmtUpdate->error);
     }
+    $stmtUpdate->close();
     exit();
 }
+
 
 function DeleteGuru($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -569,17 +658,24 @@ function updateGajiPokok($conn) {
     <meta charset="UTF-8">
     <title>Manajemen Data Guru/Karyawan - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- SB Admin 2, Bootstrap, FontAwesome, dan DataTables CSS -->
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <!-- Bootstrap 4, SB Admin 2, FontAwesome, dan DataTables CSS dari CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <!-- Gunakan Bootstrap 4 (misalnya versi 4.5.2) -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- SB Admin 2 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <link href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
     <!-- Custom Styles -->
     <style nonce="<?php echo $nonce; ?>">
+        /* Override warna font global menjadi hitam */
+        body, .text-gray-800 {
+            color: #000 !important;
+        }
         #guruTable th, #guruTable td {
             vertical-align: middle;
             white-space: nowrap;
@@ -675,7 +771,7 @@ function updateGajiPokok($conn) {
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table id="guruTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
+                                <table id="guruTable" class="table table-sm table-bordered table-striped display nowrap text-dark" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>ID</th>
@@ -742,7 +838,7 @@ function updateGajiPokok($conn) {
               <div class="row">
                   <div class="col-md-6">
                       <div class="form-group">
-                          <label for="addNip">NIP <span class="text-danger">*</span></label>
+                          <label for="addNip">NIP <span class="text-danger ">*</span></label>
                           <input type="text" name="nip" id="addNip" class="form-control" required placeholder="Masukkan NIP (6 digit)">
                           <div class="invalid-feedback">NIP wajib diisi.</div>
                       </div>
@@ -966,7 +1062,7 @@ function updateGajiPokok($conn) {
                 <span>&times;</span>
               </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body font-weight-bold">
               <!-- Gunakan grid 2 kolom -->
               <div class="row">
                   <div class="col-md-6">
@@ -1210,7 +1306,7 @@ function updateGajiPokok($conn) {
               <span>&times;</span>
             </button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body font-weight-bold color: #000">
             <!-- Detail tampilkan dalam grid table -->
             <table class="table table-bordered" id="detailContent">
             </table>
@@ -1286,8 +1382,10 @@ function updateGajiPokok($conn) {
     </div>
 
     <!-- JavaScript Dependencies -->
+    <!-- Urutan: jQuery, Bootstrap 4, SB Admin 2, DataTables, SweetAlert2, dan script custom -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
@@ -1300,7 +1398,6 @@ function updateGajiPokok($conn) {
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.colVis.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     // Inisialisasi SweetAlert2 Toast
@@ -1500,7 +1597,6 @@ function updateGajiPokok($conn) {
                 success: function(response) {
                     $('#loadingSpinner').hide();
                     if(response.code == 0) {
-                        // Mapping field ke label yang sesuai dengan form edit
                         const fieldLabels = {
                             nip: "NIP",
                             uid: "UID",
@@ -1578,11 +1674,9 @@ function updateGajiPokok($conn) {
                         $('#editMasaKerjaYear').val(response.result.masa_kerja_tahun);
                         $('#editMasaKerjaMonth').val(response.result.masa_kerja_bulan);
                         $('#editRemark').val(response.result.remark);
-                        // Gunakan key "jk" yang telah dipetakan (hasil dari DB "jenis_kelamin")
                         $('#editJK').val(response.result.jk ? response.result.jk.trim() : '');
                         $('#editTglLahir').val(response.result.tanggal_lahir);
                         $('#editUsia').val(response.result.usia);
-                        // Gunakan key "religion" yang telah dipetakan (hasil dari DB "agama")
                         $('#editReligion').val(response.result.religion ? response.result.religion.trim() : '');
                         $('#editAlamatDomisili').val(response.result.alamat_domisili);
                         $('#editAlamatKTP').val(response.result.alamat_ktp);
