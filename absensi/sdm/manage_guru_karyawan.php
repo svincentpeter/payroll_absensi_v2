@@ -218,7 +218,7 @@ function LoadingGuru($conn) {
     if (isset($_POST['order'], $_POST['columns'])) {
         $columnIndex = intval($_POST['order'][0]['column']);
         // Hanya izinkan pengurutan pada kolom yang akan ditampilkan
-        $allowedColumns = ['id', 'uid', 'nip', 'nama', 'jenjang', 'job_title', 'status_kerja', 'join_start', 'pendidikan', 'email', 'no_hp', 'gaji_pokok'];
+        $allowedColumns = ['id', 'uid', 'nip', 'nama', 'jenjang', 'job_title', 'status_kerja', 'join_start', 'masa_kerja', 'pendidikan', 'email', 'no_hp'];
         if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedColumns)) {
             $colName = $_POST['columns'][$columnIndex]['data'];
             $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
@@ -269,7 +269,7 @@ function LoadingGuru($conn) {
   </div>
 </div>';
 
-        // Data ringkas yang ditampilkan pada tabel
+        // Data ringkas yang ditampilkan (kolom gaji_pokok dihilangkan)
         $data[] = [
             "id"           => $row['id'],
             "uid"          => htmlspecialchars($row['uid']),
@@ -283,7 +283,6 @@ function LoadingGuru($conn) {
             "pendidikan"   => $row['pendidikan'],
             "email"        => $row['email'],
             "no_hp"        => $row['no_hp'],
-            "gaji_pokok"   => number_format($row['gaji_pokok'], 2, ',', '.'),
             "aksi"         => $aksi
         ];
     }
@@ -315,10 +314,17 @@ function CreateGuru($conn) {
     $agama             = isset($_POST['religion']) ? trim($_POST['religion']) : '';
     $alamat_domisili   = isset($_POST['alamat_domisili']) ? trim($_POST['alamat_domisili']) : '';
     $alamat_ktp        = isset($_POST['alamat_ktp']) ? trim($_POST['alamat_ktp']) : '';
+    $no_rekening       = isset($_POST['no_rekening']) ? trim($_POST['no_rekening']) : '';
     $no_hp             = isset($_POST['no_hp']) ? trim($_POST['no_hp']) : '';
     $pendidikan        = isset($_POST['pendidikan']) ? trim($_POST['pendidikan']) : '';
     $status_perkawinan = isset($_POST['marital']) ? trim($_POST['marital']) : '';
     $email             = isset($_POST['email']) ? trim($_POST['email']) : '';
+    $nama_suami        = isset($_POST['nama_suami']) ? trim($_POST['nama_suami']) : '';
+    $jumlah_anak       = isset($_POST['jumlah_anak']) ? intval($_POST['jumlah_anak']) : 0;
+    $nama_anak_1       = isset($_POST['nama_anak_1']) ? trim($_POST['nama_anak_1']) : '';
+    $nama_anak_2       = isset($_POST['nama_anak_2']) ? trim($_POST['nama_anak_2']) : '';
+    $nama_anak_3       = isset($_POST['nama_anak_3']) ? trim($_POST['nama_anak_3']) : '';
+    $salary_index_id   = isset($_POST['salary_index_id']) ? intval($_POST['salary_index_id']) : 0;
 
     // Password default = '123456' disimpan MD5
     $password_hashed = md5('123456');
@@ -344,16 +350,18 @@ function CreateGuru($conn) {
 
     // Insert data (UID tidak diisi melalui form, diasumsikan sudah di‑generate)
     $sql = "INSERT INTO anggota_sekolah
-        (nip, nama, jenjang, job_title, status_kerja, join_start, masa_kerja_tahun, masa_kerja_bulan, remark, jenis_kelamin, tanggal_lahir, usia, agama, alamat_domisili, alamat_ktp, no_hp, pendidikan, status_perkawinan, email, password, gaji_pokok)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        (nip, nama, jenjang, job_title, status_kerja, join_start, masa_kerja_tahun, masa_kerja_bulan, remark, jenis_kelamin, tanggal_lahir, usia, agama, alamat_domisili, alamat_ktp, no_rekening, no_hp, pendidikan, status_perkawinan, email, password, gaji_pokok, nama_suami, jumlah_anak, nama_anak_1, nama_anak_2, nama_anak_3, salary_index_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmtInsert = $conn->prepare($sql);
     if ($stmtInsert === false) {
         send_response(1, 'Query Error: ' . $conn->error);
     }
-    $type_str = "ssssssisssisssssssssd";
-    $stmtInsert->bind_param($type_str, $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
-        $masa_kerja_tahun, $masa_kerja_bulan, $remark, $jenis_kelamin, $tanggal_lahir, $usia,
-        $agama, $alamat_domisili, $alamat_ktp, $no_hp, $pendidikan, $status_perkawinan, $email, $password_hashed, $gaji_pokok);
+    // Pastikan urutan dan tipe data sesuai dengan field tabel
+    $stmtInsert->bind_param("ssssssiisssisssssssssdsisssi", 
+        $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
+        $masa_kerja_tahun, $masa_kerja_bulan, $remark, $jenis_kelamin, $tanggal_lahir, $usia, $agama,
+        $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan, $status_perkawinan, $email,
+        $password_hashed, $gaji_pokok, $nama_suami, $jumlah_anak, $nama_anak_1, $nama_anak_2, $nama_anak_3, $salary_index_id);
     if ($stmtInsert->execute()) {
         $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         $details_log = "Menambahkan data guru/karyawan: NIP='$nip', Nama='$nama', Role='$role'.";
@@ -383,6 +391,10 @@ function GetGuruDetail($conn) {
     if ($result && $result->num_rows == 1) {
         $data = $result->fetch_assoc();
         unset($data['password']);
+        unset($data['gaji_pokok']);
+        // Mapping: buat field 'religion' dari kolom 'agama' dan 'jk' dari kolom 'jenis_kelamin'
+        $data['religion'] = $data['agama'];
+        $data['jk'] = $data['jenis_kelamin'];
         $stmt->close();
         $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         $details_log = "Melihat detail data guru/karyawan ID $id: Nama='" . $data['nama'] . "'.";
@@ -414,13 +426,20 @@ function UpdateGuru($conn) {
     $agama = isset($_POST['religion']) ? trim($_POST['religion']) : '';
     $alamat_domisili = isset($_POST['alamat_domisili']) ? trim($_POST['alamat_domisili']) : '';
     $alamat_ktp = isset($_POST['alamat_ktp']) ? trim($_POST['alamat_ktp']) : '';
+    $no_rekening = isset($_POST['no_rekening']) ? trim($_POST['no_rekening']) : '';
     $no_hp = isset($_POST['no_hp']) ? trim($_POST['no_hp']) : '';
     $pendidikan = isset($_POST['pendidikan']) ? trim($_POST['pendidikan']) : '';
     $status_perkawinan = isset($_POST['marital']) ? trim($_POST['marital']) : '';
     $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-    $gaji_pokok = isset($_POST['gaji_pokok']) ? floatval($_POST['gaji_pokok']) : 0.0;
+    $nama_suami = isset($_POST['nama_suami']) ? trim($_POST['nama_suami']) : '';
+    $jumlah_anak = isset($_POST['jumlah_anak']) ? intval($_POST['jumlah_anak']) : 0;
+    $nama_anak_1 = isset($_POST['nama_anak_1']) ? trim($_POST['nama_anak_1']) : '';
+    $nama_anak_2 = isset($_POST['nama_anak_2']) ? trim($_POST['nama_anak_2']) : '';
+    $nama_anak_3 = isset($_POST['nama_anak_3']) ? trim($_POST['nama_anak_3']) : '';
+    $salary_index_id = isset($_POST['salary_index_id']) ? intval($_POST['salary_index_id']) : 0;
     $password_plain = isset($_POST['password']) ? trim($_POST['password']) : '';
 
+    // Cek duplikasi NIP untuk data selain ID ini
     $stmtCheck = $conn->prepare("SELECT id FROM anggota_sekolah WHERE nip = ? AND id != ?");
     if ($stmtCheck) {
         $stmtCheck->bind_param("si", $nip, $id);
@@ -438,28 +457,30 @@ function UpdateGuru($conn) {
         $password_hashed = md5($password_plain);
         $sqlUpdate = "UPDATE anggota_sekolah
             SET nip=?, nama=?, jenjang=?, job_title=?, status_kerja=?, join_start=?, masa_kerja_tahun=?, masa_kerja_bulan=?,
-                remark=?, jenis_kelamin=?, tanggal_lahir=?, usia=?, agama=?, alamat_domisili=?, alamat_ktp=?, no_hp=?,
-                pendidikan=?, status_perkawinan=?, email=?, password=?, gaji_pokok=?
+                remark=?, jenis_kelamin=?, tanggal_lahir=?, usia=?, agama=?, alamat_domisili=?, alamat_ktp=?, no_rekening=?,
+                no_hp=?, pendidikan=?, status_perkawinan=?, email=?, nama_suami=?, jumlah_anak=?, nama_anak_1=?, nama_anak_2=?, nama_anak_3=?, salary_index_id=?, password=?
             WHERE id=?";
         $stmtUpdate = $conn->prepare($sqlUpdate);
         if ($stmtUpdate) {
-            $type_str = "ssssssiisssissssssssdi";
-            $stmtUpdate->bind_param($type_str, $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
+            $stmtUpdate->bind_param("ssssssiisssisssssssssiisssi", 
+                $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
                 $masa_kerja_tahun, $masa_kerja_bulan, $remark, $jenis_kelamin, $tanggal_lahir, $usia, $agama,
-                $alamat_domisili, $alamat_ktp, $no_hp, $pendidikan, $status_perkawinan, $email, $password_hashed, $gaji_pokok, $id);
+                $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan, $status_perkawinan, $email,
+                $nama_suami, $jumlah_anak, $nama_anak_1, $nama_anak_2, $nama_anak_3, $salary_index_id, $password_hashed, $id);
         }
     } else {
         $sqlUpdate = "UPDATE anggota_sekolah
             SET nip=?, nama=?, jenjang=?, job_title=?, status_kerja=?, join_start=?, masa_kerja_tahun=?, masa_kerja_bulan=?,
-                remark=?, jenis_kelamin=?, tanggal_lahir=?, usia=?, agama=?, alamat_domisili=?, alamat_ktp=?, no_hp=?,
-                pendidikan=?, status_perkawinan=?, email=?, gaji_pokok=?
+                remark=?, jenis_kelamin=?, tanggal_lahir=?, usia=?, agama=?, alamat_domisili=?, alamat_ktp=?, no_rekening=?,
+                no_hp=?, pendidikan=?, status_perkawinan=?, email=?, nama_suami=?, jumlah_anak=?, nama_anak_1=?, nama_anak_2=?, nama_anak_3=?, salary_index_id=?
             WHERE id=?";
         $stmtUpdate = $conn->prepare($sqlUpdate);
         if ($stmtUpdate) {
-            $type_str = "ssssssiisssisssssssdi";
-            $stmtUpdate->bind_param($type_str, $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
+            $stmtUpdate->bind_param("ssssssiisssisssssssssiisssi", 
+                $nip, $nama, $jenjang, $job_title, $status_kerja, $join_start,
                 $masa_kerja_tahun, $masa_kerja_bulan, $remark, $jenis_kelamin, $tanggal_lahir, $usia, $agama,
-                $alamat_domisili, $alamat_ktp, $no_hp, $pendidikan, $status_perkawinan, $email, $gaji_pokok, $id);
+                $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan, $status_perkawinan, $email,
+                $nama_suami, $jumlah_anak, $nama_anak_1, $nama_anak_2, $nama_anak_3, $salary_index_id, $id);
         }
     }
     if (isset($stmtUpdate) && $stmtUpdate) {
@@ -574,6 +595,9 @@ function updateGajiPokok($conn) {
             margin: auto;
             top: 0; left: 0; bottom: 0; right: 0;
         }
+        .invisible-field {
+            display: none;
+        }
     </style>
 </head>
 <body id="page-top">
@@ -642,7 +666,7 @@ function updateGajiPokok($conn) {
                         </div>
                     </div>
 
-                    <!-- Tabel Data Guru/Karyawan (versi ringkas) -->
+                    <!-- Tabel Data Guru/Karyawan (versi ringkas) tanpa kolom Gaji Pokok -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">
                             <h6 class="m-0 font-weight-bold text-white">
@@ -666,7 +690,6 @@ function updateGajiPokok($conn) {
                                             <th>Pendidikan</th>
                                             <th>Email</th>
                                             <th>No HP</th>
-                                            <th>Gaji Pokok</th>
                                             <th>Aksi</th>
                                         </tr>
                                     </thead>
@@ -701,10 +724,10 @@ function updateGajiPokok($conn) {
     </div>
     <!-- End Page Wrapper -->
 
-    <!-- MODAL: Tambah Guru/Karyawan (sama seperti sebelumnya) -->
+    <!-- MODAL: Tambah Guru/Karyawan -->
     <div class="modal fade" id="modalAdd" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form id="add-guru-form" class="needs-validation" novalidate>
+        <form id="add-guru-form" method="POST" class="needs-validation" novalidate>
           <input type="hidden" name="case" value="CreateGuru">
           <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
           <div class="modal-content">
@@ -715,71 +738,207 @@ function updateGajiPokok($conn) {
               </button>
             </div>
             <div class="modal-body">
-              <!-- Field input sesuai kebutuhan (bisa disesuaikan kembali) -->
-              <!-- Contoh: NIP, Nama, Jenjang, Job Title, Status Kerja, Join Start, Masa Kerja, Pendidikan, Email, No HP -->
-              <div class="form-group">
-                  <label for="addNip">NIP <span class="text-danger">*</span></label>
-                  <input type="text" name="nip" id="addNip" class="form-control" required placeholder="Masukkan NIP (6 digit)">
-                  <div class="invalid-feedback">NIP wajib diisi.</div>
-              </div>
-              <div class="form-group">
-                  <label for="addNama">Nama <span class="text-danger">*</span></label>
-                  <input type="text" name="nama" id="addNama" class="form-control" required placeholder="Nama lengkap">
-                  <div class="invalid-feedback">Nama wajib diisi.</div>
-              </div>
-              <div class="form-group">
-                  <label for="addJenjang">Jenjang <span class="text-danger">*</span></label>
-                  <select name="jenjang" id="addJenjang" class="form-control" required>
-                      <option value="">-- Pilih Jenjang --</option>
-                      <option value="TK">TK</option>
-                      <option value="SD">SD</option>
-                      <option value="SMP">SMP</option>
-                      <option value="SMA">SMA</option>
-                      <option value="SMK">SMK</option>
-                  </select>
-                  <div class="invalid-feedback">Jenjang wajib dipilih.</div>
-              </div>
-              <div class="form-group">
-                  <label for="addJobTitle">Job Title</label>
-                  <input type="text" name="job_title" id="addJobTitle" class="form-control" placeholder="Contoh: Guru, Karyawan">
-              </div>
-              <div class="form-group">
-                  <label for="addStatus">Status Kerja <span class="text-danger">*</span></label>
-                  <select name="status" id="addStatus" class="form-control" required>
-                      <option value="">-- Pilih Status --</option>
-                      <option value="Tetap">Tetap</option>
-                      <option value="Kontrak">Kontrak</option>
-                  </select>
-                  <div class="invalid-feedback">Status wajib dipilih.</div>
-              </div>
-              <div class="form-group">
-                  <label for="addJoinStart">Join Start</label>
-                  <input type="date" name="join_start" id="addJoinStart" class="form-control">
-              </div>
-              <div class="form-group">
-                  <label>Masa Kerja</label>
-                  <div class="form-row">
-                      <div class="col">
-                          <input type="number" name="masa_kerja_year" id="addMasaKerjaYear" class="form-control" placeholder="Tahun" readonly>
+              <!-- Field input dengan grid -->
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNip">NIP <span class="text-danger">*</span></label>
+                          <input type="text" name="nip" id="addNip" class="form-control" required placeholder="Masukkan NIP (6 digit)">
+                          <div class="invalid-feedback">NIP wajib diisi.</div>
                       </div>
-                      <div class="col">
-                          <input type="number" name="masa_kerja_month" id="addMasaKerjaMonth" class="form-control" placeholder="Bulan" readonly>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNama">Nama <span class="text-danger">*</span></label>
+                          <input type="text" name="nama" id="addNama" class="form-control" required placeholder="Nama lengkap">
+                          <div class="invalid-feedback">Nama wajib diisi.</div>
                       </div>
                   </div>
               </div>
-              <div class="form-group">
-                  <label for="addPendidikan">Pendidikan</label>
-                  <input type="text" name="pendidikan" id="addPendidikan" class="form-control">
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJenjang">Jenjang <span class="text-danger">*</span></label>
+                          <select name="jenjang" id="addJenjang" class="form-control" required>
+                              <option value="">-- Pilih Jenjang --</option>
+                              <option value="TK">TK</option>
+                              <option value="SD">SD</option>
+                              <option value="SMP">SMP</option>
+                              <option value="SMA">SMA</option>
+                              <option value="SMK">SMK</option>
+                          </select>
+                          <div class="invalid-feedback">Jenjang wajib dipilih.</div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJobTitle">Job Title</label>
+                          <input type="text" name="job_title" id="addJobTitle" class="form-control" placeholder="Contoh: Guru, Karyawan">
+                      </div>
+                  </div>
               </div>
-              <div class="form-group">
-                  <label for="addEmail">Email</label>
-                  <input type="email" name="email" id="addEmail" class="form-control" placeholder="contoh@domain.com">
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addStatus">Status Kerja <span class="text-danger">*</span></label>
+                          <select name="status" id="addStatus" class="form-control" required>
+                              <option value="">-- Pilih Status --</option>
+                              <option value="Tetap">Tetap</option>
+                              <option value="Kontrak">Kontrak</option>
+                          </select>
+                          <div class="invalid-feedback">Status wajib dipilih.</div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJoinStart">Join Start</label>
+                          <input type="date" name="join_start" id="addJoinStart" class="form-control">
+                      </div>
+                  </div>
               </div>
-              <div class="form-group">
-                  <label for="addNoHP">No Handphone</label>
-                  <input type="text" name="no_hp" id="addNoHP" class="form-control" placeholder="08xxx">
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label>Masa Kerja</label>
+                          <div class="row">
+                              <div class="col">
+                                  <input type="number" name="masa_kerja_year" id="addMasaKerjaYear" class="form-control" placeholder="Tahun" readonly>
+                              </div>
+                              <div class="col">
+                                  <input type="number" name="masa_kerja_month" id="addMasaKerjaMonth" class="form-control" placeholder="Bulan" readonly>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addRemark">Remark</label>
+                          <textarea name="remark" id="addRemark" class="form-control"></textarea>
+                      </div>
+                  </div>
               </div>
-              <!-- Field tambahan lainnya akan disimpan di database dan dapat dilihat lewat modal detail -->
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJK">Jenis Kelamin</label>
+                          <select name="jk" id="addJK" class="form-control">
+                              <option value="">-- Pilih Jenis Kelamin --</option>
+                              <option value="Laki-laki">Laki-laki</option>
+                              <option value="Perempuan">Perempuan</option>
+                          </select>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addTglLahir">Tanggal Lahir</label>
+                          <input type="date" name="tgl_lahir" id="addTglLahir" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addUsia">Usia</label>
+                          <input type="number" name="usia" id="addUsia" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addReligion">Agama</label>
+                          <input type="text" name="religion" id="addReligion" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addAlamatDomisili">Alamat Domisili</label>
+                          <textarea name="alamat_domisili" id="addAlamatDomisili" class="form-control"></textarea>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addAlamatKTP">Alamat KTP</label>
+                          <textarea name="alamat_ktp" id="addAlamatKTP" class="form-control"></textarea>
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNoRekening">No Rekening</label>
+                          <input type="text" name="no_rekening" id="addNoRekening" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNoHP">No Handphone</label>
+                          <input type="text" name="no_hp" id="addNoHP" class="form-control" placeholder="08xxx">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addPendidikan">Pendidikan</label>
+                          <input type="text" name="pendidikan" id="addPendidikan" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addMarital">Status Pernikahan</label>
+                          <input type="text" name="marital" id="addMarital" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addEmail">Email</label>
+                          <input type="email" name="email" id="addEmail" class="form-control" placeholder="contoh@domain.com">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNamaSuami">Nama Suami</label>
+                          <input type="text" name="nama_suami" id="addNamaSuami" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJumlahAnak">Jumlah Anak</label>
+                          <input type="number" name="jumlah_anak" id="addJumlahAnak" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addSalaryIndex">Salary Index ID</label>
+                          <input type="number" name="salary_index_id" id="addSalaryIndex" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="addNamaAnak1">Nama Anak 1</label>
+                          <input type="text" name="nama_anak_1" id="addNamaAnak1" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="addNamaAnak2">Nama Anak 2</label>
+                          <input type="text" name="nama_anak_2" id="addNamaAnak2" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="addNamaAnak3">Nama Anak 3</label>
+                          <input type="text" name="nama_anak_3" id="addNamaAnak3" class="form-control">
+                      </div>
+                  </div>
+              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
@@ -793,10 +952,10 @@ function updateGajiPokok($conn) {
       </div>
     </div>
 
-    <!-- MODAL: Edit Guru/Karyawan (sama seperti sebelumnya) -->
+    <!-- MODAL: Edit Guru/Karyawan (Grid Form) -->
     <div class="modal fade" id="modalEdit" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form id="edit-guru-form" class="needs-validation" novalidate>
+        <form id="edit-guru-form" method="POST" class="needs-validation" novalidate>
           <input type="hidden" name="case" value="UpdateGuru">
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <input type="hidden" name="id" id="editId">
@@ -808,80 +967,225 @@ function updateGajiPokok($conn) {
               </button>
             </div>
             <div class="modal-body">
-              <!-- Field input edit (disesuaikan) -->
-              <!-- Contoh: NIP, Nama, Jenjang, Job Title, Status Kerja, Join Start, Masa Kerja, Pendidikan, Email, No HP, Gaji Pokok, dsb. -->
-              <div class="form-group">
-                  <label for="editNip">NIP <span class="text-danger">*</span></label>
-                  <input type="text" name="nip" id="editNip" class="form-control" required>
-                  <div class="invalid-feedback">NIP wajib diisi.</div>
-              </div>
-              <div class="form-group">
-                  <label for="editUid">UID</label>
-                  <input type="text" name="uid" id="editUid" class="form-control" readonly>
-              </div>
-              <div class="form-group">
-                  <label for="editNama">Nama <span class="text-danger">*</span></label>
-                  <input type="text" name="nama" id="editNama" class="form-control" required>
-                  <div class="invalid-feedback">Nama wajib diisi.</div>
-              </div>
-              <div class="form-group">
-                  <label for="editJenjang">Jenjang <span class="text-danger">*</span></label>
-                  <select name="jenjang" id="editJenjang" class="form-control" required>
-                      <option value="">-- Pilih Jenjang --</option>
-                      <option value="TK">TK</option>
-                      <option value="SD">SD</option>
-                      <option value="SMP">SMP</option>
-                      <option value="SMA">SMA</option>
-                      <option value="SMK">SMK</option>
-                  </select>
-              </div>
-              <div class="form-group">
-                  <label for="editJobTitle">Job Title</label>
-                  <input type="text" name="job_title" id="editJobTitle" class="form-control">
-              </div>
-              <div class="form-group">
-                  <label for="editStatus">Status Kerja <span class="text-danger">*</span></label>
-                  <select name="status" id="editStatus" class="form-control" required>
-                      <option value="">-- Pilih Status --</option>
-                      <option value="Tetap">Tetap</option>
-                      <option value="Kontrak">Kontrak</option>
-                  </select>
-              </div>
-              <div class="form-group">
-                  <label for="editJoinStart">Join Start</label>
-                  <input type="date" name="join_start" id="editJoinStart" class="form-control">
-              </div>
-              <div class="form-group">
-                  <label>Masa Kerja</label>
-                  <div class="form-row">
-                      <div class="col">
-                          <input type="number" name="masa_kerja_year" id="editMasaKerjaYear" class="form-control" placeholder="Tahun" readonly>
+              <!-- Gunakan grid 2 kolom -->
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editNip">NIP <span class="text-danger">*</span></label>
+                          <input type="text" name="nip" id="editNip" class="form-control" required>
+                          <div class="invalid-feedback">NIP wajib diisi.</div>
                       </div>
-                      <div class="col">
-                          <input type="number" name="masa_kerja_month" id="editMasaKerjaMonth" class="form-control" placeholder="Bulan" readonly>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editUid">UID</label>
+                          <input type="text" name="uid" id="editUid" class="form-control" readonly>
                       </div>
                   </div>
               </div>
-              <div class="form-group">
-                  <label for="editPendidikan">Pendidikan</label>
-                  <input type="text" name="pendidikan" id="editPendidikan" class="form-control">
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editNama">Nama <span class="text-danger">*</span></label>
+                          <input type="text" name="nama" id="editNama" class="form-control" required>
+                          <div class="invalid-feedback">Nama wajib diisi.</div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editJenjang">Jenjang <span class="text-danger">*</span></label>
+                          <!-- Pastikan value yang dipilih sesuai dengan opsi -->
+                          <select name="jenjang" id="editJenjang" class="form-control" required>
+                              <option value="">-- Pilih Jenjang --</option>
+                              <option value="TK">TK</option>
+                              <option value="SD">SD</option>
+                              <option value="SMP">SMP</option>
+                              <option value="SMA">SMA</option>
+                              <option value="SMK">SMK</option>
+                          </select>
+                      </div>
+                  </div>
               </div>
-              <div class="form-group">
-                  <label for="editEmail">Email</label>
-                  <input type="email" name="email" id="editEmail" class="form-control">
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editJobTitle">Job Title</label>
+                          <input type="text" name="job_title" id="editJobTitle" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editStatus">Status Kerja <span class="text-danger">*</span></label>
+                          <select name="status" id="editStatus" class="form-control" required>
+                              <option value="">-- Pilih Status --</option>
+                              <option value="Tetap">Tetap</option>
+                              <option value="Kontrak">Kontrak</option>
+                          </select>
+                      </div>
+                  </div>
               </div>
-              <div class="form-group">
-                  <label for="editNoHP">No HP</label>
-                  <input type="text" name="no_hp" id="editNoHP" class="form-control">
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editJoinStart">Join Start</label>
+                          <input type="date" name="join_start" id="editJoinStart" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <label>Masa Kerja</label>
+                      <div class="row">
+                          <div class="col">
+                              <input type="number" name="masa_kerja_year" id="editMasaKerjaYear" class="form-control" placeholder="Tahun" readonly>
+                          </div>
+                          <div class="col">
+                              <input type="number" name="masa_kerja_month" id="editMasaKerjaMonth" class="form-control" placeholder="Bulan" readonly>
+                          </div>
+                      </div>
+                  </div>
               </div>
-              <div class="form-group">
-                  <label for="editGajiPokok">Gaji Pokok</label>
-                  <input type="number" name="gaji_pokok" id="editGajiPokok" class="form-control" min="0" step="0.01" required>
+              <hr>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editRemark">Remark</label>
+                          <textarea name="remark" id="editRemark" class="form-control"></textarea>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editJK">Jenis Kelamin</label>
+                          <!-- Gunakan key "jk" yang sudah dipetakan -->
+                          <select name="jk" id="editJK" class="form-control">
+                              <option value="">-- Pilih Jenis Kelamin --</option>
+                              <option value="Laki-laki">Laki-laki</option>
+                              <option value="Perempuan">Perempuan</option>
+                          </select>
+                      </div>
+                  </div>
               </div>
-              <div class="form-group">
-                  <label for="editPassword">Password Baru (Opsional)</label>
-                  <input type="password" name="password" id="editPassword" class="form-control" placeholder="Isi jika ingin mengubah password">
-                  <small class="form-text text-muted">Kosongkan jika tidak ingin mengubah password.</small>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editTglLahir">Tanggal Lahir</label>
+                          <input type="date" name="tgl_lahir" id="editTglLahir" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editUsia">Usia</label>
+                          <input type="number" name="usia" id="editUsia" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editReligion">Agama</label>
+                          <!-- Gunakan key "religion" yang sudah dipetakan -->
+                          <input type="text" name="religion" id="editReligion" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editAlamatDomisili">Alamat Domisili</label>
+                          <textarea name="alamat_domisili" id="editAlamatDomisili" class="form-control"></textarea>
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editAlamatKTP">Alamat KTP</label>
+                          <textarea name="alamat_ktp" id="editAlamatKTP" class="form-control"></textarea>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editNoRekening">No Rekening</label>
+                          <input type="text" name="no_rekening" id="editNoRekening" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editNoHP">No HP</label>
+                          <input type="text" name="no_hp" id="editNoHP" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editPendidikan">Pendidikan</label>
+                          <input type="text" name="pendidikan" id="editPendidikan" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editMarital">Status Pernikahan</label>
+                          <!-- Ambil nilai dari kolom status_perkawinan -->
+                          <input type="text" name="marital" id="editMarital" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editEmail">Email</label>
+                          <input type="email" name="email" id="editEmail" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editNamaSuami">Nama Suami</label>
+                          <input type="text" name="nama_suami" id="editNamaSuami" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editJumlahAnak">Jumlah Anak</label>
+                          <input type="number" name="jumlah_anak" id="editJumlahAnak" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="editSalaryIndex">Salary Index ID</label>
+                          <input type="number" name="salary_index_id" id="editSalaryIndex" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="editNamaAnak1">Nama Anak 1</label>
+                          <input type="text" name="nama_anak_1" id="editNamaAnak1" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="editNamaAnak2">Nama Anak 2</label>
+                          <input type="text" name="nama_anak_2" id="editNamaAnak2" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="editNamaAnak3">Nama Anak 3</label>
+                          <input type="text" name="nama_anak_3" id="editNamaAnak3" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <hr>
+              <div class="row">
+                  <div class="col-md-12">
+                      <div class="form-group">
+                          <label for="editPassword">Password Baru (Opsional)</label>
+                          <input type="password" name="password" id="editPassword" class="form-control" placeholder="Isi jika ingin mengubah password">
+                          <small class="form-text text-muted">Kosongkan jika tidak ingin mengubah password.</small>
+                      </div>
+                  </div>
               </div>
             </div>
             <div class="modal-footer">
@@ -896,7 +1200,7 @@ function updateGajiPokok($conn) {
       </div>
     </div>
 
-    <!-- MODAL: View Detail Guru/Karyawan (read-only) -->
+    <!-- MODAL: View Detail Guru/Karyawan (menggunakan label yang sama seperti form edit) -->
     <div class="modal fade" id="modalView" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -907,11 +1211,8 @@ function updateGajiPokok($conn) {
             </button>
           </div>
           <div class="modal-body">
-            <!-- Tampilkan data detail dalam format tabel -->
-            <table class="table table-bordered">
-              <tbody id="detailContent">
-                <!-- Data detail akan diisi via AJAX -->
-              </tbody>
+            <!-- Detail tampilkan dalam grid table -->
+            <table class="table table-bordered" id="detailContent">
             </table>
           </div>
           <div class="modal-footer">
@@ -921,7 +1222,7 @@ function updateGajiPokok($conn) {
       </div>
     </div>
 
-    <!-- MODAL: Delete Guru/Karyawan (sama seperti sebelumnya) -->
+    <!-- MODAL: Delete Guru/Karyawan -->
     <div class="modal fade" id="modalDelete" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog">
         <form id="delete-guru-form" class="modal-content">
@@ -951,7 +1252,7 @@ function updateGajiPokok($conn) {
       </div>
     </div>
 
-    <!-- MODAL: Atur Gaji Pokok (sama seperti sebelumnya) -->
+    <!-- MODAL: Atur Gaji Pokok -->
     <div class="modal fade" id="modalGajiPokok" tabindex="-1" role="dialog" aria-hidden="true">
       <div class="modal-dialog modal-md">
         <form id="gaji-pokok-form" method="POST" class="modal-content">
@@ -1002,10 +1303,29 @@ function updateGajiPokok($conn) {
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
-    $(document).ready(function() {
-        const csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
+    // Inisialisasi SweetAlert2 Toast
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+    function showToast(message, icon = 'success') {
+        Toast.fire({
+            icon: icon,
+            title: message
+        });
+    }
 
-        // Inisialisasi DataTable versi ringkas
+    $(document).ready(function() {
+        var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
+
+        // Inisialisasi DataTable
         var guruTable = $('#guruTable').DataTable({
             processing: true,
             serverSide: true,
@@ -1024,7 +1344,7 @@ function updateGajiPokok($conn) {
                     $('#loadingSpinner').hide();
                 },
                 error: function(){
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat memuat data.' });
+                    showToast('Terjadi kesalahan saat memuat data.', 'error');
                 }
             },
             columns: [
@@ -1040,7 +1360,6 @@ function updateGajiPokok($conn) {
                 { data: "pendidikan" },
                 { data: "email" },
                 { data: "no_hp" },
-                { data: "gaji_pokok" },
                 { data: "aksi", orderable: false }
             ],
             language: {
@@ -1094,11 +1413,11 @@ function updateGajiPokok($conn) {
                 },
                 success: function(response){
                     if(response.code === 0){
-                        Swal.fire({ icon: 'success', title: 'Filter diterapkan' });
+                        showToast('Filter diterapkan.');
                     }
                 },
                 error: function(){
-                    Swal.fire({ icon: 'warning', title: 'Warning', text: 'Gagal mencatat audit log.' });
+                    showToast('Gagal mencatat audit log.', 'error');
                 }
             });
             guruTable.ajax.reload();
@@ -1117,11 +1436,11 @@ function updateGajiPokok($conn) {
                 },
                 success: function(response){
                     if(response.code === 0){
-                        Swal.fire({ icon: 'success', title: 'Filter direset' });
+                        showToast('Filter direset.');
                     }
                 },
                 error: function(){
-                    Swal.fire({ icon: 'warning', title: 'Warning', text: 'Gagal mencatat audit log.' });
+                    showToast('Gagal mencatat audit log.', 'error');
                 }
             });
             guruTable.ajax.reload();
@@ -1150,24 +1469,24 @@ function updateGajiPokok($conn) {
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
                     if(response.code == 0) {
-                        Swal.fire({ icon: 'success', title: response.result });
+                        showToast(response.result);
                         $('#modalAdd').modal('hide');
                         guruTable.ajax.reload(null, false);
                         form[0].reset();
                         form.removeClass('was-validated');
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: response.result });
+                        showToast(response.result, 'error');
                     }
                 },
                 error: function(){
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menambah data.' });
+                    showToast('Terjadi kesalahan saat menambah data.', 'error');
                 }
             });
         });
 
-        // Tombol View Detail: gunakan modal view untuk menampilkan data lengkap
+        // Tombol View Detail
         $(document).on('click', '.btn-view', function() {
             var id = $(this).data('id');
             $.ajax({
@@ -1181,45 +1500,51 @@ function updateGajiPokok($conn) {
                 success: function(response) {
                     $('#loadingSpinner').hide();
                     if(response.code == 0) {
-                        // Susun data detail ke dalam format HTML
-                        var detailHtml = '<tr><th>ID</th><td>' + response.result.id + '</td></tr>' +
-                            '<tr><th>UID</th><td>' + response.result.uid + '</td></tr>' +
-                            '<tr><th>NIP</th><td>' + response.result.nip + '</td></tr>' +
-                            '<tr><th>Nama</th><td>' + response.result.nama + '</td></tr>' +
-                            '<tr><th>Jenjang</th><td>' + response.result.jenjang + '</td></tr>' +
-                            '<tr><th>Job Title</th><td>' + response.result.job_title + '</td></tr>' +
-                            '<tr><th>Status Kerja</th><td>' + response.result.status_kerja + '</td></tr>' +
-                            '<tr><th>Join Start</th><td>' + (response.result.join_start ? response.result.join_start : '-') + '</td></tr>' +
-                            '<tr><th>Masa Kerja Tahun</th><td>' + response.result.masa_kerja_tahun + '</td></tr>' +
-                            '<tr><th>Masa Kerja Bulan</th><td>' + response.result.masa_kerja_bulan + '</td></tr>' +
-                            '<tr><th>Remark</th><td>' + response.result.remark + '</td></tr>' +
-                            '<tr><th>Jenis Kelamin</th><td>' + response.result.jenis_kelamin + '</td></tr>' +
-                            '<tr><th>Tanggal Lahir</th><td>' + (response.result.tanggal_lahir ? response.result.tanggal_lahir : '-') + '</td></tr>' +
-                            '<tr><th>Usia</th><td>' + response.result.usia + '</td></tr>' +
-                            '<tr><th>Agama</th><td>' + response.result.agama + '</td></tr>' +
-                            '<tr><th>Alamat Domisili</th><td>' + response.result.alamat_domisili + '</td></tr>' +
-                            '<tr><th>Alamat KTP</th><td>' + response.result.alamat_ktp + '</td></tr>' +
-                            '<tr><th>No Rekening</th><td>' + response.result.no_rekening + '</td></tr>' +
-                            '<tr><th>No HP</th><td>' + response.result.no_hp + '</td></tr>' +
-                            '<tr><th>Pendidikan</th><td>' + response.result.pendidikan + '</td></tr>' +
-                            '<tr><th>Status Pernikahan</th><td>' + response.result.status_perkawinan + '</td></tr>' +
-                            '<tr><th>Email</th><td>' + response.result.email + '</td></tr>' +
-                            '<tr><th>Nama Suami</th><td>' + response.result.nama_suami + '</td></tr>' +
-                            '<tr><th>Jumlah Anak</th><td>' + response.result.jumlah_anak + '</td></tr>' +
-                            '<tr><th>Nama Anak 1</th><td>' + response.result.nama_anak_1 + '</td></tr>' +
-                            '<tr><th>Nama Anak 2</th><td>' + response.result.nama_anak_2 + '</td></tr>' +
-                            '<tr><th>Nama Anak 3</th><td>' + response.result.nama_anak_3 + '</td></tr>' +
-                            '<tr><th>Salary Index ID</th><td>' + response.result.salary_index_id + '</td></tr>' +
-                            '<tr><th>Gaji Pokok</th><td>' + response.result.gaji_pokok + '</td></tr>';
+                        // Mapping field ke label yang sesuai dengan form edit
+                        const fieldLabels = {
+                            nip: "NIP",
+                            uid: "UID",
+                            nama: "Nama",
+                            jenjang: "Jenjang",
+                            job_title: "Job Title",
+                            status_kerja: "Status Kerja",
+                            join_start: "Join Start",
+                            masa_kerja_tahun: "Masa Kerja (Tahun)",
+                            masa_kerja_bulan: "Masa Kerja (Bulan)",
+                            remark: "Remark",
+                            jk: "Jenis Kelamin",
+                            tanggal_lahir: "Tanggal Lahir",
+                            usia: "Usia",
+                            religion: "Agama",
+                            alamat_domisili: "Alamat Domisili",
+                            alamat_ktp: "Alamat KTP",
+                            no_rekening: "No Rekening",
+                            no_hp: "No HP",
+                            pendidikan: "Pendidikan",
+                            status_perkawinan: "Status Pernikahan",
+                            email: "Email",
+                            nama_suami: "Nama Suami",
+                            jumlah_anak: "Jumlah Anak",
+                            nama_anak_1: "Nama Anak 1",
+                            nama_anak_2: "Nama Anak 2",
+                            nama_anak_3: "Nama Anak 3",
+                            salary_index_id: "Salary Index ID"
+                        };
+                        var detailHtml = '';
+                        for (var key in fieldLabels) {
+                            if(response.result.hasOwnProperty(key)) {
+                                detailHtml += '<tr><th>' + fieldLabels[key] + '</th><td>' + response.result[key] + '</td></tr>';
+                            }
+                        }
                         $('#detailContent').html(detailHtml);
                         $('#modalView').modal('show');
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: response.result });
+                        showToast(response.result, 'error');
                     }
                 },
                 error: function(){
                     $('#loadingSpinner').hide();
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat mengambil detail.' });
+                    showToast('Terjadi kesalahan saat mengambil detail.', 'error');
                 }
             });
         });
@@ -1244,28 +1569,42 @@ function updateGajiPokok($conn) {
                     if(response.code == 0) {
                         $('#editId').val(response.result.id);
                         $('#editNip').val(response.result.nip);
-                        if(response.result.uid){
-                            $('#editUid').val(response.result.uid);
-                        }
+                        $('#editUid').val(response.result.uid);
                         $('#editNama').val(response.result.nama);
-                        $('#editJenjang').val(response.result.jenjang);
+                        $('#editJenjang').val(response.result.jenjang.toUpperCase());
                         $('#editJobTitle').val(response.result.job_title);
                         $('#editStatus').val(response.result.status_kerja);
                         $('#editJoinStart').val(response.result.join_start);
                         $('#editMasaKerjaYear').val(response.result.masa_kerja_tahun);
                         $('#editMasaKerjaMonth').val(response.result.masa_kerja_bulan);
-                        $('#editPendidikan').val(response.result.pendidikan);
-                        $('#editEmail').val(response.result.email);
+                        $('#editRemark').val(response.result.remark);
+                        // Gunakan key "jk" yang telah dipetakan (hasil dari DB "jenis_kelamin")
+                        $('#editJK').val(response.result.jk ? response.result.jk.trim() : '');
+                        $('#editTglLahir').val(response.result.tanggal_lahir);
+                        $('#editUsia').val(response.result.usia);
+                        // Gunakan key "religion" yang telah dipetakan (hasil dari DB "agama")
+                        $('#editReligion').val(response.result.religion ? response.result.religion.trim() : '');
+                        $('#editAlamatDomisili').val(response.result.alamat_domisili);
+                        $('#editAlamatKTP').val(response.result.alamat_ktp);
+                        $('#editNoRekening').val(response.result.no_rekening);
                         $('#editNoHP').val(response.result.no_hp);
-                        $('#editGajiPokok').val(response.result.gaji_pokok);
+                        $('#editPendidikan').val(response.result.pendidikan);
+                        $('#editMarital').val(response.result.status_perkawinan);
+                        $('#editEmail').val(response.result.email);
+                        $('#editNamaSuami').val(response.result.nama_suami);
+                        $('#editJumlahAnak').val(response.result.jumlah_anak);
+                        $('#editNamaAnak1').val(response.result.nama_anak_1);
+                        $('#editNamaAnak2').val(response.result.nama_anak_2);
+                        $('#editNamaAnak3').val(response.result.nama_anak_3);
+                        $('#editSalaryIndex').val(response.result.salary_index_id);
                         modal.modal('show');
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: response.result });
+                        showToast(response.result, 'error');
                     }
                 },
                 error: function(){
                     $('#loadingSpinner').hide();
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat mengambil detail.' });
+                    showToast('Terjadi kesalahan saat mengambil detail.', 'error');
                 }
             });
         });
@@ -1283,7 +1622,7 @@ function updateGajiPokok($conn) {
             e.preventDefault();
             var id = $('#delId').val();
             if (!id) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'ID tidak ditemukan.' });
+                showToast('ID tidak ditemukan.', 'error');
                 return;
             }
             $.ajax({
@@ -1297,16 +1636,54 @@ function updateGajiPokok($conn) {
                 success: function(response) {
                     $('#delete-guru-form').find('button[type="submit"]').prop('disabled', false);
                     if(response.code == 0) {
-                        Swal.fire({ icon: 'success', title: response.result });
+                        showToast(response.result);
                         $('#modalDelete').modal('hide');
                         guruTable.ajax.reload(null, false);
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: response.result });
+                        showToast(response.result, 'error');
                     }
                 },
                 error: function(){
                     $('#delete-guru-form').find('button[type="submit"]').prop('disabled', false);
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menghapus data.' });
+                    showToast('Terjadi kesalahan saat menghapus data.', 'error');
+                }
+            });
+        });
+
+        // Proses form Edit via AJAX
+        $('#edit-guru-form').on('submit', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                form.addClass('was-validated');
+                return;
+            }
+            var formData = form.serialize();
+            $.ajax({
+                url: "manage_guru_karyawan.php?ajax=1",
+                type: "POST",
+                data: formData,
+                dataType: "json",
+                beforeSend: function(){
+                    form.find('button[type="submit"]').prop('disabled', true);
+                    form.find('.spinner-border').removeClass('d-none');
+                },
+                success: function(response){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    if(response.code == 0) {
+                        showToast(response.result);
+                        $('#modalEdit').modal('hide');
+                        guruTable.ajax.reload(null, false);
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    showToast('Terjadi kesalahan saat mengupdate data.', 'error');
                 }
             });
         });
@@ -1394,15 +1771,15 @@ function updateGajiPokok($conn) {
                 success: function(response){
                     form.find('button[type="submit"]').prop('disabled', false);
                     if(response.code == 0) {
-                        Swal.fire({ icon: 'success', title: response.result });
+                        showToast(response.result);
                         $('#modalGajiPokok').modal('hide');
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: response.result });
+                        showToast(response.result, 'error');
                     }
                 },
                 error: function(){
                     form.find('button[type="submit"]').prop('disabled', false);
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat mengupdate gaji pokok.' });
+                    showToast('Terjadi kesalahan saat mengupdate gaji pokok.', 'error');
                 }
             });
         });
