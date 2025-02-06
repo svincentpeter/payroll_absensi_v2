@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 02, 2025 at 04:10 PM
+-- Generation Time: Feb 05, 2025 at 04:03 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -31,7 +31,7 @@ CREATE TABLE `absensi` (
   `id` int(11) NOT NULL,
   `tanggal` date NOT NULL,
   `jadwal` varchar(50) DEFAULT NULL,
-  `jam_kerja` varchar(20) DEFAULT NULL,
+  `jam_kerja` varchar(50) DEFAULT NULL,
   `valid` tinyint(1) DEFAULT 0,
   `pin` varchar(50) DEFAULT NULL,
   `nip` varchar(50) DEFAULT NULL,
@@ -58,6 +58,7 @@ CREATE TABLE `absensi` (
 
 CREATE TABLE `anggota_sekolah` (
   `id` int(11) NOT NULL,
+  `uid` varchar(10) NOT NULL,
   `nip` varchar(20) NOT NULL,
   `password` varchar(255) NOT NULL,
   `nama` varchar(100) NOT NULL,
@@ -81,11 +82,13 @@ CREATE TABLE `anggota_sekolah` (
   `email` varchar(100) DEFAULT NULL,
   `nama_suami` varchar(100) DEFAULT NULL,
   `jumlah_anak` int(11) DEFAULT 0,
-  `nama_anak_1` varchar(100) DEFAULT NULL,
-  `nama_anak_2` varchar(100) DEFAULT NULL,
-  `nama_anak_3` varchar(100) DEFAULT NULL,
+  `nama_anak_1` varchar(100) NOT NULL DEFAULT '',
+  `nama_anak_2` varchar(100) NOT NULL DEFAULT '',
+  `nama_anak_3` varchar(100) NOT NULL DEFAULT '',
   `salary_index_id` int(11) DEFAULT NULL,
-  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00
+  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `foto_profil` varchar(255) DEFAULT 'default.jpg',
+  `role` enum('P','TK','M') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -141,6 +144,20 @@ CREATE TABLE `holidays` (
   `holiday_desc` text DEFAULT NULL,
   `holiday_date` date NOT NULL,
   `holiday_type` enum('wajib','opsional') NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `message` text NOT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -261,17 +278,11 @@ CREATE TABLE `users` (
 --
 
 --
--- Indexes for table `absensi`
---
-ALTER TABLE `absensi`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `id_anggota` (`id_anggota`);
-
---
 -- Indexes for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uid` (`uid`),
   ADD KEY `salary_index_id` (`salary_index_id`);
 
 --
@@ -301,6 +312,13 @@ ALTER TABLE `holidays`
   ADD PRIMARY KEY (`holiday_id`);
 
 --
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_id` (`user_id`);
+
+--
 -- Indexes for table `payheads`
 --
 ALTER TABLE `payheads`
@@ -323,13 +341,6 @@ ALTER TABLE `payroll_detail`
   ADD KEY `idx_payhead` (`id_payhead`);
 
 --
--- Indexes for table `rekap_absensi`
---
-ALTER TABLE `rekap_absensi`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `id_anggota` (`id_anggota`);
-
---
 -- Indexes for table `salary_indices`
 --
 ALTER TABLE `salary_indices`
@@ -345,12 +356,6 @@ ALTER TABLE `users`
 --
 -- AUTO_INCREMENT for dumped tables
 --
-
---
--- AUTO_INCREMENT for table `absensi`
---
-ALTER TABLE `absensi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `anggota_sekolah`
@@ -371,6 +376,12 @@ ALTER TABLE `holidays`
   MODIFY `holiday_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `payheads`
 --
 ALTER TABLE `payheads`
@@ -381,79 +392,6 @@ ALTER TABLE `payheads`
 --
 ALTER TABLE `payroll`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `payroll_detail`
---
-ALTER TABLE `payroll_detail`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `rekap_absensi`
---
-ALTER TABLE `rekap_absensi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `salary_indices`
---
-ALTER TABLE `salary_indices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id_user` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `absensi`
---
-ALTER TABLE `absensi`
-  ADD CONSTRAINT `absensi_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `anggota_sekolah`
---
-ALTER TABLE `anggota_sekolah`
-  ADD CONSTRAINT `fk_salary_index` FOREIGN KEY (`salary_index_id`) REFERENCES `salary_indices` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-
---
--- Constraints for table `audit_logs`
---
-ALTER TABLE `audit_logs`
-  ADD CONSTRAINT `fk_audit_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id_user`) ON DELETE SET NULL ON UPDATE CASCADE;
-
---
--- Constraints for table `employee_payheads`
---
-ALTER TABLE `employee_payheads`
-  ADD CONSTRAINT `employee_payheads_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `employee_payheads_ibfk_2` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `payroll`
---
-ALTER TABLE `payroll`
-  ADD CONSTRAINT `payroll_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `payroll_ibfk_2` FOREIGN KEY (`id_rekap_absensi`) REFERENCES `rekap_absensi` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `payroll_detail`
---
-ALTER TABLE `payroll_detail`
-  ADD CONSTRAINT `payroll_detail_ibfk_1` FOREIGN KEY (`id_payroll`) REFERENCES `payroll` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `payroll_detail_ibfk_2` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `rekap_absensi`
---
-ALTER TABLE `rekap_absensi`
-  ADD CONSTRAINT `rekap_absensi_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 02, 2025 at 04:10 PM
+-- Generation Time: Feb 05, 2025 at 05:55 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -31,7 +31,7 @@ CREATE TABLE `absensi` (
   `id` int(11) NOT NULL,
   `tanggal` date NOT NULL,
   `jadwal` varchar(50) DEFAULT NULL,
-  `jam_kerja` varchar(20) DEFAULT NULL,
+  `jam_kerja` varchar(50) DEFAULT NULL,
   `valid` tinyint(1) DEFAULT 0,
   `pin` varchar(50) DEFAULT NULL,
   `nip` varchar(50) DEFAULT NULL,
@@ -55,20 +55,130 @@ CREATE TABLE `absensi` (
 --
 
 INSERT INTO `absensi` (`id`, `tanggal`, `jadwal`, `jam_kerja`, `valid`, `pin`, `nip`, `nama`, `departemen`, `lembur`, `jam_masuk`, `scan_masuk`, `terlambat`, `scan_istirahat_1`, `scan_istirahat_2`, `jam_pulang`, `scan_pulang`, `jenis_absensi`, `status_kehadiran`, `id_anggota`) VALUES
-(1, '2024-12-09', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-09 06:32:20', 0, '2024-12-09 00:00:00', '2024-12-09 00:00:00', '14:45:00', '2024-12-09 15:24:42', '-', 'hadir', 5),
-(2, '2024-12-10', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-10 06:19:18', 0, '2024-12-10 00:00:00', '2024-12-10 00:00:00', '14:45:00', '2024-12-10 13:19:41', '-', 'hadir', 5),
-(3, '2024-12-11', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-11 06:07:54', 0, '2024-12-11 00:00:00', '2024-12-11 00:00:00', '14:45:00', '2024-12-11 15:16:17', '-', 'hadir', 5),
-(4, '2024-12-12', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-12 06:26:41', 0, '2024-12-12 00:00:00', '2024-12-12 00:00:00', '14:45:00', '2024-12-12 15:41:13', '-', 'hadir', 5),
-(5, '2024-12-13', 'Guru', 'Jum\'at - Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-13 06:23:05', 0, '2024-12-13 00:00:00', '2024-12-13 00:00:00', '13:30:00', '2024-12-13 16:24:13', '-', 'hadir', 5),
-(6, '2024-12-14', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2024-12-14 00:00:00', 0, '2024-12-14 00:00:00', '2024-12-14 00:00:00', '00:00:00', '2024-12-14 00:00:00', '-', 'hadir', 5),
-(7, '2024-12-15', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2024-12-15 00:00:00', 0, '2024-12-15 00:00:00', '2024-12-15 00:00:00', '00:00:00', '2024-12-15 00:00:00', '-', 'hadir', 5),
-(8, '2024-12-09', 'Karyawan', 'Senin - Jum\'at Karya', 0, '101078', '101078', 'tjendana', '', 0, '08:00:00', '2024-12-09 08:11:00', 1, '2024-12-09 00:00:00', '2024-12-09 00:00:00', '16:00:00', '2024-12-09 17:07:00', 'Normal', 'hadir', 4),
-(9, '2024-12-10', 'Karyawan', 'Senin - Jum\'at Karya', 0, '101078', '101078', 'tjendana', 'TK', 0, '08:00:00', '2024-12-10 07:58:32', 0, '2024-12-10 00:00:00', '2024-12-10 00:00:00', '16:00:00', '2024-12-10 17:03:17', '-', 'hadir', 4),
-(10, '2024-12-11', 'Karyawan', 'Senin - Jum\'at Karya', 0, '101078', '101078', 'tjendana', 'TK', 0, '08:00:00', '2024-12-11 07:40:53', 0, '2024-12-11 00:00:00', '2024-12-11 00:00:00', '16:00:00', '2024-12-11 17:11:05', '-', 'hadir', 4),
-(11, '2024-12-12', 'Karyawan', 'Senin - Jum\'at Karya', 0, '101078', '101078', 'tjendana', 'TK', 0, '08:00:00', '2024-12-12 07:38:58', 0, '2024-12-12 00:00:00', '2024-12-12 00:00:00', '16:00:00', '2024-12-12 17:04:15', '-', 'hadir', 4),
-(12, '2024-12-13', 'Karyawan', 'Senin - Jum\'at Karya', 0, '101078', '101078', 'tjendana', 'TK', 0, '08:00:00', '2024-12-13 07:53:11', 0, '2024-12-13 00:00:00', '2024-12-13 00:00:00', '16:00:00', '2024-12-13 17:13:27', '-', 'hadir', 4),
-(13, '2024-12-14', 'Karyawan', 'Libur Rutin', 0, '101078', '101078', 'tjendana', 'TK', 0, '00:00:00', '2024-12-14 00:00:00', 0, '2024-12-14 00:00:00', '2024-12-14 00:00:00', '00:00:00', '2024-12-14 00:00:00', '-', 'hadir', 4),
-(14, '2024-12-15', 'Karyawan', 'Libur Rutin', 0, '101078', '101078', 'tjendana', 'TK', 0, '00:00:00', '2024-12-15 00:00:00', 0, '2024-12-15 00:00:00', '2024-12-15 00:00:00', '00:00:00', '2024-12-15 00:00:00', '-', 'hadir', 4);
+(0, '2024-12-01', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-01', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-02', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-02 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-02 14:50:00', '-', 'cuti', 1),
+(0, '2024-12-02', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-02 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-02 14:50:00', '-', 'cuti', 2),
+(0, '2024-12-03', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-03 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-03 14:50:00', '-', 'hadir', 1),
+(0, '2024-12-03', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-03 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-03 14:50:00', '-', 'cuti', 2),
+(0, '2024-12-04', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-04 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-04 14:50:00', '-', 'tanpa_keterangan', 1),
+(0, '2024-12-04', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-04 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-04 14:50:00', '-', 'hadir', 2),
+(0, '2024-12-05', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-05 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-05 14:50:00', '-', 'tanpa_keterangan', 1),
+(0, '2024-12-05', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-05 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-05 14:50:00', '-', 'tanpa_keterangan', 2),
+(0, '2024-12-06', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-06 06:33:00', 0, NULL, NULL, '13:30:00', '2024-12-06 13:35:00', '-', 'cuti', 1),
+(0, '2024-12-06', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-06 06:33:00', 0, NULL, NULL, '13:30:00', '2024-12-06 13:35:00', '-', 'tanpa_keterangan', 2),
+(0, '2024-12-07', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-07', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-08', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-08', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-09', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-09 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-09 14:50:00', '-', 'sakit', 1),
+(0, '2024-12-09', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-09 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-09 14:50:00', '-', 'tanpa_keterangan', 2),
+(0, '2024-12-10', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-10 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-10 14:50:00', '-', 'hadir', 1),
+(0, '2024-12-10', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-10 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-10 14:50:00', '-', 'hadir', 2),
+(0, '2024-12-11', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-11 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-11 14:50:00', '-', 'cuti', 1),
+(0, '2024-12-11', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-11 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-11 14:50:00', '-', 'tanpa_keterangan', 2),
+(0, '2024-12-12', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-12 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-12 14:50:00', '-', 'tanpa_keterangan', 1),
+(0, '2024-12-12', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-12 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-12 14:50:00', '-', 'tanpa_keterangan', 2),
+(0, '2024-12-13', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-13 06:33:00', 0, NULL, NULL, '13:30:00', '2024-12-13 13:35:00', '-', 'cuti', 1),
+(0, '2024-12-13', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-13 06:33:00', 0, NULL, NULL, '13:30:00', '2024-12-13 13:35:00', '-', 'cuti', 2),
+(0, '2024-12-14', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-14', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-15', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-15', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-16', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-16 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-16 14:50:00', '-', 'sakit', 1),
+(0, '2024-12-16', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-16 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-16 14:50:00', '-', 'izin', 2),
+(0, '2024-12-17', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-17 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-17 14:50:00', '-', 'tanpa_keterangan', 1),
+(0, '2024-12-17', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-17 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-17 14:50:00', '-', 'izin', 2),
+(0, '2024-12-18', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-18 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-18 14:50:00', '-', 'hadir', 1),
+(0, '2024-12-18', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-18 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-18 14:50:00', '-', 'cuti', 2),
+(0, '2024-12-19', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-19 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-19 14:50:00', '-', 'cuti', 1),
+(0, '2024-12-19', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-19 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-19 14:50:00', '-', 'tanpa_keterangan', 2),
+(0, '2024-12-20', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-20 06:33:00', 0, NULL, NULL, '13:30:00', '2024-12-20 13:35:00', '-', 'cuti', 1),
+(0, '2024-12-20', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-20 06:33:00', 0, NULL, NULL, '13:30:00', '2024-12-20 13:35:00', '-', 'cuti', 2),
+(0, '2024-12-21', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-21', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-22', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-22', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-23', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-23 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-23 14:50:00', '-', 'izin', 1),
+(0, '2024-12-23', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-23 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-23 14:50:00', '-', 'cuti', 2),
+(0, '2024-12-24', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-24 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-24 14:50:00', '-', 'izin', 1),
+(0, '2024-12-24', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-24 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-24 14:50:00', '-', 'sakit', 2),
+(0, '2024-12-25', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-25 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-25 14:50:00', '-', 'izin', 1),
+(0, '2024-12-25', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-25 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-25 14:50:00', '-', 'cuti', 2),
+(0, '2024-12-26', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-26 06:32:00', 1, NULL, NULL, '14:45:00', '2024-12-26 14:50:00', '-', 'tanpa_keterangan', 1),
+(0, '2024-12-26', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-26 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-26 14:50:00', '-', 'cuti', 2),
+(0, '2024-12-27', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-27 06:33:00', 0, NULL, NULL, '13:30:00', '2024-12-27 13:35:00', '-', 'izin', 1),
+(0, '2024-12-27', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-27 06:33:00', 0, NULL, NULL, '13:30:00', '2024-12-27 13:35:00', '-', 'cuti', 2),
+(0, '2024-12-28', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-28', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-29', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2024-12-29', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2024-12-30', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-30 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-30 14:50:00', '-', 'hadir', 1),
+(0, '2024-12-30', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-30 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-30 14:50:00', '-', 'tanpa_keterangan', 2),
+(0, '2024-12-31', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2024-12-31 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-31 14:50:00', '-', 'cuti', 1),
+(0, '2024-12-31', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2024-12-31 06:32:00', 0, NULL, NULL, '14:45:00', '2024-12-31 14:50:00', '-', 'hadir', 2),
+(0, '2025-01-01', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-01 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-01 14:50:00', '-', 'tanpa_keterangan', 1),
+(0, '2025-01-01', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-01 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-01 14:50:00', '-', 'cuti', 2),
+(0, '2025-01-02', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-02 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-02 14:50:00', '-', 'izin', 1),
+(0, '2025-01-02', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-02 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-02 14:50:00', '-', 'sakit', 2),
+(0, '2025-01-03', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-03 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-03 13:35:00', '-', 'hadir', 1),
+(0, '2025-01-03', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-03 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-03 13:35:00', '-', 'hadir', 2),
+(0, '2025-01-04', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2025-01-04', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2025-01-05', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2025-01-05', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2025-01-06', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-06 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-06 14:50:00', '-', 'tanpa_keterangan', 1),
+(0, '2025-01-06', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-06 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-06 14:50:00', '-', 'hadir', 2),
+(0, '2025-01-07', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-07 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-07 14:50:00', '-', 'izin', 1),
+(0, '2025-01-07', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-07 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-07 14:50:00', '-', 'cuti', 2),
+(0, '2025-01-08', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-08 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-08 14:50:00', '-', 'cuti', 1),
+(0, '2025-01-08', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-08 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-08 14:50:00', '-', 'tanpa_keterangan', 2),
+(0, '2025-01-09', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-09 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-09 14:50:00', '-', 'hadir', 1),
+(0, '2025-01-09', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-09 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-09 14:50:00', '-', 'hadir', 2),
+(0, '2025-01-10', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-10 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-10 13:35:00', '-', 'cuti', 1),
+(0, '2025-01-10', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-10 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-10 13:35:00', '-', 'cuti', 2),
+(0, '2025-01-11', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2025-01-11', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2025-01-12', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2025-01-12', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2025-01-13', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-13 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-13 14:50:00', '-', 'cuti', 1),
+(0, '2025-01-13', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-13 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-13 14:50:00', '-', 'hadir', 2),
+(0, '2025-01-14', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-14 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-14 14:50:00', '-', 'izin', 1),
+(0, '2025-01-14', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-14 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-14 14:50:00', '-', 'sakit', 2),
+(0, '2025-01-15', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-15 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-15 14:50:00', '-', 'sakit', 1),
+(0, '2025-01-15', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-15 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-15 14:50:00', '-', 'hadir', 2),
+(0, '2025-01-16', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-16 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-16 14:50:00', '-', 'sakit', 1),
+(0, '2025-01-16', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-16 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-16 14:50:00', '-', 'cuti', 2),
+(0, '2025-01-17', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-17 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-17 13:35:00', '-', 'tanpa_keterangan', 1),
+(0, '2025-01-17', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-17 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-17 13:35:00', '-', 'sakit', 2),
+(0, '2025-01-18', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2025-01-18', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2025-01-19', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2025-01-19', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2025-01-20', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-20 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-20 14:50:00', '-', 'cuti', 1),
+(0, '2025-01-20', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-20 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-20 14:50:00', '-', 'cuti', 2),
+(0, '2025-01-21', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-21 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-21 14:50:00', '-', 'hadir', 1),
+(0, '2025-01-21', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-21 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-21 14:50:00', '-', 'izin', 2),
+(0, '2025-01-22', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-22 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-22 14:50:00', '-', 'hadir', 1),
+(0, '2025-01-22', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-22 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-22 14:50:00', '-', 'hadir', 2),
+(0, '2025-01-23', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-23 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-23 14:50:00', '-', 'izin', 1),
+(0, '2025-01-23', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-23 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-23 14:50:00', '-', 'cuti', 2),
+(0, '2025-01-24', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-24 06:33:00', 1, NULL, NULL, '13:30:00', '2025-01-24 13:35:00', '-', 'cuti', 1),
+(0, '2025-01-24', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-24 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-24 13:35:00', '-', 'izin', 2),
+(0, '2025-01-25', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2025-01-25', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2025-01-26', 'Libur Rutin', 'Libur Rutin', 1, '111111', '111111', 'John Doe', 'SD', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 1),
+(0, '2025-01-26', 'Libur Rutin', 'Libur Rutin', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, NULL, NULL, 0, NULL, NULL, NULL, NULL, '-', 'libur', 2),
+(0, '2025-01-27', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-27 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-27 14:50:00', '-', 'cuti', 1),
+(0, '2025-01-27', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-27 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-27 14:50:00', '-', 'cuti', 2),
+(0, '2025-01-28', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-28 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-28 14:50:00', '-', 'izin', 1),
+(0, '2025-01-28', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-28 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-28 14:50:00', '-', 'cuti', 2),
+(0, '2025-01-29', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-29 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-29 14:50:00', '-', 'hadir', 1),
+(0, '2025-01-29', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-29 06:32:00', 1, NULL, NULL, '14:45:00', '2025-01-29 14:50:00', '-', 'hadir', 2),
+(0, '2025-01-30', 'Senin-Kamis Guru', 'Senin-Kamis Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-30 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-30 14:50:00', '-', 'cuti', 1),
+(0, '2025-01-30', 'Senin-Kamis Karyawan', 'Senin-Kamis Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-30 06:32:00', 0, NULL, NULL, '14:45:00', '2025-01-30 14:50:00', '-', 'hadir', 2),
+(0, '2025-01-31', 'Jumat Guru', 'Jumat Guru', 1, '111111', '111111', 'John Doe', 'SD', 0, '06:30:00', '2025-01-31 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-31 13:35:00', '-', 'hadir', 1),
+(0, '2025-01-31', 'Jumat Karyawan', 'Jumat Karyawan', 1, '222222', '222222', 'Jane Smith', 'SMP', 0, '06:30:00', '2025-01-31 06:33:00', 0, NULL, NULL, '13:30:00', '2025-01-31 13:35:00', '-', 'izin', 2);
 
 -- --------------------------------------------------------
 
@@ -78,6 +188,7 @@ INSERT INTO `absensi` (`id`, `tanggal`, `jadwal`, `jam_kerja`, `valid`, `pin`, `
 
 CREATE TABLE `anggota_sekolah` (
   `id` int(11) NOT NULL,
+  `uid` varchar(10) NOT NULL,
   `nip` varchar(20) NOT NULL,
   `password` varchar(255) NOT NULL,
   `nama` varchar(100) NOT NULL,
@@ -101,9 +212,9 @@ CREATE TABLE `anggota_sekolah` (
   `email` varchar(100) DEFAULT NULL,
   `nama_suami` varchar(100) DEFAULT NULL,
   `jumlah_anak` int(11) DEFAULT 0,
-  `nama_anak_1` varchar(100) DEFAULT NULL,
-  `nama_anak_2` varchar(100) DEFAULT NULL,
-  `nama_anak_3` varchar(100) DEFAULT NULL,
+  `nama_anak_1` varchar(100) NOT NULL DEFAULT '',
+  `nama_anak_2` varchar(100) NOT NULL DEFAULT '',
+  `nama_anak_3` varchar(100) NOT NULL DEFAULT '',
   `salary_index_id` int(11) DEFAULT NULL,
   `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -112,24 +223,15 @@ CREATE TABLE `anggota_sekolah` (
 -- Dumping data for table `anggota_sekolah`
 --
 
-INSERT INTO `anggota_sekolah` (`id`, `nip`, `password`, `nama`, `jenjang`, `job_title`, `status_kerja`, `join_start`, `masa_kerja_tahun`, `masa_kerja_bulan`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_suami`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `gaji_pokok`) VALUES
-(1, '123456', '', 'John Doe', 'SD', 'Guru Matematika', 'Tetap', '2015-08-01', 8, 5, 'Pengajar berpengalaman', 'L', '1985-05-15', 39, 'Islam', 'Jl. Merdeka 1', 'Jl. Merdeka 1', '1234567890', '081234567890', 'S1 Pendidikan Matematika', 'Menikah', 'johndoe@example.com', 'Jane Doe', 2, 'Anna Doe', 'Bella Doe', NULL, 3, 0.00),
-(2, '234567', '', 'Jane Smith', 'SMP', 'Staf Administrasi', 'Kontrak', '2020-01-15', 3, 4, 'Kontrak selama 1 tahun', 'P', '1990-07-20', 34, 'Kristen', 'Jl. Pahlawan 2', 'Jl. Pahlawan 2', '0987654321', '081298765432', 'D3 Administrasi', 'Belum Menikah', 'janesmith@example.com', NULL, 0, NULL, NULL, NULL, 2, 0.00),
-(3, '345678', '', 'Mike Johnson', 'SMA', 'Guru Bahasa Inggris', 'Tetap', '2012-03-10', 11, 10, 'Guru senior', 'L', '1980-11-30', 44, 'Kristen', 'Jl. Kebangsaan 3', 'Jl. Kebangsaan 3', '1122334455', '081112223333', 'S2 Pendidikan Bahasa Inggris', 'Menikah', 'mikejohnson@example.com', 'Sarah Johnson', 3, 'Chris Johnson', 'Diana Johnson', 'Evan Johnson', 4, 0.00),
-(4, '101078', '$2y$10$BT8aHSbpp59hmQimMQ4zu.1oMY0lWl7Hm15soYy.skkJBWamLEzgG', 'tjendana', 'TK', 'Guru Teknologi Informasi', 'Tetap', '0000-00-00', 0, 0, '0', 'L', '0000-00-00', 0, '0', '', '', '12345678', '', '', '', 'vincentpeter789@gmail.com', NULL, 0, NULL, NULL, NULL, NULL, 0.00),
-(5, '01011995', '', 'Roosalin Chintia Dewi,SE', 'TK', 'Guru Kelas TK A', 'Tetap', '2022-07-01', 2, 6, 'Guru TK Berpengalaman', 'P', '1992-03-15', 32, 'Islam', 'Jl. Pendidikan 45', 'Jl. Pendidikan 45', '9876543210', '087765432100', 'S1 PAUD', 'Menikah', 'sarah.k@sekolah.edu', 'Budi Kurniawan', 1, 'Aisya Kurniawan', NULL, NULL, 1, 0.00),
-(6, '567890', '', 'Ahmad Riyanto', 'TK', 'Guru Pendamping TK B', 'Kontrak', '2023-01-15', 1, 1, 'Guru Kontrak TK', 'L', '1995-11-20', 29, 'Islam', 'Jl. Merdeka 22', 'Jl. Merdeka 22', '1234567890', '081234567890', 'D3 Pendidikan', 'Belum Menikah', 'ahmad.r@sekolah.edu', NULL, 0, NULL, NULL, NULL, 1, 0.00),
-(7, '678901', '', 'Rina Septiani', 'SD', 'Guru Kelas 3 SD', 'Tetap', '2015-08-15', 9, 5, 'Guru SD Senior', 'P', '1985-06-25', 39, 'Kristen', 'Jl. Pendidikan 78', 'Jl. Pendidikan 78', '5432167890', '087654321000', 'S1 Pendidikan Dasar', 'Menikah', 'rina.s@sekolah.edu', 'Dedi Supriyadi', 2, 'Annisa Supriyadi', 'Akbar Supriyadi', NULL, 2, 0.00),
-(8, '789012', '', 'Hendra Gunawan', 'SD', 'Guru Olahraga SD', 'Tetap', '2018-03-01', 6, 10, '0', 'L', '1988-09-10', 36, '0', 'Jl. Olahraga 12', 'Jl. Olahraga 12', '6543210987', '085432109870', 'S1 Keolahragaan', 'Menikah', 'hendra.g@sekolah.edu', 'Maya Gunawan', 1, 'Radit Gunawan', NULL, NULL, 2, 0.00),
-(9, '890123', '', 'Dewi Marlina', 'SMP', 'Guru Matematika SMP', 'Tetap', '2012-07-01', 12, 6, 'Guru Matematika Berpengalaman', 'P', '1980-12-05', 44, 'Kristen', 'Jl. Cendekia 33', 'Jl. Cendekia 33', '7654321098', '082345678900', 'S2 Pendidikan Matematika', 'Menikah', 'dewi.m@sekolah.edu', 'Firman Setiawan', 2, 'Ayu Setiawan', 'Reza Setiawan', NULL, 3, 0.00),
-(10, '901234', '', 'Bambang Hermanto', 'SMP', 'Guru IPA SMP', 'Kontrak', '2021-01-15', 3, 1, 'Guru Kontrak IPA', 'L', '1990-08-18', 33, 'Islam', 'Jl. Ilmu 56', 'Jl. Ilmu 56', '8765432109', '087654321230', 'S1 Pendidikan IPA', 'Belum Menikah', 'bambang.h@sekolah.edu', NULL, 0, NULL, NULL, NULL, 1, 0.00),
-(11, '012345', '', 'Siti Nurhaliza', 'SMA', 'Guru Bahasa Indonesia SMA', 'Tetap', '2008-08-01', 16, 4, 'Guru Bahasa Indonesia Senior', 'P', '1975-04-30', 49, 'Islam', 'Jl. Bahasa 89', 'Jl. Bahasa 89', '9876543210', '081234567890', 'S2 Sastra Indonesia', 'Menikah', 'siti.n@sekolah.edu', 'Rizal Mustopa', 3, 'Adi Mustopa', 'Sari Mustopa', 'Ririn Mustopa', 4, 0.00),
-(12, '123456', '', 'Budi Setiawan', 'SMA', 'Guru Kimia SMA', 'Tetap', '2016-02-15', 8, 2, 'Guru Kimia Berprestasi', 'L', '1982-11-12', 42, 'Kristen', 'Jl. Sains 45', 'Jl. Sains 45', '2345678901', '085432109870', 'S1 Pendidikan Kimia', 'Menikah', 'budi.s@sekolah.edu', 'Ani Setiawan', 2, 'Dian Setiawan', 'Dana Setiawan', NULL, 2, 0.00),
-(13, '234567', '', 'Angga Permana', 'SMK', 'Guru Teknik Komputer SMK', 'Tetap', '2014-07-01', 10, 6, 'Guru Teknik Informatika Senior', 'L', '1979-07-25', 45, 'Islam', 'Jl. Teknologi 67', 'Jl. Teknologi 67', '3456789012', '087654321000', 'S1 Teknik Informatika', 'Menikah', 'angga.p@sekolah.edu', 'Rina Permana', 2, 'Aldi Permana', 'Ayu Permana', NULL, 3, 0.00),
-(14, '345678', '', 'Maya Indriati', 'SMK', 'Guru Akuntansi SMK', 'Kontrak', '2022-01-15', 2, 1, 'Guru Akuntansi Kontrak', 'P', '1993-09-08', 31, 'Kristen', 'Jl. Bisnis 23', 'Jl. Bisnis 23', '4567890123', '081234567890', 'S1 Akuntansi', 'Belum Menikah', 'maya.i@sekolah.edu', NULL, 0, NULL, NULL, NULL, 1, 0.00),
-(15, '222222', 'e10adc3949ba59abbe56e057f20f883e', 'Vincent Peter', 'TK', 'Guru Sejarah', 'Tetap', '2025-01-18', 1, 1, 'W', 'L', '0000-00-00', 1, 'Katolik', 'edwd', 'wdwd', NULL, '082227124194', 'S1', 'Belum Menikah', 'propro@tokito.xyz', NULL, 0, NULL, NULL, NULL, NULL, 5000000.00),
-(16, '808080', '0', 'Catherine Wong', 'TK', 'Guru Sejarah', 'Tetap', '2025-01-19', 1, 0, 'Gabut', 'P', '2025-01-19', 20, 'Katolik', '2A Jl. Empu Sendok Raya', '2A Jl. Empu Sendok Raya', NULL, '082227863969', 'S1', 'Belum Menikah', 'cathie@gmail.com', NULL, 0, NULL, NULL, NULL, NULL, 5000000.00),
-(17, '777777', 'e10adc3949ba59abbe56e057f20f883e', 'Cathie W', 'TK', 'Karyawan Administrator', 'Kontrak', '2025-01-19', 1, 0, 'Hai', 'P', '2025-01-19', 21, 'Katolik', '2A Jl. Empu Sendok Raya', '2A Jl. Empu Sendok Raya', '6543210987', '082227863990', 'S1', 'Belum Menikah', 'cathie1@gmail.com', NULL, 0, NULL, NULL, NULL, NULL, 4000000.00);
+INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `job_title`, `status_kerja`, `join_start`, `masa_kerja_tahun`, `masa_kerja_bulan`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_suami`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `gaji_pokok`) VALUES
+(1, 'G-001', '111111', 'e10adc3949ba59abbe56e057f20f883e', 'John Doe', 'SMP', 'Guru Matematika', 'Tetap', '2015-08-01', 8, 5, 'Pengalaman 10 tahun', '', '1985-05-15', 39, 'Islam', 'Jl. Merdeka No.1', 'Jl. Merdeka No.1', '1111111111', '081234567891', 'S1 Pendidikan Matematika', 'Menikah', 'john.doe@example.com', 'Jane Doe', 0, '0', '', '', 3, 5000000.00),
+(2, 'G-002', '222222', 'e10adc3949ba59abbe56e057f20f883e', 'Mike Johnson', 'SMA', 'Guru Bahasa Inggris', 'Tetap', '2012-03-10', 11, 10, 'Guru senior', 'L', '1980-11-30', 44, 'Kristen', 'Jl. Kebangsaan No.3', 'Jl. Kebangsaan No.3', '2222222222', '081112223333', 'S2 Pendidikan Bahasa Inggris', 'Menikah', 'mike.johnson@example.com', 'Sarah Johnson', 3, 'Chris', 'Diana', 'Evan', 4, 5200000.00),
+(3, 'G-003', '333333', 'e10adc3949ba59abbe56e057f20f883e', 'Roosalin Chintia Dewi,SE', 'TK', 'Guru Kelas TK A', 'Tetap', '2022-07-01', 2, 6, 'Berpengalaman mengajar anak TK', 'P', '1992-03-15', 32, 'Islam', 'Jl. Pendidikan No.45', 'Jl. Pendidikan No.45', '3333333333', '087765432100', 'S1 PAUD', 'Menikah', 'roosalin@example.com', 'Budi Kurniawan', 1, 'Aisya', '', '', 1, 4800000.00),
+(4, 'K-001', '444444', 'e10adc3949ba59abbe56e057f20f883e', 'Jane Smith', 'SMP', 'Staf Administrasi', 'Kontrak', '2020-01-15', 3, 4, 'Admin di bagian keuangan', 'P', '1990-07-20', 34, 'Kristen', 'Jl. Pahlawan No.2', 'Jl. Pahlawan No.2', '4444444444', '081298765432', 'D3 Administrasi', 'Belum Menikah', 'jane.smith@example.com', NULL, 0, '', '', '', 2, 4000000.00),
+(5, 'K-002', '555555', 'e10adc3949ba59abbe56e057f20f883e', 'Robert Lee', 'SMK', 'Karyawan Operasional', 'Tetap', '2018-05-01', 6, 0, 'Bertugas di operasional sekolah', 'L', '1988-10-10', 36, 'Islam', 'Jl. Operasional No.7', 'Jl. Operasional No.7', '5555555555', '081298700000', 'S1 Manajemen', 'Menikah', 'robert.lee@example.com', 'Anna Lee', 2, 'Tom', 'Jerry', '', 1, 4200000.00),
+(6, 'G-004', '666666', 'e10adc3949ba59abbe56e057f20f883e', 'Rina Septiani', 'SD', 'Guru Kelas 3 SD', 'Tetap', '2015-08-15', 9, 5, 'Guru berpengalaman', 'P', '1985-06-25', 39, 'Kristen', 'Jl. Pendidikan No.78', 'Jl. Pendidikan No.78', '6666666666', '081234567890', 'S1 Pendidikan Dasar', 'Menikah', 'rina.septiani@example.com', 'Dedi Septiani', 2, 'Lia', 'Mia', '', 2, 5000000.00),
+(7, 'K-003', '777777', 'e10adc3949ba59abbe56e057f20f883e', 'Robert S.', 'SMK', 'Karyawan Administrasi', 'Kontrak', '2023-01-01', 1, 0, 'Bertugas di administrasi umum', 'L', '1995-04-15', 29, 'Islam', 'Jl. Administrasi No.5', 'Jl. Administrasi No.5', '7777777777', '081234500000', 'S1 Administrasi', 'Belum Menikah', 'robert.s@example.com', NULL, 0, '', '', '', NULL, 4000000.00),
+(8, 'G-005', '888888', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Gunawan', 'SD', 'Guru Olahraga SD', 'Tetap', '2018-03-01', 6, 10, 'Mengajar olahraga', '', '1988-09-10', 36, 'Islam', 'Jl. Olahraga No.12', 'Jl. Olahraga No.12', '8888888888', '085432109870', 'S1 Keolahragaan', '', 'hendra.g@example.com', 'Maya Gunawan', 1, '0', '', '', 2, 5100000.00);
 
 -- --------------------------------------------------------
 
@@ -152,19 +254,134 @@ CREATE TABLE `audit_logs` (
 --
 
 INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'ViewUserDetail', 'Melihat detail User ID 1: Username=\'superadmin\', Role=\'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:45:40'),
-(2, 1, 'CreateUser', 'Menambahkan User: Username=\'vincent\', Role=\'keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:45:52'),
-(3, 1, 'CreateUser', 'Menambahkan User: Username=\'keuangan\', Role=\'keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:46:07'),
-(4, 1, 'CreateUser', 'Menambahkan User: Username=\'peter\', Role=\'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:46:14'),
-(5, 1, 'CreateUser', 'Menambahkan User: Username=\'sdm\', Role=\'sdm\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:46:24'),
-(6, 1, 'ApplyFilter', 'Pengguna menerapkan filter Role: superadmin', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:47:43'),
-(7, 1, 'ApplyFilter', 'Pengguna menerapkan filter Role: superadmin', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:47:47'),
-(8, 1, 'ApplyFilter', 'Pengguna menerapkan filter Role: keuangan', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:47:48'),
-(9, 1, 'ApplyFilter', 'Pengguna menerapkan filter Role: superadmin', '::1', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1', '2025-02-02 14:48:28'),
-(10, 1, 'ApplyFilter', 'Pengguna menerapkan filter Role: superadmin', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:50:40'),
-(11, 1, 'ApplyFilter', 'Pengguna menerapkan filter Role: Semua', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:50:42'),
-(12, 2, 'Login', 'Pengguna \'vincent\' berhasil login sebagai \'keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 14:51:03'),
-(13, 2, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 17.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-02 15:08:56');
+(1, 1, 'ViewUserDetail', 'Melihat detail User: superadmin', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', '2025-02-02 14:45:40'),
+(2, 2, 'CreateGuru', 'Menambah data guru: John Doe (G-001)', '192.168.1.10', 'Mozilla/5.0 (Macintosh; Intel Mac OS X)', '2025-02-03 09:15:00'),
+(3, 2, 'UpdateGuru', 'Mengupdate data guru: Mike Johnson (G-002)', '192.168.1.10', 'Mozilla/5.0 (Macintosh; Intel Mac OS X)', '2025-02-03 09:45:00'),
+(4, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:12:17'),
+(5, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:12:32'),
+(6, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:35:17'),
+(7, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:35:22'),
+(8, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 8: NIP=\'888888\', Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:35:23'),
+(9, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:41:59'),
+(10, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 8: NIP=\'888888\', Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:42:01'),
+(11, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:49:42'),
+(12, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 09:00:04'),
+(13, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:11:03'),
+(14, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 2: Nama=\'Mike Johnson\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:11:15'),
+(15, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 3: Nama=\'Roosalin Chintia Dewi,SE\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:11:22'),
+(16, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:13:32'),
+(17, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:14:16'),
+(18, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:14:19'),
+(19, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:19:24'),
+(20, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:21:37'),
+(21, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:21:43'),
+(22, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:28:18'),
+(23, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:28:23'),
+(24, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:28:32'),
+(25, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:28:55'),
+(26, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:29:04'),
+(27, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:29:09'),
+(28, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:39:54'),
+(29, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:39:59'),
+(30, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:41:01'),
+(31, 1, 'UpdateHoliday', 'Mengupdate Hari Libur ID 2: Judul=\'Tahun Baru 2025\', Tanggal=\'2025-01-01\', Jenis=\'wajib\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:41:57'),
+(32, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:45:58'),
+(33, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:45:58'),
+(34, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:50:45'),
+(35, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:51:02'),
+(36, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:41:16'),
+(37, 1, 'ApplyFilter', 'Pengguna menerapkan filter data guru/karyawan.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:43:43'),
+(38, 1, 'ApplyFilter', 'Pengguna menerapkan filter data guru/karyawan.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:43:46'),
+(39, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:43:48'),
+(40, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:52:13'),
+(41, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:52:16'),
+(42, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:53:40'),
+(43, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:53:44'),
+(44, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:53:56'),
+(45, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:53:58'),
+(46, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:55:37'),
+(47, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:03:47'),
+(48, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:03:50'),
+(49, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:03:55'),
+(50, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:03:59'),
+(51, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:04:02'),
+(52, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:04:07'),
+(53, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:06:11'),
+(54, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:06:13'),
+(55, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:06:34'),
+(56, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:07:31'),
+(57, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:14:55'),
+(58, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:14:58'),
+(59, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:15:00'),
+(60, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:15:55'),
+(61, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:15:58'),
+(62, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 2: Nama=\'Mike Johnson\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:13'),
+(63, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:20'),
+(64, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 8: NIP=\'888888\', Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:28'),
+(65, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:31'),
+(66, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:40'),
+(67, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 4: Nama=\'Jane Smith\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:17:08'),
+(68, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 5: Nama=\'Robert Lee\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:17:11'),
+(69, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:23:14'),
+(70, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:23:17'),
+(71, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:23:25'),
+(72, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:23:27'),
+(73, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 4: Nama=\'Jane Smith\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:25:00'),
+(74, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:35'),
+(75, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:40'),
+(76, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:43'),
+(77, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:46'),
+(78, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:48'),
+(79, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:54'),
+(80, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:32:00'),
+(81, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:32:02'),
+(82, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:32:06'),
+(83, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:43'),
+(84, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:47'),
+(85, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:52'),
+(86, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:53'),
+(87, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:54'),
+(88, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:13'),
+(89, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 2: Nama=\'Mike Johnson\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:18'),
+(90, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:25'),
+(91, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:30'),
+(92, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 2: Nama=\'Mike Johnson\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:32'),
+(93, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:35'),
+(94, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:40'),
+(95, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:42'),
+(96, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:40:42'),
+(97, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 12:36:15'),
+(98, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:40'),
+(99, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:47'),
+(100, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:51'),
+(101, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:51'),
+(102, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:53'),
+(103, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:53'),
+(104, 1, 'AssignPayheadsToEmployee', 'Menetapkan payheads ke karyawan ID 8. Payheads: 3, 2.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:38:07'),
+(105, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan  tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:38:11'),
+(106, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 7.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:45:59'),
+(107, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:45:59'),
+(108, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan  tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:46:04'),
+(109, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:54:55'),
+(110, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:54:55'),
+(111, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 15:01:13'),
+(112, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 15:01:13'),
+(113, 1, 'AssignPayheadsToEmployee', 'Menetapkan payheads ke karyawan ID 8. Payheads: 3, 2.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 15:01:15'),
+(114, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 15:01:18'),
+(115, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 03:58:43'),
+(116, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:06'),
+(117, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:07'),
+(118, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:07'),
+(119, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:10'),
+(120, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:10'),
+(121, 1, 'LoadingRekapPayrollDetails', 'Pengguna dengan ID 1 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:10'),
+(122, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:11'),
+(123, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:11'),
+(124, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:11'),
+(125, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:38:23'),
+(126, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:40:38'),
+(127, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:41:39'),
+(128, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:42:15');
 
 -- --------------------------------------------------------
 
@@ -185,76 +402,13 @@ CREATE TABLE `employee_payheads` (
 --
 
 INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`) VALUES
-(0, 4, 1, 'earnings', 5000.00),
-(0, 4, 2, 'deductions', 1000.00),
-(0, 5, 1, 'earnings', 500000.00),
-(0, 5, 7, 'earnings', 300000.00),
-(0, 5, 2, 'deductions', 100000.00),
-(0, 6, 1, 'earnings', 450000.00),
-(0, 6, 9, 'earnings', 200000.00),
-(0, 6, 5, 'deductions', 75000.00),
-(0, 7, 1, 'earnings', 600000.00),
-(0, 7, 8, 'earnings', 350000.00),
-(0, 7, 2, 'deductions', 150000.00),
-(0, 8, 1, 'earnings', 550000.00),
-(0, 8, 7, 'earnings', 250000.00),
-(0, 8, 5, 'deductions', 100000.00),
-(0, 9, 1, 'earnings', 700000.00),
-(0, 9, 8, 'earnings', 400000.00),
-(0, 9, 2, 'deductions', 200000.00),
-(0, 10, 1, 'earnings', 500000.00),
-(0, 10, 9, 'earnings', 250000.00),
-(0, 10, 5, 'deductions', 100000.00),
-(0, 11, 1, 'earnings', 800000.00),
-(0, 11, 7, 'earnings', 450000.00),
-(0, 11, 2, 'deductions', 250000.00),
-(0, 12, 1, 'earnings', 750000.00),
-(0, 12, 8, 'earnings', 400000.00),
-(0, 12, 5, 'deductions', 200000.00),
-(0, 13, 1, 'earnings', 850000.00),
-(0, 13, 8, 'earnings', 500000.00),
-(0, 13, 2, 'deductions', 300000.00),
-(0, 5, 1, 'earnings', 500000.00),
-(0, 5, 7, 'earnings', 300000.00),
-(0, 5, 2, 'deductions', 100000.00),
-(0, 6, 1, 'earnings', 450000.00),
-(0, 6, 9, 'earnings', 200000.00),
-(0, 6, 5, 'deductions', 75000.00),
-(0, 7, 1, 'earnings', 600000.00),
-(0, 7, 8, 'earnings', 350000.00),
-(0, 7, 2, 'deductions', 150000.00),
-(0, 8, 1, 'earnings', 550000.00),
-(0, 8, 7, 'earnings', 250000.00),
-(0, 8, 5, 'deductions', 100000.00),
-(0, 9, 1, 'earnings', 700000.00),
-(0, 9, 8, 'earnings', 400000.00),
-(0, 9, 2, 'deductions', 200000.00),
-(0, 10, 1, 'earnings', 500000.00),
-(0, 10, 9, 'earnings', 250000.00),
-(0, 10, 5, 'deductions', 100000.00),
-(0, 11, 1, 'earnings', 800000.00),
-(0, 11, 7, 'earnings', 450000.00),
-(0, 11, 2, 'deductions', 250000.00),
-(0, 12, 1, 'earnings', 750000.00),
-(0, 12, 8, 'earnings', 400000.00),
-(0, 12, 5, 'deductions', 200000.00),
-(0, 13, 1, 'earnings', 850000.00),
-(0, 13, 8, 'earnings', 500000.00),
-(0, 13, 2, 'deductions', 300000.00),
-(0, 3, 1, '', 1000000.00),
-(0, 3, 3, '', 150000.00),
-(0, 3, 4, '', 200000.00),
-(0, 3, 10, '', 250000.00),
-(0, 14, 1, '', 600000.00),
-(0, 14, 9, '', 300000.00),
-(0, 14, 5, '', 150000.00),
-(0, 14, 1, '', 600000.00),
-(0, 14, 9, '', 300000.00),
-(0, 14, 5, '', 150000.00),
-(0, 14, 7, '', 500000.00),
-(0, 15, 11, 'deductions', 15555.00),
-(0, 16, 11, 'deductions', 150000.00),
-(0, 17, 11, 'deductions', 0.00);
+(1, 1, 1, 'earnings', 500000.00),
+(2, 1, 2, 'deductions', 100000.00),
+(3, 2, 1, 'earnings', 600000.00),
+(4, 5, 3, 'earnings', 200000.00),
+(5, 7, 2, 'deductions', 150000.00),
+(0, 8, 3, 'earnings', 150000.00),
+(0, 8, 2, 'deductions', 250000.00);
 
 -- --------------------------------------------------------
 
@@ -294,7 +448,8 @@ CREATE TABLE `holidays` (
 --
 
 INSERT INTO `holidays` (`holiday_id`, `holiday_title`, `holiday_desc`, `holiday_date`, `holiday_type`) VALUES
-(1, 'Natal 2025', 'Libur Perayaan Natal', '2025-12-24', '');
+(1, 'Natal 2025', 'Libur perayaan Natal', '2025-12-24', 'wajib'),
+(2, 'Tahun Baru 2025', 'Libur tahun baru', '2025-01-01', '');
 
 -- --------------------------------------------------------
 
@@ -314,17 +469,10 @@ CREATE TABLE `payheads` (
 --
 
 INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`) VALUES
-(1, 'Tunjangan', 'earnings', 'Tunjangan Guru'),
-(2, 'BPJS Ketenagakerjaan', 'deductions', 'Potongan untuk BPJS Ketenagakerjaan'),
-(3, 'Tunjangan Transport', 'earnings', 'Tunjangan untuk transportasi'),
-(4, 'Bonus Honor', 'earnings', 'Bonus tahunan'),
-(5, 'Pajak', 'deductions', 'Potongan pajak penghasilan'),
-(6, 'BPJS Kesehatan', 'deductions', 'Seumur'),
-(7, 'Tunjangan Jabatan', 'earnings', 'Additional allowance based on position'),
-(8, 'Tunjangan Sertifikasi', 'earnings', 'Certification allowance for qualified teachers'),
-(9, 'Tunjangan Khusus Daerah', 'earnings', 'Special area allowance'),
-(10, 'Potongan Koperasi', 'deductions', 'Cooperative deductions'),
-(11, 'Asuransi Tambahan', 'deductions', 'Additional insurance');
+(1, 'Tunjangan Tetap', 'earnings', 'Tunjangan dasar untuk guru/karyawan'),
+(2, 'Potongan Pajak', 'deductions', 'Potongan pajak penghasilan'),
+(3, 'Bonus Kinerja', 'earnings', 'Bonus berdasarkan kinerja'),
+(4, 'Potongan BPJS', 'deductions', 'Potongan BPJS Kesehatan');
 
 -- --------------------------------------------------------
 
@@ -353,11 +501,9 @@ CREATE TABLE `payroll` (
 --
 
 INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`) VALUES
-(3, 3, 3, 1, 2025, 3200000.00, 500000.00, 300000.00, 3400000.00, '2025-01-31 03:10:00', '2025-01-30 21:57:42', NULL, NULL),
-(12, 5, 4, 1, 2025, 3000000.00, 4600000.00, 200000.00, 4400000.00, '2025-01-16 03:17:42', '2025-01-30 21:57:42', NULL, NULL),
-(13, 3, 5, 2, 2025, 6000000.00, 6000000.00, 0.00, 6000000.00, '2025-01-16 03:25:14', '2025-01-30 21:57:42', NULL, NULL),
-(14, 3, 6, 3, 2025, 6000000.00, 7350000.00, 250000.00, 7100000.00, '2025-01-16 03:26:27', '2025-01-30 21:57:42', NULL, NULL),
-(15, 14, 7, 5, 2025, 3000000.00, 5300000.00, 300000.00, 5000000.00, '2025-01-16 03:49:30', '2025-01-30 21:57:42', NULL, NULL);
+(1, 1, 1, 1, 2025, 5000000.00, 600000.00, 300000.00, 5300000.00, '2025-01-31 10:00:00', '2025-01-31 09:50:00', '1111111111', 'Gaji Januari'),
+(2, 2, 2, 1, 2025, 5200000.00, 700000.00, 350000.00, 5550000.00, '2025-01-31 10:10:00', '2025-01-31 09:55:00', '2222222222', 'Gaji Januari'),
+(3, 5, 3, 1, 2025, 4800000.00, 500000.00, 250000.00, 5050000.00, '2025-01-31 10:20:00', '2025-01-31 10:00:00', '3333333333', 'Gaji Januari');
 
 -- --------------------------------------------------------
 
@@ -378,23 +524,11 @@ CREATE TABLE `payroll_detail` (
 --
 
 INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_payhead`, `jenis`, `amount`) VALUES
-(1, 12, 1, 'earnings', 500000.00),
-(2, 12, 7, 'earnings', 300000.00),
-(3, 12, 2, 'deductions', 100000.00),
-(4, 12, 1, 'earnings', 500000.00),
-(5, 12, 7, 'earnings', 300000.00),
-(6, 12, 2, 'deductions', 100000.00),
-(7, 14, 1, 'earnings', 1000000.00),
-(8, 14, 3, 'earnings', 150000.00),
-(9, 14, 4, 'earnings', 200000.00),
-(10, 14, 10, 'deductions', 250000.00),
-(11, 15, 1, 'earnings', 600000.00),
-(12, 15, 9, 'earnings', 300000.00),
-(13, 15, 5, 'deductions', 150000.00),
-(14, 15, 1, 'earnings', 600000.00),
-(15, 15, 9, 'earnings', 300000.00),
-(16, 15, 5, 'deductions', 150000.00),
-(17, 15, 7, 'earnings', 500000.00);
+(1, 1, 1, 'earnings', 500000.00),
+(2, 1, 3, 'earnings', 100000.00),
+(3, 1, 2, 'deductions', 50000.00),
+(4, 2, 1, 'earnings', 600000.00),
+(5, 3, 2, 'deductions', 250000.00);
 
 -- --------------------------------------------------------
 
@@ -412,6 +546,14 @@ CREATE TABLE `pengajuan_ijin` (
   `tipe_ijin` enum('Sakit','Cuti Biasa','Ijin Lainnya') NOT NULL,
   `status` enum('Diterima','Pending','Ditolak') DEFAULT 'Pending'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `pengajuan_ijin`
+--
+
+INSERT INTO `pengajuan_ijin` (`id`, `nip`, `nama`, `judul_surat`, `tanggal`, `pesan`, `tipe_ijin`, `status`) VALUES
+(1, 'G001', 'John Doe', 'Ijin Sakit', '2025-01-20', 'Sakit demam tinggi selama 2 hari', 'Sakit', 'Diterima'),
+(2, 'K002', 'Robert Lee', 'Cuti Tahunan', '2025-02-10', 'Pengajuan cuti selama 5 hari untuk keperluan pribadi', 'Cuti Biasa', 'Pending');
 
 -- --------------------------------------------------------
 
@@ -436,14 +578,12 @@ CREATE TABLE `rekap_absensi` (
 --
 
 INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`, `total_izin`, `total_cuti`, `total_tanpa_keterangan`, `total_sakit`) VALUES
-(3, 3, '1', 2025, 18, 1, 2, 1, 0),
-(4, 5, '1', 2025, 0, 0, 0, 0, 0),
-(5, 3, '2', 2025, 0, 0, 0, 0, 0),
-(6, 3, '3', 2025, 0, 0, 0, 0, 0),
-(7, 14, '5', 2025, 0, 0, 0, 0, 0),
-(8, 17, '1', 2025, 0, 0, 0, 0, 0),
-(10, 17, '3', 2025, 0, 0, 0, 0, 0),
-(11, 17, '2', 2025, 0, 0, 0, 0, 0);
+(0, 1, 'December', 2024, 4, 4, 7, 5, 2),
+(0, 1, 'January', 2025, 6, 5, 7, 3, 2),
+(0, 2, 'December', 2024, 3, 2, 9, 7, 1),
+(0, 2, 'January', 2025, 8, 3, 8, 1, 3),
+(0, 8, '2', 2025, 0, 0, 0, 0, 0),
+(0, 7, '2', 2025, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -465,11 +605,11 @@ CREATE TABLE `salary_indices` (
 --
 
 INSERT INTO `salary_indices` (`id`, `level`, `min_years`, `max_years`, `base_salary`, `description`) VALUES
-(1, 'Level 0', 0, 2, 3000000.00, 'Gaji pokok untuk masa kerja 0-2 tahun'),
-(2, 'Level 1', 3, 5, 4000000.00, 'Gaji pokok untuk masa kerja 3-5 tahun'),
-(3, 'Level 2', 6, 10, 5000000.00, 'Gaji pokok untuk masa kerja 6-10 tahun'),
-(4, 'Level 3', 11, NULL, 6000000.00, 'Gaji pokok untuk masa kerja di atas 10 tahun'),
-(5, 'Level 4', 15, NULL, 7000000.00, 'Gaji pokok untuk masa kerja di atas 15 tahun');
+(1, 'Level 0', 0, 2, 3000000.00, 'Gaji untuk 0-2 tahun masa kerja'),
+(2, 'Level 1', 3, 5, 4000000.00, 'Gaji untuk 3-5 tahun masa kerja'),
+(3, 'Level 2', 6, 10, 5000000.00, 'Gaji untuk 6-10 tahun masa kerja'),
+(4, 'Level 3', 11, NULL, 6000000.00, 'Gaji untuk di atas 10 tahun masa kerja'),
+(5, 'Level 4', 15, NULL, 7000000.00, 'Gaji untuk di atas 15 tahun masa kerja');
 
 -- --------------------------------------------------------
 
@@ -492,26 +632,18 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id_user`, `username`, `password`, `role`, `created_at`) VALUES
 (1, 'superadmin', 'e10adc3949ba59abbe56e057f20f883e', 'superadmin', '2025-01-18 10:07:40'),
 (2, 'vincent', 'e10adc3949ba59abbe56e057f20f883e', 'keuangan', '2025-02-02 14:45:52'),
-(3, 'keuangan', 'e10adc3949ba59abbe56e057f20f883e', 'keuangan', '2025-02-02 14:46:07'),
-(4, 'peter', 'e10adc3949ba59abbe56e057f20f883e', 'superadmin', '2025-02-02 14:46:14'),
-(5, 'sdm', 'e10adc3949ba59abbe56e057f20f883e', 'sdm', '2025-02-02 14:46:24');
+(3, 'sdm', 'e10adc3949ba59abbe56e057f20f883e', 'sdm', '2025-02-02 14:46:24');
 
 --
 -- Indexes for dumped tables
 --
 
 --
--- Indexes for table `absensi`
---
-ALTER TABLE `absensi`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `id_anggota` (`id_anggota`);
-
---
 -- Indexes for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uid` (`uid`),
   ADD KEY `salary_index_id` (`salary_index_id`);
 
 --
@@ -563,13 +695,6 @@ ALTER TABLE `payroll_detail`
   ADD KEY `idx_payhead` (`id_payhead`);
 
 --
--- Indexes for table `rekap_absensi`
---
-ALTER TABLE `rekap_absensi`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `id_anggota` (`id_anggota`);
-
---
 -- Indexes for table `salary_indices`
 --
 ALTER TABLE `salary_indices`
@@ -587,113 +712,34 @@ ALTER TABLE `users`
 --
 
 --
--- AUTO_INCREMENT for table `absensi`
---
-ALTER TABLE `absensi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
-
---
 -- AUTO_INCREMENT for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=129;
 
 --
 -- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
-  MODIFY `holiday_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `holiday_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `payheads`
 --
 ALTER TABLE `payheads`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
-
---
--- AUTO_INCREMENT for table `payroll_detail`
---
-ALTER TABLE `payroll_detail`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
-
---
--- AUTO_INCREMENT for table `rekap_absensi`
---
-ALTER TABLE `rekap_absensi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
-
---
--- AUTO_INCREMENT for table `salary_indices`
---
-ALTER TABLE `salary_indices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id_user` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `absensi`
---
-ALTER TABLE `absensi`
-  ADD CONSTRAINT `absensi_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `anggota_sekolah`
---
-ALTER TABLE `anggota_sekolah`
-  ADD CONSTRAINT `fk_salary_index` FOREIGN KEY (`salary_index_id`) REFERENCES `salary_indices` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-
---
--- Constraints for table `audit_logs`
---
-ALTER TABLE `audit_logs`
-  ADD CONSTRAINT `fk_audit_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id_user`) ON DELETE SET NULL ON UPDATE CASCADE;
-
---
--- Constraints for table `employee_payheads`
---
-ALTER TABLE `employee_payheads`
-  ADD CONSTRAINT `employee_payheads_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `employee_payheads_ibfk_2` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `payroll`
---
-ALTER TABLE `payroll`
-  ADD CONSTRAINT `payroll_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `payroll_ibfk_2` FOREIGN KEY (`id_rekap_absensi`) REFERENCES `rekap_absensi` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `payroll_detail`
---
-ALTER TABLE `payroll_detail`
-  ADD CONSTRAINT `payroll_detail_ibfk_1` FOREIGN KEY (`id_payroll`) REFERENCES `payroll` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `payroll_detail_ibfk_2` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `rekap_absensi`
---
-ALTER TABLE `rekap_absensi`
-  ADD CONSTRAINT `rekap_absensi_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
