@@ -104,7 +104,7 @@ function GetAllPayheads($conn) {
     }
     $payheads = [];
     while ($row = $result->fetch_assoc()) {
-        $jenis_idn = translateJenis($row['jenis']);
+        $jenis_idn = translateJenis($row['jenis']); // Fungsi di helpers.php
         $payheads[] = [
             'id' => $row['id'],
             'nama_payhead' => htmlspecialchars($row['nama_payhead']),
@@ -112,6 +112,7 @@ function GetAllPayheads($conn) {
             'jenis_payhead_idn' => htmlspecialchars($jenis_idn ?? 'Tidak Diketahui')
         ];
     }
+    // Tambahkan audit log
     $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
     add_audit_log($conn, $user_id, 'GetAllPayheads', 'Mengakses semua payheads.');
     send_response(0, $payheads);
@@ -127,16 +128,10 @@ function LoadingEmployees($conn) {
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
+
+    // Inisialisasi filter jenjang dari POST
     $jenjangFilter = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
 
-<<<<<<< HEAD
-    // Buat string kondisi filter dan parameter untuk binding
-    $where = " WHERE 1=1";
-    $params = [];
-    $types = "";
-    if (!empty($jenjangFilter)) {
-        $where .= " AND a.jenjang = ?";
-=======
     // Query dengan LEFT JOIN ke tabel salary_indices
     $sql = "SELECT SQL_CALC_FOUND_ROWS
                 a.id, a.uid, a.nip, a.nama, a.jenjang, a.role,
@@ -152,16 +147,10 @@ function LoadingEmployees($conn) {
 
     if (!empty($jenjangFilter)) {
         $sql .= " AND a.jenjang = ?";
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $params[] = $jenjangFilter;
         $types   .= "s";
     }
     if (!empty($search)) {
-<<<<<<< HEAD
-        $where .= " AND (a.id LIKE ? OR a.uid LIKE ? OR a.nip LIKE ? OR a.nama LIKE ? OR a.jenjang LIKE ? OR a.job_title LIKE ? OR a.status_kerja LIKE ? OR a.no_rekening LIKE ? OR a.email LIKE ?)";
-        $searchParam = "%" . $search . "%";
-        for ($i = 0; $i < 9; $i++) {
-=======
         $sql .= " AND (
                     a.id LIKE ? OR a.uid LIKE ? OR a.nip LIKE ? OR a.nama LIKE ? OR
                     a.jenjang LIKE ? OR a.role LIKE ? OR a.job_title LIKE ? OR
@@ -170,28 +159,11 @@ function LoadingEmployees($conn) {
         $searchParam = "%" . $search . "%";
         // 10 kolom untuk di-where
         for ($i = 0; $i < 10; $i++) {
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
             $params[] = $searchParam;
             $types   .= "s";
         }
     }
 
-<<<<<<< HEAD
-    // Data query tanpa SQL_CALC_FOUND_ROWS
-    $sql = "SELECT 
-                a.id, a.uid, a.nip, a.nama, a.jenjang, a.job_title, a.status_kerja, a.role,
-                a.masa_kerja_tahun, a.masa_kerja_bulan, a.gaji_pokok, a.no_rekening, a.email,
-                si.level AS salary_index_level
-            FROM anggota_sekolah a
-            LEFT JOIN salary_indices si ON a.salary_index_id = si.id" . $where;
-    // Tambahkan ordering dan limit
-    $orderBy = " ORDER BY a.id DESC";
-    if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
-        $columnIndex = intval($_POST['order'][0]['column']);
-        $allowedColumns = ['id', 'uid', 'nip', 'nama', 'jenjang', 'job_title', 'role', 'status_kerja', 'no_rekening', 'email'];
-        if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedColumns)) {
-            $colName = $_POST['columns'][$columnIndex]['data'];
-=======
     // Ordering
     $orderBy = " ORDER BY a.id DESC";
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
@@ -204,23 +176,12 @@ function LoadingEmployees($conn) {
         if (isset($_POST['columns'][$columnIndex]['data']) && 
             in_array($_POST['columns'][$columnIndex]['data'], $allowedColumns)) {
             $colName      = $_POST['columns'][$columnIndex]['data'];
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
             $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
             if ($colName !== 'masa_kerja') {
                 $orderBy = " ORDER BY a.$colName $colSortOrder";
             }
         }
     }
-<<<<<<< HEAD
-    $sqlData = $sql . $orderBy . " LIMIT ?, ?";
-    $paramsData = $params;
-    $typesData = $types . "ii";
-    $paramsData[] = $start;
-    $paramsData[] = $length;
-
-    $stmt = $conn->prepare($sqlData);
-    if ($stmt === false) {
-=======
 
     $limit = " LIMIT ?, ?";
     $params[] = $start;
@@ -230,39 +191,16 @@ function LoadingEmployees($conn) {
     $sql .= $orderBy . $limit;
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         send_response(1, 'Prepare failed: ' . $conn->error);
     }
-    if (!empty($paramsData)) {
-        $stmt->bind_param($typesData, ...$paramsData);
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
     }
     if (!$stmt->execute()) {
         send_response(1, 'Execute failed: ' . $stmt->error);
     }
     $resData = $stmt->get_result();
 
-<<<<<<< HEAD
-    // Hitung total data setelah filter
-    $sqlCount = "SELECT COUNT(*) as totalFiltered FROM anggota_sekolah a LEFT JOIN salary_indices si ON a.salary_index_id = si.id" . $where;
-    $stmtCount = $conn->prepare($sqlCount);
-    if ($stmtCount === false) {
-        send_response(1, 'Prepare count failed: ' . $conn->error);
-    }
-    if (!empty($params)) {
-        $stmtCount->bind_param($types, ...$params);
-    }
-    if (!$stmtCount->execute()) {
-        send_response(1, 'Execute count failed: ' . $stmtCount->error);
-    }
-    $resultCount = $stmtCount->get_result();
-    $rowCount = $resultCount->fetch_assoc();
-    $totalFiltered = isset($rowCount['totalFiltered']) ? $rowCount['totalFiltered'] : 0;
-    $stmtCount->close();
-
-    // Total data tanpa filter (untuk DataTables recordsTotal)
-    $resultTotal = $conn->query("SELECT COUNT(*) AS total FROM anggota_sekolah");
-    $totalData = $resultTotal ? $resultTotal->fetch_assoc()['total'] : 0;
-=======
     // Total data tanpa filter
     $resultTotal = $conn->query("SELECT COUNT(*) AS total FROM anggota_sekolah");
     $totalData   = ($resultTotal) ? $resultTotal->fetch_assoc()['total'] : 0;
@@ -270,7 +208,6 @@ function LoadingEmployees($conn) {
     // Total data setelah filter
     $resultFiltered = $conn->query("SELECT FOUND_ROWS() AS total");
     $totalFiltered  = ($resultFiltered) ? $resultFiltered->fetch_assoc()['total'] : 0;
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
 
     $data = [];
     while ($row = $resData->fetch_assoc()) {
@@ -287,14 +224,7 @@ function LoadingEmployees($conn) {
         // Format gaji pokok
         $gajiPokok = number_format($row['gaji_pokok'], 2, ',', '.');
 
-<<<<<<< HEAD
-        // Untuk tampilan tabel, hanya tampilkan level indeks saja (nominal di view detail)
-        $levelIndeks = htmlspecialchars($row['salary_index_level'] ?? '-');
-
-        // Kolom aksi: tombol dropdown dengan ikon tiga titik vertikal
-=======
         // Tombol Aksi
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $aksi = '
 <div class="dropdown">
   <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" 
@@ -323,19 +253,11 @@ function LoadingEmployees($conn) {
             "nip"          => htmlspecialchars($row['nip']),
             "nama"         => htmlspecialchars($row['nama']),
             "jenjang"      => htmlspecialchars($row['jenjang']),
-<<<<<<< HEAD
-            "job_title"    => htmlspecialchars($row['job_title']),
-            "role"         => htmlspecialchars($row['role']),
-            "masa_kerja"   => $masaKerja,
-            "gaji_pokok"   => $gajiPokok,
-            "salary_index" => $levelIndeks,
-=======
             "role"         => htmlspecialchars($row['role']),
             "job_title"    => htmlspecialchars($row['job_title']),
             "masa_kerja"   => $masaKerja,
             "level_indeks" => htmlspecialchars($row['salary_index_level'] ?? '-'),
             "gaji_pokok"   => $gajiPokok,
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
             "no_rekening"  => htmlspecialchars($row['no_rekening']),
             "email"        => htmlspecialchars($row['email']),
             "aksi"         => $aksi
@@ -361,6 +283,7 @@ function EditEmployee($conn) {
     if ($id <= 0 || empty($no_rekening)) {
         send_response(1, 'ID dan No Rekening wajib diisi.');
     }
+    // Ambil data lama untuk audit log
     $stmtBefore = $conn->prepare("SELECT no_rekening FROM anggota_sekolah WHERE id = ? LIMIT 1");
     if ($stmtBefore) {
         $stmtBefore->bind_param("i", $id);
@@ -371,6 +294,7 @@ function EditEmployee($conn) {
     } else {
         send_response(1, 'Prepare failed: ' . $conn->error);
     }
+    // Update no rekening
     $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET no_rekening = ? WHERE id = ?");
     if ($stmtUpdate === false) {
         send_response(1, 'Prepare failed: ' . $conn->error);
@@ -402,10 +326,7 @@ function AssignPayheadsToEmployee($conn) {
     }
     $conn->begin_transaction();
     try {
-<<<<<<< HEAD
-=======
         // Hapus payheads lama untuk karyawan
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $stmtDelete = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota = ?");
         if ($stmtDelete === false) {
             throw new Exception("Prepare failed: " . $conn->error);
@@ -416,10 +337,7 @@ function AssignPayheadsToEmployee($conn) {
         }
         $stmtDelete->close();
 
-<<<<<<< HEAD
-=======
         // Persiapkan insert payheads baru
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $stmtGetJenis = $conn->prepare("SELECT jenis FROM payheads WHERE id = ?");
         if ($stmtGetJenis === false) {
             throw new Exception("Prepare failed: " . $conn->error);
@@ -433,14 +351,10 @@ function AssignPayheadsToEmployee($conn) {
         }
         foreach ($payheads as $payhead_id) {
             $payhead_id = intval($payhead_id);
-<<<<<<< HEAD
-            $nilai = isset($pay_amounts[$payhead_id]) ? floatval(str_replace(['.', ','], ['', '.'], $pay_amounts[$payhead_id])) : 0.0;
-=======
             // Konversi ke float (dengan menghapus . dan mengganti , menjadi .)
             $nilai = isset($pay_amounts[$payhead_id])
                 ? floatval(str_replace(['.', ','], ['', '.'], $pay_amounts[$payhead_id]))
                 : 0.0;
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
             if ($nilai < 0) {
                 throw new Exception("Nilai payhead tidak boleh negatif.");
             }
@@ -477,13 +391,8 @@ function AssignPayheadsToEmployee($conn) {
 }
 
 /**
-<<<<<<< HEAD
- * Fungsi ViewEmployeeDetail: menampilkan detail karyawan beserta payheads yang ditugaskan
- * Di modal view detail, selain data karyawan dan payheads, ditampilkan juga level indeks beserta nominalnya
-=======
  * Fungsi ViewEmployeeDetail: menampilkan detail karyawan beserta payheads.
  * Perhitungan Gaji Bersih = Gaji Pokok + Nominal Level Indeks + (Pendapatan) - (Potongan).
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
  */
 function ViewEmployeeDetail($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -520,17 +429,12 @@ function ViewEmployeeDetail($conn) {
             $masaKerja .= $emp['masa_kerja_bulan'] . ' Bulan';
         }
         $masaKerja = trim($masaKerja) ?: '-';
-<<<<<<< HEAD
-        $gajiPokokVal = floatval($emp['gaji_pokok']);
-
-=======
 
         // Gaji Pokok dan Nominal Level Indeks
         $gajiPokokVal  = floatval($emp['gaji_pokok']);
         $levelIndexVal = floatval($emp['salary_index_base']); // Nominal level indeks
 
         // Ambil payheads
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $stmtPH = $conn->prepare("
             SELECT ep.id_payhead, ph.nama_payhead, ph.jenis AS jenis_payhead, ep.amount
             FROM employee_payheads ep
@@ -565,33 +469,10 @@ function ViewEmployeeDetail($conn) {
         }
         $stmtPH->close();
 
-<<<<<<< HEAD
-        // Ambil data level indeks dan nominalnya dari tabel salary_indices bila ada
-        $levelIndeks = '-';
-        $nominalLevel = '-';
-        if (!empty($emp['salary_index_id'])) {
-            $stmtLevel = $conn->prepare("SELECT level, base_salary FROM salary_indices WHERE id = ? LIMIT 1");
-            if ($stmtLevel) {
-                $stmtLevel->bind_param("i", $emp['salary_index_id']);
-                $stmtLevel->execute();
-                $resultLevel = $stmtLevel->get_result();
-                if ($resultLevel->num_rows > 0) {
-                    $rowLevel = $resultLevel->fetch_assoc();
-                    $levelIndeks = htmlspecialchars($rowLevel['level']);
-                    $nominalLevel = 'Rp ' . number_format($rowLevel['base_salary'], 2, ',', '.');
-                }
-                $stmtLevel->close();
-            }
-        }
-
-        $emp['payheads'] = $assigned;
-        $gajiBersihVal = $gajiPokokVal + $totalPendapatan - $totalPotongan;
-=======
         // Gaji Bersih Baru: Gaji Pokok + Nominal Level Indeks + (Pendapatan) - (Potongan)
         $gajiBersihVal = $gajiPokokVal + $levelIndexVal + $totalPendapatan - $totalPotongan;
 
         // Audit log
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         add_audit_log($conn, $user_id, 'ViewEmployeeDetail', "Mengakses detail karyawan ID $id.");
 
@@ -617,15 +498,9 @@ function ViewEmployeeDetail($conn) {
             'payheads' => $assigned,
             'total_pendapatan' => $totalPendapatan,
             'total_potongan' => $totalPotongan,
-<<<<<<< HEAD
-            'gaji_bersih' => $gajiBersihVal,
-            'level_indeks' => $levelIndeks,
-            'nominal_level' => $nominalLevel
-=======
             'salary_index_level' => htmlspecialchars($emp['salary_index_level'] ?: '-'),
             'salary_index_base' => $levelIndexVal,
             'gaji_bersih' => $gajiBersihVal
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         ]);
     } else {
         $stmt->close();
@@ -694,10 +569,6 @@ function GetPayheadById($conn) {
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
-<<<<<<< HEAD
-    <!-- Bootstrap Notify sudah dihapus karena memakai SweetAlert2 -->
-    <style nonce="<?php echo $nonce; ?>">
-=======
     <style nonce="<?php echo $nonce; ?>">
         body {
             color: #000 !important;
@@ -706,7 +577,6 @@ function GetPayheadById($conn) {
             color: #000 !important;
         }
         /* Custom CSS untuk tombol, table, modal, dsb. */
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         .btnEdit, .btnAssignPayheads, .btnViewDetail, .btnSelectMonth {
             transition: background-color 0.3s, transform 0.2s;
         }
@@ -737,6 +607,7 @@ function GetPayheadById($conn) {
         .spinner-border {
             margin-left: 5px;
         }
+        /* Style tambahan untuk modal dan form */
         .modal-body {
             display: flex;
             gap: 25px;
@@ -791,13 +662,9 @@ function GetPayheadById($conn) {
 
                     <!-- Filter Section -->
                     <div class="card mb-4">
-<<<<<<< HEAD
-                        <div class="m-0 card-header font-weight-bold"> <i class="bi bi-filter-square-fill"></i> Filter Karyawan</div>
-=======
                         <div class="m-0 card-header font-weight-bold">
                             <i class="bi bi-filter-square-fill"></i> Filter Karyawan
                         </div>
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                         <div class="card-body">
                             <form id="filterForm" class="form-inline">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -806,9 +673,6 @@ function GetPayheadById($conn) {
                                     <select class="form-control" id="filterJenjang" name="jenjang">
                                         <option value="">Semua Jenjang</option>
                                         <?php
-<<<<<<< HEAD
-                                            $stmtJenjang = $conn->prepare("SELECT DISTINCT jenjang FROM anggota_sekolah WHERE jenjang IS NOT NULL AND jenjang != '' ORDER BY jenjang ASC");
-=======
                                             // Ambil daftar jenjang dari database
                                             $stmtJenjang = $conn->prepare("
                                                 SELECT DISTINCT jenjang 
@@ -816,7 +680,6 @@ function GetPayheadById($conn) {
                                                 WHERE jenjang IS NOT NULL AND jenjang != '' 
                                                 ORDER BY jenjang ASC
                                             ");
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                                             if ($stmtJenjang) {
                                                 $stmtJenjang->execute();
                                                 $resJenjang = $stmtJenjang->get_result();
@@ -859,19 +722,11 @@ function GetPayheadById($conn) {
                                             <th>NIP</th>
                                             <th>Nama</th>
                                             <th>Jenjang</th>
-<<<<<<< HEAD
-                                            <th>Job Title</th>
-                                            <th>Role</th>
-                                            <th>Masa Kerja</th>
-                                            <th>Gaji Pokok</th>
-                                            <th>Level Indeks</th>
-=======
                                             <th>Role</th>
                                             <th>Job Title</th>
                                             <th>Masa Kerja</th>
                                             <th>Level Indeks</th>
                                             <th>Gaji Pokok</th>
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                                             <th>No Rekening</th>
                                             <th>Email</th>
                                             <th>Aksi</th>
@@ -914,6 +769,7 @@ function GetPayheadById($conn) {
                         </button>
                     </div>
                     <div class="modal-body">
+                        <!-- Hidden Inputs -->
                         <input type="hidden" name="case" value="EditEmployee">
                         <input type="hidden" name="id" id="editEmployeeId">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -1015,13 +871,6 @@ function GetPayheadById($conn) {
                     </button>
                 </div>
                 <form id="assign-payhead-form">
-<<<<<<< HEAD
-                    <div class="modal-body">
-                        <input type="hidden" name="case" value="AssignPayheadsToEmployee">
-                        <input type="hidden" name="empcode" id="empcode" />
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                        <div class="select-payheads">
-=======
                     <div class="modal-body" style="display:flex; gap:15px;">
                         <!-- Hidden Inputs -->
                         <input type="hidden" name="case" value="AssignPayheadsToEmployee">
@@ -1029,7 +878,6 @@ function GetPayheadById($conn) {
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <!-- Bagian kiri: Payheads Tersedia -->
                         <div style="flex:1;">
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                             <label><strong>Payheads Tersedia:</strong></label>
                             <input type="text" id="searchAllPayheads" class="form-control mb-2" placeholder="Cari Payheads Tersedia...">
                             <button type="button" id="selectHeads" class="btn btn-success btn-sm mb-2">
@@ -1037,12 +885,8 @@ function GetPayheadById($conn) {
                             </button>
                             <select id="all_payheads" class="form-control" multiple size="10"></select>
                         </div>
-<<<<<<< HEAD
-                        <div class="selected-payheads">
-=======
                         <!-- Bagian Tengah -->
                         <div style="flex:1;">
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                             <label><strong>Payheads Terpilih:</strong></label>
                             <input type="text" id="searchSelectedPayheads" class="form-control mb-2" placeholder="Cari Payheads Terpilih...">
                             <button type="button" id="removeHeads" class="btn btn-danger btn-sm mb-2">
@@ -1050,12 +894,8 @@ function GetPayheadById($conn) {
                             </button>
                             <select id="selected_payheads" class="form-control" multiple size="10"></select>
                         </div>
-<<<<<<< HEAD
-                        <div class="assign-amounts">
-=======
                         <!-- Bagian Kanan: Input Amount -->
                         <div style="flex:1;">
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                             <label><strong>Tetapkan Jumlah:</strong></label>
                             <div id="selected_payamount"></div>
                         </div>
@@ -1095,21 +935,13 @@ function GetPayheadById($conn) {
               <tr><th>Jenjang Pendidikan</th><td id="detailJenjang"></td></tr>
               <tr><th>Role</th><td id="detailRole"></td></tr>
               <tr><th>Job Title</th><td id="detailJobTitle"></td></tr>
-              <tr><th>Role</th><td id="detailRole"></td></tr>
               <tr><th>Status Kerja</th><td id="detailStatusKerja"></td></tr>
               <tr><th>Masa Kerja</th><td id="detailMasaKerja"></td></tr>
               <tr><th>No Rekening</th><td id="detailNoRekening"></td></tr>
               <tr><th>Email</th><td id="detailEmail"></td></tr>
-<<<<<<< HEAD
-              <!-- Di modal view detail, tampilkan juga level indeks beserta nominalnya -->
-              <tr><th>Level Indeks</th><td id="detailLevelIndeks"></td></tr>
-              <tr><th>Nominal Level</th><td id="detailNominalLevel"></td></tr>
-              <tr><th>Payheads</th><td id="detailPayheads"></td></tr>
-=======
               <tr><th>Jenis Kelamin</th><td id="detailJenisKelamin"></td></tr>
               <tr><th>Agama</th><td id="detailAgama"></td></tr>
               <!-- Info Gaji dan Level Indeks -->
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
               <tr><th>Gaji Pokok</th><td id="detailGajiPokok"></td></tr>
               <tr><th>Nominal Level Indeks</th><td id="detailSalaryIndexNominal"></td></tr>
               <tr><th>Payheads</th><td id="detailPayheads"></td></tr>
@@ -1142,10 +974,7 @@ function GetPayheadById($conn) {
           <div class="modal-body">
             <div class="row text-center">
               <?php
-<<<<<<< HEAD
-=======
               // Membuat grid bulan: 2 bulan sebelum - 14 bulan ke depan
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
               $months = [];
               $years  = [];
               $currentYear  = date('Y');
@@ -1208,16 +1037,16 @@ function GetPayheadById($conn) {
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.colVis.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- Bootstrap Notify dihapus -->
+    <script src="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- Sertakan plugin AutoNumeric -->
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
-<<<<<<< HEAD
-=======
     <!-- SweetAlert2 -->
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
+        $('[data-toggle="tooltip"]').tooltip();
+
         // Inisialisasi AutoNumeric untuk input dengan class .currency-input
         function initAutoNumeric() {
             AutoNumeric.multiple('.currency-input', {
@@ -1246,10 +1075,7 @@ function GetPayheadById($conn) {
 
         var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
 
-<<<<<<< HEAD
-=======
         // DataTable
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         var empTable = $('#employees').DataTable({
             processing: true,
             serverSide: true,
@@ -1273,16 +1099,9 @@ function GetPayheadById($conn) {
                 { data: 'jenjang' },
                 { data: 'role' },
                 { data: 'job_title' },
-<<<<<<< HEAD
-                { data: 'role' },
-                { data: 'masa_kerja' },
-                { data: 'gaji_pokok' },
-                { data: 'salary_index' },
-=======
                 { data: 'masa_kerja' },
                 { data: 'level_indeks' },
                 { data: 'gaji_pokok' },
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                 { data: 'no_rekening' },
                 { data: 'email' },
                 { data: 'aksi', orderable: false, searchable: false }
@@ -1301,26 +1120,16 @@ function GetPayheadById($conn) {
             autoWidth: false
         });
 
-<<<<<<< HEAD
-=======
         // Filter
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#btnApplyFilter').on('click', function(){
             empTable.ajax.reload();
         });
-<<<<<<< HEAD
-
-=======
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#btnResetFilter').on('click', function(){
             $('#filterForm')[0].reset();
             empTable.ajax.reload();
         });
 
-<<<<<<< HEAD
-=======
         // Edit Employee
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#employees tbody').on('click', '.btnEdit', function() {
             var id = $(this).data('id');
             $.ajax({
@@ -1355,11 +1164,7 @@ function GetPayheadById($conn) {
                 }
             });
         });
-<<<<<<< HEAD
-
-=======
         // Submit form update
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#editEmployeeForm').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -1397,10 +1202,7 @@ function GetPayheadById($conn) {
             });
         });
 
-<<<<<<< HEAD
-=======
         // View Detail
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#employees tbody').on('click', '.btnViewDetail', function(){
             var id = $(this).data('id');
             $.ajax({
@@ -1422,7 +1224,6 @@ function GetPayheadById($conn) {
                         $('#detailJenjang').text(e.jenjang);
                         $('#detailRole').text(e.role);
                         $('#detailJobTitle').text(e.job_title);
-                        $('#detailRole').text(e.role);
                         $('#detailStatusKerja').text(e.status_kerja);
                         $('#detailMasaKerja').text(e.masa_kerja);
                         $('#detailNoRekening').text(e.no_rekening);
@@ -1471,10 +1272,7 @@ function GetPayheadById($conn) {
             });
         });
 
-<<<<<<< HEAD
-=======
         // Assign Payheads
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#employees tbody').on('click', '.btnAssignPayheads', function(){
             var id = $(this).data('id');
             $('#empcode').val(id);
@@ -1530,15 +1328,10 @@ function GetPayheadById($conn) {
                                         $('#selected_payheads').append(option);
                                         var payheadAmount = `
                                             <div class="payhead-item">
-<<<<<<< HEAD
-                                                <label>${payheadNameTranslated}</label>
-                                                <input type="text" name="pay_amounts[${payheadId}]" class="form-control currency-input" value="${ap.amount}" required>
-=======
                                                 <label>${payheadName}</label>
                                                 <input type="text" name="pay_amounts[${payheadId}]" 
                                                        class="form-control currency-input" 
                                                        value="${ap.amount}" required>
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                                             </div>
                                         `;
                                         $('#selected_payamount').append(payheadAmount);
@@ -1562,11 +1355,7 @@ function GetPayheadById($conn) {
                 }
             });
         });
-<<<<<<< HEAD
-
-=======
         // Submit Assign Payheads
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#assign-payhead-form').on('submit', function(e){
             e.preventDefault();
             var form = $(this);
@@ -1634,11 +1423,7 @@ function GetPayheadById($conn) {
                 }
             });
         });
-<<<<<<< HEAD
-
-=======
         // Remove Payheads
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#ManageModal').on('click', '#removeHeads', function(){
             var selectedOptions = $('#selected_payheads option:selected');
             if(selectedOptions.length === 0){
@@ -1658,11 +1443,7 @@ function GetPayheadById($conn) {
                 $('#all_payheads').append(option);
             });
         });
-<<<<<<< HEAD
-
-=======
         // Select Heads
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#ManageModal').on('click', '#selectHeads', function(){
             var selectedOptions = $('#all_payheads option:selected');
             if(selectedOptions.length === 0){
@@ -1682,13 +1463,9 @@ function GetPayheadById($conn) {
                     var payheadAmount = `
                         <div class="payhead-item">
                             <label>${payheadName}</label>
-<<<<<<< HEAD
-                            <input type="text" name="pay_amounts[${payheadId}]" class="form-control currency-input" value="0" required>
-=======
                             <input type="text" name="pay_amounts[${payheadId}]" 
                                    class="form-control currency-input" 
                                    value="0" required>
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
                         </div>
                     `;
                     $('#selected_payamount').append(payheadAmount);
@@ -1698,10 +1475,7 @@ function GetPayheadById($conn) {
             initAutoNumeric();
         });
 
-<<<<<<< HEAD
-=======
         // Pilih Bulan Gaji
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
         $('#employees tbody').on('click', '.btnSelectMonth', function() {
             var employeeId = $(this).data('id');
             window.currentEmpId = employeeId;
@@ -1722,15 +1496,6 @@ function GetPayheadById($conn) {
             targetUrl += "&tahun=" + encodeURIComponent(yearName);
             window.location.href = targetUrl;
         });
-<<<<<<< HEAD
-
-        $('#filterForm').on('keypress', function(e){
-            if(e.which === 13) {
-                $('#btnApplyFilter').click();
-            }
-        });
-=======
->>>>>>> 2e50351e381bd60a069d3ddd61c3f2663088f790
     });
     </script>
 </body>
