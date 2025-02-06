@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 05, 2025 at 05:55 AM
+-- Generation Time: Feb 06, 2025 at 02:28 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -216,22 +216,24 @@ CREATE TABLE `anggota_sekolah` (
   `nama_anak_2` varchar(100) NOT NULL DEFAULT '',
   `nama_anak_3` varchar(100) NOT NULL DEFAULT '',
   `salary_index_id` int(11) DEFAULT NULL,
-  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00
+  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `foto_profil` varchar(255) DEFAULT 'default.jpg',
+  `role` enum('P','TK','M') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `anggota_sekolah`
 --
 
-INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `job_title`, `status_kerja`, `join_start`, `masa_kerja_tahun`, `masa_kerja_bulan`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_suami`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `gaji_pokok`) VALUES
-(1, 'G-001', '111111', 'e10adc3949ba59abbe56e057f20f883e', 'John Doe', 'SMP', 'Guru Matematika', 'Tetap', '2015-08-01', 8, 5, 'Pengalaman 10 tahun', '', '1985-05-15', 39, 'Islam', 'Jl. Merdeka No.1', 'Jl. Merdeka No.1', '1111111111', '081234567891', 'S1 Pendidikan Matematika', 'Menikah', 'john.doe@example.com', 'Jane Doe', 0, '0', '', '', 3, 5000000.00),
-(2, 'G-002', '222222', 'e10adc3949ba59abbe56e057f20f883e', 'Mike Johnson', 'SMA', 'Guru Bahasa Inggris', 'Tetap', '2012-03-10', 11, 10, 'Guru senior', 'L', '1980-11-30', 44, 'Kristen', 'Jl. Kebangsaan No.3', 'Jl. Kebangsaan No.3', '2222222222', '081112223333', 'S2 Pendidikan Bahasa Inggris', 'Menikah', 'mike.johnson@example.com', 'Sarah Johnson', 3, 'Chris', 'Diana', 'Evan', 4, 5200000.00),
-(3, 'G-003', '333333', 'e10adc3949ba59abbe56e057f20f883e', 'Roosalin Chintia Dewi,SE', 'TK', 'Guru Kelas TK A', 'Tetap', '2022-07-01', 2, 6, 'Berpengalaman mengajar anak TK', 'P', '1992-03-15', 32, 'Islam', 'Jl. Pendidikan No.45', 'Jl. Pendidikan No.45', '3333333333', '087765432100', 'S1 PAUD', 'Menikah', 'roosalin@example.com', 'Budi Kurniawan', 1, 'Aisya', '', '', 1, 4800000.00),
-(4, 'K-001', '444444', 'e10adc3949ba59abbe56e057f20f883e', 'Jane Smith', 'SMP', 'Staf Administrasi', 'Kontrak', '2020-01-15', 3, 4, 'Admin di bagian keuangan', 'P', '1990-07-20', 34, 'Kristen', 'Jl. Pahlawan No.2', 'Jl. Pahlawan No.2', '4444444444', '081298765432', 'D3 Administrasi', 'Belum Menikah', 'jane.smith@example.com', NULL, 0, '', '', '', 2, 4000000.00),
-(5, 'K-002', '555555', 'e10adc3949ba59abbe56e057f20f883e', 'Robert Lee', 'SMK', 'Karyawan Operasional', 'Tetap', '2018-05-01', 6, 0, 'Bertugas di operasional sekolah', 'L', '1988-10-10', 36, 'Islam', 'Jl. Operasional No.7', 'Jl. Operasional No.7', '5555555555', '081298700000', 'S1 Manajemen', 'Menikah', 'robert.lee@example.com', 'Anna Lee', 2, 'Tom', 'Jerry', '', 1, 4200000.00),
-(6, 'G-004', '666666', 'e10adc3949ba59abbe56e057f20f883e', 'Rina Septiani', 'SD', 'Guru Kelas 3 SD', 'Tetap', '2015-08-15', 9, 5, 'Guru berpengalaman', 'P', '1985-06-25', 39, 'Kristen', 'Jl. Pendidikan No.78', 'Jl. Pendidikan No.78', '6666666666', '081234567890', 'S1 Pendidikan Dasar', 'Menikah', 'rina.septiani@example.com', 'Dedi Septiani', 2, 'Lia', 'Mia', '', 2, 5000000.00),
-(7, 'K-003', '777777', 'e10adc3949ba59abbe56e057f20f883e', 'Robert S.', 'SMK', 'Karyawan Administrasi', 'Kontrak', '2023-01-01', 1, 0, 'Bertugas di administrasi umum', 'L', '1995-04-15', 29, 'Islam', 'Jl. Administrasi No.5', 'Jl. Administrasi No.5', '7777777777', '081234500000', 'S1 Administrasi', 'Belum Menikah', 'robert.s@example.com', NULL, 0, '', '', '', NULL, 4000000.00),
-(8, 'G-005', '888888', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Gunawan', 'SD', 'Guru Olahraga SD', 'Tetap', '2018-03-01', 6, 10, 'Mengajar olahraga', '', '1988-09-10', 36, 'Islam', 'Jl. Olahraga No.12', 'Jl. Olahraga No.12', '8888888888', '085432109870', 'S1 Keolahragaan', '', 'hendra.g@example.com', 'Maya Gunawan', 1, '0', '', '', 2, 5100000.00);
+INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `job_title`, `status_kerja`, `join_start`, `masa_kerja_tahun`, `masa_kerja_bulan`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_suami`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `gaji_pokok`, `foto_profil`, `role`) VALUES
+(1, 'G-001', '111111', 'e10adc3949ba59abbe56e057f20f883e', 'John Doe', 'SMP', 'Guru Matematika', 'Tetap', '2015-08-01', 8, 5, 'Pengalaman 10 tahun', 'L', '1985-05-15', 39, 'Islam', 'Jl. Merdeka No.1', 'Jl. Merdeka No.1', '1111111111', '081234567891', '', 'Menikah', 'john.doe@example.com', 'Jane Doe', 0, '', '', '', 3, 5000000.00, 'default.jpg', 'P'),
+(2, 'G-002', '222222', 'e10adc3949ba59abbe56e057f20f883e', 'Mike Johnson', 'SMA', 'Guru Bahasa Inggris', 'Tetap', '2012-03-10', 11, 10, 'Guru senior', 'L', '1980-11-30', 44, 'Kristen', 'Jl. Kebangsaan No.3', 'Jl. Kebangsaan No.3', '2222222222', '081112223333', 'S2 Pendidikan Bahasa Inggris', 'Menikah', 'mike.johnson@example.com', 'Sarah Johnson', 3, 'Chris', 'Diana', 'Evan', 4, 5200000.00, 'default.jpg', NULL),
+(3, 'G-003', '333333', 'e10adc3949ba59abbe56e057f20f883e', 'Roosalin Chintia Dewi,SE', 'TK', 'Guru Kelas TK A', 'Tetap', '2022-07-01', 2, 6, 'Berpengalaman mengajar anak TK', 'P', '1992-03-15', 32, 'Islam', 'Jl. Pendidikan No.45', 'Jl. Pendidikan No.45', '3333333333', '087765432100', 'S1 PAUD', 'Menikah', 'roosalin@example.com', 'Budi Kurniawan', 1, 'Aisya', '', '', 1, 4800000.00, 'default.jpg', NULL),
+(4, 'K-001', '444444', 'e10adc3949ba59abbe56e057f20f883e', 'Jane Smith', 'SMP', 'Staf Administrasi', 'Kontrak', '2020-01-15', 3, 4, 'Admin di bagian keuangan', 'P', '1990-07-20', 34, 'Kristen', 'Jl. Pahlawan No.2', 'Jl. Pahlawan No.2', '4444444444', '081298765432', 'D3 Administrasi', 'Belum Menikah', 'jane.smith@example.com', NULL, 0, '', '', '', 2, 4000000.00, 'default.jpg', NULL),
+(5, 'K-002', '555555', 'e10adc3949ba59abbe56e057f20f883e', 'Robert Lee', 'SMK', 'Karyawan Operasional', 'Tetap', '2018-05-01', 6, 0, 'Bertugas di operasional sekolah', 'L', '1988-10-10', 36, 'Islam', 'Jl. Operasional No.7', 'Jl. Operasional No.7', '5555555555', '081298700000', 'S1 Manajemen', 'Menikah', 'robert.lee@example.com', 'Anna Lee', 2, 'Tom', 'Jerry', '', 1, 4200000.00, 'default.jpg', NULL),
+(6, 'G-004', '666666', 'e10adc3949ba59abbe56e057f20f883e', 'Rina Septiani', 'SD', 'Guru Kelas 3 SD', 'Tetap', '2015-08-15', 9, 5, 'Guru berpengalaman', 'P', '1985-06-25', 39, 'Kristen', 'Jl. Pendidikan No.78', 'Jl. Pendidikan No.78', '6666666666', '081234567890', 'S1 Pendidikan Dasar', 'Menikah', 'rina.septiani@example.com', 'Dedi Septiani', 2, 'Lia', 'Mia', '', 2, 5000000.00, 'default.jpg', NULL),
+(7, 'K-003', '777777', 'e10adc3949ba59abbe56e057f20f883e', 'Robert S.', 'SMK', 'Karyawan Administrasi', 'Kontrak', '2023-01-01', 1, 0, 'Bertugas di administrasi umum', 'L', '1995-04-15', 29, 'Islam', 'Jl. Administrasi No.5', 'Jl. Administrasi No.5', '7777777777', '081234500000', 'S1 Administrasi', 'Belum Menikah', 'robert.s@example.com', NULL, 0, '', '', '', NULL, 4000000.00, 'default.jpg', NULL),
+(8, 'G-005', '888888', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Gunawan', 'SD', 'Guru Olahraga SD', 'Tetap', '2018-03-01', 6, 10, 'Mengajar olahraga', '', '1988-09-10', 36, 'Islam', 'Jl. Olahraga No.12', 'Jl. Olahraga No.12', '8888888888', '085432109870', 'S1 Keolahragaan', '', 'hendra.g@example.com', 'Maya Gunawan', 1, '0', '', '', 2, 5100000.00, 'default.jpg', NULL);
 
 -- --------------------------------------------------------
 
@@ -381,7 +383,32 @@ INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `u
 (125, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:38:23'),
 (126, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:40:38'),
 (127, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:41:39'),
-(128, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:42:15');
+(128, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:42:15'),
+(129, 1, 'Logout', 'Pengguna \'superadmin\' dengan role \'superadmin\' berhasil logout.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 06:07:34'),
+(130, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 06:07:56'),
+(131, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:13'),
+(132, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:23'),
+(133, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:42'),
+(134, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:48'),
+(135, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:52'),
+(136, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 13:53:12'),
+(137, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 13:53:45'),
+(138, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 13:53:51'),
+(139, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 13:54:03'),
+(140, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:09:50'),
+(141, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:09:59'),
+(142, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:10:05'),
+(143, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:10:07'),
+(144, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:11:55'),
+(145, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:18:10'),
+(146, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:18:13'),
+(147, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:29:25'),
+(148, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:29:29'),
+(149, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:41:22'),
+(150, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:24'),
+(151, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=111111, Nama=John Doe.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:26'),
+(152, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:28'),
+(153, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:36');
 
 -- --------------------------------------------------------
 
@@ -450,6 +477,20 @@ CREATE TABLE `holidays` (
 INSERT INTO `holidays` (`holiday_id`, `holiday_title`, `holiday_desc`, `holiday_date`, `holiday_type`) VALUES
 (1, 'Natal 2025', 'Libur perayaan Natal', '2025-12-24', 'wajib'),
 (2, 'Tahun Baru 2025', 'Libur tahun baru', '2025-01-01', '');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `message` text NOT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -673,6 +714,13 @@ ALTER TABLE `holidays`
   ADD PRIMARY KEY (`holiday_id`);
 
 --
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_id` (`user_id`);
+
+--
 -- Indexes for table `payheads`
 --
 ALTER TABLE `payheads`
@@ -721,13 +769,19 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=129;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
 
 --
 -- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
   MODIFY `holiday_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payheads`
