@@ -249,8 +249,13 @@ if ($resKaryawanAll) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" nonce="<?= htmlspecialchars($nonce); ?>">
 
     <style nonce="<?= htmlspecialchars($nonce); ?>">
+
+.text-gray-800 {
+    color: #000 !important;
+}
         body {
             transition: background-color 0.3s, color 0.3s;
+            color: #000 !important;
         }
         /* Dark Mode */
         .dark-mode {
@@ -272,6 +277,7 @@ if ($resKaryawanAll) {
         .table.dataTable td {
             text-align: center;
             vertical-align: middle;
+            color: #000 !important;
         }
         .chart-grid {
             display: grid;

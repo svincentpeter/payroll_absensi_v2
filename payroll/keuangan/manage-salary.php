@@ -21,13 +21,22 @@ generate_csrf_token();
 function monthNameToInt($monthName) {
     $lower = strtolower($monthName);
     $map = [
-        'january' => 1, 'february' => 2, 'march' => 3,
-        'april' => 4,  'may' => 5,      'june' => 6,
-        'july' => 7,   'august' => 8,   'september' => 9,
-        'october' => 10,'november' => 11,'december' => 12
+        'januari'   => 1,
+        'februari'  => 2,
+        'maret'     => 3,
+        'april'     => 4,
+        'mei'       => 5,
+        'juni'      => 6,
+        'juli'      => 7,
+        'agustus'   => 8,
+        'september' => 9,
+        'oktober'   => 10,
+        'november'  => 11,
+        'desember'  => 12
     ];
     return isset($map[$lower]) ? $map[$lower] : 0;
 }
+
 
 // ==================================================================
 // BAGIAN AJAX: Update / Delete Payhead
@@ -112,24 +121,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
     verify_csrf_token($csrf_token);
 
-    $id_anggota       = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
-    $bulan_int        = isset($_POST['bulan_int']) ? intval($_POST['bulan_int']) : 0;
-    $tahun            = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
-    $id_rekap_absensi = isset($_POST['id_rekap_absensi']) ? intval($_POST['id_rekap_absensi']) : 0;
-    $no_rekening      = isset($_POST['no_rekening']) ? bersihkan_input($_POST['no_rekening']) : '';
-    $gaji_pokok       = isset($_POST['gaji_pokok']) ? floatval($_POST['gaji_pokok']) : 0;
-    $total_earnings   = isset($_POST['total_earnings']) ? floatval($_POST['total_earnings']) : 0;
-    $total_deductions = isset($_POST['total_deductions']) ? floatval($_POST['total_deductions']) : 0;
-    $payheads_ids     = isset($_POST['payheads_ids']) ? $_POST['payheads_ids'] : [];
-    $payheads_jenis   = isset($_POST['payheads_jenis']) ? $_POST['payheads_jenis'] : [];
-    $payheads_amount  = isset($_POST['payheads_amount']) ? $_POST['payheads_amount'] : [];
-    $catatan          = isset($_POST['inputDescription']) ? bersihkan_input($_POST['inputDescription']) : '';
-    $tgl_payroll      = isset($_POST['tgl_payroll']) ? bersihkan_input($_POST['tgl_payroll']) : date('Y-m-d H:i:s');
+    // Gunakan nilai POST, jika tidak ada, fallback ke GET (jika ada)
+    $id_anggota       = isset($_POST['id_anggota'])       ? intval($_POST['id_anggota'])       : (isset($_GET['id_anggota']) ? intval($_GET['id_anggota']) : 0);
+    $bulan_int        = isset($_POST['bulan_int'])        ? intval($_POST['bulan_int'])        : (isset($_GET['bulan_int']) ? intval($_GET['bulan_int']) : 0);
+    $tahun            = isset($_POST['tahun'])            ? intval($_POST['tahun'])            : (isset($_GET['tahun']) ? intval($_GET['tahun']) : 0);
+    $id_rekap_absensi = isset($_POST['id_rekap_absensi']) ? intval($_POST['id_rekap_absensi']) : (isset($_GET['id_rekap_absensi']) ? intval($_GET['id_rekap_absensi']) : 0);
 
+    // Jika ada parameter lain (misalnya no_rekening, gaji_pokok, dll.) ambil dari POST
+    $no_rekening      = isset($_POST['no_rekening'])      ? bersihkan_input($_POST['no_rekening']) : '';
+    $gaji_pokok       = isset($_POST['gaji_pokok'])       ? floatval($_POST['gaji_pokok'])       : 0;
+    $total_earnings   = isset($_POST['total_earnings'])   ? floatval($_POST['total_earnings'])   : 0;
+    $total_deductions = isset($_POST['total_deductions']) ? floatval($_POST['total_deductions']) : 0;
+    $payheads_ids     = isset($_POST['payheads_ids'])     ? $_POST['payheads_ids']              : [];
+    $payheads_jenis   = isset($_POST['payheads_jenis'])   ? $_POST['payheads_jenis']            : [];
+    $payheads_amount  = isset($_POST['payheads_amount'])  ? $_POST['payheads_amount']           : [];
+    $catatan          = isset($_POST['inputDescription']) ? bersihkan_input($_POST['inputDescription']) : '';
+    $tgl_payroll      = isset($_POST['tgl_payroll'])      ? bersihkan_input($_POST['tgl_payroll'])      : date('Y-m-d H:i:s');
+
+    // Validasi parameter
     if ($id_anggota <= 0 || $bulan_int <= 0 || $tahun <= 0 || $id_rekap_absensi <= 0) {
+        var_dump($_POST);  // Tambahkan ini untuk memeriksa data yang dikirimkan
         die("Parameter tidak valid.");
     }
-
+    
     $conn->begin_transaction();
     try {
         $stmtPayroll = $conn->prepare("
@@ -251,18 +265,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id_rekap_absensi = $rowRekap['id'];
     } else {
         $stmtIns = $conn->prepare("
-            INSERT INTO rekap_absensi
-            (id_anggota, bulan, tahun, total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit)
-            VALUES (?, ?, ?, 0,0,0,0,0)
-        ");
-        if (!$stmtIns) {
-            die("Prepare insert rekap gagal: " . $conn->error);
-        }
-        $stmtIns->bind_param("iii", $id_anggota, $bulan, $tahun);
-        if (!$stmtIns->execute()) {
-            die("Gagal insert rekap_absensi: " . $stmtIns->error);
-        }
-        $id_rekap_absensi = $stmtIns->insert_id;
+    INSERT INTO rekap_absensi
+    (id_anggota, bulan, tahun, total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit)
+    VALUES (?, ?, ?, 0,0,0,0,0)
+");
+$stmtIns->bind_param("iii", $id_anggota, $bulan, $tahun);
+if (!$stmtIns->execute()) {
+    die("Gagal insert rekap_absensi: " . $stmtIns->error);
+}
+$id_rekap_absensi = $stmtIns->insert_id;
+
         $stmtIns->close();
     }
     $stmtRekap->close();

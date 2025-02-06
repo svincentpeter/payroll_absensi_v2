@@ -15,19 +15,15 @@ session_set_cookie_params([
     'samesite' => 'Strict'
 ]);
 
-// Jika tersedia, gunakan helper untuk memulai session dengan aman, inisialisasi error handling, dan generate CSRF token
-// require_once __DIR__ . '/../../helpers.php';
-// start_session_safe();
-// generate_csrf_token();
+// Mulai session
+session_start();
 
-session_start(); // Jika helper tidak tersedia, gunakan session_start()
-
-// Jika CSRF token belum dibuat, buat token baru
+// Jika CSRF token belum ada, buat token baru
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Buat nonce untuk Content-Security-Policy dan simpan di session
+// Buat nonce untuk CSP dan simpan di session
 $nonce = base64_encode(random_bytes(16));
 $_SESSION['csp_nonce'] = $nonce;
 
@@ -50,14 +46,12 @@ header("Content-Security-Policy: default-src 'self';
     font-src 'self' https://cdnjs.cloudflare.com; 
     connect-src 'self'");
 
-// Role Checking
-function authorize($allowed_roles = ['keuangan', 'superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        send_response(403, 'Akses ditolak.');
-    }
+// Fungsi sanitasi input
+function bersihkan_input($data) {
+    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
-// Fungsi kirim JSON (bisa juga didefinisikan di helpers.php)
+// Fungsi pengiriman response JSON
 function send_response($code, $result) {
     if ($code !== 0) {
         error_log("Response Code $code: " . json_encode($result));
@@ -67,30 +61,31 @@ function send_response($code, $result) {
     exit();
 }
 
+// Fungsi untuk pengecekan role
+function authorize($allowed_roles = ['keuangan', 'superadmin']) {
+    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
+        send_response(403, 'Akses ditolak.');
+    }
+}
+
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
 // Nonaktifkan output buffering jika ada
 if (ob_get_length()) ob_end_clean();
 
-// =========================
-// 2. Sanitasi Input
-// =========================
-function bersihkan_input($data) {
-    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
-}
 
 // =========================
-// 3. Menangani Permintaan AJAX
+// 2. Menangani Permintaan AJAX
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Verifikasi CSRF
+        // Verifikasi CSRF token
         $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
         if (empty($csrf_token) || !hash_equals($_SESSION['csrf_token'], $csrf_token)) {
             send_response(403, 'Token CSRF tidak valid.');
         }
-        // Role Check
+        // Periksa role
         authorize();
         
         // Ambil case dari parameter POST
@@ -100,11 +95,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             case 'LoadingPayrollHistory':
                 LoadingPayrollHistory($conn);
                 break;
-            // Jika di kemudian hari ingin menambahkan audit log atau fitur lain,
-            // case tambahan dapat ditempatkan di sini, misalnya:
-            // case 'AddAuditLog':
-            //     // Proses pencatatan audit log (sama seperti di payheads.php)
-            //     break;
             default:
                 send_response(404, 'Kasus tidak ditemukan.');
         }
@@ -114,8 +104,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     exit();
 }
 
+
 // =========================
-// 4. Fungsi CRUD dan Helper
+// 3. Fungsi CRUD dan Helper untuk Payroll History
 // =========================
 
 /**
@@ -132,60 +123,71 @@ function bulanIntToName($bulan) {
 }
 
 /**
- * Memuat data payroll history (server-side DataTables)
+ * Fungsi LoadingPayrollHistory: memuat data payroll history untuk DataTables
  */
 function LoadingPayrollHistory($conn) {
-    // DataTables parameters
-    $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
-    $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
-    $length  = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search  = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
+    // Parameter DataTables
+    $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
+    $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
+    $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
+    $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
 
     // Filter Parameters
     $jenjang = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
-    // Bangun query dasar dengan join ke anggota_sekolah untuk jenjang
+    // Query dasar: join payroll, anggota_sekolah, dan salary_indices (untuk level indeks)
     $sqlBase = "
         FROM payroll p
         JOIN anggota_sekolah a ON p.id_anggota = a.id
+        LEFT JOIN salary_indices si ON a.salary_index_id = si.id
         WHERE 1=1
     ";
 
-    // Parameter binding untuk prepared statement
     $params = [];
     $types  = "";
 
     if (!empty($jenjang)) {
         $sqlBase .= " AND a.jenjang = ?";
         $params[] = $jenjang;
-        $types  .= "s";
+        $types   .= "s";
     }
     if ($bulan > 0) {
         $sqlBase .= " AND p.bulan = ?";
         $params[] = $bulan;
-        $types  .= "i";
+        $types   .= "i";
     }
     if ($tahun > 0) {
         $sqlBase .= " AND p.tahun = ?";
         $params[] = $tahun;
-        $types  .= "i";
+        $types   .= "i";
     }
     if (!empty($search)) {
-        $sqlBase .= " AND (p.id LIKE ? 
-                        OR a.id LIKE ?
-                        OR a.nama LIKE ?
-                        OR p.bulan LIKE ?
-                        OR p.tahun LIKE ?
-                        OR p.gaji_pokok LIKE ?
-                        OR p.total_pendapatan LIKE ?
-                        OR p.total_potongan LIKE ?
-                        OR p.gaji_bersih LIKE ?)";
+        $sqlBase .= " AND (
+                        p.id LIKE ? OR
+                        a.id LIKE ? OR
+                        a.uid LIKE ? OR
+                        a.nama LIKE ? OR
+                        a.jenjang LIKE ? OR
+                        a.role LIKE ? OR
+                        a.job_title LIKE ? OR
+                        si.level LIKE ? OR
+                        si.base_salary LIKE ? OR
+                        p.bulan LIKE ? OR
+                        p.tahun LIKE ? OR
+                        p.gaji_pokok LIKE ? OR
+                        p.total_pendapatan LIKE ? OR
+                        p.total_potongan LIKE ? OR
+                        p.gaji_bersih LIKE ? OR
+                        a.no_rekening LIKE ? OR
+                        a.email LIKE ?
+                      )";
         $searchParam = "%" . $search . "%";
-        for ($i = 0; $i < 9; $i++) {
+        // 17 kolom untuk kondisi search
+        for ($i = 0; $i < 17; $i++) {
             $params[] = $searchParam;
-            $types  .= "s";
+            $types   .= "s";
         }
     }
 
@@ -213,30 +215,43 @@ function LoadingPayrollHistory($conn) {
     $rowTotal = $resTotal->fetch_assoc();
     $recordsTotal = $rowTotal['total'];
 
-    // Query untuk mengambil data
+    // Query untuk mengambil data dengan kolom lengkap
     $sqlData = "
-        SELECT p.id, a.nama, a.jenjang, p.bulan, p.tahun, p.gaji_pokok, p.total_pendapatan, p.total_potongan, p.gaji_bersih
+        SELECT p.id, a.uid, a.nama, a.jenjang, a.role, a.job_title, si.level AS salary_index_level, 
+               si.base_salary AS salary_index_base, p.bulan, p.tahun, p.gaji_pokok, p.total_pendapatan, 
+               p.total_potongan, p.gaji_bersih, a.no_rekening, a.email
         " . $sqlBase;
 
-    // Tambahkan ORDER BY
+    // Ordering: izinkan pengurutan pada kolom-kolom yang ditampilkan
     $orderBy = " ORDER BY p.id DESC";
-    if (isset($_POST['order'], $_POST['columns'])) {
+    if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $columnIndex = intval($_POST['order'][0]['column']);
-        $allowedColumns = ['id', 'nama', 'jenjang', 'bulan', 'tahun', 'gaji_pokok', 'total_pendapatan', 'total_potongan', 'gaji_bersih'];
-        if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedColumns)) {
+        // Daftar kolom yang diizinkan
+        $allowedColumns = [
+            'id', 'uid', 'nama', 'jenjang', 'role', 'job_title', 'salary_index_level', 'salary_index_base',
+            'bulan', 'tahun', 'gaji_pokok', 'total_pendapatan', 'total_potongan', 'gaji_bersih', 'no_rekening', 'email'
+        ];
+        if (isset($_POST['columns'][$columnIndex]['data']) &&
+            in_array($_POST['columns'][$columnIndex]['data'], $allowedColumns)) {
             $colName = $_POST['columns'][$columnIndex]['data'];
             $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
-            // Pemetaan kolom DataTables ke kolom database
             $mapCol = [
                 'id' => 'p.id',
+                'uid' => 'a.uid',
                 'nama' => 'a.nama',
                 'jenjang' => 'a.jenjang',
+                'role' => 'a.role',
+                'job_title' => 'a.job_title',
+                'salary_index_level' => 'si.level',
+                'salary_index_base' => 'si.base_salary',
                 'bulan' => 'p.bulan',
                 'tahun' => 'p.tahun',
                 'gaji_pokok' => 'p.gaji_pokok',
                 'total_pendapatan' => 'p.total_pendapatan',
                 'total_potongan' => 'p.total_potongan',
-                'gaji_bersih' => 'p.gaji_bersih'
+                'gaji_bersih' => 'p.gaji_bersih',
+                'no_rekening' => 'a.no_rekening',
+                'email' => 'a.email'
             ];
             if (isset($mapCol[$colName])) {
                 $orderBy = " ORDER BY " . $mapCol[$colName] . " " . $colSortOrder;
@@ -244,16 +259,15 @@ function LoadingPayrollHistory($conn) {
         }
     }
 
-    // Tambahkan LIMIT untuk paging
+    // LIMIT untuk paging
     $limit = " LIMIT ?, ?";
     $paramsData = $params;
-    $typesData  = $types;
+    $typesData = $types;
     $paramsData[] = $start;
     $paramsData[] = $length;
-    $typesData   .= "ii";
+    $typesData .= "ii";
 
     $sqlData .= $orderBy . $limit;
-
     $stmtData = $conn->prepare($sqlData);
     if ($stmtData === false) {
         send_response(1, 'Prepare failed: ' . $conn->error);
@@ -261,34 +275,60 @@ function LoadingPayrollHistory($conn) {
     if (!empty($paramsData)) {
         $stmtData->bind_param($typesData, ...$paramsData);
     }
-    $stmtData->execute();
+    if (!$stmtData->execute()) {
+        send_response(1, 'Execute failed: ' . $stmtData->error);
+    }
     $resData = $stmtData->get_result();
 
     $data = [];
     while ($row = $resData->fetch_assoc()) {
+        // Format angka ke format rupiah untuk kolom-kolom numerik
+        $formattedGajiPokok = 'Rp ' . number_format($row['gaji_pokok'], 2, ',', '.');
+        $formattedSalaryIndex = 'Rp ' . number_format($row['salary_index_base'], 2, ',', '.');
+        $formattedPendapatan = 'Rp ' . number_format($row['total_pendapatan'], 2, ',', '.');
+        $formattedPotongan = 'Rp ' . number_format($row['total_potongan'], 2, ',', '.');
+        $formattedGajiBersih = 'Rp ' . number_format($row['gaji_bersih'], 2, ',', '.');
+
+        // Tombol aksi untuk melihat detail payroll
+        $aksi = '
+<div class="dropdown">
+  <button class="btn btn-sm" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <i class="fas fa-ellipsis-v"></i>
+  </button>
+  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
+    <a class="dropdown-item btn-view-detail" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+      <i class="fas fa-eye"></i> Lihat Detail
+    </a>
+  </div>
+</div>';
+
         $data[] = [
-            "id" => $row['id'],
-            "nama" => bersihkan_input($row['nama']),
-            "jenjang" => bersihkan_input($row['jenjang']),
-            "bulan" => bulanIntToName($row['bulan']),
-            "tahun" => $row['tahun'],
-            "gaji_pokok" => 'Rp ' . number_format($row['gaji_pokok'], 2, ',', '.'),
-            "total_pendapatan" => 'Rp ' . number_format($row['total_pendapatan'], 2, ',', '.'),
-            "total_potongan" => 'Rp ' . number_format($row['total_potongan'], 2, ',', '.'),
-            "gaji_bersih" => 'Rp ' . number_format($row['gaji_bersih'], 2, ',', '.'),
-            "aksi" => '
-                <a href="payroll-details.php?id_payroll=' . $row['id'] . '" class="btn btn-info btn-sm" data-toggle="tooltip" title="Lihat Detail">
-                    <i class="fas fa-eye"></i>
-                </a>'
+            "id"                 => htmlspecialchars($row['id']),
+            "uid"                => htmlspecialchars($row['uid']),
+            "nama"               => bersihkan_input($row['nama']),
+            "jenjang"            => bersihkan_input($row['jenjang']),
+            "role"               => htmlspecialchars($row['role']),
+            "job_title"          => htmlspecialchars($row['job_title']),
+            "salary_index_level" => htmlspecialchars($row['salary_index_level'] ?? '-'),
+            "salary_index_base"  => $formattedSalaryIndex,
+            "bulan"              => bulanIntToName($row['bulan']),
+            "tahun"              => $row['tahun'],
+            "gaji_pokok"         => $formattedGajiPokok,
+            "total_pendapatan"   => $formattedPendapatan,
+            "total_potongan"     => $formattedPotongan,
+            "gaji_bersih"        => $formattedGajiBersih,
+            "no_rekening"        => htmlspecialchars($row['no_rekening']),
+            "email"              => htmlspecialchars($row['email']),
+            "aksi"               => $aksi
         ];
     }
     $stmtData->close();
 
     $json_data = [
-        "draw" => $draw,
-        "recordsTotal" => $recordsTotal,
+        "draw"            => $draw,
+        "recordsTotal"    => $recordsTotal,
         "recordsFiltered" => $totalFiltered,
-        "data" => $data
+        "data"            => $data
     ];
     echo json_encode($json_data, JSON_UNESCAPED_UNICODE);
     exit();
@@ -300,16 +340,15 @@ function LoadingPayrollHistory($conn) {
     <meta charset="UTF-8">
     <title>History Payroll - Payroll Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 4 CSS -->
+    <!-- CSS Bootstrap & SB Admin 2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <!-- SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.2/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Bootstrap Notify CSS -->
     <link rel="stylesheet" href="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.css" nonce="<?php echo $nonce; ?>">
     <style nonce="<?php echo $nonce; ?>">
@@ -317,16 +356,9 @@ function LoadingPayrollHistory($conn) {
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
-        .btn:hover {
-            transform: scale(1.05);
-        }
-        .card-header {
-            background: linear-gradient(45deg, #0d47a1, #42a5f5);
-            color: white;
-        }
-        .table-hover tbody tr:hover {
-            background-color: #e2e6ea;
-        }
+        .btn:hover { transform: scale(1.05); }
+        .card-header { background: linear-gradient(45deg, #0d47a1, #42a5f5); color: white; }
+        .table-hover tbody tr:hover { background-color: #e2e6ea; }
         thead th {
             background-color: #343a40;
             color: white;
@@ -334,81 +366,52 @@ function LoadingPayrollHistory($conn) {
             vertical-align: middle;
             white-space: nowrap;
         }
-        tbody tr:nth-of-type(odd) {
-            background-color: #f9f9f9;
-        }
-        tbody tr:nth-of-type(even) {
-            background-color: #ffffff;
-        }
-        #payrollTable th, #payrollTable td {
-            font-size: 14px;
-            vertical-align: middle;
-            white-space: nowrap;
-        }
-        .table-responsive {
-            overflow-x: auto;
-        }
-        #loadingSpinner {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            height: 100px;
-            width: 100px;
-            margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
-        }
-        @media (max-width: 768px) {
-            .form-inline .form-group {
-                width: 100%;
-                margin-right: 0 !important;
-                margin-bottom: 10px;
-            }
-        }
+        tbody tr:nth-of-type(odd) { background-color: #f9f9f9; }
+        tbody tr:nth-of-type(even) { background-color: #ffffff; }
+        #payrollTable th, #payrollTable td { font-size: 14px; vertical-align: middle; white-space: nowrap; }
+        .table-responsive { overflow-x: auto; }
+        .spinner-border { margin-left: 5px; }
     </style>
 </head>
-<body id="page-top" class="sidebar-mini">
+<body id="page-top">
     <div id="wrapper">
         <!-- Sidebar -->
         <?php include(__DIR__ . '/../../sidebar.php'); ?>
-        <!-- End Sidebar -->
-
+        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
-                <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="/payroll_absensi_v2/logout.php" class="btn btn-danger btn-sm" title="Logout">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- End Topbar -->
-
+                <!-- Navbar -->
+                <?php include(__DIR__ . '/../../navbar.php'); ?>
+                <!-- Breadcrumb -->
+                <div class="container-fluid">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="/payroll_absensi_v2/absensi/sdm/dashboard_sdm.php">Home</a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">Manajemen Karyawan</li>
+                        </ol>
+                    </nav>
+                </div>
                 <!-- Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">
-                        <i class="fas fa-history"></i> History Payroll
+                        <i class="bi bi-people-fill"></i> History Payroll
                     </h1>
 
                     <!-- Filter Section -->
-                    <div class="card mb-4" style="background-color: #f8f9fa; border-radius: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <div class="card-header" style="background-color: #ffffff;">
-                            <strong>Filter Payroll History</strong>
+                    <div class="card mb-4">
+                        <div class="card-header font-weight-bold">
+                            <i class="bi bi-filter-square-fill"></i> Filter Payroll History
                         </div>
                         <div class="card-body">
                             <form id="filterPayrollForm" class="form-inline">
-                                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                                <div class="form-group mb-2 mr-3">
-                                    <label for="filterJenjang" class="mr-2"><strong>Jenjang:</strong></label>
-                                    <select class="form-control" id="filterJenjang" name="jenjang" style="width:200px">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <div class="form-group mb-2 me-3">
+                                    <label for="filterJenjang" class="me-2"><strong>Jenjang:</strong></label>
+                                    <select class="form-control" id="filterJenjang" name="jenjang">
                                         <option value="">Semua Jenjang</option>
                                         <?php
-                                            // Ambil daftar jenjang dari database
                                             $stmtJenjang = $conn->prepare("SELECT DISTINCT jenjang FROM anggota_sekolah ORDER BY jenjang ASC");
                                             if ($stmtJenjang) {
                                                 $stmtJenjang->execute();
@@ -417,13 +420,15 @@ function LoadingPayrollHistory($conn) {
                                                     echo '<option value="' . htmlspecialchars($row['jenjang']) . '">' . htmlspecialchars($row['jenjang']) . '</option>';
                                                 }
                                                 $stmtJenjang->close();
+                                            } else {
+                                                echo '<option value="">Tidak ada data</option>';
                                             }
                                         ?>
                                     </select>
                                 </div>
-                                <div class="form-group mb-2 mr-3">
-                                    <label for="filterBulan" class="mr-2"><strong>Bulan:</strong></label>
-                                    <select class="form-control" id="filterBulan" name="bulan" style="width:150px">
+                                <div class="form-group mb-2 me-3">
+                                    <label for="filterBulan" class="me-2"><strong>Bulan:</strong></label>
+                                    <select class="form-control" id="filterBulan" name="bulan">
                                         <option value="">Semua Bulan</option>
                                         <?php
                                             for ($m=1; $m<=12; $m++) {
@@ -432,9 +437,9 @@ function LoadingPayrollHistory($conn) {
                                         ?>
                                     </select>
                                 </div>
-                                <div class="form-group mb-2 mr-3">
-                                    <label for="filterTahun" class="mr-2"><strong>Tahun:</strong></label>
-                                    <select class="form-control" id="filterTahun" name="tahun" style="width:150px">
+                                <div class="form-group mb-2 me-3">
+                                    <label for="filterTahun" class="me-2"><strong>Tahun:</strong></label>
+                                    <select class="form-control" id="filterTahun" name="tahun">
                                         <option value="">Semua Tahun</option>
                                         <?php
                                             $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll ORDER BY tahun DESC");
@@ -450,7 +455,7 @@ function LoadingPayrollHistory($conn) {
                                     </select>
                                 </div>
                                 <div class="form-group mb-2">
-                                    <button type="button" class="btn btn-primary mr-2" id="btnApplyFilterPayroll">
+                                    <button type="button" class="btn btn-primary me-2" id="btnApplyFilterPayroll">
                                         <i class="fas fa-filter"></i> Terapkan Filter
                                     </button>
                                     <button type="button" class="btn btn-secondary" id="btnResetFilterPayroll">
@@ -477,14 +482,21 @@ function LoadingPayrollHistory($conn) {
                                     <thead class="thead">
                                         <tr>
                                             <th>ID Payroll</th>
+                                            <th>UID</th>
                                             <th>Nama Karyawan</th>
                                             <th>Jenjang</th>
+                                            <th>Role</th>
+                                            <th>Job Title</th>
+                                            <th>Level Indeks</th>
+                                            <th>Salary Index</th>
                                             <th>Bulan</th>
                                             <th>Tahun</th>
                                             <th>Gaji Pokok</th>
                                             <th>Total Pendapatan</th>
                                             <th>Total Potongan</th>
                                             <th>Gaji Bersih</th>
+                                            <th>No. Rekening</th>
+                                            <th>Email</th>
                                             <th>Aksi</th>
                                         </tr>
                                     </thead>
@@ -494,9 +506,9 @@ function LoadingPayrollHistory($conn) {
                         </div>
                     </div>
                 </div>
-                <!-- End container-fluid -->
+                <!-- End Container -->
             </div>
-            <!-- End #content -->
+            <!-- End Content -->
 
             <!-- Footer -->
             <footer class="sticky-footer bg-white">
@@ -542,23 +554,26 @@ function LoadingPayrollHistory($conn) {
         </div>
     </div>
 
-    <!-- JS Dependencies -->
+    <!-- JS Dependencies dengan nonce -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.5.3/js/bootstrap.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.colVis.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <script src="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
         $('[data-toggle="tooltip"]').tooltip();
@@ -576,15 +591,12 @@ function LoadingPayrollHistory($conn) {
             }
         });
         function showToast(message, icon = 'success') {
-            Toast.fire({
-                icon: icon,
-                title: message
-            });
+            Toast.fire({ icon: icon, title: message });
         }
 
         var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
 
-        // Inisialisasi DataTable untuk Payroll History
+        // Inisialisasi DataTable untuk History Payroll
         var payrollTable = $('#payrollTable').DataTable({
             processing: true,
             serverSide: true,
@@ -610,14 +622,21 @@ function LoadingPayrollHistory($conn) {
             },
             columns: [
                 { data:'id', name:'id' },
+                { data:'uid', name:'uid' },
                 { data:'nama', name:'nama' },
                 { data:'jenjang', name:'jenjang' },
+                { data:'role', name:'role' },
+                { data:'job_title', name:'job_title' },
+                { data:'salary_index_level', name:'salary_index_level' },
+                { data:'salary_index_base', name:'salary_index_base' },
                 { data:'bulan', name:'bulan' },
                 { data:'tahun', name:'tahun' },
                 { data:'gaji_pokok', name:'gaji_pokok' },
                 { data:'total_pendapatan', name:'total_pendapatan' },
                 { data:'total_potongan', name:'total_potongan' },
                 { data:'gaji_bersih', name:'gaji_bersih' },
+                { data:'no_rekening', name:'no_rekening' },
+                { data:'email', name:'email' },
                 { data:'aksi', orderable:false, searchable:false }
             ],
             order: [[0, 'desc']],
@@ -632,13 +651,13 @@ function LoadingPayrollHistory($conn) {
                     extend: 'excelHtml5',
                     text: '<i class="fas fa-file-excel"></i> Export Excel',
                     className: 'btn btn-success btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8] }
+                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] }
                 },
                 {
                     extend: 'pdfHtml5',
                     text: '<i class="fas fa-file-pdf"></i> Export PDF',
                     className: 'btn btn-danger btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8] },
+                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] },
                     customize: function (doc) {
                         doc.styles.tableHeader.fillColor = '#343a40';
                         doc.styles.tableHeader.color = 'white';
@@ -649,7 +668,7 @@ function LoadingPayrollHistory($conn) {
                     extend: 'print',
                     text: '<i class="fas fa-print"></i> Print',
                     className: 'btn btn-info btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8] }
+                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] }
                 }
             ]
         });
@@ -665,29 +684,12 @@ function LoadingPayrollHistory($conn) {
             payrollTable.ajax.reload();
         });
 
-        // Contoh validasi Bootstrap (jika diperlukan)
-        (function() {
-            'use strict';
-            window.addEventListener('load', function() {
-                var forms = document.getElementsByClassName('needs-validation');
-                Array.prototype.filter.call(forms, function(form) {
-                    form.addEventListener('submit', function(event) {
-                        if (form.checkValidity() === false) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        form.classList.add('was-validated');
-                    }, false);
-                });
-            }, false);
-        })();
-
-        // EVENT: Tampilkan Detail Payroll (misalnya ketika tombol detail ditekan)
+        // EVENT: Tampilkan Detail Payroll
         $(document).on('click', '.btn-view-detail', function() {
             var idPayroll = $(this).data('id');
             if (idPayroll) {
                 $.ajax({
-                    url: "payroll_details.php", // Pastikan file ini ada dan aman
+                    url: "payroll_details.php",
                     type: "GET",
                     data: { id_payroll: idPayroll },
                     beforeSend: function(){
