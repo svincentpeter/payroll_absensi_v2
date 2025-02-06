@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 06, 2025 at 02:28 AM
+-- Generation Time: Feb 06, 2025 at 06:20 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -408,7 +408,88 @@ INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `u
 (150, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:24'),
 (151, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=111111, Nama=John Doe.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:26'),
 (152, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:28'),
-(153, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:36');
+(153, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:36'),
+(154, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:36:23'),
+(155, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:36:36'),
+(156, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:37:18'),
+(157, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:37:37'),
+(158, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 2.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:38:04'),
+(159, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:38:20'),
+(160, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:14'),
+(161, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:25'),
+(162, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:25'),
+(163, 1, 'AssignPayheadsToEmployee', 'Menetapkan payheads ke karyawan ID 1. Payheads: 1, 2, 3.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:31'),
+(164, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:34'),
+(165, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:38'),
+(166, 1, 'EditEmployee', 'Memperbarui No Rekening karyawan ID 1 dari \'1111111111\' menjadi \'1111111111\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:44'),
+(167, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:47'),
+(168, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:49:20'),
+(169, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:49:35'),
+(170, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:56:50'),
+(171, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:57:06'),
+(172, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:06:41'),
+(173, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:06:42'),
+(174, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:06:44'),
+(175, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:12:41'),
+(176, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:12:44'),
+(177, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:12:58'),
+(178, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:13:01'),
+(179, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:14:37'),
+(180, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:23:37'),
+(181, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:23:38'),
+(182, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:23:56'),
+(183, 1, 'ViewEmployeeDetail', 'Lihat detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:32:56'),
+(184, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:32:56'),
+(185, 1, 'ViewEmployeeDetail', 'Lihat detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:32:59'),
+(186, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:33:04'),
+(187, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:33:06'),
+(188, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:33:17'),
+(189, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:33:22'),
+(190, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:37:04'),
+(191, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:37:18'),
+(192, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:37:22'),
+(193, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:39:56'),
+(194, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:40:02'),
+(195, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:40:19'),
+(196, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 6.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:41:31'),
+(197, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:07:12'),
+(198, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:07:18'),
+(199, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:13:24'),
+(200, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:22:41'),
+(201, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:27:48'),
+(202, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:35:23'),
+(203, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:35:24'),
+(204, 1, 'InsertPayroll', 'Membuat Payroll ID 5 untuk Karyawan ID 1 pada bulan 2 tahun 2025 dengan total pendapatan Rp 1.100.000,00, total potongan Rp 100.000,00, dan gaji bersih Rp 11.000.000,00', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:37:40'),
+(205, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada bulan Februari tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:37:40'),
+(206, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:40:14'),
+(207, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada bulan Februari tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:40:55'),
+(208, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:45:13'),
+(209, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:47:58'),
+(210, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:54:57'),
+(211, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:55:00'),
+(212, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:55:01'),
+(213, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:55:26'),
+(214, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:55:27'),
+(215, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:56:59');
+INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
+(216, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:57:29'),
+(217, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:57:39'),
+(218, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:59:22'),
+(219, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:59:39'),
+(220, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:08'),
+(221, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:11'),
+(222, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:19'),
+(223, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:19'),
+(224, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:19'),
+(225, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:40'),
+(226, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:07:40'),
+(227, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 13:46:10'),
+(228, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 13:46:46'),
+(229, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 13:46:47'),
+(230, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 13:46:47'),
+(231, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 14:07:13'),
+(232, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 14:15:51'),
+(233, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 14:44:03');
 
 -- --------------------------------------------------------
 
@@ -429,13 +510,14 @@ CREATE TABLE `employee_payheads` (
 --
 
 INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`) VALUES
-(1, 1, 1, 'earnings', 500000.00),
-(2, 1, 2, 'deductions', 100000.00),
 (3, 2, 1, 'earnings', 600000.00),
 (4, 5, 3, 'earnings', 200000.00),
 (5, 7, 2, 'deductions', 150000.00),
 (0, 8, 3, 'earnings', 150000.00),
-(0, 8, 2, 'deductions', 250000.00);
+(0, 8, 2, 'deductions', 250000.00),
+(0, 1, 1, 'earnings', 500000.00),
+(0, 1, 2, 'deductions', 100000.00),
+(0, 1, 3, 'earnings', 600000.00);
 
 -- --------------------------------------------------------
 
@@ -544,7 +626,8 @@ CREATE TABLE `payroll` (
 INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`) VALUES
 (1, 1, 1, 1, 2025, 5000000.00, 600000.00, 300000.00, 5300000.00, '2025-01-31 10:00:00', '2025-01-31 09:50:00', '1111111111', 'Gaji Januari'),
 (2, 2, 2, 1, 2025, 5200000.00, 700000.00, 350000.00, 5550000.00, '2025-01-31 10:10:00', '2025-01-31 09:55:00', '2222222222', 'Gaji Januari'),
-(3, 5, 3, 1, 2025, 4800000.00, 500000.00, 250000.00, 5050000.00, '2025-01-31 10:20:00', '2025-01-31 10:00:00', '3333333333', 'Gaji Januari');
+(3, 5, 3, 1, 2025, 4800000.00, 500000.00, 250000.00, 5050000.00, '2025-01-31 10:20:00', '2025-01-31 10:00:00', '3333333333', 'Gaji Januari'),
+(5, 1, 7, 2, 2025, 10000000.00, 1100000.00, 100000.00, 11000000.00, '2025-02-06 09:37:40', '2025-02-06 10:35:00', '1111111111', '');
 
 -- --------------------------------------------------------
 
@@ -569,7 +652,10 @@ INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_payhead`, `jenis`, `amount
 (2, 1, 3, 'earnings', 100000.00),
 (3, 1, 2, 'deductions', 50000.00),
 (4, 2, 1, 'earnings', 600000.00),
-(5, 3, 2, 'deductions', 250000.00);
+(5, 3, 2, 'deductions', 250000.00),
+(6, 5, 1, 'earnings', 500000.00),
+(7, 5, 2, 'deductions', 100000.00),
+(8, 5, 3, 'earnings', 600000.00);
 
 -- --------------------------------------------------------
 
@@ -605,7 +691,7 @@ INSERT INTO `pengajuan_ijin` (`id`, `nip`, `nama`, `judul_surat`, `tanggal`, `pe
 CREATE TABLE `rekap_absensi` (
   `id` int(11) NOT NULL,
   `id_anggota` int(11) NOT NULL,
-  `bulan` varchar(20) NOT NULL,
+  `bulan` int(11) NOT NULL,
   `tahun` int(11) NOT NULL,
   `total_hadir` int(11) DEFAULT 0,
   `total_izin` int(11) DEFAULT 0,
@@ -619,12 +705,13 @@ CREATE TABLE `rekap_absensi` (
 --
 
 INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`, `total_izin`, `total_cuti`, `total_tanpa_keterangan`, `total_sakit`) VALUES
-(0, 1, 'December', 2024, 4, 4, 7, 5, 2),
-(0, 1, 'January', 2025, 6, 5, 7, 3, 2),
-(0, 2, 'December', 2024, 3, 2, 9, 7, 1),
-(0, 2, 'January', 2025, 8, 3, 8, 1, 3),
-(0, 8, '2', 2025, 0, 0, 0, 0, 0),
-(0, 7, '2', 2025, 0, 0, 0, 0, 0);
+(1, 1, 0, 2024, 4, 4, 7, 5, 2),
+(2, 1, 0, 2025, 6, 5, 7, 3, 2),
+(3, 2, 0, 2024, 3, 2, 9, 7, 1),
+(4, 2, 0, 2025, 8, 3, 8, 1, 3),
+(5, 8, 2, 2025, 0, 0, 0, 0, 0),
+(6, 7, 2, 2025, 0, 0, 0, 0, 0),
+(7, 1, 2, 2025, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -743,6 +830,12 @@ ALTER TABLE `payroll_detail`
   ADD KEY `idx_payhead` (`id_payhead`);
 
 --
+-- Indexes for table `rekap_absensi`
+--
+ALTER TABLE `rekap_absensi`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `salary_indices`
 --
 ALTER TABLE `salary_indices`
@@ -769,7 +862,7 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=234;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -793,7 +886,19 @@ ALTER TABLE `payheads`
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `payroll_detail`
+--
+ALTER TABLE `payroll_detail`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `rekap_absensi`
+--
+ALTER TABLE `rekap_absensi`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

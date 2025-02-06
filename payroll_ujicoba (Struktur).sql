@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 06, 2025 at 02:28 AM
+-- Generation Time: Feb 06, 2025 at 06:20 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -235,7 +235,7 @@ CREATE TABLE `pengajuan_ijin` (
 CREATE TABLE `rekap_absensi` (
   `id` int(11) NOT NULL,
   `id_anggota` int(11) NOT NULL,
-  `bulan` varchar(20) NOT NULL,
+  `bulan` int(11) NOT NULL,
   `tahun` int(11) NOT NULL,
   `total_hadir` int(11) DEFAULT 0,
   `total_izin` int(11) DEFAULT 0,
@@ -341,6 +341,12 @@ ALTER TABLE `payroll_detail`
   ADD KEY `idx_payhead` (`id_payhead`);
 
 --
+-- Indexes for table `rekap_absensi`
+--
+ALTER TABLE `rekap_absensi`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `salary_indices`
 --
 ALTER TABLE `salary_indices`
@@ -391,6 +397,18 @@ ALTER TABLE `payheads`
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payroll_detail`
+--
+ALTER TABLE `payroll_detail`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `rekap_absensi`
+--
+ALTER TABLE `rekap_absensi`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 COMMIT;
 
