@@ -569,7 +569,6 @@ function GetPayheadById($conn) {
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.css" nonce="<?php echo $nonce; ?>">
     <style nonce="<?php echo $nonce; ?>">
         body {
             color: #000 !important;
@@ -647,9 +646,9 @@ function GetPayheadById($conn) {
                     <nav aria-label="breadcrumb">
                       <ol class="breadcrumb">
                         <li class="breadcrumb-item">
-                            <a href="/payroll_absensi_v2/absensi/sdm/dashboard_sdm.php">Home</a>
+                            <a href="/payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php">Home</a>
                         </li>
-                        <li class="breadcrumb-item active" aria-current="page">Manajemen Karyawan</li>
+                        <li class="breadcrumb-item active" aria-current="page">Payroll Anggota</li>
                       </ol>
                     </nav>
                 </div>
@@ -657,7 +656,7 @@ function GetPayheadById($conn) {
                 <!-- Container -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">
-                        <i class="bi bi-people-fill"></i> Manajemen Karyawan
+                        <i class="bi bi-people-fill"></i> Payroll Anggota
                     </h1>
                     <div id="alert-placeholder"></div>
 
