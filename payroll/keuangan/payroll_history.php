@@ -1,5 +1,5 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/payroll_history.php (fix)
+// File: /payroll_absensi_v2/payroll/keuangan/payroll_history.php
 
 // =========================
 // 1. Pengaturan Keamanan
@@ -225,8 +225,8 @@ function LoadingPayrollHistory($conn) {
     <i class="bi bi-three-dots-vertical"></i>
   </button>
   <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
-    <li><a class="dropdown-item" href="payroll-details.php?id_payroll=' . $row['id'] . '">
-      <i class="fas fa-file-invoice"></i> Lihat Payroll
+    <li><a class="dropdown-item" href="payroll-invoice.php?id_payroll=' . $row['id'] . '">
+      <i class="fas fa-file-invoice"></i> Lihat Invoice
     </a></li>
     <li><a class="dropdown-item btn-view-full-detail" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
       <i class="fas fa-eye"></i> View Detail
@@ -344,13 +344,13 @@ function ViewPayrollDetail($conn) {
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="/payroll_absensi_v2/assets/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
     <!-- DataTables CSS for Bootstrap 5 -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Font Awesome & Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
     <style nonce="<?php echo $nonce; ?>">
         .btn {
@@ -410,24 +410,21 @@ function ViewPayrollDetail($conn) {
         <!-- Sidebar -->
         <?php include(__DIR__ . '/../../sidebar.php'); ?>
         <!-- End Sidebar -->
-        <!-- CONTENT WRAPPER -->
         <div id="content-wrapper" class="d-flex flex-column">
-            <!-- MAIN CONTENT -->
             <div id="content">
-                <!-- Navbar -->
-                <?php include __DIR__ . '/../../navbar.php'; ?>
-                
-                <!-- Breadcrumb -->
-                <div class="container-fluid">
-                    <nav aria-label="breadcrumb">
-                      <ol class="breadcrumb">
-                        <li class="breadcrumb-item">
-                            <a href="/payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php">Home</a>
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle me-3">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a href="/payroll_absensi_v2/logout.php" class="btn btn-danger btn-sm" title="Logout">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
                         </li>
-                        <li class="breadcrumb-item active" aria-current="page">History Payroll</li>
-                      </ol>
-                    </nav>
-                </div>
+                    </ul>
+                </nav>
                 <!-- End Topbar -->
                 <!-- Page Content -->
                 <div class="container-fluid">
@@ -573,25 +570,21 @@ function ViewPayrollDetail($conn) {
     </div>
 
     <!-- JS Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.colVis.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- Sertakan plugin AutoNumeric -->
-    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
         // Inisialisasi tooltip Bootstrap 5
