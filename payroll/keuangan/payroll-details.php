@@ -4,47 +4,29 @@
 // =========================
 // 1. Pengaturan Keamanan
 // =========================
-
-// Atur session cookie parameters sebelum session_start()
 session_set_cookie_params([
     'lifetime' => 0,
     'path'     => '/',
     'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses melalui JavaScript
+    'secure'   => true,   // Hanya lewat HTTPS
+    'httponly' => true,
     'samesite' => 'Strict'
 ]);
-
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
 generate_csrf_token();
 
-// Buat nonce untuk CSP dan simpan di session
 $nonce = base64_encode(random_bytes(16));
 $_SESSION['csp_nonce'] = $nonce;
 
-// Paksa HTTPS jika belum menggunakan HTTPS
 if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
     $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     header('HTTP/1.1 301 Moved Permanently');
     header('Location: ' . $redirect);
     exit();
 }
-
-// HSTS header
 header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
-// Proteksi CSRF (sudah dibuat token-nya di atas)
-generate_csrf_token();
-
-// Pengecekan role
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
-    header("Location: /payroll_absensi_v2/login.php");
-    exit();
-}
-
-// Implementasi CSP dengan nonce
 header("Content-Security-Policy: default-src 'self'; 
     script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.jsdelivr.net 'nonce-$nonce'; 
     style-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'nonce-$nonce'; 
@@ -52,37 +34,39 @@ header("Content-Security-Policy: default-src 'self';
     font-src 'self' https://cdnjs.cloudflare.com; 
     connect-src 'self'");
 
-// Koneksi ke database
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
+    header("Location: /payroll_absensi_v2/login.php");
+    exit();
+}
+
 require_once __DIR__ . '/../../koneksi.php';
 
 
 // =========================
-// 2. Fungsi Pendukung & Inisialisasi
+// 2. Fungsi Pendukung
 // =========================
-
-/**
- * Fungsi konversi integer bulan ke nama bulan (Indonesia)
- */
 function bulanIntToName($bulan) {
     $map = [
-        1 => 'Januari',   2 => 'Februari', 3 => 'Maret',
-        4 => 'April',     5 => 'Mei',      6 => 'Juni',
-        7 => 'Juli',      8 => 'Agustus',  9 => 'September',
-        10 => 'Oktober', 11 => 'November',12 => 'Desember'
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
+        4 => 'April', 5 => 'Mei', 6 => 'Juni',
+        7 => 'Juli', 8 => 'Agustus', 9 => 'September',
+        10 => 'Oktober', 11 => 'November', 12 => 'Desember'
     ];
     return isset($map[$bulan]) ? $map[$bulan] : 'Tidak Diketahui';
 }
 
-// Ambil parameter GET: id_payroll
-$id_payroll = isset($_GET['id_payroll']) ? intval($_GET['id_payroll']) : 0;
 
+// =========================
+// 3. Ambil Parameter & Data Payroll
+// =========================
+$id_payroll = isset($_GET['id_payroll']) ? intval($_GET['id_payroll']) : 0;
 if ($id_payroll <= 0) {
     echo "Parameter tidak valid.";
     exit();
 }
 
 try {
-    // 2. Ambil data payroll
+    // Ambil data payroll
     $stmtPayroll = $conn->prepare("SELECT * FROM payroll WHERE id = ? LIMIT 1");
     if ($stmtPayroll === false) {
         throw new Exception("Prepare payroll gagal: " . $conn->error);
@@ -96,7 +80,7 @@ try {
     $payroll = $resPayroll->fetch_assoc();
     $stmtPayroll->close();
 
-    // 3. Ambil data karyawan
+    // Ambil data karyawan
     $id_anggota = $payroll['id_anggota'];
     $stmtKar = $conn->prepare("SELECT * FROM anggota_sekolah WHERE id = ? LIMIT 1");
     if ($stmtKar === false) {
@@ -111,7 +95,7 @@ try {
     $karyawan = $resKar->fetch_assoc();
     $stmtKar->close();
 
-    // 4. Ambil detail payroll
+    // Ambil detail payroll
     $stmtDetail = $conn->prepare("
         SELECT pd.*, ph.nama_payhead, ph.jenis 
         FROM payroll_detail pd
@@ -124,56 +108,71 @@ try {
     $stmtDetail->bind_param("i", $id_payroll);
     $stmtDetail->execute();
     $resDetail = $stmtDetail->get_result();
-
     $details = [];
     while ($row = $resDetail->fetch_assoc()) {
         $details[] = $row;
     }
     $stmtDetail->close();
 
-    // 5. Hitung ulang total pendapatan & potongan
+    // Hitung total pendapatan & potongan
     $gaji_pokok = isset($payroll['gaji_pokok']) ? (float)$payroll['gaji_pokok'] : 0;
     $total_pendapatan = 0;
     $total_potongan = 0;
     foreach ($details as $detail) {
         if (strtolower($detail['jenis']) === 'earnings') {
-            $total_pendapatan += isset($detail['amount']) ? (float)$detail['amount'] : 0;
+            $total_pendapatan += (float)$detail['amount'];
         } elseif (strtolower($detail['jenis']) === 'deductions') {
-            $total_potongan += isset($detail['amount']) ? (float)$detail['amount'] : 0;
+            $total_potongan += (float)$detail['amount'];
         }
     }
     $gaji_bersih = $gaji_pokok + $total_pendapatan - $total_potongan;
 
-    // 6. Format tanggal pembuatan payroll
-    $tglPayrollRaw = isset($payroll['tgl_payroll']) ? $payroll['tgl_payroll'] : null;
-    if ($tglPayrollRaw) {
-        $timestamp = strtotime($tglPayrollRaw);
-        $tanggalCetak = date('d', $timestamp) . ' ' 
-                        . bulanIntToName((int)date('n', $timestamp)) . ' ' 
-                        . date('Y', $timestamp);
-    } else {
-        $tanggalCetak = bulanIntToName($payroll['bulan']) . ' ' . $payroll['tahun'];
-    }
-
-    // 7. Masa kerja karyawan
-    $masaKerja = '';
-    if (!empty($karyawan['masa_kerja_tahun']) || !empty($karyawan['masa_kerja_bulan'])) {
-        $thn = isset($karyawan['masa_kerja_tahun']) ? (int)$karyawan['masa_kerja_tahun'] : 0;
-        $bln = isset($karyawan['masa_kerja_bulan']) ? (int)$karyawan['masa_kerja_bulan'] : 0;
-        $masaKerja = $thn . ' Tahun';
-        if ($bln > 0) {
-            $masaKerja .= ' ' . $bln . ' Bulan';
+    // --- Ambil data Level Indeks (jika ada) ---
+    $salary_index_level = '';
+    $salary_index_amount = 0;
+    if (!empty($karyawan['salary_index_id'])) {
+        $stmtIndex = $conn->prepare("SELECT level, base_salary FROM salary_indices WHERE id = ?");
+        if ($stmtIndex) {
+            $stmtIndex->bind_param("i", $karyawan['salary_index_id']);
+            $stmtIndex->execute();
+            $resultIndex = $stmtIndex->get_result();
+            if ($resultIndex->num_rows > 0) {
+                $salaryData = $resultIndex->fetch_assoc();
+                $salary_index_level = $salaryData['level'];
+                $salary_index_amount = (float)$salaryData['base_salary'];
+            }
+            $stmtIndex->close();
         }
     }
+    // Gaji pokok yang ditampilkan adalah gaji pokok employee + level indeks
+    $gaji_pokok_employee = isset($karyawan['gaji_pokok']) ? (float)$karyawan['gaji_pokok'] : 0;
+    $gaji_pokok = $gaji_pokok_employee + $salary_index_amount;
 
-    // 8. Catatan (jika ada)
+    // Format tanggal payroll
+    $tglPayrollRaw = $payroll['tgl_payroll'];
+    $timestamp = strtotime($tglPayrollRaw);
+    $tanggalCetak = date('d', $timestamp) . ' ' . bulanIntToName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
+
+    // Format periode
+    $periode = bulanIntToName((int)$payroll['bulan']) . ' ' . $payroll['tahun'];
+
+    // Masa kerja karyawan
+    $thn = isset($karyawan['masa_kerja_tahun']) ? (int)$karyawan['masa_kerja_tahun'] : 0;
+    $bln = isset($karyawan['masa_kerja_bulan']) ? (int)$karyawan['masa_kerja_bulan'] : 0;
+    $masaKerja = ($thn > 0 || $bln > 0) ? $thn . " Tahun" . ($bln > 0 ? " " . $bln . " Bulan" : "") : "";
+
+    // Nomor rekening: gunakan nilai dari karyawan, atau jika kosong, dari data payroll
+    $noRek = !empty($karyawan['no_rekening']) 
+             ? $karyawan['no_rekening'] 
+             : (isset($payroll['no_rekening']) && !empty($payroll['no_rekening']) ? $payroll['no_rekening'] : 'Belum ada');
+
+    // Catatan payroll
     $catatan = trim($payroll['catatan']);
 
-    // 9. Tambahkan Audit Log untuk Viewing Payroll
+    // Audit Log
     $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-    $details_log = "Mengakses Payroll ID $id_payroll untuk Karyawan ID $id_anggota pada bulan " . bulanIntToName($payroll['bulan']) . " tahun " . $payroll['tahun'] . ".";
-    if (!add_audit_log($conn, $user_id, 'ViewPayrollDetails', $details_log)) {
-        // Jika gagal mencatat audit log, tetap lanjutkan proses
+    $log_details = "Mengakses Payroll ID $id_payroll untuk Karyawan ID $id_anggota pada periode $periode.";
+    if (!add_audit_log($conn, $user_id, 'ViewPayrollDetails', $log_details)) {
         error_log("Gagal mencatat audit log untuk ViewPayrollDetails ID $id_payroll.");
     }
 
@@ -181,7 +180,6 @@ try {
     echo "Terjadi kesalahan: " . htmlspecialchars($e->getMessage());
     exit();
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -189,50 +187,48 @@ try {
     <meta charset="UTF-8">
     <title>Slip Gaji #<?= htmlspecialchars($id_payroll); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Gunakan nonce pada elemen CSS jika diperlukan -->
     <link rel="stylesheet" href="/payroll_absensi_v2/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <style nonce="<?php echo $nonce; ?>">
+        body { background-color: #f8f9fa; }
         .invoice-box {
             max-width: 800px;
-            margin: auto;
+            margin: 30px auto;
             padding: 30px;
-            border: 1px solid #eee;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            background: #fff;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             font-size: 16px;
             line-height: 24px;
-            font-family: 'Helvetica Neue', 'Helvetica', Arial, sans-serif;
-            color: #555;
-            background-color: #fff;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #343a40;
         }
         .invoice-box table {
             width: 100%;
-            text-align: left;
             border-collapse: collapse;
         }
         .invoice-box table td {
-            padding: 5px;
+            padding: 8px;
             vertical-align: top;
         }
         .invoice-box table tr.top table td {
             padding-bottom: 20px;
         }
         .invoice-box table tr.top table td.title {
-            font-size: 45px;
-            color: #333;
+            font-size: 36px;
+            font-weight: bold;
+            color: #007bff;
         }
         .invoice-box table tr.information table td {
-            padding-bottom: 40px;
+            padding-bottom: 20px;
+            font-size: 14px;
         }
         .invoice-box table tr.heading td {
-            background: #eee;
-            border-bottom: 1px solid #ddd;
+            background: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
             font-weight: bold;
         }
-        .invoice-box table tr.details td {
-            padding-bottom: 20px;
-        }
         .invoice-box table tr.item td {
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #dee2e6;
         }
         .invoice-box table tr.item.last td {
             border-bottom: none;
@@ -240,160 +236,208 @@ try {
         .invoice-box table tr.total td {
             font-weight: bold;
         }
-        @media print {  
-            .btn-print { display: none; }  
-            .invoice-box { margin: 0; padding: 0; }
-        }
         .detail-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
         .detail-table th, .detail-table td {
-            border: 1px solid #ddd;
+            border: 1px solid #dee2e6;
             padding: 8px;
             text-align: center;
         }
         .detail-table th {
-            background-color: #f2f2f2;
+            background: #e9ecef;
         }
-        .left-align { text-align: left !important; }
+        .left-align { text-align: left; }
         .btn-print {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 30px;
         }
         .btn-print button {
             padding: 10px 20px;
             font-size: 16px;
-            background-color: #28a745;
+            background: #28a745;
             border: none;
             color: #fff;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 4px;
         }
         .btn-print button:hover {
-            background-color: #218838;
+            background: #218838;
         }
         .catatan-box {
             margin-top: 20px;
-            padding: 10px;
+            padding: 15px;
             border-left: 4px solid #007bff;
-            background-color: #f9f9f9;
+            background: #f1f1f1;
         }
         .catatan-box h4 {
-            margin: 0 0 5px;
+            margin-top: 0;
             font-size: 18px;
             color: #007bff;
         }
+        /* Tombol Kembali di pojok kiri atas */
+        .btn-back {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 8px 12px;
+            background: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+        .btn-back:hover {
+            background: #0056b3;
+        }
+        /* Aturan untuk tampilan cetak (print) */
+        @media print {
+            /* Atur margin halaman cetak menjadi 20mm */
+            @page {
+                margin: 20mm;
+            }
+            body, .invoice-box {
+                margin: 0;
+                padding: 0;
+                border: none;
+                box-shadow: none;
+                width: 100%;
+            }
+            /* Sembunyikan tombol cetak dan tombol kembali pada saat mencetak */
+            .btn-print,
+            .btn-back {
+                display: none;
+            }
+        }
     </style>
 </head>
-<body class="bg-light">
-<div class="invoice-box">
-    <table>
-        <tr class="top">
-            <td colspan="2">
-                <table>
-                    <tr>
-                        <td class="title">
-                            <!-- Logo Sekolah -->
-                            <img src="/payroll_absensi_v2/assets/img/Logo.png" alt="Logo Sekolah" style="width:50%; max-width:100px;">
-                        </td>
-                        <td style="text-align:right;">
-                            <strong>Slip Gaji #<?= htmlspecialchars($id_payroll); ?></strong><br>
-                            Dibuat: <?= htmlspecialchars($tanggalCetak); ?><br>
-                            Periode: <?= htmlspecialchars(bulanIntToName($payroll['bulan']) . ' ' . $payroll['tahun']); ?>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-
-        <tr class="information">
-            <td colspan="2">
-                <table>
-                    <tr>
-                        <td>
-                            <strong>Sekolah Nasional Nusaputera</strong><br>
-                            Jl. Karanganyar No. 574<br>
-                            Semarang, Jawa Tengah<br>
-                            (024) 3542444
-                        </td>
-                        <td style="text-align:right;">
-                            <strong>Penerima:</strong><br>
-                            <?= htmlspecialchars($karyawan['nama']); ?><br>
-                            <?= htmlspecialchars($karyawan['email']); ?><br>
-                            <?php if ($masaKerja): ?>
-                                Masa Kerja: <?= htmlspecialchars($masaKerja); ?><br>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-
-        <tr class="heading">
-            <td>Detail Pembayaran</td>
-            <td></td>
-        </tr>
-
-        <tr class="details">
-            <td>Gaji Pokok</td>
-            <td style="text-align:right;">Rp <?= number_format($gaji_pokok, 2, ',', '.'); ?></td>
-        </tr>
-
-        <tr class="item">
-            <td>Total Pendapatan</td>
-            <td style="text-align:right;">Rp <?= number_format($total_pendapatan, 2, ',', '.'); ?></td>
-        </tr>
-
-        <tr class="item">
-            <td>Total Potongan</td>
-            <td style="text-align:right;">Rp <?= number_format($total_potongan, 2, ',', '.'); ?></td>
-        </tr>
-
-        <tr class="item last">
-            <td>Gaji Bersih</td>
-            <td style="text-align:right;">Rp <?= number_format($gaji_bersih, 2, ',', '.'); ?></td>
-        </tr>
-
-        <tr class="total">
-            <td></td>
-            <td style="text-align:right;">Total: Rp <?= number_format($gaji_bersih, 2, ',', '.'); ?></td>
-        </tr>
-    </table>
-
-    <h3>Rincian Pendapatan &amp; Potongan</h3>
-    <table class="detail-table">
-        <tr class="heading">
-            <th>No</th>
-            <th class="left-align">Nama Payhead</th>
-            <th>Jenis</th>
-            <th>Jumlah</th>
-        </tr>
-        <?php
-        $no = 1;
-        foreach ($details as $detail) {
-            echo "<tr>";
-            echo "<td>" . $no . "</td>";
-            echo "<td class='left-align'>" . htmlspecialchars($detail['nama_payhead'] ?? '') . "</td>";
-            echo "<td>" . htmlspecialchars(translateJenis($detail['jenis'] ?? '')) . "</td>";
-            echo "<td>Rp " . number_format($detail['amount'] ?? 0, 2, ',', '.') . "</td>";
-            echo "</tr>";
-            $no++;
-        }
-        ?>
-    </table>
-
-    <?php if (!empty($catatan)): ?>
-    <div class="catatan-box">
-        <h4>Catatan:</h4>
-        <p><?= nl2br(htmlspecialchars($catatan)); ?></p>
+<body>
+    <!-- Tombol Kembali di pojok kiri atas -->
+    <a href="payroll_history.php" class="btn-back">Kembali</a>
+    
+    <div class="invoice-box">
+        <!-- Header Invoice -->
+        <table>
+            <tr class="top">
+                <td colspan="2">
+                    <table>
+                        <tr>
+                            <td class="title">
+                                <img src="/payroll_absensi_v2/assets/img/Logo.png" alt="Logo Sekolah" style="max-width:100px;">
+                            </td>
+                            <td style="text-align:right;">
+                                <strong>Slip Gaji #<?= htmlspecialchars($id_payroll); ?></strong><br>
+                                Dibuat: <?= htmlspecialchars($tanggalCetak); ?><br>
+                                Periode: <?= htmlspecialchars($periode); ?>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <!-- Informasi Penerima -->
+            <tr class="information">
+                <td colspan="2">
+                    <table>
+                        <tr>
+                            <td>
+                                <strong>Sekolah Nasional Nusaputera</strong><br>
+                                Jl. Karanganyar No. 574<br>
+                                Semarang, Jawa Tengah<br>
+                                (024) 3542444
+                            </td>
+                            <td style="text-align:right;">
+                                <strong>Penerima:</strong><br>
+                                <?= htmlspecialchars($karyawan['nama']); ?><br>
+                                Email: <?= htmlspecialchars($karyawan['email']); ?><br>
+                                Role: <?= htmlspecialchars($karyawan['role']); ?><br>
+                                <?php if (!empty($salary_index_level)): ?>
+                                    Level Indeks: <?= htmlspecialchars($salary_index_level); ?><br>
+                                <?php endif; ?>
+                                <?php if (!empty($masaKerja)): ?>
+                                    Masa Kerja: <?= htmlspecialchars($masaKerja); ?><br>
+                                <?php endif; ?>
+                                No. Rekening: <?= htmlspecialchars($noRek); ?>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    
+        <!-- Rincian Pembayaran -->
+        <table>
+            <tr class="heading">
+                <td colspan="2">Rincian Pembayaran</td>
+            </tr>
+            <tr class="details">
+                <td>Gaji Pokok (Employee)</td>
+                <td style="text-align:right;">Rp <?= number_format($gaji_pokok_employee, 2, ',', '.'); ?></td>
+            </tr>
+            <tr class="details">
+                <td>Nominal Level Indeks</td>
+                <td style="text-align:right;">Rp <?= number_format($salary_index_amount, 2, ',', '.'); ?></td>
+            </tr>
+            <tr class="details">
+                <td><strong>Subtotal Gaji Pokok</strong></td>
+                <td style="text-align:right;"><strong>Rp <?= number_format($gaji_pokok, 2, ',', '.'); ?></strong></td>
+            </tr>
+            <tr class="item">
+                <td>Total Pendapatan (Payheads)</td>
+                <td style="text-align:right;">Rp <?= number_format($total_pendapatan, 2, ',', '.'); ?></td>
+            </tr>
+            <tr class="item">
+                <td>Total Potongan (Payheads)</td>
+                <td style="text-align:right;">Rp <?= number_format($total_potongan, 2, ',', '.'); ?></td>
+            </tr>
+            <tr class="item last">
+                <td>Gaji Bersih</td>
+                <td style="text-align:right;">Rp <?= number_format($gaji_bersih, 2, ',', '.'); ?></td>
+            </tr>
+            <tr class="total">
+                <td></td>
+                <td style="text-align:right;">Total: Rp <?= number_format($gaji_bersih, 2, ',', '.'); ?></td>
+            </tr>
+        </table>
+    
+        <!-- Detail Payheads -->
+        <h3>Detail Pendapatan &amp; Potongan</h3>
+        <table class="detail-table">
+            <tr class="heading">
+                <th>No</th>
+                <th class="left-align">Nama Payhead</th>
+                <th>Jenis</th>
+                <th>Jumlah</th>
+            </tr>
+            <?php
+            $no = 1;
+            foreach ($details as $detail) {
+                $jenis_tampil = function_exists('translateJenis')
+                    ? translateJenis($detail['jenis'])
+                    : ucfirst($detail['jenis']);
+                echo "<tr>";
+                echo "<td>" . $no . "</td>";
+                echo "<td class='left-align'>" . htmlspecialchars($detail['nama_payhead']) . "</td>";
+                echo "<td>" . htmlspecialchars($jenis_tampil) . "</td>";
+                echo "<td>Rp " . number_format($detail['amount'], 2, ',', '.') . "</td>";
+                echo "</tr>";
+                $no++;
+            }
+            ?>
+        </table>
+    
+        <?php if (!empty($catatan)): ?>
+        <div class="catatan-box">
+            <h4>Catatan:</h4>
+            <p><?= nl2br(htmlspecialchars($catatan)); ?></p>
+        </div>
+        <?php endif; ?>
+    
+        <!-- Tombol Cetak -->
+        <div class="btn-print">
+            <button onclick="window.print()">Cetak Slip Gaji</button>
+        </div>
     </div>
-    <?php endif; ?>
-
-    <div class="btn-print">
-        <button onclick="window.print()">Cetak Slip Gaji</button>
-    </div>
-</div>
 </body>
 </html>
