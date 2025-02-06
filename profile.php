@@ -1,5 +1,5 @@
 <?php
-// profile.php
+// profile.php (fix)
 
 session_start();
 

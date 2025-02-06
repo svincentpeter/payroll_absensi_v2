@@ -1,5 +1,5 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/rekap_absensi.php
+// File: /payroll_absensi_v2/payroll/keuangan/rekap_absensi.php (fix)
 
 // =========================
 // 1. Pengaturan Keamanan

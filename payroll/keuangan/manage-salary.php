@@ -1,4 +1,5 @@
 <?php
+// File: /payroll_absensi_v2/payroll/keuangan/manage-salary (fix)
 session_start();
 
 // 1. Cek Role

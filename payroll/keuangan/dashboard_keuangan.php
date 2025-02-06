@@ -1,5 +1,5 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php
+// File: /payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php (fix)
 
 // =========================
 // 1. Pengaturan Keamanan

@@ -1,5 +1,5 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/employees.php
+// File: /payroll_absensi_v2/payroll/keuangan/employees.php (fix)
 
 // 1. Pengaturan keamanan: session cookie, forced HTTPS, HSTS, dll.
 session_set_cookie_params([

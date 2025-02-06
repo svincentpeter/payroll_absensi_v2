@@ -1,5 +1,5 @@
 <?php
-// /payroll_absensi_v2/sidebar.php
+// /payroll_absensi_v2/sidebar.php (fix)
 
 // Pastikan session sudah dimulai
 if (session_status() === PHP_SESSION_NONE) {
