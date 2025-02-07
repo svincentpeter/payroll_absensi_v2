@@ -241,8 +241,8 @@ if ($resKaryawanAll) {
     <title>Dashboard Keuangan - Payroll System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <!-- Gunakan Bootstrap 4.5.2, SB Admin 2 4.1.3, dsb -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" nonce="<?= htmlspecialchars($nonce); ?>">
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?= htmlspecialchars($nonce); ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" nonce="<?= htmlspecialchars($nonce); ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?= htmlspecialchars($nonce); ?>">
@@ -328,17 +328,9 @@ if ($resKaryawanAll) {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-
-                <!-- Breadcrumb -->
-                <div class="container-fluid">
-                    <nav aria-label="breadcrumb">
-                      <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="/payroll_absensi_v2/index.php">Home</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Dashboard Keuangan</li>
-                      </ol>
-                    </nav>
-                </div>
-
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+        
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">
@@ -615,7 +607,7 @@ if ($resKaryawanAll) {
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>

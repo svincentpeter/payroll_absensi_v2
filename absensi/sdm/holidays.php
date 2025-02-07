@@ -400,8 +400,8 @@ function DeleteHoliday($conn) {
     <title>Manajemen Hari Libur - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="/payroll_absensi_v2/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <!-- SB Admin 2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+<!-- SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
@@ -458,28 +458,23 @@ function DeleteHoliday($conn) {
         }
     </style>
 </head>
-<body id="page-top" class="sidebar-mini">
+<body id="page-top">
+    <!-- Page Wrapper -->
     <div id="wrapper">
-        <!-- Sidebar -->
-        <?php include(__DIR__ . '/../../sidebar.php'); ?>
-        <!-- End Sidebar -->
 
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3" title="Toggle Sidebar">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="/payroll_absensi_v2/logout.php" class="btn btn-danger btn-sm" title="Logout">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- End Topbar -->
+                <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- End of Topbar -->
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
@@ -673,8 +668,8 @@ function DeleteHoliday($conn) {
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
     <!-- Bootstrap Bundle (termasuk Popper) -->
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- DataTables JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+<!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <!-- SweetAlert2 JS -->

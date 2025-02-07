@@ -256,25 +256,21 @@ unset($days);
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
+
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
-        
+        <!-- End of Sidebar -->
+
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="../../logout.php" class="btn btn-danger btn-sm">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
+                <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-                
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">Laporan Jadwal Piket Guru</h1>

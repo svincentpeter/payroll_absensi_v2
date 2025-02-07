@@ -1,5 +1,5 @@
 <?php
-// /payroll_absensi_v2/sidebar.php (fix)
+// /payroll_absensi_v2/sidebar.php (perbaikan untuk Bootstrap 5)
 
 // Pastikan session sudah dimulai
 if (session_status() === PHP_SESSION_NONE) {
@@ -17,25 +17,55 @@ $username = $_SESSION['username'] ?? '';
 $nama     = $_SESSION['nama'] ?? '';
 $nip      = $_SESSION['nip'] ?? '';
 
-// Fungsi untuk menghasilkan item collapse menu
+// Fungsi helper untuk menentukan apakah link aktif atau tidak.
+function isActive($menuUrl) {
+    // Dapatkan path URL halaman saat ini
+    $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    // Gabungkan BASE_URL dengan URL menu agar perbandingan konsisten
+    $fullMenuUrl = BASE_URL . $menuUrl;
+    // Jika halaman saat ini dimulai dengan URL menu, kembalikan 'active'
+    if (strpos($currentPath, $fullMenuUrl) === 0) {
+        return 'active';
+    }
+    return '';
+}
+
+// Fungsi untuk menghasilkan item collapse menu (update ke Bootstrap 5)
 function renderCollapseMenu($id, $iconClass, $title, $items) {
-    echo '<li class="nav-item">';
-    echo '    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#' . htmlspecialchars($id) . '" aria-expanded="false" aria-controls="' . htmlspecialchars($id) . '">';
+    // Agar variabel $role bisa digunakan di dalam fungsi
+    global $role;
+    
+    $isAnyActive = false;
+    foreach ($items as $label => $url) {
+        if (isActive($url)) {
+            $isAnyActive = true;
+            break;
+        }
+    }
+    // Jika user dengan role keuangan dan menu ini adalah dropdown keuangan, paksa aktifkan dropdown-nya.
+    if ($role === 'keuangan' && $id === 'collapseKeuangan') {
+         $isAnyActive = true;
+    }
+    // Jika ada item aktif, tambahkan kelas "active" pada parent <li> dan "show" pada collapse-nya.
+    $activeClass  = $isAnyActive ? ' active' : '';
+    $collapseShow = $isAnyActive ? ' show' : '';
+
+    echo '<li class="nav-item' . $activeClass . '">';
+    echo '    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#' . htmlspecialchars($id) . '" aria-expanded="false" aria-controls="' . htmlspecialchars($id) . '">';
     echo '        <i class="fas ' . htmlspecialchars($iconClass) . '"></i>';
     echo '        <span>' . htmlspecialchars($title) . '</span>';
     echo '    </a>';
-    echo '    <div id="' . htmlspecialchars($id) . '" class="collapse" data-parent="#accordionSidebar">';
+    echo '    <div id="' . htmlspecialchars($id) . '" class="collapse' . $collapseShow . '" data-bs-parent="#accordionSidebar">';
     echo '        <div class="bg-white py-2 collapse-inner rounded">';
     foreach ($items as $label => $url) {
-        // Menggunakan BASE_URL untuk membangun URL yang lengkap
-        echo '            <a class="collapse-item" href="' . BASE_URL . htmlspecialchars($url) . '">' . htmlspecialchars($label) . '</a>';
+        $itemActive = isActive($url);
+        echo '            <a class="collapse-item ' . $itemActive . '" href="' . BASE_URL . htmlspecialchars($url) . '">' . htmlspecialchars($label) . '</a>';
     }
     echo '        </div>';
     echo '    </div>';
     echo '</li>';
 }
 ?>
-
 <!-- Sidebar -->
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
@@ -102,8 +132,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         $sdmSuperadminItems = [
             'Dashboard SDM'           => '/absensi/sdm/dashboard_sdm.php',
             'Upload Absensi'          => '/absensi/sdm/upload_absensi.php',
-            'Laporan Absensi'         => '/absensi/sdm/laporan_absensi.php',
-            'Koreksi Absensi'         => '/absensi/sdm/koreksi_absensi.php',
+            'Review Absensi'         => '/absensi/sdm/koreksi_absensi.php',
             'Pengaturan Gaji Pokok'   => '/absensi/sdm/manage_salary_indices.php',
             'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
             'Hari Libur'              => '/absensi/sdm/holidays.php',
@@ -115,7 +144,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 
     <?php if ($role === 'sdm'): ?>
         <!-- Dashboard SDM -->
-        <li class="nav-item">
+        <li class="nav-item <?= isActive('/absensi/sdm/dashboard_sdm.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/dashboard_sdm.php">
                 <i class="fas fa-fw fa-tachometer-alt"></i>
                 <span>Dashboard SDM</span>
@@ -127,8 +156,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         // Kelola Absensi untuk SDM
         $kelolaAbsensiItems = [
             'Upload Absensi'      => '/absensi/sdm/upload_absensi.php',
-            'Laporan Absensi'     => '/absensi/sdm/laporan_absensi.php',
-            'Koreksi Absensi'     => '/absensi/sdm/koreksi_absensi.php',
+            'Review Absensi'     => '/absensi/sdm/koreksi_absensi.php',
             'Tambah Hari Libur'   => '/absensi/sdm/tambah_hari_libur.php',
             'Tambah Jadwal Piket' => '/absensi/sdm/tambah_jadwal_piket.php'
         ];
@@ -146,14 +174,14 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 
     <?php if ($role === 'keuangan'): ?>
         <!-- Rekap Gaji -->
-        <li class="nav-item">
+        <li class="nav-item <?= isActive('/payroll/rekap_gaji.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/payroll/rekap_gaji.php">
                 <i class="fas fa-fw fa-chart-line"></i>
                 <span>Rekap Gaji</span>
             </a>
         </li>
         <!-- Pemotongan Manual -->
-        <li class="nav-item">
+        <li class="nav-item <?= isActive('/payroll/potongan_manual.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/payroll/potongan_manual.php">
                 <i class="fas fa-fw fa-minus-circle"></i>
                 <span>Pemotongan Manual</span>
@@ -163,25 +191,25 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 
     <?php if ($role === 'guru'): ?>
         <!-- Menu untuk Guru -->
-        <li class="nav-item">
+        <li class="nav-item <?= isActive('/absensi/guru/ganti_password_guru.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/ganti_password_guru.php">
                 <i class="fas fa-fw fa-key"></i>
                 <span>Ganti Password</span>
             </a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item <?= isActive('/absensi/guru/pengajuan_surat_ijin.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/pengajuan_surat_ijin.php">
                 <i class="fas fa-fw fa-envelope"></i>
                 <span>Ajukan Permohonan Ijin</span>
             </a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item <?= isActive('/absensi/guru/list_hari_libur.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/list_hari_libur.php">
                 <i class="fas fa-fw fa-calendar-alt"></i>
                 <span>List Hari Libur</span>
             </a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item <?= isActive('/absensi/guru/dashboard_guru.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/dashboard_guru.php">
                 <i class="fas fa-fw fa-arrow-left"></i>
                 <span>Kembali ke Dashboard</span>

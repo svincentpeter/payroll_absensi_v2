@@ -22,29 +22,28 @@ try {
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Superadmin</title>
-    <link href="/payroll_absensi_v2/plugins/font-awesome/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <link href="/payroll_absensi_v2/assets/css/sb-admin-2.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS dan SB Admin 2 -->
+    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
 </head>
 <body id="page-top">
+    <!-- Page Wrapper -->
     <div id="wrapper">
-        <?php include '../../sidebar.php'; ?> 
-        <!-- Pastikan path ini sesuai dengan struktur folder Anda -->
 
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="../../logout.php" class="btn btn-danger btn-sm">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- End Topbar -->
+                <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- End of Topbar -->
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">Dashboard Superadmin</h1>
@@ -95,8 +94,8 @@ try {
     </div> <!-- end wrapper -->
 
     <script src="../../assets/vendor/jquery/jquery.min.js"></script>
-    <script src="../../assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+<script src="../../assets/vendor/jquery-easing/jquery.easing.min.js"></script>
     <script src="../../assets/js/sb-admin-2.min.js"></script>
 </body>
 </html>

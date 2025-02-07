@@ -270,8 +270,9 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
+
         <!-- Sidebar -->
-        <?php include(__DIR__ . '/../../sidebar.php'); ?>
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
@@ -279,19 +280,10 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
             <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="/payroll_absensi_v2/logout.php" class="btn btn-danger btn-sm" title="Logout">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
+                <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">

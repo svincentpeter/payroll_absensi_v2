@@ -57,26 +57,22 @@ if (!$result) {
     </style>
 </head>
 <body id="page-top">
-<div id="wrapper">
-    <!-- Sidebar -->
-    <?php include '../../sidebar.php'; ?>
-    <!-- End of Sidebar -->
+    <!-- Page Wrapper -->
+    <div id="wrapper">
 
-    <!-- Content Wrapper -->
-    <div id="content-wrapper" class="d-flex flex-column">
-        <!-- Main Content -->
-        <div id="content">
-            <!-- Topbar -->
-            <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-                        <a href="../../logout.php" class="btn btn-danger btn-sm">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <!-- End of Topbar -->
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
+                <!-- Topbar -->
+                <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- End of Topbar -->
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
             <!-- Begin Page Content -->
             <div class="container-fluid">

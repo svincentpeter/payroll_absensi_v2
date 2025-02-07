@@ -15,7 +15,6 @@ session_set_cookie_params([
     'samesite' => 'Strict'
 ]);
 
-// Sertakan koneksi dan helpers
 require_once __DIR__ . '/../../koneksi.php';
 require_once __DIR__ . '/../../helpers.php';
 
@@ -39,7 +38,7 @@ if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
 // HSTS header
 header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
 
-// Terapkan Content Security Policy (sesuaikan sumber jika diperlukan)
+// Terapkan Content Security Policy
 header("Content-Security-Policy: default-src 'self'; 
     script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
     style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net 'nonce-$nonce'; 
@@ -130,7 +129,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 // =========================
 // 4. Fungsi AJAX (Server-Side DataTables)
 // =========================
-
 function LoadingRekapPayrollDetails($conn, $jenjang) {
     // Parameter DataTables
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
@@ -142,7 +140,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     $bulan = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
-    // Query dasar: join payroll dan anggota_sekolah untuk mendapatkan nama karyawan
+    // Query dasar: join payroll dan anggota_sekolah untuk mendapatkan data detail
     $sqlBase = "
         FROM payroll p
         JOIN anggota_sekolah a ON p.id_anggota = a.id
@@ -239,7 +237,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     $typesData  = $types;
     $paramsData[] = $start;
     $paramsData[] = $length;
-    $typesData .= "ii";
+    $typesData   .= "ii";
 
     $sqlData .= $orderBy . $limit;
 
@@ -253,29 +251,45 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
 
     $data = [];
     while ($row = $resData->fetch_assoc()) {
+        // Buat dropdown dengan 2 button, sama persis seperti di payroll_history.php
+        $aksi = '
+<div class="dropdown">
+  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id_payroll']) . '" data-bs-toggle="dropdown" aria-expanded="false">
+    <i class="bi bi-three-dots-vertical"></i>
+  </button>
+  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id_payroll']) . '">
+    <li>
+      <a class="dropdown-item" href="payroll-details.php?id_payroll=' . urlencode($row['id_payroll']) . '">
+        <i class="fas fa-file-invoice"></i> Lihat Payroll
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item btn-view-full-detail" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id_payroll']) . '">
+        <i class="fas fa-eye"></i> View Detail
+      </a>
+    </li>
+  </ul>
+</div>';
+
         $data[] = [
-            "id_payroll" => $row['id_payroll'],
-            "nama_karyawan" => htmlspecialchars($row['nama_karyawan']),
-            "bulan" => bulanIntToName($row['bulan']),
-            "tahun" => $row['tahun'],
-            "gaji_pokok" => 'Rp ' . number_format($row['gaji_pokok'], 2, ',', '.'),
+            "id_payroll"       => $row['id_payroll'],
+            "nama_karyawan"    => htmlspecialchars($row['nama_karyawan']),
+            "bulan"            => bulanIntToName($row['bulan']),
+            "tahun"            => $row['tahun'],
+            "gaji_pokok"       => 'Rp ' . number_format($row['gaji_pokok'], 2, ',', '.'),
             "total_pendapatan" => 'Rp ' . number_format($row['total_pendapatan'], 2, ',', '.'),
-            "total_potongan" => 'Rp ' . number_format($row['total_potongan'], 2, ',', '.'),
-            "gaji_bersih" => 'Rp ' . number_format($row['gaji_bersih'], 2, ',', '.'),
-            "aksi" => '
-                <a href="payroll-details.php?id_payroll=' . urlencode($row['id_payroll']) . '" class="btn btn-info btn-sm" data-toggle="tooltip" title="Lihat Detail">
-                    <i class="fas fa-eye"></i>
-                </a>
-            '
+            "total_potongan"   => 'Rp ' . number_format($row['total_potongan'], 2, ',', '.'),
+            "gaji_bersih"      => 'Rp ' . number_format($row['gaji_bersih'], 2, ',', '.'),
+            "aksi"             => $aksi
         ];
     }
     $stmtData->close();
 
     echo json_encode([
-        "draw" => $draw,
-        "recordsTotal" => $recordsTotal,
+        "draw"            => $draw,
+        "recordsTotal"    => $recordsTotal,
         "recordsFiltered" => $totalFiltered,
-        "data" => $data
+        "data"            => $data
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
@@ -286,7 +300,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     <meta charset="UTF-8">
     <title>Detail Rekap Payroll - <?php echo htmlspecialchars($jenjang); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 4 CSS -->
+    <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
@@ -298,7 +312,6 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <!-- Custom CSS -->
     <style>
-        /* Header tabel dengan font kecil (sesuai payheads.php) */
         thead th {
             background-color: #343a40;
             color: white;
@@ -329,7 +342,6 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
             background-color: #138496;
             border-color: #117a8b;
         }
-        /* Ukuran tabel lebih kecil seperti di payheads.php */
         #rekapPayrollDetailsTable.table-sm th,
         #rekapPayrollDetailsTable.table-sm td {
             font-size: 13px;
@@ -347,7 +359,6 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
             margin: auto;
             top: 0; left: 0; bottom: 0; right: 0;
         }
-        /* Styling card header agar sama dengan payheads.php */
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
@@ -363,27 +374,19 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     <!-- Page Wrapper -->
     <div id="wrapper">
         <!-- Sidebar -->
-        <?php include(__DIR__ . '/../../sidebar.php'); ?>
-        <!-- End Sidebar -->
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
+        <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="/payroll_absensi_v2/logout.php" class="btn btn-danger btn-sm" title="Logout">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- End Topbar -->
+                <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- End of Topbar -->
+
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
@@ -419,7 +422,6 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                                     <select class="form-control" id="filterTahun" name="tahun" style="width:120px">
                                         <option value="">Semua Tahun</option>
                                         <?php
-                                            // Ambil daftar tahun dari tabel payroll berdasarkan jenjang
                                             $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll WHERE id_anggota IN (SELECT id FROM anggota_sekolah WHERE jenjang = ?) ORDER BY tahun DESC");
                                             if ($stmtTahun) {
                                                 $stmtTahun->bind_param("s", $jenjang);
@@ -485,24 +487,44 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     </div>
     <!-- ./wrapper -->
 
+    <!-- Modal: Detail Payroll -->
+    <div class="modal fade" id="detailPayrollModal" tabindex="-1" aria-labelledby="detailPayrollModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailPayrollModalLabel">Detail Payroll</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body" id="detailPayrollContent">
+                    <p>Memuat detail payroll...</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times-circle"></i> Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Spinner -->
     <div id="loadingSpinner">
         <div class="spinner-border text-primary" role="status">
-            <span class="sr-only">Loading...</span>
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
 
     <!-- JS Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/js/all.min.js"></script>
-    <script src="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/js/all.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function(){
         $('[data-toggle="tooltip"]').tooltip();
 
@@ -605,7 +627,6 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
 
         // EVENT: Apply Filter
         $('#btnApplyFilter').on('click', function(){
-            // Jika diperlukan, catat audit log via AJAX
             $.ajax({
                 url: 'rekap_payroll_details.php?ajax=1&jenjang=<?php echo urlencode($jenjang); ?>',
                 type: 'POST',
@@ -649,6 +670,93 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
         $('#filterForm').on('keypress', function(e){
             if(e.which === 13){
                 $('#btnApplyFilter').click();
+            }
+        });
+
+        // EVENT: Tampilkan Detail Payroll (View Detail) dari dropdown
+        $(document).on('click', '.btn-view-full-detail', function(){
+            var idPayroll = $(this).data('id');
+            if (idPayroll) {
+                $.ajax({
+                    url: "payroll_history.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: 'ViewPayrollDetail',
+                        id_payroll: idPayroll,
+                        csrf_token: csrfToken
+                    },
+                    beforeSend: function() {
+                        $('#detailPayrollContent').html('<p>Memuat detail payroll...</p>');
+                        var detailModal = new bootstrap.Modal(document.getElementById('detailPayrollModal'));
+                        detailModal.show();
+                    },
+                    success: function(response) {
+                        if (response.code === 0) {
+                            var d = response.result;
+                            var html = '<table class="table table-bordered">';
+                            html += '<tr><th>ID Payroll</th><td>' + d.id + '</td></tr>';
+                            html += '<tr><th>UID</th><td>' + (d.uid || '-') + '</td></tr>';
+                            html += '<tr><th>NIP</th><td>' + (d.nip || '-') + '</td></tr>';
+                            html += '<tr><th>Nama</th><td>' + d.nama + '</td></tr>';
+                            html += '<tr><th>Jenjang Pendidikan</th><td>' + d.jenjang + '</td></tr>';
+                            html += '<tr><th>Role</th><td>' + (d.role ? d.role : '-') + '</td></tr>';
+                            html += '<tr><th>Job Title</th><td>' + (d.job_title ? d.job_title : '-') + '</td></tr>';
+                            html += '<tr><th>Status Kerja</th><td>' + (d.status_kerja ? d.status_kerja : '-') + '</td></tr>';
+                            html += '<tr><th>Masa Kerja</th><td>' + d.masa_kerja + '</td></tr>';
+                            html += '<tr><th>No Rekening</th><td>' + (d.no_rekening ? d.no_rekening : '-') + '</td></tr>';
+                            html += '<tr><th>Email</th><td>' + (d.email ? d.email : '-') + '</td></tr>';
+                            html += '<tr><th>Jenis Kelamin</th><td>' + (d.jenis_kelamin ? d.jenis_kelamin : '-') + '</td></tr>';
+                            html += '<tr><th>Agama</th><td>' + (d.agama ? d.agama : '-') + '</td></tr>';
+                            html += '<tr><th>Gaji Pokok & Salary Indeks</th><td>' + d.gaji_pokok + '</td></tr>';
+                            html += '<tr><th>Total Pendapatan</th><td>' + d.total_pendapatan;
+                            var earnings = [];
+                            if(d.payheads_detail && d.payheads_detail.length > 0){
+                                d.payheads_detail.forEach(function(ph){
+                                    if(ph.jenis === 'earnings'){
+                                        earnings.push(ph);
+                                    }
+                                });
+                            }
+                            if(earnings.length > 0){
+                                html += '<div class="row mt-2">';
+                                earnings.forEach(function(ph){
+                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {minimumFractionDigits:2});
+                                    html += '<div class="col-12 mb-1"><span class="badge bg-success me-2">' + ph.nama_payhead + '</span> <span class="text-success">Rp ' + nominal + '</span></div>';
+                                });
+                                html += '</div>';
+                            }
+                            html += '</td></tr>';
+                            html += '<tr><th>Total Potongan</th><td>' + d.total_potongan;
+                            var deductions = [];
+                            if(d.payheads_detail && d.payheads_detail.length > 0){
+                                d.payheads_detail.forEach(function(ph){
+                                    if(ph.jenis === 'deductions'){
+                                        deductions.push(ph);
+                                    }
+                                });
+                            }
+                            if(deductions.length > 0){
+                                html += '<div class="row mt-2">';
+                                deductions.forEach(function(ph){
+                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {minimumFractionDigits:2});
+                                    html += '<div class="col-12 mb-1"><span class="badge bg-danger me-2">' + ph.nama_payhead + '</span> <span class="text-danger">Rp ' + nominal + '</span></div>';
+                                });
+                                html += '</div>';
+                            }
+                            html += '</td></tr>';
+                            html += '<tr><th>Gaji Bersih</th><td>' + d.gaji_bersih + '</td></tr>';
+                            html += '<tr><th>Bulan</th><td>' + d.bulan + '</td></tr>';
+                            html += '<tr><th>Tahun</th><td>' + d.tahun + '</td></tr>';
+                            html += '</table>';
+                            $('#detailPayrollContent').html(html);
+                        } else {
+                            $('#detailPayrollContent').html('<p>' + response.result + '</p>');
+                        }
+                    },
+                    error: function() {
+                        $('#detailPayrollContent').html('<p>Terjadi kesalahan saat memuat detail payroll.</p>');
+                    }
+                });
             }
         });
     });

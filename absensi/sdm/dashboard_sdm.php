@@ -265,6 +265,8 @@ if ($result && $result->num_rows > 0) {
     <title>Dashboard SDM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap CSS dan SB Admin 2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+
     <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <!-- Chart.js -->
@@ -285,24 +287,22 @@ if ($result && $result->num_rows > 0) {
     </style>
 </head>
 <body id="page-top">
+    <!-- Page Wrapper -->
     <div id="wrapper">
+
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
 
+        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="../../logout.php" class="btn btn-danger btn-sm" title="Logout">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- End Topbar -->
+                <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- End of Topbar -->
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Main Content -->
                 <div class="container-fluid">
@@ -419,8 +419,8 @@ if ($result && $result->num_rows > 0) {
     </div>
 
     <!-- JavaScript Dependencies -->
-    <script src="../../assets/vendor/bootstrap/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="../../assets/vendor/jquery-easing/jquery.easing.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+<script src="../../assets/vendor/jquery-easing/jquery.easing.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="../../assets/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {

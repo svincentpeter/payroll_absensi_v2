@@ -462,32 +462,22 @@ function DeleteRekap($conn) {
     </style>
 </head>
 <body id="page-top">
-<!-- Page Wrapper -->
-<div id="wrapper">
-    <!-- Sidebar -->
-    <?php include(__DIR__ . '/../../sidebar.php'); ?>
-    <!-- End Sidebar -->
+    <!-- Page Wrapper -->
+    <div id="wrapper">
 
-    <!-- Content Wrapper -->
-    <div id="content-wrapper" class="d-flex flex-column">
-        <!-- Main Content -->
-        <div id="content">
-            <!-- Topbar -->
-            <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                <!-- Sidebar Toggle (Topbar) -->
-                <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <!-- Navbar Right -->
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-                        <a href="/payroll_absensi_v2/logout.php" class="btn btn-danger btn-sm" title="Logout">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <!-- End Topbar -->
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
+                <!-- Topbar -->
+                <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- End of Topbar -->
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
             <!-- Begin Page Content -->
             <div class="container-fluid">

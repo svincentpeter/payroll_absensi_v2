@@ -225,8 +225,8 @@ function LoadingPayrollHistory($conn) {
     <i class="bi bi-three-dots-vertical"></i>
   </button>
   <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
-    <li><a class="dropdown-item" href="payroll-invoice.php?id_payroll=' . $row['id'] . '">
-      <i class="fas fa-file-invoice"></i> Lihat Invoice
+    <li><a class="dropdown-item" href="payroll-details.php?id_payroll=' . $row['id'] . '">
+      <i class="fas fa-file-invoice"></i> Lihat Payroll
     </a></li>
     <li><a class="dropdown-item btn-view-full-detail" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
       <i class="fas fa-eye"></i> View Detail
@@ -404,28 +404,24 @@ function ViewPayrollDetail($conn) {
         }
     </style>
 </head>
-<body id="page-top" class="sb-nav-fixed">
-    <!-- Wrapper -->
+<body id="page-top">
+    <!-- Page Wrapper -->
     <div id="wrapper">
+
         <!-- Sidebar -->
-        <?php include(__DIR__ . '/../../sidebar.php'); ?>
-        <!-- End Sidebar -->
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle me-3">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a href="/payroll_absensi_v2/logout.php" class="btn btn-danger btn-sm" title="Logout">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- End Topbar -->
+                <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- End of Topbar -->
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+
                 <!-- Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">
@@ -575,7 +571,7 @@ function ViewPayrollDetail($conn) {
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>

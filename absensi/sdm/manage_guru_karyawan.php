@@ -697,24 +697,22 @@ function generateUID($conn) {
     </style>
 </head>
 <body id="page-top">
-<div id="wrapper">
-    <?php include __DIR__ . '/../../sidebar.php'; ?>
-    <div id="content-wrapper" class="d-flex flex-column">
-        <!-- Main Content -->
-        <div id="content">
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-
-                <!-- Breadcrumb -->
-                <div class="container-fluid">
-                    <nav aria-label="breadcrumb">
-                      <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="/payroll_absensi_v2/absensi/sdm/dashboard_sdm.php">Home</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Manajemen Data Guru/Karyawan</li>
-                      </ol>
-                    </nav>
-                </div>
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
             <div class="container-fluid">
                 <h1 class="h3 mb-4 text-gray-800">Manajemen Data Guru/Karyawan</h1>

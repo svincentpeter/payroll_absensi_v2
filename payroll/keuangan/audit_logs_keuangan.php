@@ -174,8 +174,8 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
     <title>Audit Logs Keuangan - Keuangan</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 4 CSS & SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Custom CSS untuk Card dan Timeline -->
@@ -270,8 +270,9 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
+
         <!-- Sidebar -->
-        <?php include(__DIR__ . '/../../sidebar.php'); ?>
+        <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
@@ -279,19 +280,10 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="/payroll_absensi_v2/logout.php" class="btn btn-danger btn-sm" title="Logout">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
+                <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
+<!-- Breadcrumb -->
+<?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
@@ -384,7 +376,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
 
     <!-- JS Dependencies -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
 </body>
 </html>
 
