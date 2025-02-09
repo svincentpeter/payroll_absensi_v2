@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 06, 2025 at 06:20 PM
+-- Generation Time: Feb 09, 2025 at 03:39 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -170,7 +170,8 @@ CREATE TABLE `payheads` (
   `id` int(11) NOT NULL,
   `nama_payhead` varchar(100) NOT NULL,
   `jenis` enum('earnings','deductions') NOT NULL,
-  `deskripsi` text DEFAULT NULL
+  `deskripsi` text DEFAULT NULL,
+  `nominal` decimal(15,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -192,7 +193,8 @@ CREATE TABLE `payroll` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `tgl_payroll` datetime NOT NULL DEFAULT current_timestamp(),
   `no_rekening` varchar(50) DEFAULT NULL,
-  `catatan` text DEFAULT NULL
+  `catatan` text DEFAULT NULL,
+  `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------

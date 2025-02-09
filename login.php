@@ -25,6 +25,9 @@ if (isset($_SESSION['role'])) {
         case 'karyawan':
             header("Location: absensi/karyawan/dashboard_karyawan.php");
             exit();
+        case 'petinggi':
+            header("Location: dashboard_petinggi.php");
+            exit();
         default:
             // Role tidak dikenal, logout
             header("Location: logout.php");
@@ -97,9 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // 2) TIDAK DITEMUKAN DI TABEL `users`, cek di TABEL `anggota_sekolah`
             //    Di sini kita asumsikan login-nya pakai nip = $username
-            //    (Jika memang `username` di form adalah NIP)
-
-            $stmt2 = $conn->prepare("SELECT id, nip, nama, password, job_title FROM anggota_sekolah WHERE nip = ? LIMIT 1");
+            $stmt2 = $conn->prepare("SELECT id, nip, nama, password, job_title, role FROM anggota_sekolah WHERE nip = ? LIMIT 1");
             if ($stmt2) {
                 $stmt2->bind_param("s", $username);
                 $stmt2->execute();
@@ -110,35 +111,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($rowAnggota) {
                     // Menggunakan MD5 untuk verifikasi password
                     if (md5($password) === $rowAnggota['password']) {
-                        // Berhasil login di anggota_sekolah dengan hashing yang lebih aman
-                        $_SESSION['nip'] = $rowAnggota['nip'];
+                        // Berhasil login di anggota_sekolah
+                        $_SESSION['nip']  = $rowAnggota['nip'];
                         $_SESSION['nama'] = $rowAnggota['nama'];
 
-                        // DETEKSI ROLE DARI job_title
-                        $jobTitle = strtolower($rowAnggota['job_title'] ?? '');
-                        if (strpos($jobTitle, 'guru') !== false) {
-                            $_SESSION['role'] = 'guru';
-                            // **Audit Log untuk Login Sukses Sebagai Guru**
-                            add_audit_log($conn, NULL, 'Login', "Pengguna 'guru' dengan NIP '{$rowAnggota['nip']}' berhasil login sebagai 'guru'.");
+                        // Ambil job_title dan role dari tabel anggota_sekolah
+                        $jobTitle    = strtolower($rowAnggota['job_title'] ?? '');
+                        $anggotaRole = $rowAnggota['role'] ?? '';
 
-                            // Redirect ke dashboard guru
+                        // Jika role managerial (M) gunakan pengecekan job_title untuk menentukan dashboard
+                        if ($anggotaRole === 'M') {
+                            if (strpos($jobTitle, 'superadmin') !== false) {
+                                $_SESSION['role'] = 'superadmin';
+                                add_audit_log($conn, $rowAnggota['id'], 'Login', "Pengguna dengan NIP '{$rowAnggota['nip']}' berhasil login sebagai 'superadmin'.");
+                                header("Location: payroll/superadmin/dashboard_superadmin.php");
+                                exit();
+                            } elseif (strpos($jobTitle, 'sdm') !== false) {
+                                $_SESSION['role'] = 'sdm';
+                                add_audit_log($conn, $rowAnggota['id'], 'Login', "Pengguna dengan NIP '{$rowAnggota['nip']}' berhasil login sebagai 'sdm'.");
+                                header("Location: absensi/sdm/dashboard_sdm.php");
+                                exit();
+                            } elseif (strpos($jobTitle, 'keuangan') !== false) {
+                                $_SESSION['role'] = 'keuangan';
+                                add_audit_log($conn, $rowAnggota['id'], 'Login', "Pengguna dengan NIP '{$rowAnggota['nip']}' berhasil login sebagai 'keuangan'.");
+                                header("Location: payroll/keuangan/dashboard_keuangan.php");
+                                exit();
+                            } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
+                                $_SESSION['role'] = 'petinggi';
+                                add_audit_log($conn, $rowAnggota['id'], 'Login', "Pengguna dengan NIP '{$rowAnggota['nip']}' berhasil login sebagai 'petinggi'.");
+                                header("Location: dashboard_petinggi.php");
+                                exit();
+                            } else {
+                                $error = "Role managerial tidak dikenali.";
+                                add_audit_log($conn, $rowAnggota['id'], 'LoginFailed', "Pengguna dengan NIP '{$rowAnggota['nip']}' gagal login: Role managerial tidak dikenali.");
+                            }
+                        }
+                        // Jika job_title guru/karyawan atau role P/TK maka masuk ke dashboard guru (sesuai ketentuan)
+                        elseif (
+                            strpos($jobTitle, 'guru') !== false ||
+                            strpos($jobTitle, 'karyawan') !== false ||
+                            $anggotaRole === 'P' ||
+                            $anggotaRole === 'TK'
+                        ) {
+                            $_SESSION['role'] = 'guru';
+                            add_audit_log($conn, $rowAnggota['id'], 'Login', "Pengguna dengan NIP '{$rowAnggota['nip']}' berhasil login sebagai 'guru'.");
                             header("Location: absensi/guru/dashboard_guru.php");
                             exit();
                         } else {
-                            // Bukan guru, maka role = karyawan
-                            $_SESSION['role'] = 'karyawan';
-                            // **Audit Log untuk Login Sukses Sebagai Karyawan**
-                            add_audit_log($conn, NULL, 'Login', "Pengguna 'karyawan' dengan NIP '{$rowAnggota['nip']}' berhasil login sebagai 'karyawan'.");
-
-                            // Redirect ke dashboard karyawan
-                            header("Location: absensi/karyawan/dashboard_karyawan.php");
-                            exit();
+                            $error = "Role anggota_sekolah tidak dikenali.";
+                            add_audit_log($conn, $rowAnggota['id'], 'LoginFailed', "Pengguna dengan NIP '{$rowAnggota['nip']}' gagal login: Role anggota_sekolah tidak dikenali.");
                         }
                     } else {
                         $error = "Password salah.";
 
                         // **Audit Log untuk Login Gagal (Password Salah) di anggota_sekolah**
-                        add_audit_log($conn, NULL, 'LoginFailed', "Pengguna dengan NIP '{$rowAnggota['nip']}' gagal login: Password salah.");
+                        add_audit_log($conn, $rowAnggota['id'], 'LoginFailed', "Pengguna dengan NIP '{$rowAnggota['nip']}' gagal login: Password salah.");
                     }
                 } else {
                     $error = "Username/NIP tidak ditemukan.";
@@ -164,15 +191,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>Login - Sekolah Nusaputera</title>
     <!-- Link Bootstrap 4 -->
-    <link 
-        href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" 
-        rel="stylesheet"
-    >
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link 
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" 
-        rel="stylesheet"
-    >
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <style>
     /* Style yang sudah Anda buat */
     body {
@@ -290,8 +311,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <!-- Script JavaScript -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script 
-      src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

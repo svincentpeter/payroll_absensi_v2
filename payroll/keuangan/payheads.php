@@ -1,75 +1,38 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/payheads.php (fix)
+// File: /payroll_absensi_v2/payroll/keuangan/payheads.php (Tanpa Sistem Keamanan)
 
 // =========================
-// 1. Pengaturan Keamanan
+// 1. Pengaturan Awal (tanpa sistem keamanan)
 // =========================
 
-// Atur session cookie parameters sebelum session_start()
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses melalui JavaScript
-    'samesite' => 'Strict'
-]);
+// Mulai session secara standar
+session_start();
 
-require_once __DIR__ . '/../../helpers.php';
-start_session_safe();
-init_error_handling();
-generate_csrf_token();
-
-// Buat nonce untuk CSP dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-// Paksa HTTPS jika belum menggunakan HTTPS
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-
-// HSTS header
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
-// Proteksi CSRF
-generate_csrf_token(); // Generate CSRF token jika belum ada
-
-// Role Checking
-function authorize($allowed_roles = ['keuangan', 'superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        send_response(403, 'Akses ditolak.');
-    }
-}
+// Tidak ada pengaturan cookie khusus, CSP, atau pemaksaan HTTPS
+// Tidak ada HSTS header
+// Tidak ada proteksi CSRF
+// Tidak ada validasi role
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
-// Nonaktifkan output buffering (jika ada)
+// Tidak ada output buffering khusus
 if (ob_get_length()) ob_end_clean();
 
-// Implementasi CSP dengan nonce
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
 
 // =========================
 // 2. Fungsi Pendukung
 // =========================
-/* Fungsi helpers seperti bersihkan_input(), verify_csrf_token(), add_audit_log(), dan send_response()
-   sudah tersedia di helpers.php. */
 
-// -------------------------
-// Fungsi untuk mendapatkan nominal tetap secara langsung
-// Karena sekarang nilai nominal disimpan di database, kita cukup mengambilnya.
+// Fungsi untuk format nominal ke format mata uang
 function formatNominal($nominal) {
     return 'Rp ' . number_format($nominal, 2, ',', '.');
+}
+
+// Fungsi send_response() sederhana agar tetap bisa mengirimkan respons JSON
+function send_response($code, $result) {
+    echo json_encode(['code' => $code, 'result' => $result], JSON_UNESCAPED_UNICODE);
+    exit();
 }
 
 // =========================
@@ -77,15 +40,13 @@ function formatNominal($nominal) {
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Verifikasi CSRF
-        $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-        verify_csrf_token($csrf_token);
+        // Debug: Log seluruh data POST (opsional)
+        error_log("DEBUG: Data POST: " . print_r($_POST, true));
 
-        // Role Check
-        authorize();
+        // Tidak ada verifikasi CSRF dan validasi role
 
         // Ambil case
-        $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
+        $case = isset($_POST['case']) ? trim($_POST['case']) : '';
 
         switch ($case) {
             case 'LoadingPayheads':
@@ -103,27 +64,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             case 'DeletePayhead':
                 DeletePayhead($conn);
                 break;
-            case 'AddAuditLog':
-                // Menerima data aksi dan detail dari AJAX
-                $action = isset($_POST['action']) ? bersihkan_input($_POST['action']) : '';
-                $details = isset($_POST['details']) ? bersihkan_input($_POST['details']) : '';
-
-                if (!empty($action) && !empty($details)) {
-                    $logged = add_audit_log(
-                        $conn,
-                        $_SESSION['user_id'],
-                        $action,
-                        $details
-                    );
-                    if ($logged) {
-                        send_response(0, 'Audit log berhasil dicatat.');
-                    } else {
-                        send_response(1, 'Gagal mencatat audit log.');
-                    }
-                } else {
-                    send_response(1, 'Data audit log tidak lengkap.');
-                }
-                break;
             default:
                 send_response(404, 'Kasus tidak ditemukan.');
         }
@@ -134,7 +74,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // =========================
-// 4. Fungsi CRUD dengan Audit Logs
+// 4. Fungsi CRUD (Tanpa Audit Log dan Validasi Keamanan)
 // =========================
 
 function LoadingPayheads($conn) {
@@ -142,10 +82,10 @@ function LoadingPayheads($conn) {
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
+    $search = isset($_POST['search']['value']) ? trim($_POST['search']['value']) : '';
 
     // Filter Jenis Payhead
-    $filterJenis = isset($_POST['jenis_payhead']) ? bersihkan_input($_POST['jenis_payhead']) : '';
+    $filterJenis = isset($_POST['jenis_payhead']) ? trim($_POST['jenis_payhead']) : '';
 
     // Total records
     $sqlTotal = "SELECT COUNT(*) as total FROM payheads";
@@ -241,11 +181,11 @@ function LoadingPayheads($conn) {
     while ($row = $dataQuery->fetch_assoc()) {
         // Format nominal (diambil dari kolom "nominal")
         $nominal_tetap = formatNominal($row['nominal']);
-        
+
         // Tampilkan jenis dengan badge
         $jenis = ($row['jenis'] == 'earnings') 
-                    ? '<span class="badge badge-success">Pendapatan</span>' 
-                    : '<span class="badge badge-danger">Potongan</span>';
+                    ? '<span class="badge bg-success">Pendapatan</span>' 
+                    : '<span class="badge bg-danger">Potongan</span>';
         // Tombol Aksi (dropdown dengan ikon tiga titik vertikal)
         $aksi = "
 <div class=\"dropdown\">
@@ -264,9 +204,9 @@ function LoadingPayheads($conn) {
 
         $data[] = [
             "no" => $no++,
-            "nama_payhead" => bersihkan_input($row['nama_payhead']),
+            "nama_payhead" => trim($row['nama_payhead']),
             "jenis" => $jenis,
-            "deskripsi" => bersihkan_input($row['deskripsi']),
+            "deskripsi" => trim($row['deskripsi']),
             "nominal_tetap" => $nominal_tetap,
             "aksi" => $aksi
         ];
@@ -283,10 +223,17 @@ function LoadingPayheads($conn) {
 }
 
 function AddPayhead($conn) {
-    $nama_payhead = isset($_POST['nama_payhead']) ? bersihkan_input($_POST['nama_payhead']) : '';
-    $jenis = isset($_POST['jenis_payhead']) ? bersihkan_input($_POST['jenis_payhead']) : '';
-    $deskripsi = isset($_POST['deskripsi']) ? bersihkan_input($_POST['deskripsi']) : '';
-    $nominal = isset($_POST['nominal']) ? floatval($_POST['nominal']) : 0.00;
+    // DEBUG: Log data POST pada fungsi AddPayhead
+    error_log("DEBUG: AddPayhead POST: " . print_r($_POST, true));
+
+    $nama_payhead = isset($_POST['nama_payhead']) ? trim($_POST['nama_payhead']) : '';
+    $jenis = isset($_POST['jenis_payhead']) ? trim($_POST['jenis_payhead']) : '';
+    $deskripsi = isset($_POST['deskripsi']) ? trim($_POST['deskripsi']) : '';
+    $nominal_input = isset($_POST['nominal']) ? $_POST['nominal'] : '';
+    $nominal = floatval($nominal_input);
+
+    // DEBUG: Log nilai nominal sebelum dan sesudah konversi
+    error_log("DEBUG: Nilai nominal input: " . var_export($nominal_input, true) . " | Setelah floatval: " . $nominal);
 
     if (empty($nama_payhead) || empty($jenis)) {
         send_response(2, 'Semua field wajib diisi.');
@@ -294,8 +241,12 @@ function AddPayhead($conn) {
     if (!in_array($jenis, ['earnings', 'deductions'])) {
         send_response(3, 'Jenis Payhead tidak valid.');
     }
+    if ($nominal <= 0) {
+        error_log("DEBUG: Nominal tidak valid atau kosong. Nilai: " . $nominal);
+        send_response(5, 'Masukkan nominal payhead.');
+    }
 
-    // cek duplikasi
+    // Cek duplikasi (sederhana)
     $stmt = $conn->prepare("SELECT id FROM payheads WHERE nama_payhead = ? AND jenis = ? LIMIT 1");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -315,11 +266,6 @@ function AddPayhead($conn) {
     }
     $stmt->bind_param("sssd", $nama_payhead, $jenis, $deskripsi, $nominal);
     if ($stmt->execute()) {
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-        $details_log = "Menambahkan Payhead: Nama='$nama_payhead', Jenis='$jenis', Deskripsi='$deskripsi', Nominal='$nominal'.";
-        if (!add_audit_log($conn, $user_id, 'AddPayhead', $details_log)) {
-            log_error("Gagal mencatat audit log untuk AddPayhead ID " . $stmt->insert_id . ".");
-        }
         send_response(0, 'Payhead berhasil ditambahkan.');
     } else {
         send_response(1, 'Gagal menambah payhead: ' . $stmt->error);
@@ -345,12 +291,7 @@ function GetPayheadDetail($conn) {
         $payhead = $result->fetch_assoc();
         $stmt->close();
 
-        // Tambahkan Audit Log untuk Viewing Detail Payhead
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-        $details_log = "Melihat detail Payhead ID $id: Nama='{$payhead['nama_payhead']}', Jenis='{$payhead['jenis']}', Deskripsi='{$payhead['deskripsi']}', Nominal='{$payhead['nominal']}'.";
-        if (!add_audit_log($conn, $user_id, 'ViewPayheadDetail', $details_log)) {
-            log_error("Gagal mencatat audit log untuk ViewPayheadDetail ID $id.");
-        }
+        error_log("DEBUG: Detail Payhead: " . print_r($payhead, true));
 
         send_response(0, [
             'id' => $payhead['id'],
@@ -367,12 +308,16 @@ function GetPayheadDetail($conn) {
 }
 
 function UpdatePayhead($conn) {
+    error_log("DEBUG: UpdatePayhead POST: " . print_r($_POST, true));
+
     $id = isset($_POST['edit_payhead_id']) ? intval($_POST['edit_payhead_id']) : 0;
-    $nama_payhead = isset($_POST['edit_nama_payhead']) ? bersihkan_input($_POST['edit_nama_payhead']) : '';
-    $jenis = isset($_POST['edit_jenis_payhead']) ? bersihkan_input($_POST['edit_jenis_payhead']) : '';
-    $deskripsi = isset($_POST['edit_deskripsi']) ? bersihkan_input($_POST['edit_deskripsi']) : '';
-    // Pastikan nama field untuk nominal di form edit sesuai (misalnya, "nominal")
-    $nominal = isset($_POST['nominal']) ? floatval($_POST['nominal']) : 0.00;
+    $nama_payhead = isset($_POST['edit_nama_payhead']) ? trim($_POST['edit_nama_payhead']) : '';
+    $jenis = isset($_POST['edit_jenis_payhead']) ? trim($_POST['edit_jenis_payhead']) : '';
+    $deskripsi = isset($_POST['edit_deskripsi']) ? trim($_POST['edit_deskripsi']) : '';
+    $nominal_input = isset($_POST['nominal']) ? $_POST['nominal'] : '';
+    $nominal = floatval($nominal_input);
+
+    error_log("DEBUG: UpdatePayhead - Nilai nominal input: " . var_export($nominal_input, true) . " | Setelah floatval: " . $nominal);
     
     if ($id <= 0 || empty($nama_payhead) || empty($jenis)) {
         send_response(3, 'Field wajib diisi dan ID Payhead harus valid.');
@@ -380,8 +325,12 @@ function UpdatePayhead($conn) {
     if (!in_array($jenis, ['earnings', 'deductions'])) {
         send_response(4, 'Jenis Payhead tidak valid.');
     }
+    if ($nominal <= 0) {
+        error_log("DEBUG: UpdatePayhead - Nominal tidak valid atau kosong. Nilai: " . $nominal);
+        send_response(5, 'Masukkan nominal payhead.');
+    }
     
-    // Cek duplikasi
+    // Cek duplikasi (sederhana)
     $stmt = $conn->prepare("SELECT id FROM payheads WHERE nama_payhead = ? AND jenis = ? AND id != ? LIMIT 1");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -394,18 +343,12 @@ function UpdatePayhead($conn) {
     }
     $stmt->close();
     
-    // Update termasuk field nominal, gunakan binding type yang tepat: string, string, string, double, integer.
     $stmt = $conn->prepare("UPDATE payheads SET nama_payhead = ?, jenis = ?, deskripsi = ?, nominal = ? WHERE id = ?");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
     }
     $stmt->bind_param("sssdi", $nama_payhead, $jenis, $deskripsi, $nominal, $id);
     if ($stmt->execute()) {
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-        $details_log = "Mengupdate Payhead ID $id: Nama='$nama_payhead', Jenis='$jenis', Deskripsi='$deskripsi', Nominal='$nominal'.";
-        if (!add_audit_log($conn, $user_id, 'UpdatePayhead', $details_log)) {
-            log_error("Gagal mencatat audit log untuk UpdatePayhead ID $id.");
-        }
         send_response(0, 'Payhead berhasil diupdate.');
     } else {
         send_response(1, 'Gagal mengupdate payhead: ' . $stmt->error);
@@ -413,7 +356,6 @@ function UpdatePayhead($conn) {
     $stmt->close();
     exit();
 }
-
 
 function DeletePayhead($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -437,7 +379,6 @@ function DeletePayhead($conn) {
     }
     $stmt->close();
 
-    // Hapus payhead
     $stmt = $conn->prepare("DELETE FROM payheads WHERE id = ?");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -445,13 +386,6 @@ function DeletePayhead($conn) {
     $stmt->bind_param("i", $id);
     if (!$stmt->execute()) {
         send_response(1, 'Gagal menghapus payhead: ' . $stmt->error);
-    }
-
-    // Tambahkan Audit Log
-    $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-    $details_log = "Menghapus Payhead ID $id.";
-    if (!add_audit_log($conn, $user_id, 'DeletePayhead', $details_log)) {
-        log_error("Gagal mencatat audit log untuk DeletePayhead ID $id.");
     }
 
     send_response(0, 'Payhead berhasil dihapus.');
@@ -465,17 +399,17 @@ function DeletePayhead($conn) {
     <title>Manajemen Payheads - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.2/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.2/css/buttons.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
@@ -538,7 +472,7 @@ function DeletePayhead($conn) {
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-        <!-- Sidebar -->
+        <!-- Sidebar (tidak ada sistem keamanan, jadi Anda bisa menghapus include jika tidak diperlukan) -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
 
@@ -565,7 +499,6 @@ function DeletePayhead($conn) {
                         </div>
                         <div class="card-body">
                             <form id="filterForm" class="form-inline">
-                                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                 <div class="form-group mb-2 mr-3">
                                     <label for="filterJenisPayhead" class="mr-2"><strong>Jenis Payhead:</strong></label>
                                     <select class="form-control" id="filterJenisPayhead" name="jenis_payhead" style="width:200px">
@@ -594,14 +527,15 @@ function DeletePayhead($conn) {
                     <!-- Tabel Rekap Payheads -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold text-white"><i class="fas fa-clipboard-list"></i> Daftar Payheads</h6>
-                            <button type="button" class="btn btn-primary btn-success" data-toggle="modal" data-target="#addPayheadModal">
+                            <h6 class="m-0 font-weight-bold text-white">
+                                <i class="fas fa-clipboard-list"></i> Daftar Payheads
+                            </h6>
+                            <button type="button" class="btn btn-primary btn-success" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
                                 <i class="fas fa-plus"></i> Tambah Payhead
                             </button>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <!-- Tambahkan class .table-sm -->
                                 <table id="payheadsTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
                                     <thead class="thead">
                                         <tr>
@@ -640,13 +574,11 @@ function DeletePayhead($conn) {
                 <form id="add-payhead-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="addPayheadModalLabel">Tambah Payhead</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                            <span>&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
+                        <!-- Tidak ada CSRF token -->
                         <input type="hidden" name="case" value="AddPayhead">
-                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                         <div class="form-group">
                             <label for="nama_payhead">Nama Payhead <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="nama_payhead" name="nama_payhead" required>
@@ -673,7 +605,7 @@ function DeletePayhead($conn) {
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Simpan
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
@@ -691,14 +623,11 @@ function DeletePayhead($conn) {
                 <form id="edit-payhead-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="editPayheadModalLabel">Edit Payhead</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                            <span>&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="UpdatePayhead">
                         <input type="hidden" id="edit_payhead_id" name="edit_payhead_id">
-                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                         <div class="form-group">
                             <label for="edit_nama_payhead">Nama Payhead <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="edit_nama_payhead" name="edit_nama_payhead" required>
@@ -718,16 +647,14 @@ function DeletePayhead($conn) {
                             <textarea class="form-control" id="edit_deskripsi" name="edit_deskripsi" rows="3" required></textarea>
                             <div class="invalid-feedback">Masukkan deskripsi payhead.</div>
                         </div>
-                        <!-- Form Update Payhead -->
-<div class="form-group">
-    <label for="edit_nominal">Nominal Tetap <span class="text-danger">*</span></label>
-    <input type="text" step="0.01" class="form-control" id="edit_nominal" name="nominal" required>
-    <div class="invalid-feedback">Masukkan nominal payhead.</div>
-</div>
-
+                        <div class="form-group">
+                            <label for="edit_nominal">Nominal Tetap <span class="text-danger">*</span></label>
+                            <input type="text" step="0.01" class="form-control" id="edit_nominal" name="nominal" required>
+                            <div class="invalid-feedback">Masukkan nominal payhead.</div>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Update
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
@@ -745,17 +672,15 @@ function DeletePayhead($conn) {
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Hapus Payhead</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span>&times;</span>
-              </button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
               <div class="modal-body">
-                  <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                  <!-- Tidak ada CSRF token -->
                   <input type="hidden" id="delete_id" name="id">
                   <p>Yakin ingin menghapus item ini?</p>
               </div>
               <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Tidak</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tidak</button>
                   <button type="submit" class="btn btn-danger">Ya, Hapus</button>
               </div>
           </div>
@@ -766,316 +691,301 @@ function DeletePayhead($conn) {
     <!-- Loading Spinner -->
     <div id="loadingSpinner">
         <div class="spinner-border text-primary" role="status">
-            <span class="sr-only">Loading...</span>
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
 
     <!-- JS Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.datatables.net/buttons/1.6.2/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-<!-- Pastikan menyertakan SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
-<!-- Include AutoNumeric (Pastikan AutoNumeric di-load setelah jQuery) -->
-<script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- AutoNumeric -->
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
 
-<script nonce="<?php echo $nonce; ?>">
-$(document).ready(function() {
-    $('[data-toggle="tooltip"]').tooltip();
+    <script>
+    $(document).ready(function() {
+        console.log("DEBUG: Document ready.");
 
-    // Inisialisasi SweetAlert2 Toast Mixin
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-        }
-    });
-
-    function showToast(message, icon = 'success') {
-        Toast.fire({
-            icon: icon,
-            title: message
-        });
-    }
-
-    var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
-
-    // =============================
-    // Inisialisasi AutoNumeric
-    // =============================
-    // Pastikan elemen input untuk nominal menggunakan tipe "text" di HTML
-    new AutoNumeric('#nominal', {
-    digitGroupSeparator: '.',
-    decimalCharacter: ',',
-    decimalPlaces: 2,
-    unformatOnSubmit: true  // Mengirim nilai sebagai angka murni saat submit
-});
-new AutoNumeric('#edit_nominal', {
-    digitGroupSeparator: '.',
-    decimalCharacter: ',',
-    decimalPlaces: 2,
-    unformatOnSubmit: true
-});
-
-
-    // Inisialisasi DataTables untuk Tabel Payheads
-    var payheadsTable = $('#payheadsTable').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: "payheads.php?ajax=1",
-            type: "POST",
-            data: function (d) {
-                d.case = 'LoadingPayheads';
-                d.csrf_token = csrfToken;
-                d.jenis_payhead = $('#filterJenisPayhead').val();
-            },
-            beforeSend: function(){
-                $('#loadingSpinner').show();
-            },
-            complete: function(){
-                $('#loadingSpinner').hide();
-            },
-            error: function(){
-                showToast('Terjadi kesalahan saat memuat data payheads.', 'error');
-            }
-        },
-        columns: [
-            { data: "no", orderable: false },
-            { data: "nama_payhead" },
-            { data: "jenis" },
-            { data: "deskripsi" },
-            { data: "nominal_tetap" },
-            { data: "aksi", orderable: false }
-        ],
-        language: {
-            url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-        },
-        dom: 'Bfrtip',
-        buttons: [
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel"></i> Export Excel',
-                className: 'btn btn-success btn-sm',
-                exportOptions: { columns: [0,1,2,3,4] }
-            },
-            {
-                extend: 'pdfHtml5',
-                text: '<i class="fas fa-file-pdf"></i> Export PDF',
-                className: 'btn btn-danger btn-sm',
-                exportOptions: { columns: [0,1,2,3,4] },
-                customize: function (doc) {
-                    doc.styles.tableHeader.fillColor = '#343a40';
-                    doc.styles.tableHeader.color = 'white';
-                    doc.defaultStyle.fontSize = 10;
-                }
-            },
-            {
-                extend: 'print',
-                text: '<i class="fas fa-print"></i> Print',
-                className: 'btn btn-info btn-sm',
-                exportOptions: { columns: [0,1,2,3,4] }
-            }
-        ],
-        responsive: true,
-        autoWidth: false
-    });
-
-    // Event: Apply Filter
-    $('#btnApplyFilter').on('click', function(){
-        $.ajax({
-            url: 'payheads.php?ajax=1',
-            type: 'POST',
-            data: {
-                case: 'AddAuditLog',
-                csrf_token: csrfToken,
-                action: 'ApplyFilter',
-                details: `Pengguna menerapkan filter Jenis Payhead: ${$('#filterJenisPayhead').val() || 'Semua'}.`
-            },
-            success: function(response){
-                if(response.code === 0){
-                    showToast('Filter berhasil diterapkan.', 'success');
-                }
-            },
-            error: function(){
-                showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
             }
         });
-        payheadsTable.ajax.reload();
-    });
 
-    // Event: Reset Filter
-    $('#btnResetFilter').on('click', function(){
-        $.ajax({
-            url: 'payheads.php?ajax=1',
-            type: 'POST',
-            data: {
-                case: 'AddAuditLog',
-                csrf_token: csrfToken,
-                action: 'ResetFilter',
-                details: 'Pengguna mereset semua filter Payhead.'
-            },
-            success: function(response){
-                if(response.code === 0){
-                    showToast('Filter berhasil direset.', 'success');
-                }
-            },
-            error: function(){
-                showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
-            }
-        });
-        $('#filterForm')[0].reset();
-        payheadsTable.ajax.reload();
-    });
-
-    // Event: Export Excel
-    $('#btnExportData').on('click', function(){
-        payheadsTable.button('.buttons-excel').trigger();
-        $.ajax({
-            url: 'payheads.php?ajax=1',
-            type: 'POST',
-            data: {
-                case: 'AddAuditLog',
-                csrf_token: csrfToken,
-                action: 'ExportData',
-                details: 'Pengguna mengekspor data payheads ke Excel.'
-            },
-            success: function(response){
-                if(response.code === 0){
-                    showToast('Data berhasil diekspor ke Excel.', 'success');
-                }
-            },
-            error: function(){
-                showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
-            }
-        });
-    });
-
-    // Validasi Bootstrap untuk form
-    (function() {
-        'use strict';
-        window.addEventListener('load', function() {
-            var forms = document.getElementsByClassName('needs-validation');
-            Array.prototype.filter.call(forms, function(form) {
-                form.addEventListener('submit', function(event) {
-                    if (form.checkValidity() === false) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    form.classList.add('was-validated');
-                }, false);
+        function showToast(message, icon = 'success') {
+            Toast.fire({
+                icon: icon,
+                title: message
             });
-        }, false);
-    })();
-
-    // Tambah Payhead
-    $('#add-payhead-form').on('submit', function(e) {
-        e.preventDefault();
-        var form = $(this);
-        if (!this.checkValidity()) {
-            e.stopPropagation();
-            form.addClass('was-validated');
-            return;
         }
-        var formData = form.serialize();
-        $.ajax({
-            url: "payheads.php?ajax=1",
-            type: "POST",
-            data: formData,
-            dataType: "json",
-            beforeSend: function(){
-                form.find('button[type="submit"]').prop('disabled', true);
-                form.find('.spinner-border').removeClass('d-none');
-            },
-            success: function(response){
-                form.find('button[type="submit"]').prop('disabled', false);
-                form.find('.spinner-border').addClass('d-none');
-                if (response.code == 0) {
-                    showToast(response.result, 'success');
-                    $('#addPayheadModal').modal('hide');
-                    payheadsTable.ajax.reload(null, false);
-                    form[0].reset();
-                    form.removeClass('was-validated');
-                } else {
-                    showToast(response.result, 'error');
+
+        // Inisialisasi AutoNumeric
+        new AutoNumeric('#nominal', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+        new AutoNumeric('#edit_nominal', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+
+        $('#nominal').on('blur', function() {
+            var an = AutoNumeric.getAutoNumericElement('#nominal');
+            console.log("DEBUG: Nominal (Tambah) setelah blur: ", an.getNumber());
+        });
+        $('#edit_nominal').on('blur', function() {
+            var an = AutoNumeric.getAutoNumericElement('#edit_nominal');
+            console.log("DEBUG: Nominal (Edit) setelah blur: ", an.getNumber());
+        });
+
+        var payheadsTable = $('#payheadsTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: "payheads.php?ajax=1",
+                type: "POST",
+                data: function (d) {
+                    d.case = 'LoadingPayheads';
+                    d.jenis_payhead = $('#filterJenisPayhead').val();
+                },
+                beforeSend: function(){
+                    $('#loadingSpinner').show();
+                },
+                complete: function(){
+                    $('#loadingSpinner').hide();
+                },
+                error: function(){
+                    showToast('Terjadi kesalahan saat memuat data payheads.', 'error');
                 }
             },
-            error: function(){
-                form.find('button[type="submit"]').prop('disabled', false);
-                form.find('.spinner-border').addClass('d-none');
-                showToast('Terjadi kesalahan saat menambah payhead.', 'error');
-            }
-        });
-    });
-
-    // Buka modal edit
-    $(document).on('click', '.btn-edit', function() {
-        var id = $(this).data('id');
-        var modal = $('#editPayheadModal');
-        var form = $('#edit-payhead-form');
-        form[0].reset();
-        form.removeClass('was-validated');
-        $.ajax({
-            url: "payheads.php?ajax=1",
-            type: "POST",
-            data: { id: id, case: 'GetPayheadDetail', csrf_token: csrfToken },
-            dataType: "json",
-            success: function(response){
-                if (response.code == 0) {
-                    $('#edit_payhead_id').val(response.result.id);
-                    $('#edit_nama_payhead').val(response.result.nama_payhead);
-                    $('#edit_jenis_payhead').val(response.result.jenis);
-                    $('#edit_deskripsi').val(response.result.deskripsi);
-                    $('#edit_nominal').val(response.result.nominal);
-                    modal.modal('show');
-                } else {
-                    showToast(response.result, 'error');
-                }
+            columns: [
+                { data: "no", orderable: false },
+                { data: "nama_payhead" },
+                { data: "jenis" },
+                { data: "deskripsi" },
+                { data: "nominal_tetap" },
+                { data: "aksi", orderable: false }
+            ],
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
             },
-            error: function(){
-                showToast('Terjadi kesalahan mengambil detail payhead.', 'error');
-            }
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'excelHtml5',
+                    text: '<i class="fas fa-file-excel"></i> Export Excel',
+                    className: 'btn btn-success btn-sm',
+                    exportOptions: { columns: [0,1,2,3,4] }
+                },
+                {
+                    extend: 'pdfHtml5',
+                    text: '<i class="fas fa-file-pdf"></i> Export PDF',
+                    className: 'btn btn-danger btn-sm',
+                    exportOptions: { columns: [0,1,2,3,4] },
+                    customize: function (doc) {
+                        doc.styles.tableHeader.fillColor = '#343a40';
+                        doc.styles.tableHeader.color = 'white';
+                        doc.defaultStyle.fontSize = 10;
+                    }
+                },
+                {
+                    extend: 'print',
+                    text: '<i class="fas fa-print"></i> Print',
+                    className: 'btn btn-info btn-sm',
+                    exportOptions: { columns: [0,1,2,3,4] }
+                }
+            ],
+            responsive: true,
+            autoWidth: false
         });
-    });
 
-    // Update Payhead
-    $('#edit-payhead-form').on('submit', function(e) {
+        $('#btnApplyFilter').on('click', function(){
+            $.ajax({
+                url: 'payheads.php?ajax=1',
+                type: 'POST',
+                data: {
+                    case: 'AddAuditLog', // meskipun case ini tidak diproses karena tidak ada fungsi AddAuditLog, Anda dapat mengubahnya atau menghapusnya
+                    details: `Pengguna menerapkan filter Jenis Payhead: ${$('#filterJenisPayhead').val() || 'Semua'}.`
+                },
+                success: function(response){
+                    if(response.code === 0){
+                        showToast('Filter berhasil diterapkan.', 'success');
+                    }
+                },
+                error: function(){
+                    showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
+                }
+            });
+            payheadsTable.ajax.reload();
+        });
+
+        $('#btnResetFilter').on('click', function(){
+            $.ajax({
+                url: 'payheads.php?ajax=1',
+                type: 'POST',
+                data: {
+                    case: 'AddAuditLog',
+                    details: 'Pengguna mereset semua filter Payhead.'
+                },
+                success: function(response){
+                    if(response.code === 0){
+                        showToast('Filter berhasil direset.', 'success');
+                    }
+                },
+                error: function(){
+                    showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
+                }
+            });
+            $('#filterForm')[0].reset();
+            payheadsTable.ajax.reload();
+        });
+
+        $('#btnExportData').on('click', function(){
+            payheadsTable.button('.buttons-excel').trigger();
+            $.ajax({
+                url: 'payheads.php?ajax=1',
+                type: 'POST',
+                data: {
+                    case: 'AddAuditLog',
+                    details: 'Pengguna mengekspor data payheads ke Excel.'
+                },
+                success: function(response){
+                    if(response.code === 0){
+                        showToast('Data berhasil diekspor ke Excel.', 'success');
+                    }
+                },
+                error: function(){
+                    showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
+                }
+            });
+        });
+
+        (function() {
+            'use strict';
+            window.addEventListener('load', function() {
+                var forms = document.getElementsByClassName('needs-validation');
+                Array.prototype.filter.call(forms, function(form) {
+                    form.addEventListener('submit', function(event) {
+                        if (form.checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            }, false);
+        })();
+
+        $('#add-payhead-form').on('submit', function(e) {
+            e.preventDefault();
+            console.log("DEBUG: Nilai nominal (Tambah) sebelum submit:", $('#nominal').val());
+            var form = $(this);
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                form.addClass('was-validated');
+                return;
+            }
+            var formData = form.serialize();
+            $.ajax({
+                url: "payheads.php?ajax=1",
+                type: "POST",
+                data: formData,
+                dataType: "json",
+                beforeSend: function(){
+                    form.find('button[type="submit"]').prop('disabled', true);
+                    form.find('.spinner-border').removeClass('d-none');
+                },
+                success: function(response){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    if (response.code == 0) {
+                        showToast(response.result, 'success');
+                        $('#addPayheadModal').modal('hide');
+                        payheadsTable.ajax.reload(null, false);
+                        form[0].reset();
+                        form.removeClass('was-validated');
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    showToast('Terjadi kesalahan saat menambah payhead.', 'error');
+                }
+            });
+        });
+
+        $(document).on('click', '.btn-edit', function() {
+    var id = $(this).data('id');
+    var modal = $('#editPayheadModal');
+    var form = $('#edit-payhead-form');
+    form[0].reset();
+    form.removeClass('was-validated');
+    $.ajax({
+        url: "payheads.php?ajax=1",
+        type: "POST",
+        data: { id: id, case: 'GetPayheadDetail' },
+        dataType: "json",
+        success: function(response){
+            if (response.code == 0) {
+                $('#edit_payhead_id').val(response.result.id);
+                $('#edit_nama_payhead').val(response.result.nama_payhead);
+                $('#edit_jenis_payhead').val(response.result.jenis);
+                $('#edit_deskripsi').val(response.result.deskripsi);
+                // PERBAIKAN: Gunakan AutoNumeric API untuk mengatur nilai
+                var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
+                anEdit.set(response.result.nominal);
+                modal.modal('show');
+            } else {
+                showToast(response.result, 'error');
+            }
+        },
+        error: function(){
+            showToast('Terjadi kesalahan mengambil detail payhead.', 'error');
+        }
+    });
+});
+
+
+$('#edit-payhead-form').on('submit', function(e) {
     e.preventDefault();
+    console.log("DEBUG: Nilai nominal (Edit) sebelum submit:", $('#edit_nominal').val());
     var form = $(this);
-    var nominalValue = $('#edit_nominal').val(); // ambil nilai nominal
 
-    // Cek jika nominal tidak diubah, hapus aturan validasi
-    if (nominalValue === "") {
-        // Jika nominal kosong, berarti tidak ada perubahan, hapus validasi
-        $('#edit_nominal')[0].setCustomValidity("");
-    } else {
-        // Jika nominal ada isinya, tetapkan validasi
-        $('#edit_nominal')[0].setCustomValidity("required");
-    }
+    // PERBAIKAN: Update nilai input dari AutoNumeric
+    var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
+    $('#edit_nominal').val(anEdit.getNumber());
 
-    // Periksa validitas form
+    // (Optional) Lakukan pengecekan validitas lagi jika diperlukan
     if (!this.checkValidity()) {
         e.stopPropagation();
         form.addClass('was-validated');
         return;
     }
-
     var formData = form.serialize();
     $.ajax({
         url: "payheads.php?ajax=1",
@@ -1108,61 +1018,57 @@ new AutoNumeric('#edit_nominal', {
 });
 
 
-    // Hapus Payhead
-    $(document).on('click', '.btn-delete', function() {
-        var id = $(this).data('id');
-        $('#delete_id').val(id);
-        $('#deleteModal').modal('show');
-    });
+        $(document).on('click', '.btn-delete', function() {
+            var id = $(this).data('id');
+            $('#delete_id').val(id);
+            $('#deleteModal').modal('show');
+        });
 
-    // Konfirmasi Delete
-    $('#deleteForm').on('submit', function(e){
-        e.preventDefault();
-        var id = $('#delete_id').val();
-        if (!id) {
-            showToast('ID Payhead tidak ditemukan.', 'error');
-            return;
-        }
-        $.ajax({
-            url: "payheads.php?ajax=1",
-            type: "POST",
-            data: {
-                id: id,
-                case: 'DeletePayhead',
-                csrf_token: csrfToken
-            },
-            dataType: "json",
-            beforeSend: function(){
-                $('#deleteForm').find('button[type="submit"]').prop('disabled', true);
-                $('#deleteForm').find('.spinner-border').removeClass('d-none');
-            },
-            success: function(response){
-                $('#deleteForm').find('button[type="submit"]').prop('disabled', false);
-                $('#deleteForm').find('.spinner-border').addClass('d-none');
-                if (response.code == 0) {
-                    showToast(response.result, 'success');
-                    $('#deleteModal').modal('hide');
-                    payheadsTable.ajax.reload(null, false);
-                } else {
-                    showToast(response.result, 'error');
+        $('#deleteForm').on('submit', function(e){
+            e.preventDefault();
+            var id = $('#delete_id').val();
+            if (!id) {
+                showToast('ID Payhead tidak ditemukan.', 'error');
+                return;
+            }
+            $.ajax({
+                url: "payheads.php?ajax=1",
+                type: "POST",
+                data: {
+                    id: id,
+                    case: 'DeletePayhead'
+                },
+                dataType: "json",
+                beforeSend: function(){
+                    $('#deleteForm').find('button[type="submit"]').prop('disabled', true);
+                    $('#deleteForm').find('.spinner-border').removeClass('d-none');
+                },
+                success: function(response){
+                    $('#deleteForm').find('button[type="submit"]').prop('disabled', false);
+                    $('#deleteForm').find('.spinner-border').addClass('d-none');
+                    if (response.code == 0) {
+                        showToast(response.result, 'success');
+                        $('#deleteModal').modal('hide');
+                        payheadsTable.ajax.reload(null, false);
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(xhr, status, error){
+                    $('#deleteForm').find('button[type="submit"]').prop('disabled', false);
+                    $('#deleteForm').find('.spinner-border').addClass('d-none');
+                    showToast('Terjadi kesalahan saat menghapus payhead: ' + error, 'error');
                 }
-            },
-            error: function(xhr, status, error){
-                $('#deleteForm').find('button[type="submit"]').prop('disabled', false);
-                $('#deleteForm').find('.spinner-border').addClass('d-none');
-                showToast('Terjadi kesalahan saat menghapus payhead: ' + error, 'error');
+            });
+        });
+
+        $('#filterForm').on('keypress', function(e){
+            if(e.which === 13) {
+                $('#btnApplyFilter').click();
             }
         });
     });
-
-    // Optional: tangani event enter-key pada filter form
-    $('#filterForm').on('keypress', function(e){
-        if(e.which === 13) {
-            $('#btnApplyFilter').click();
-        }
-    });
-});
-</script>
+    </script>
 
 </body>
 </html>
