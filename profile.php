@@ -1,186 +1,221 @@
 <?php
-// profile.php (fix)
-
 session_start();
 
-// Redirect jika pengguna belum login
+// Pastikan pengguna sudah login
 if (!isset($_SESSION['user_id'])) {
     header("Location: /payroll_absensi_v2/login.php");
     exit();
 }
 
-// Pastikan userId diambil dari session
-$userId = $_SESSION['user_id'];
+// Ambil userId dari session
+$userId = (int) $_SESSION['user_id'];
 
-// Include koneksi database
+// Koneksi ke database
 require_once __DIR__ . '/koneksi.php';
 
 /**
- * Fungsi untuk mengirim response JSON
+ * Fungsi JSON response sederhana
  */
-function send_response($code, $result) {
-    header('Content-Type: application/json');
+function send_response($code, $result)
+{
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['code' => $code, 'result' => $result], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
 /**
- * Fungsi sederhana untuk membersihkan input
+ * Fungsi untuk membersihkan input
  */
-function bersihkan_input($data) {
-    return htmlspecialchars(strip_tags(trim($data)));
+function bersihkan_input($str)
+{
+    return htmlspecialchars(strip_tags(trim($str)));
 }
 
 /**
- * Fungsi untuk memverifikasi CSRF token (sesuaikan implementasinya)
+ * Fungsi verifikasi CSRF Token
  */
-function verify_csrf_token($token) {
+function verify_csrf_token($token)
+{
     if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
         send_response(403, 'Token CSRF tidak valid.');
     }
 }
 
-// Proses AJAX untuk update profil
+// ================ BAGIAN AJAX UNTUK UPDATE PROFIL ================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Verifikasi CSRF token
-        $csrf_token = isset($_POST['csrf_token']) ? trim($_POST['csrf_token']) : '';
+
+        // 1. Cek CSRF Token
+        $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
         verify_csrf_token($csrf_token);
 
-        // Ambil data input
+        // 2. Ambil data input dari form
         $id                = isset($_POST['id']) ? intval($_POST['id']) : 0;
-        $nip               = isset($_POST['nip']) ? trim($_POST['nip']) : '';
-        $nama              = isset($_POST['nama']) ? trim($_POST['nama']) : '';
-        $jenjang           = isset($_POST['jenjang']) ? trim($_POST['jenjang']) : '';
-        $job_title         = isset($_POST['job_title']) ? trim($_POST['job_title']) : '';
-        $no_hp             = isset($_POST['no_hp']) ? trim($_POST['no_hp']) : '';
-        $email             = isset($_POST['email']) ? trim($_POST['email']) : '';
-        $alamat_domisili   = isset($_POST['alamat_domisili']) ? trim($_POST['alamat_domisili']) : '';
-        $tanggal_lahir     = isset($_POST['tanggal_lahir']) ? trim($_POST['tanggal_lahir']) : '';
-        $pendidikan        = isset($_POST['pendidikan']) ? trim($_POST['pendidikan']) : '';
-        $status_perkawinan = isset($_POST['status_perkawinan']) ? trim($_POST['status_perkawinan']) : '';
+        $nip               = isset($_POST['nip']) ? bersihkan_input($_POST['nip']) : '';
+        $nama              = isset($_POST['nama']) ? bersihkan_input($_POST['nama']) : '';
+        $jenjang           = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
+        $job_title         = isset($_POST['job_title']) ? bersihkan_input($_POST['job_title']) : '';
+        $no_hp             = isset($_POST['no_hp']) ? bersihkan_input($_POST['no_hp']) : '';
+        $email             = isset($_POST['email']) ? bersihkan_input($_POST['email']) : '';
+        $alamat_domisili   = isset($_POST['alamat_domisili']) ? bersihkan_input($_POST['alamat_domisili']) : '';
+        $tanggal_lahir     = isset($_POST['tanggal_lahir']) ? bersihkan_input($_POST['tanggal_lahir']) : '';
+        $pendidikan        = isset($_POST['pendidikan']) ? bersihkan_input($_POST['pendidikan']) : '';
+        $status_perkawinan = isset($_POST['status_perkawinan']) ? bersihkan_input($_POST['status_perkawinan']) : '';
+        $password_plain    = isset($_POST['password']) ? trim($_POST['password']) : '';
 
-        // Jika pengguna mengupdate password (opsional)
-        $password_plain = isset($_POST['password']) ? trim($_POST['password']) : '';
-        $updatePassword = false;
-        if (!empty($password_plain)) {
-            // Gunakan MD5 atau sebaiknya gunakan password_hash untuk keamanan yang lebih baik
-            $password_hashed = md5($password_plain);
-            $updatePassword = true;
-        }
-
-        // Cek apakah data wajib (NIP dan Nama) telah diisi
+        // 3. Validasi minimal (NIP dan Nama wajib diisi)
         if (empty($nip) || empty($nama)) {
             send_response(1, 'NIP dan Nama wajib diisi.');
         }
 
-        // Cek terlebih dahulu apakah data tersedia di tabel anggota_sekolah
-        $stmt = $conn->prepare("SELECT id FROM anggota_sekolah WHERE id = ?");
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        $resultCheck = $stmt->get_result();
-        $existsInAnggota = ($resultCheck && $resultCheck->num_rows > 0);
-        $stmt->close();
-
-        if ($existsInAnggota) {
-            if ($updatePassword) {
-                $sql = "UPDATE anggota_sekolah 
-                        SET nip = ?, nama = ?, jenjang = ?, job_title = ?, no_hp = ?, email = ?, alamat_domisili = ?, tanggal_lahir = ?, pendidikan = ?, status_perkawinan = ?, password = ?
-                        WHERE id = ?";
-                $stmtUpdate = $conn->prepare($sql);
-                if ($stmtUpdate === false) {
-                    send_response(1, 'Query Error: ' . $conn->error);
-                }
-                $stmtUpdate->bind_param("sssssssssssi", $nip, $nama, $jenjang, $job_title, $no_hp, $email, $alamat_domisili, $tanggal_lahir, $pendidikan, $status_perkawinan, $password_hashed, $id);
+        // 4. Proses upload foto profil (jika ada)
+        $foto_profil_path = '';
+        $uploadDir = __DIR__ . '/uploads/profile_pics/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        if (isset($_FILES['foto_profil']) && $_FILES['foto_profil']['error'] === UPLOAD_ERR_OK) {
+            $tmpName  = $_FILES['foto_profil']['tmp_name'];
+            $origName = basename($_FILES['foto_profil']['name']);
+            $ext      = pathinfo($origName, PATHINFO_EXTENSION);
+            $newName  = 'profile_' . $id . '_' . uniqid() . '.' . strtolower($ext);
+            $destPath = $uploadDir . $newName;
+            if (move_uploaded_file($tmpName, $destPath)) {
+                $foto_profil_path = '/payroll_absensi_v2/uploads/profile_pics/' . $newName;
             } else {
-                $sql = "UPDATE anggota_sekolah 
-                        SET nip = ?, nama = ?, jenjang = ?, job_title = ?, no_hp = ?, email = ?, alamat_domisili = ?, tanggal_lahir = ?, pendidikan = ?, status_perkawinan = ?
-                        WHERE id = ?";
-                $stmtUpdate = $conn->prepare($sql);
-                if ($stmtUpdate === false) {
-                    send_response(1, 'Query Error: ' . $conn->error);
-                }
-                $stmtUpdate->bind_param("ssssssssssi", $nip, $nama, $jenjang, $job_title, $no_hp, $email, $alamat_domisili, $tanggal_lahir, $pendidikan, $status_perkawinan, $id);
-            }
-        } else {
-            // Jika data tidak ditemukan di anggota_sekolah, update di tabel users
-            if ($updatePassword) {
-                $sql = "UPDATE users 
-                        SET username = ?, password = ?
-                        WHERE id_user = ?";
-                $stmtUpdate = $conn->prepare($sql);
-                if ($stmtUpdate === false) {
-                    send_response(1, 'Query Error: ' . $conn->error);
-                }
-                $stmtUpdate->bind_param("ssi", $nama, $password_hashed, $id);
-            } else {
-                $sql = "UPDATE users 
-                        SET username = ?
-                        WHERE id_user = ?";
-                $stmtUpdate = $conn->prepare($sql);
-                if ($stmtUpdate === false) {
-                    send_response(1, 'Query Error: ' . $conn->error);
-                }
-                $stmtUpdate->bind_param("si", $nama, $id);
+                send_response(1, 'Gagal upload foto profil.');
             }
         }
 
-        if ($stmtUpdate->execute()) {
-            // Setelah update berhasil, perbarui juga data di session agar konsisten dengan sidebar dan navbar
-            $_SESSION['nama']             = $nama;
-            $_SESSION['nip']              = $nip;
-            $_SESSION['jenjang']          = $jenjang;
-            $_SESSION['job_title']        = $job_title;
-            $_SESSION['no_hp']            = $no_hp;
-            $_SESSION['email']            = $email;
-            $_SESSION['alamat_domisili']  = $alamat_domisili;
-            $_SESSION['tanggal_lahir']    = $tanggal_lahir;
-            $_SESSION['pendidikan']       = $pendidikan;
-            $_SESSION['status_perkawinan']= $status_perkawinan;
-            // Jika foto profil atau gaji_pokok diupdate lewat form, tambahkan pembaruan di sini
+        // 5. Cek apakah data user ada di tabel anggota_sekolah
+        $checkSql = "SELECT id, foto_profil FROM anggota_sekolah WHERE id=? LIMIT 1";
+        $stmtCheck = $conn->prepare($checkSql);
+        if (!$stmtCheck) {
+            send_response(1, 'Query error: ' . $conn->error);
+        }
+        $stmtCheck->bind_param("i", $id);
+        $stmtCheck->execute();
+        $resCheck = $stmtCheck->get_result();
+        if ($resCheck->num_rows === 0) {
+            send_response(1, 'Data pengguna tidak ditemukan di tabel anggota_sekolah.');
+        }
+        $rowUser = $resCheck->fetch_assoc();
+        $stmtCheck->close();
+
+        // 6. Siapkan kolom foto_profil akhir
+        $final_foto_profil = $rowUser['foto_profil'];
+        if (!empty($foto_profil_path)) {
+            $final_foto_profil = $foto_profil_path;
+        }
+
+        // 7. Handle password baru (opsional)
+        $updatePassword = false;
+        $password_hashed = '';
+        if (!empty($password_plain)) {
+            $password_hashed = md5($password_plain);
+            $updatePassword = true;
+        }
+
+        // 8. Buat SQL UPDATE
+        if ($updatePassword) {
+            $updateSql = "UPDATE anggota_sekolah
+                          SET nip=?, nama=?, jenjang=?, job_title=?,
+                              no_hp=?, email=?, alamat_domisili=?,
+                              tanggal_lahir=?, pendidikan=?, status_perkawinan=?,
+                              password=?, foto_profil=?
+                          WHERE id=?";
+            $stmtUpd = $conn->prepare($updateSql);
+            if (!$stmtUpd) {
+                send_response(1, 'Query error: ' . $conn->error);
+            }
+            $stmtUpd->bind_param(
+                "ssssssssssssi",
+                $nip, $nama, $jenjang, $job_title,
+                $no_hp, $email, $alamat_domisili,
+                $tanggal_lahir, $pendidikan, $status_perkawinan,
+                $password_hashed, $final_foto_profil,
+                $id
+            );
+        } else {
+            $updateSql = "UPDATE anggota_sekolah
+                          SET nip=?, nama=?, jenjang=?, job_title=?,
+                              no_hp=?, email=?, alamat_domisili=?,
+                              tanggal_lahir=?, pendidikan=?, status_perkawinan=?,
+                              foto_profil=?
+                          WHERE id=?";
+            $stmtUpd = $conn->prepare($updateSql);
+            if (!$stmtUpd) {
+                send_response(1, 'Query error: ' . $conn->error);
+            }
+            $stmtUpd->bind_param(
+                "sssssssssssi",
+                $nip, $nama, $jenjang, $job_title,
+                $no_hp, $email, $alamat_domisili,
+                $tanggal_lahir, $pendidikan, $status_perkawinan,
+                $final_foto_profil,
+                $id
+            );
+        }
+
+        // 9. Eksekusi update data
+        if ($stmtUpd->execute()) {
+            $stmtUpd->close();
+
+            // 10. Perbarui data session
+            $_SESSION['nip']               = $nip;
+            $_SESSION['nama']              = $nama;
+            $_SESSION['jenjang']           = $jenjang;
+            $_SESSION['job_title']         = $job_title;
+            $_SESSION['no_hp']             = $no_hp;
+            $_SESSION['email']             = $email;
+            $_SESSION['alamat_domisili']   = $alamat_domisili;
+            $_SESSION['tanggal_lahir']     = $tanggal_lahir;
+            $_SESSION['pendidikan']        = $pendidikan;
+            $_SESSION['status_perkawinan'] = $status_perkawinan;
+            $_SESSION['foto_profil']       = $final_foto_profil;
 
             send_response(0, 'Data profil berhasil diperbarui.');
         } else {
-            send_response(1, 'Gagal memperbarui data: ' . $stmtUpdate->error);
+            $stmtUpd->close();
+            send_response(1, 'Gagal memperbarui data: ' . $stmtUpd->error);
         }
-        $stmtUpdate->close();
     } else {
         send_response(405, 'Metode Permintaan Tidak Diizinkan.');
     }
     exit();
 }
 
-// --- Jika bukan request AJAX, tampilkan halaman profile ---
-
-/*
-  Karena data pengguna (seperti nama, nip, dll.) sudah disimpan di session (seperti pada sidebar.php),
-  kita akan menyusun array $profile berdasarkan nilai-nilai session tersebut.
-  Jika ada data yang belum tersedia di session, Anda dapat menambahkan query database sebagai fallback.
-*/
-$profile = [
-    'id'              => $userId,
-    'nama'            => $_SESSION['nama'] ?? ($_SESSION['username'] ?? 'User'),
-    'nip'             => $_SESSION['nip'] ?? '',
-    'jenjang'         => $_SESSION['jenjang'] ?? '',
-    'job_title'       => $_SESSION['job_title'] ?? '',
-    'no_hp'           => $_SESSION['no_hp'] ?? '',
-    'email'           => $_SESSION['email'] ?? '',
-    'alamat_domisili' => $_SESSION['alamat_domisili'] ?? '',
-    'tanggal_lahir'   => $_SESSION['tanggal_lahir'] ?? '',
-    'pendidikan'      => $_SESSION['pendidikan'] ?? '',
-    'status_perkawinan'=> $_SESSION['status_perkawinan'] ?? '',
-    'foto_profil'     => $_SESSION['foto_profil'] ?? 'img/undraw_profile.svg',
-    'gaji_pokok'      => $_SESSION['gaji_pokok'] ?? ''
-];
-
-// Format tanggal lahir (jika ada dan valid)
-$tanggalLahir = (isset($profile['tanggal_lahir']) && $profile['tanggal_lahir'] && $profile['tanggal_lahir'] !== '0000-00-00')
-                ? date('d F Y', strtotime($profile['tanggal_lahir']))
-                : '-';
+// ============= BAGIAN HALAMAN (BUKAN AJAX) =============
+// Ambil data profil user dari tabel anggota_sekolah
+$sqlProfile = "SELECT * FROM anggota_sekolah WHERE id=? LIMIT 1";
+$stmt = $conn->prepare($sqlProfile);
+if (!$stmt) {
+    die("Query error: " . $conn->error);
+}
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$resProfile = $stmt->get_result();
+if ($resProfile->num_rows === 0) {
+    die("Data user tidak ditemukan di anggota_sekolah.");
+}
+$profile = $resProfile->fetch_assoc();
+$stmt->close();
 
 // Buat CSRF token jika belum ada
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// Format tanggal lahir
+$tanggalLahirFormatted = '-';
+if (!empty($profile['tanggal_lahir']) && $profile['tanggal_lahir'] !== '0000-00-00') {
+    $tanggalLahirFormatted = date('d F Y', strtotime($profile['tanggal_lahir']));
+}
+
+// Siapkan path foto profil (gunakan default jika kosong)
+$foto_profil = $profile['foto_profil'];
+if (empty($foto_profil)) {
+    $foto_profil = 'img/undraw_profile.svg'; // default
 }
 ?>
 <!DOCTYPE html>
@@ -189,21 +224,31 @@ if (!isset($_SESSION['csrf_token'])) {
     <meta charset="UTF-8">
     <title>Profile - Payroll System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- CSS SB Admin 2 & Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS & SB Admin 2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/payroll_absensi_v2/assets/css/sb-admin-2.min.css">
     <!-- FontAwesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
-    <!-- Custom styles for SB Admin 2 -->
-    <link href="/payroll_absensi_v2/assets/css/sb-admin-2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
+        /* Styling Card Profil */
         .profile-card {
-            max-width: 800px;
+            max-width: 900px;
             margin: 20px auto;
         }
-        .profile-card .profile-img {
-            width: 150px;
-            height: 150px;
+        .profile-img {
+            width: 200px;
+            height: 200px;
             object-fit: cover;
+            border: 3px solid #4e73df;
+            border-radius: 50%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        /* Responsiveness untuk gambar */
+        @media (max-width: 576px) {
+            .profile-img {
+                width: 150px;
+                height: 150px;
+            }
         }
     </style>
 </head>
@@ -212,7 +257,7 @@ if (!isset($_SESSION['csrf_token'])) {
     <div id="wrapper">
         <!-- Sidebar -->
         <?php include __DIR__ . '/sidebar.php'; ?>
-        <!-- End Sidebar -->
+        <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
@@ -224,60 +269,114 @@ if (!isset($_SESSION['csrf_token'])) {
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Page Heading -->
+                    <!-- Heading Halaman -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">Profile Saya</h1>
-                        <button class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm" data-toggle="modal" data-target="#modalEditProfile">
-                            <i class="fas fa-user-edit fa-sm text-white-50"></i> Edit Profile
+                        <h1 class="h3 mb-0 text-gray-800">Profil Saya</h1>
+                        <button class="btn btn-primary" data-toggle="modal" data-target="#modalEditProfile">
+                            <i class="fas fa-user-edit fa-sm text-white-50"></i> Edit Profil
                         </button>
                     </div>
 
-                    <!-- Profile Card -->
+                    <!-- Kartu Profil (Informasi Profil) -->
                     <div class="card profile-card shadow mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="m-0">Informasi Profil</h5>
+                        </div>
                         <div class="card-body">
                             <div class="row">
                                 <!-- Foto Profil -->
-                                <div class="col-md-3 text-center">
-                                    <img src="<?= htmlspecialchars($profile['foto_profil']); ?>" alt="Foto Profil" class="img-profile rounded-circle profile-img mb-3">
+                                <div class="col-md-4 text-center mb-3">
+                                    <img src="<?= htmlspecialchars($foto_profil); ?>" alt="Foto Profil" class="img-fluid rounded-circle profile-img">
                                 </div>
-                                <!-- Informasi Profil -->
-                                <div class="col-md-9">
-                                    <h3><?= htmlspecialchars($profile['nama']); ?></h3>
-                                    <?php if (!empty($profile['nip'])): ?>
-                                        <p><strong>NIP:</strong> <?= htmlspecialchars($profile['nip']); ?></p>
-                                    <?php endif; ?>
+                                <!-- Data Profil -->
+                                <div class="col-md-8">
+                                    <div class="row mb-2">
+                                        <div class="col-sm-4 font-weight-bold">Nama:</div>
+                                        <div class="col-sm-8"><?= htmlspecialchars($profile['nama']); ?></div>
+                                    </div>
+                                    <hr>
+                                    <div class="row mb-2">
+                                        <div class="col-sm-4 font-weight-bold">UID:</div>
+                                        <div class="col-sm-8"><?= htmlspecialchars($profile['uid']); ?></div>
+                                    </div>
+                                    <hr>
+                                    <div class="row mb-2">
+                                        <div class="col-sm-4 font-weight-bold">NIP:</div>
+                                        <div class="col-sm-8"><?= htmlspecialchars($profile['nip']); ?></div>
+                                    </div>
+                                    <hr>
+                                    <div class="row mb-2">
+                                        <div class="col-sm-4 font-weight-bold">Role:</div>
+                                        <div class="col-sm-8"><?= htmlspecialchars($profile['role']); ?></div>
+                                    </div>
                                     <?php if (!empty($profile['job_title'])): ?>
-                                        <p><strong>Job Title:</strong> <?= htmlspecialchars($profile['job_title']); ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Job Title:</div>
+                                            <div class="col-sm-8"><?= htmlspecialchars($profile['job_title']); ?></div>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($profile['jenjang'])): ?>
-                                        <p><strong>Jenjang:</strong> <?= htmlspecialchars($profile['jenjang']); ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Jenjang:</div>
+                                            <div class="col-sm-8"><?= htmlspecialchars($profile['jenjang']); ?></div>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($profile['no_hp'])): ?>
-                                        <p><strong>No. HP:</strong> <?= htmlspecialchars($profile['no_hp']); ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">No. HP:</div>
+                                            <div class="col-sm-8"><?= htmlspecialchars($profile['no_hp']); ?></div>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($profile['email'])): ?>
-                                        <p><strong>Email:</strong> <?= htmlspecialchars($profile['email']); ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Email:</div>
+                                            <div class="col-sm-8"><?= htmlspecialchars($profile['email']); ?></div>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($profile['alamat_domisili'])): ?>
-                                        <p><strong>Alamat Domisili:</strong> <?= htmlspecialchars($profile['alamat_domisili']); ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Alamat:</div>
+                                            <div class="col-sm-8"><?= htmlspecialchars($profile['alamat_domisili']); ?></div>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($profile['tanggal_lahir'])): ?>
-                                        <p><strong>Tanggal Lahir:</strong> <?= $tanggalLahir; ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Tanggal Lahir:</div>
+                                            <div class="col-sm-8"><?= $tanggalLahirFormatted; ?></div>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($profile['pendidikan'])): ?>
-                                        <p><strong>Pendidikan:</strong> <?= htmlspecialchars($profile['pendidikan']); ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Pendidikan:</div>
+                                            <div class="col-sm-8"><?= htmlspecialchars($profile['pendidikan']); ?></div>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($profile['status_perkawinan'])): ?>
-                                        <p><strong>Status Pernikahan:</strong> <?= htmlspecialchars($profile['status_perkawinan']); ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Status:</div>
+                                            <div class="col-sm-8"><?= htmlspecialchars($profile['status_perkawinan']); ?></div>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($profile['gaji_pokok'])): ?>
-                                        <p><strong>Gaji Pokok:</strong> Rp <?= number_format($profile['gaji_pokok'], 2, ',', '.'); ?></p>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Gaji Pokok:</div>
+                                            <div class="col-sm-8">Rp <?= number_format($profile['gaji_pokok'], 2, ',', '.'); ?></div>
+                                        </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- End Profile Card -->
+                    <!-- Akhir Kartu Profil -->
                 </div>
                 <!-- End Container Fluid -->
             </div>
@@ -286,7 +385,7 @@ if (!isset($_SESSION['csrf_token'])) {
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
-                        <span>&copy; <?= date("Y") ?> Payroll Management System</span>
+                        <span>&copy; <?= date("Y"); ?> Payroll Management System</span>
                     </div>
                 </div>
             </footer>
@@ -295,176 +394,202 @@ if (!isset($_SESSION['csrf_token'])) {
     </div>
     <!-- End Page Wrapper -->
 
-    <!-- Scroll to Top Button-->
-    <a class="scroll-to-top rounded" href="#page-top">
-        <i class="fas fa-angle-up"></i>
-    </a>
-
-    <!-- MODAL: Edit Profile -->
-    <div class="modal fade" id="modalEditProfile" tabindex="-1" role="dialog" aria-labelledby="modalEditProfileLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <form id="edit-profile-form" class="needs-validation" novalidate>
-          <input type="hidden" name="case" value="UpdateProfile">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
-          <input type="hidden" name="id" value="<?= htmlspecialchars($profile['id']); ?>">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modalEditProfileLabel">Edit Profile Saya</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
+    <!-- MODAL: Edit Profil -->
+    <div class="modal fade" id="modalEditProfile" tabindex="-1" aria-labelledby="modalEditProfileLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <form id="edit-profile-form" class="needs-validation" novalidate enctype="multipart/form-data">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title" id="modalEditProfileLabel">Edit Profil</h5>
+              <button type="button" class="close text-white" data-dismiss="modal" aria-label="Tutup">
                 <span>&times;</span>
               </button>
             </div>
             <div class="modal-body">
-              <!-- Row 1: NIP dan Nama -->
-              <div class="form-row">
-                <div class="form-group col-md-6">
-                  <label for="editNip">NIP</label>
-                  <input type="text" name="nip" id="editNip" class="form-control" value="<?= htmlspecialchars($profile['nip'] ?? ''); ?>" required>
-                  <div class="invalid-feedback">NIP wajib diisi.</div>
+              <!-- Gunakan container-fluid untuk memastikan grid memenuhi lebar modal -->
+              <div class="container-fluid">
+                <!-- Hidden input untuk CSRF token dan ID user -->
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="id" value="<?= htmlspecialchars($profile['id']); ?>">
+
+                <!-- Baris 1: NIP dan Nama -->
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editNip">NIP <span class="text-danger">*</span></label>
+                      <input type="text" name="nip" id="editNip" class="form-control" value="<?= htmlspecialchars($profile['nip']); ?>" required>
+                      <div class="invalid-feedback">NIP wajib diisi.</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editNama">Nama <span class="text-danger">*</span></label>
+                      <input type="text" name="nama" id="editNama" class="form-control" value="<?= htmlspecialchars($profile['nama']); ?>" required>
+                      <div class="invalid-feedback">Nama wajib diisi.</div>
+                    </div>
+                  </div>
                 </div>
-                <div class="form-group col-md-6">
-                  <label for="editNama">Nama</label>
-                  <input type="text" name="nama" id="editNama" class="form-control" value="<?= htmlspecialchars($profile['nama']); ?>" required>
-                  <div class="invalid-feedback">Nama wajib diisi.</div>
+
+                <!-- Baris 2: Jenjang dan Job Title -->
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editJenjang">Jenjang</label>
+                      <input type="text" name="jenjang" id="editJenjang" class="form-control" value="<?= htmlspecialchars($profile['jenjang'] ?? ''); ?>">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editJobTitle">Job Title</label>
+                      <input type="text" name="job_title" id="editJobTitle" class="form-control" value="<?= htmlspecialchars($profile['job_title'] ?? ''); ?>">
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <!-- Row 2: Jenjang dan Job Title -->
-              <div class="form-row">
-                <div class="form-group col-md-6">
-                  <label for="editJenjang">Jenjang</label>
-                  <select name="jenjang" id="editJenjang" class="form-control" required>
-                    <option value="">-- Pilih Jenjang --</option>
-                    <option value="TK" <?= (isset($profile['jenjang']) && $profile['jenjang'] == 'TK') ? 'selected' : ''; ?>>TK</option>
-                    <option value="SD" <?= (isset($profile['jenjang']) && $profile['jenjang'] == 'SD') ? 'selected' : ''; ?>>SD</option>
-                    <option value="SMP" <?= (isset($profile['jenjang']) && $profile['jenjang'] == 'SMP') ? 'selected' : ''; ?>>SMP</option>
-                    <option value="SMA" <?= (isset($profile['jenjang']) && $profile['jenjang'] == 'SMA') ? 'selected' : ''; ?>>SMA</option>
-                    <option value="SMK" <?= (isset($profile['jenjang']) && $profile['jenjang'] == 'SMK') ? 'selected' : ''; ?>>SMK</option>
-                  </select>
+
+                <!-- Baris 3: Kontak (No. HP dan Email) -->
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editNoHP">No. HP</label>
+                      <input type="text" name="no_hp" id="editNoHP" class="form-control" value="<?= htmlspecialchars($profile['no_hp'] ?? ''); ?>">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editEmail">Email</label>
+                      <input type="email" name="email" id="editEmail" class="form-control" value="<?= htmlspecialchars($profile['email'] ?? ''); ?>">
+                    </div>
+                  </div>
                 </div>
-                <div class="form-group col-md-6">
-                  <label for="editJobTitle">Job Title</label>
-                  <input type="text" name="job_title" id="editJobTitle" class="form-control" value="<?= htmlspecialchars($profile['job_title'] ?? ''); ?>">
+
+                <!-- Baris 4: Alamat Domisili -->
+                <div class="row">
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label for="editAlamatDomisili">Alamat Domisili</label>
+                      <textarea name="alamat_domisili" id="editAlamatDomisili" rows="2" class="form-control"><?= htmlspecialchars($profile['alamat_domisili'] ?? ''); ?></textarea>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <!-- Row 3: No. HP dan Email -->
-              <div class="form-row">
-                <div class="form-group col-md-6">
-                  <label for="editNoHP">No. HP</label>
-                  <input type="text" name="no_hp" id="editNoHP" class="form-control" value="<?= htmlspecialchars($profile['no_hp'] ?? ''); ?>">
+
+                <!-- Baris 5: Tanggal Lahir dan Pendidikan -->
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editTanggalLahir">Tanggal Lahir</label>
+                      <input type="date" name="tanggal_lahir" id="editTanggalLahir" class="form-control" value="<?= htmlspecialchars($profile['tanggal_lahir'] ?? ''); ?>">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editPendidikan">Pendidikan</label>
+                      <input type="text" name="pendidikan" id="editPendidikan" class="form-control" value="<?= htmlspecialchars($profile['pendidikan'] ?? ''); ?>">
+                    </div>
+                  </div>
                 </div>
-                <div class="form-group col-md-6">
-                  <label for="editEmail">Email</label>
-                  <input type="email" name="email" id="editEmail" class="form-control" value="<?= htmlspecialchars($profile['email'] ?? ''); ?>">
+
+                <!-- Baris 6: Status Pernikahan -->
+                <div class="row">
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label for="editStatusPernikahan">Status Pernikahan</label>
+                      <input type="text" name="status_perkawinan" id="editStatusPernikahan" class="form-control" value="<?= htmlspecialchars($profile['status_perkawinan'] ?? ''); ?>">
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <!-- Row 4: Alamat Domisili dan Tanggal Lahir -->
-              <div class="form-row">
-                <div class="form-group col-md-6">
-                  <label for="editAlamatDomisili">Alamat Domisili</label>
-                  <textarea name="alamat_domisili" id="editAlamatDomisili" class="form-control" rows="2"><?= htmlspecialchars($profile['alamat_domisili'] ?? ''); ?></textarea>
+
+                <!-- Baris 7: Password Baru dan Ganti Foto Profil -->
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="editPassword">Password Baru (opsional)</label>
+                      <input type="password" name="password" id="editPassword" class="form-control" placeholder="Kosongkan jika tidak ingin mengganti password">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="foto_profil">Ganti Foto Profil (opsional)</label>
+                      <input type="file" name="foto_profil" id="foto_profil" class="form-control-file">
+                      <small class="text-muted">Maksimal 2MB (jpg/jpeg/png).</small>
+                    </div>
+                  </div>
                 </div>
-                <div class="form-group col-md-6">
-                  <label for="editTanggalLahir">Tanggal Lahir</label>
-                  <input type="date" name="tanggal_lahir" id="editTanggalLahir" class="form-control" value="<?= htmlspecialchars($profile['tanggal_lahir'] ?? ''); ?>">
-                </div>
-              </div>
-              <!-- Row 5: Pendidikan dan Status Pernikahan -->
-              <div class="form-row">
-                <div class="form-group col-md-6">
-                  <label for="editPendidikan">Pendidikan</label>
-                  <input type="text" name="pendidikan" id="editPendidikan" class="form-control" value="<?= htmlspecialchars($profile['pendidikan'] ?? ''); ?>">
-                </div>
-                <div class="form-group col-md-6">
-                  <label for="editStatusPernikahan">Status Pernikahan</label>
-                  <select name="status_perkawinan" id="editStatusPernikahan" class="form-control">
-                    <option value="">-- Pilih Status --</option>
-                    <option value="Menikah" <?= (isset($profile['status_perkawinan']) && $profile['status_perkawinan'] == 'Menikah') ? 'selected' : ''; ?>>Menikah</option>
-                    <option value="Belum Menikah" <?= (isset($profile['status_perkawinan']) && $profile['status_perkawinan'] == 'Belum Menikah') ? 'selected' : ''; ?>>Belum Menikah</option>
-                    <option value="Duda" <?= (isset($profile['status_perkawinan']) && $profile['status_perkawinan'] == 'Duda') ? 'selected' : ''; ?>>Duda</option>
-                    <option value="Janda" <?= (isset($profile['status_perkawinan']) && $profile['status_perkawinan'] == 'Janda') ? 'selected' : ''; ?>>Janda</option>
-                  </select>
-                </div>
-              </div>
-              <!-- Row 6: Password Baru (full width) -->
-              <div class="form-group">
-                <label for="editPassword">Password Baru (Opsional)</label>
-                <input type="password" name="password" id="editPassword" class="form-control" placeholder="Isi jika ingin mengubah password">
-                <small class="form-text text-muted">Kosongkan jika tidak ingin mengubah password.</small>
-              </div>
-            </div>
+
+              </div><!-- /.container-fluid -->
+            </div><!-- /.modal-body -->
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
               <button type="submit" class="btn btn-primary">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                Update Profile
+                Update Profil
               </button>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
 
-    <!-- SweetAlert2 dan JS dependencies -->
+    <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    $(document).ready(function() {
-        // Fungsi untuk menampilkan SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-            }
-        });
-        function showToast(message, icon = 'success') {
-            Toast.fire({ icon: icon, title: message });
-        }
-
-        // Proses submit form Edit Profile via AJAX
-        $('#edit-profile-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "profile.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response) {
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#modalEditProfile').modal('hide');
-                        // Reload halaman untuk menampilkan data terbaru
-                        setTimeout(function(){ location.reload(); }, 1500);
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function() {
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat mengupdate profil.', 'error');
+        $(document).ready(function() {
+            $('#edit-profile-form').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this)[0];
+                if (!form.checkValidity()) {
+                    e.stopPropagation();
+                    $(this).addClass('was-validated');
+                    return;
                 }
+
+                var formData = new FormData(form);
+                $.ajax({
+                    url: 'profile.php?ajax=1',
+                    type: 'POST',
+                    data: formData,
+                    dataType: 'json',
+                    processData: false,
+                    contentType: false,
+                    beforeSend: function() {
+                        $('#edit-profile-form button[type="submit"]').prop('disabled', true);
+                        $('#edit-profile-form .spinner-border').removeClass('d-none');
+                    },
+                    success: function(resp) {
+                        $('#edit-profile-form button[type="submit"]').prop('disabled', false);
+                        $('#edit-profile-form .spinner-border').addClass('d-none');
+                        if (resp.code === 0) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: resp.result,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1600);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: resp.result
+                            });
+                        }
+                    },
+                    error: function() {
+                        $('#edit-profile-form button[type="submit"]').prop('disabled', false);
+                        $('#edit-profile-form .spinner-border').addClass('d-none');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan saat mengupdate profil.'
+                        });
+                    }
+                });
             });
         });
-    });
     </script>
 </body>
 </html>

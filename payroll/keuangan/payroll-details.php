@@ -165,7 +165,11 @@ try {
     $noRek = !empty($karyawan['no_rekening']) 
              ? $karyawan['no_rekening'] 
              : (isset($payroll['no_rekening']) && !empty($payroll['no_rekening']) ? $payroll['no_rekening'] : 'Belum ada');
-
+             
+    if ($payroll['status'] !== 'final') {
+                die("Slip gaji hanya tersedia untuk payroll yang sudah final.");
+            }
+            
     // Catatan payroll
     $catatan = trim($payroll['catatan']);
 

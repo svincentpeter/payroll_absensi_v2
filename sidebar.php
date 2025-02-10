@@ -105,6 +105,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             'Payroll Anggota'      => '/payroll/keuangan/employees.php',
             'Payheads'             => '/payroll/keuangan/payheads.php',
             'Rekap Absensi'        => '/payroll/keuangan/rekap_absensi.php',
+            'List Payroll'        => '/payroll/keuangan/list_payroll.php',
             'History Payroll'      => '/payroll/keuangan/payroll_history.php',
             'Rekap Payroll'        => '/payroll/keuangan/rekap_payroll.php',
             'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php'

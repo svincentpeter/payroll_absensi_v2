@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 06, 2025 at 06:20 PM
+-- Generation Time: Feb 10, 2025 at 04:21 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -226,14 +226,15 @@ CREATE TABLE `anggota_sekolah` (
 --
 
 INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `job_title`, `status_kerja`, `join_start`, `masa_kerja_tahun`, `masa_kerja_bulan`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_suami`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `gaji_pokok`, `foto_profil`, `role`) VALUES
-(1, 'G-001', '111111', 'e10adc3949ba59abbe56e057f20f883e', 'John Doe', 'SMP', 'Guru Matematika', 'Tetap', '2015-08-01', 8, 5, 'Pengalaman 10 tahun', 'L', '1985-05-15', 39, 'Islam', 'Jl. Merdeka No.1', 'Jl. Merdeka No.1', '1111111111', '081234567891', '', 'Menikah', 'john.doe@example.com', 'Jane Doe', 0, '', '', '', 3, 5000000.00, 'default.jpg', 'P'),
-(2, 'G-002', '222222', 'e10adc3949ba59abbe56e057f20f883e', 'Mike Johnson', 'SMA', 'Guru Bahasa Inggris', 'Tetap', '2012-03-10', 11, 10, 'Guru senior', 'L', '1980-11-30', 44, 'Kristen', 'Jl. Kebangsaan No.3', 'Jl. Kebangsaan No.3', '2222222222', '081112223333', 'S2 Pendidikan Bahasa Inggris', 'Menikah', 'mike.johnson@example.com', 'Sarah Johnson', 3, 'Chris', 'Diana', 'Evan', 4, 5200000.00, 'default.jpg', NULL),
-(3, 'G-003', '333333', 'e10adc3949ba59abbe56e057f20f883e', 'Roosalin Chintia Dewi,SE', 'TK', 'Guru Kelas TK A', 'Tetap', '2022-07-01', 2, 6, 'Berpengalaman mengajar anak TK', 'P', '1992-03-15', 32, 'Islam', 'Jl. Pendidikan No.45', 'Jl. Pendidikan No.45', '3333333333', '087765432100', 'S1 PAUD', 'Menikah', 'roosalin@example.com', 'Budi Kurniawan', 1, 'Aisya', '', '', 1, 4800000.00, 'default.jpg', NULL),
-(4, 'K-001', '444444', 'e10adc3949ba59abbe56e057f20f883e', 'Jane Smith', 'SMP', 'Staf Administrasi', 'Kontrak', '2020-01-15', 3, 4, 'Admin di bagian keuangan', 'P', '1990-07-20', 34, 'Kristen', 'Jl. Pahlawan No.2', 'Jl. Pahlawan No.2', '4444444444', '081298765432', 'D3 Administrasi', 'Belum Menikah', 'jane.smith@example.com', NULL, 0, '', '', '', 2, 4000000.00, 'default.jpg', NULL),
-(5, 'K-002', '555555', 'e10adc3949ba59abbe56e057f20f883e', 'Robert Lee', 'SMK', 'Karyawan Operasional', 'Tetap', '2018-05-01', 6, 0, 'Bertugas di operasional sekolah', 'L', '1988-10-10', 36, 'Islam', 'Jl. Operasional No.7', 'Jl. Operasional No.7', '5555555555', '081298700000', 'S1 Manajemen', 'Menikah', 'robert.lee@example.com', 'Anna Lee', 2, 'Tom', 'Jerry', '', 1, 4200000.00, 'default.jpg', NULL),
-(6, 'G-004', '666666', 'e10adc3949ba59abbe56e057f20f883e', 'Rina Septiani', 'SD', 'Guru Kelas 3 SD', 'Tetap', '2015-08-15', 9, 5, 'Guru berpengalaman', 'P', '1985-06-25', 39, 'Kristen', 'Jl. Pendidikan No.78', 'Jl. Pendidikan No.78', '6666666666', '081234567890', 'S1 Pendidikan Dasar', 'Menikah', 'rina.septiani@example.com', 'Dedi Septiani', 2, 'Lia', 'Mia', '', 2, 5000000.00, 'default.jpg', NULL),
-(7, 'K-003', '777777', 'e10adc3949ba59abbe56e057f20f883e', 'Robert S.', 'SMK', 'Karyawan Administrasi', 'Kontrak', '2023-01-01', 1, 0, 'Bertugas di administrasi umum', 'L', '1995-04-15', 29, 'Islam', 'Jl. Administrasi No.5', 'Jl. Administrasi No.5', '7777777777', '081234500000', 'S1 Administrasi', 'Belum Menikah', 'robert.s@example.com', NULL, 0, '', '', '', NULL, 4000000.00, 'default.jpg', NULL),
-(8, 'G-005', '888888', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Gunawan', 'SD', 'Guru Olahraga SD', 'Tetap', '2018-03-01', 6, 10, 'Mengajar olahraga', '', '1988-09-10', 36, 'Islam', 'Jl. Olahraga No.12', 'Jl. Olahraga No.12', '8888888888', '085432109870', 'S1 Keolahragaan', '', 'hendra.g@example.com', 'Maya Gunawan', 1, '0', '', '', 2, 5100000.00, 'default.jpg', NULL);
+(1, 'G-001', '100001', 'e10adc3949ba59abbe56e057f20f883e', 'Ahmad Fauzi', 'SD', 'Guru Kelas 1', 'Tetap', '2017-09-01', 8, 2, 'Pengajar berpengalaman', 'L', '1980-01-15', 45, 'Islam', 'Jl. Melati No. 1', 'Jl. Melati No. 1', '1234567890', '081234567890', 'S1 Pendidikan', 'Menikah', 'ahmad.fauzi@example.com', 'Fatimah Fauzi', 2, 'Budi', 'Siti', '', 1, 4500000.00, '/payroll_absensi_v2/uploads/profile_pics/profile_1_67a9d2c5ce234.jpg', 'P'),
+(2, 'G-002', '100002', 'e10adc3949ba59abbe56e057f20f883e', 'Siti Rahma', 'SMP', 'Guru IPA', 'Tetap', '2015-07-01', 10, 0, 'Cinta dengan sains', 'P', '1985-05-10', 40, 'Islam', 'Jl. Kenanga No. 2', 'Jl. Kenanga No. 2', '0987654321', '081298765432', 'S1 Pendidikan', 'Menikah', 'siti.rahma@example.com', 'Andi Rahma', 1, 'Ayu', '', '', 1, 4800000.00, 'default.jpg', 'P'),
+(3, 'G-003', '100003', 'e10adc3949ba59abbe56e057f20f883e', 'Budi Santoso', 'SMA', 'Guru Bahasa', 'Tetap', '2010-01-10', 15, 3, 'Pengajar yang berdedikasi', 'L', '1975-12-25', 50, 'Kristen', 'Jl. Mawar No. 3', 'Jl. Mawar No. 3', '1122334455', '081345678901', 'S2 Pendidikan', 'Menikah', 'budi.santoso@example.com', '', 3, 'Tono', 'Rina', 'Dewi', 2, 5200000.00, 'default.jpg', 'P'),
+(4, 'K-001', '200001', 'e10adc3949ba59abbe56e057f20f883e', 'Dewi Lestari', 'SMA', 'Karyawan Administrasi', 'Kontrak', '2021-02-01', 4, 1, 'Staff administrasi yang efisien', 'P', '1993-08-15', 32, 'Islam', 'Jl. Pertiwi No. 4', 'Jl. Pertiwi No. 4', '2233445566', '081234567891', 'S1 Administrasi', 'Belum Menikah', 'dewi.lestari@example.com', '', 0, '', '', '', 2, 4000000.00, 'default.jpg', 'TK'),
+(5, 'K-002', '200002', 'e10adc3949ba59abbe56e057f20f883e', 'Slamet Wijaya', 'SMK', 'Karyawan Operasional', 'Tetap', '2018-06-15', 7, 0, 'Bertugas di operasional', 'L', '1988-03-05', 37, 'Islam', 'Jl. Industri No. 7', 'Jl. Industri No. 7', '3344556677', '081298700001', 'S1 Manajemen', 'Menikah', 'slamet.wijaya@example.com', 'Siti Wijaya', 1, 'Dewi', '', '', 1, 4200000.00, 'default.jpg', 'TK'),
+(6, 'K-003', '200003', 'e10adc3949ba59abbe56e057f20f883e', 'Rizki Pratama', 'SMP', 'Karyawan Umum', 'Kontrak', '2023-01-20', 2, 0, 'Staff pendukung operasional', 'L', '1998-11-12', 27, 'Islam', 'Jl. Sudirman No. 8', 'Jl. Sudirman No. 8', '4455667788', '081237654321', 'D3 Manajemen', 'Belum Menikah', 'rizki.pratama@example.com', '', 0, '', '', '', 1, 3800000.00, 'default.jpg', 'TK'),
+(7, 'M-001', '300001', 'e10adc3949ba59abbe56e057f20f883e', 'Andini Permata', 'SMA', 'Superadmin', 'Tetap', '2010-05-10', 15, 6, 'Memimpin sistem IT sekolah', 'P', '1978-04-22', 47, 'Islam', 'Jl. Merdeka No. 10', 'Jl. Merdeka No. 10', '5566778899', '081290123456', 'S2 Manajemen', 'Menikah', 'andini.permata@example.com', 'Budi Permata', 2, 'Tina', 'Rina', '', 3, 7500000.00, 'default.jpg', 'M'),
+(8, 'M-002', '300002', 'e10adc3949ba59abbe56e057f20f883e', 'Joko Widodo', 'SMA', 'Kepala Sekolah', 'Tetap', '2008-07-01', 17, 0, 'Bertanggung jawab atas sekolah', 'L', '1965-06-21', 60, 'Islam', 'Jl. Pendidikan No. 9', 'Jl. Pendidikan No. 9', '6677889900', '081298761234', 'S2 Administrasi', 'Menikah', 'joko.widodo@example.com', 'Iriana Widodo', 3, 'Gibran', 'Khalifah', 'Puan', 4, 8000000.00, 'default.jpg', 'M'),
+(9, 'M-003', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Sari Utami', 'SMK', 'Keuangan', 'Tetap', '2012-11-11', 12, 3, 'Mengelola keuangan sekolah', 'P', '1982-02-28', 43, 'Kristen', 'Jl. Simpang Lima No. 5', 'Jl. Simpang Lima No. 5', '7788990011', '081298712345', '', 'Menikah', 'sari.utami@example.com', 'Agus Utomo', 2, 'Dina', 'Rini', '', 3, 7300000.00, 'default.jpg', 'M');
 
 -- --------------------------------------------------------
 
@@ -251,246 +252,6 @@ CREATE TABLE `audit_logs` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `audit_logs`
---
-
-INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'ViewUserDetail', 'Melihat detail User: superadmin', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', '2025-02-02 14:45:40'),
-(2, 2, 'CreateGuru', 'Menambah data guru: John Doe (G-001)', '192.168.1.10', 'Mozilla/5.0 (Macintosh; Intel Mac OS X)', '2025-02-03 09:15:00'),
-(3, 2, 'UpdateGuru', 'Mengupdate data guru: Mike Johnson (G-002)', '192.168.1.10', 'Mozilla/5.0 (Macintosh; Intel Mac OS X)', '2025-02-03 09:45:00'),
-(4, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:12:17'),
-(5, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:12:32'),
-(6, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:35:17'),
-(7, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:35:22'),
-(8, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 8: NIP=\'888888\', Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:35:23'),
-(9, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:41:59'),
-(10, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 8: NIP=\'888888\', Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:42:01'),
-(11, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 08:49:42'),
-(12, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-03 09:00:04'),
-(13, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:11:03'),
-(14, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 2: Nama=\'Mike Johnson\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:11:15'),
-(15, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 3: Nama=\'Roosalin Chintia Dewi,SE\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:11:22'),
-(16, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:13:32'),
-(17, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:14:16'),
-(18, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:14:19'),
-(19, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:19:24'),
-(20, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:21:37'),
-(21, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:21:43'),
-(22, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:28:18'),
-(23, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:28:23'),
-(24, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:28:32'),
-(25, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:28:55'),
-(26, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:29:04'),
-(27, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:29:09'),
-(28, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:39:54'),
-(29, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:39:59'),
-(30, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:41:01'),
-(31, 1, 'UpdateHoliday', 'Mengupdate Hari Libur ID 2: Judul=\'Tahun Baru 2025\', Tanggal=\'2025-01-01\', Jenis=\'wajib\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:41:57'),
-(32, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:45:58'),
-(33, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:45:58'),
-(34, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:50:45'),
-(35, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 15:51:02'),
-(36, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:41:16'),
-(37, 1, 'ApplyFilter', 'Pengguna menerapkan filter data guru/karyawan.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:43:43'),
-(38, 1, 'ApplyFilter', 'Pengguna menerapkan filter data guru/karyawan.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:43:46'),
-(39, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:43:48'),
-(40, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:52:13'),
-(41, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:52:16'),
-(42, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:53:40'),
-(43, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:53:44'),
-(44, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:53:56'),
-(45, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:53:58'),
-(46, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 17:55:37'),
-(47, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:03:47'),
-(48, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:03:50'),
-(49, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:03:55'),
-(50, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:03:59'),
-(51, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:04:02'),
-(52, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:04:07'),
-(53, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:06:11'),
-(54, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:06:13'),
-(55, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:06:34'),
-(56, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:07:31'),
-(57, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:14:55'),
-(58, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:14:58'),
-(59, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:15:00'),
-(60, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:15:55'),
-(61, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:15:58'),
-(62, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 2: Nama=\'Mike Johnson\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:13'),
-(63, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:20'),
-(64, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 8: NIP=\'888888\', Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:28'),
-(65, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:31'),
-(66, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 8: Nama=\'Hendra Gunawan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:16:40'),
-(67, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 4: Nama=\'Jane Smith\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:17:08'),
-(68, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 5: Nama=\'Robert Lee\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:17:11'),
-(69, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:23:14'),
-(70, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:23:17'),
-(71, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:23:25'),
-(72, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:23:27'),
-(73, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 4: Nama=\'Jane Smith\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:25:00'),
-(74, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:35'),
-(75, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:40'),
-(76, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:43'),
-(77, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:46'),
-(78, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:48'),
-(79, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:31:54'),
-(80, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:32:00'),
-(81, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:32:02'),
-(82, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:32:06'),
-(83, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:43'),
-(84, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:47'),
-(85, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:52'),
-(86, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:53'),
-(87, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:37:54'),
-(88, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:13'),
-(89, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 2: Nama=\'Mike Johnson\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:18'),
-(90, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:25'),
-(91, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:30'),
-(92, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 2: Nama=\'Mike Johnson\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:32'),
-(93, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:35'),
-(94, 1, 'UpdateGuru', 'Mengupdate data guru/karyawan ID 1: NIP=\'111111\', Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:40'),
-(95, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:38:42'),
-(96, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-03 18:40:42'),
-(97, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 12:36:15'),
-(98, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:40'),
-(99, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:47'),
-(100, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:51'),
-(101, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:51'),
-(102, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:53'),
-(103, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:37:53'),
-(104, 1, 'AssignPayheadsToEmployee', 'Menetapkan payheads ke karyawan ID 8. Payheads: 3, 2.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:38:07'),
-(105, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan  tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:38:11'),
-(106, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 7.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:45:59'),
-(107, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:45:59'),
-(108, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan  tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:46:04'),
-(109, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:54:55'),
-(110, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 14:54:55'),
-(111, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 15:01:13'),
-(112, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 15:01:13'),
-(113, 1, 'AssignPayheadsToEmployee', 'Menetapkan payheads ke karyawan ID 8. Payheads: 3, 2.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 15:01:15'),
-(114, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-04 15:01:18'),
-(115, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 03:58:43'),
-(116, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:06'),
-(117, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:07'),
-(118, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:07'),
-(119, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:10'),
-(120, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:10'),
-(121, 1, 'LoadingRekapPayrollDetails', 'Pengguna dengan ID 1 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:10'),
-(122, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:11'),
-(123, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:11'),
-(124, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:33:11'),
-(125, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:38:23'),
-(126, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:40:38'),
-(127, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:41:39'),
-(128, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 04:42:15'),
-(129, 1, 'Logout', 'Pengguna \'superadmin\' dengan role \'superadmin\' berhasil logout.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 06:07:34'),
-(130, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 06:07:56'),
-(131, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:13'),
-(132, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:23'),
-(133, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:42'),
-(134, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:48'),
-(135, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 11:04:52'),
-(136, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 13:53:12'),
-(137, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 13:53:45'),
-(138, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 13:53:51'),
-(139, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 13:54:03'),
-(140, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:09:50'),
-(141, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:09:59'),
-(142, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:10:05'),
-(143, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:10:07'),
-(144, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:11:55'),
-(145, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:18:10'),
-(146, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:18:13'),
-(147, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:29:25'),
-(148, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:29:29'),
-(149, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:41:22'),
-(150, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:24'),
-(151, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=111111, Nama=John Doe.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:26'),
-(152, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:28'),
-(153, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'John Doe\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-05 15:51:36'),
-(154, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:36:23'),
-(155, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:36:36'),
-(156, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:37:18'),
-(157, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:37:37'),
-(158, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 2.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:38:04'),
-(159, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:38:20'),
-(160, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:14'),
-(161, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:25'),
-(162, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:25'),
-(163, 1, 'AssignPayheadsToEmployee', 'Menetapkan payheads ke karyawan ID 1. Payheads: 1, 2, 3.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:31'),
-(164, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:34'),
-(165, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:38'),
-(166, 1, 'EditEmployee', 'Memperbarui No Rekening karyawan ID 1 dari \'1111111111\' menjadi \'1111111111\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:44'),
-(167, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:48:47'),
-(168, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:49:20'),
-(169, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:49:35'),
-(170, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:56:50'),
-(171, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 07:57:06'),
-(172, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:06:41'),
-(173, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:06:42'),
-(174, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:06:44'),
-(175, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:12:41'),
-(176, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:12:44'),
-(177, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:12:58'),
-(178, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:13:01'),
-(179, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:14:37'),
-(180, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:23:37'),
-(181, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:23:38'),
-(182, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:23:56'),
-(183, 1, 'ViewEmployeeDetail', 'Lihat detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:32:56'),
-(184, 1, 'GetAllPayheads', 'Mengakses semua payheads.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:32:56'),
-(185, 1, 'ViewEmployeeDetail', 'Lihat detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:32:59'),
-(186, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:33:04'),
-(187, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:33:06'),
-(188, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:33:17'),
-(189, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:33:22'),
-(190, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:37:04'),
-(191, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:37:18'),
-(192, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:37:22'),
-(193, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:39:56'),
-(194, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:40:02'),
-(195, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:40:19'),
-(196, 1, 'ViewEmployeeDetail', 'Mengakses detail karyawan ID 6.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 08:41:31'),
-(197, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:07:12'),
-(198, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:07:18'),
-(199, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:13:24'),
-(200, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:22:41'),
-(201, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:27:48'),
-(202, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:35:23'),
-(203, 1, 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 1 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:35:24'),
-(204, 1, 'InsertPayroll', 'Membuat Payroll ID 5 untuk Karyawan ID 1 pada bulan 2 tahun 2025 dengan total pendapatan Rp 1.100.000,00, total potongan Rp 100.000,00, dan gaji bersih Rp 11.000.000,00', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:37:40'),
-(205, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada bulan Februari tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:37:40'),
-(206, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:40:14'),
-(207, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada bulan Februari tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:40:55'),
-(208, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:45:13'),
-(209, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:47:58'),
-(210, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:54:57'),
-(211, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:55:00'),
-(212, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:55:01'),
-(213, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:55:26'),
-(214, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:55:27'),
-(215, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:56:59');
-INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
-(216, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:57:29'),
-(217, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:57:39'),
-(218, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:59:22'),
-(219, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 09:59:39'),
-(220, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:08'),
-(221, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:11'),
-(222, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:19'),
-(223, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:19'),
-(224, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:19'),
-(225, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:05:40'),
-(226, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 10:07:40'),
-(227, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 13:46:10'),
-(228, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 13:46:46'),
-(229, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 13:46:47'),
-(230, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 13:46:47'),
-(231, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 14:07:13'),
-(232, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 14:15:51'),
-(233, 1, 'ViewPayrollDetails', 'Mengakses Payroll ID 5 untuk Karyawan ID 1 pada periode Februari 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-06 14:44:03');
-
 -- --------------------------------------------------------
 
 --
@@ -502,22 +263,26 @@ CREATE TABLE `employee_payheads` (
   `id_anggota` int(11) NOT NULL,
   `id_payhead` int(11) NOT NULL,
   `jenis` enum('earnings','deductions') DEFAULT NULL,
-  `amount` decimal(15,2) NOT NULL DEFAULT 0.00
+  `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft',
+  `remarks` text DEFAULT NULL,
+  `support_doc_path` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `employee_payheads`
 --
 
-INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`) VALUES
-(3, 2, 1, 'earnings', 600000.00),
-(4, 5, 3, 'earnings', 200000.00),
-(5, 7, 2, 'deductions', 150000.00),
-(0, 8, 3, 'earnings', 150000.00),
-(0, 8, 2, 'deductions', 250000.00),
-(0, 1, 1, 'earnings', 500000.00),
-(0, 1, 2, 'deductions', 100000.00),
-(0, 1, 3, 'earnings', 600000.00);
+INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`, `remarks`, `support_doc_path`) VALUES
+(3, 2, 1, 'earnings', 600000.00, 'draft', NULL, NULL),
+(4, 5, 3, 'earnings', 200000.00, 'revisi', NULL, NULL),
+(5, 7, 2, 'deductions', 150000.00, 'draft', NULL, NULL),
+(0, 8, 3, 'earnings', 150000.00, 'draft', NULL, NULL),
+(0, 8, 2, 'deductions', 250000.00, 'draft', NULL, NULL),
+(0, 1, 1, 'earnings', 500000.00, 'draft', NULL, NULL),
+(0, 1, 2, 'deductions', 100000.00, 'draft', NULL, NULL),
+(0, 1, 3, 'earnings', 600000.00, 'draft', NULL, NULL),
+(0, 9, 3, 'earnings', 100000.00, 'revisi', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -584,18 +349,20 @@ CREATE TABLE `payheads` (
   `id` int(11) NOT NULL,
   `nama_payhead` varchar(100) NOT NULL,
   `jenis` enum('earnings','deductions') NOT NULL,
-  `deskripsi` text DEFAULT NULL
+  `deskripsi` text DEFAULT NULL,
+  `nominal` decimal(15,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `payheads`
 --
 
-INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`) VALUES
-(1, 'Tunjangan Tetap', 'earnings', 'Tunjangan dasar untuk guru/karyawan'),
-(2, 'Potongan Pajak', 'deductions', 'Potongan pajak penghasilan'),
-(3, 'Bonus Kinerja', 'earnings', 'Bonus berdasarkan kinerja'),
-(4, 'Potongan BPJS', 'deductions', 'Potongan BPJS Kesehatan');
+INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`, `nominal`) VALUES
+(1, 'Tunjangan Tetap', 'earnings', 'Tunjangan dasar untuk guru/karyawan', 150000.00),
+(2, 'Potongan Pajak', 'deductions', 'Potongan pajak penghasilan', 125000.00),
+(3, 'Bonus Kinerja', 'earnings', 'Bonus berdasarkan kinerja', 100000.00),
+(4, 'Potongan BPJS', 'deductions', 'Potongan BPJS Kesehatan', 250000.00),
+(5, 'Koperasi', 'deductions', 'Potongan Iuran Koperasi', 150000.00);
 
 -- --------------------------------------------------------
 
@@ -616,18 +383,19 @@ CREATE TABLE `payroll` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `tgl_payroll` datetime NOT NULL DEFAULT current_timestamp(),
   `no_rekening` varchar(50) DEFAULT NULL,
-  `catatan` text DEFAULT NULL
+  `catatan` text DEFAULT NULL,
+  `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `payroll`
 --
 
-INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`) VALUES
-(1, 1, 1, 1, 2025, 5000000.00, 600000.00, 300000.00, 5300000.00, '2025-01-31 10:00:00', '2025-01-31 09:50:00', '1111111111', 'Gaji Januari'),
-(2, 2, 2, 1, 2025, 5200000.00, 700000.00, 350000.00, 5550000.00, '2025-01-31 10:10:00', '2025-01-31 09:55:00', '2222222222', 'Gaji Januari'),
-(3, 5, 3, 1, 2025, 4800000.00, 500000.00, 250000.00, 5050000.00, '2025-01-31 10:20:00', '2025-01-31 10:00:00', '3333333333', 'Gaji Januari'),
-(5, 1, 7, 2, 2025, 10000000.00, 1100000.00, 100000.00, 11000000.00, '2025-02-06 09:37:40', '2025-02-06 10:35:00', '1111111111', '');
+INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
+(1, 1, 1, 1, 2025, 5000000.00, 600000.00, 300000.00, 5300000.00, '2025-01-31 10:00:00', '2025-01-31 09:50:00', '1111111111', 'Gaji Januari', 'draft'),
+(2, 2, 2, 1, 2025, 5200000.00, 700000.00, 350000.00, 5550000.00, '2025-01-31 10:10:00', '2025-01-31 09:55:00', '2222222222', 'Gaji Januari', 'draft'),
+(3, 5, 3, 1, 2025, 4800000.00, 500000.00, 250000.00, 5050000.00, '2025-01-31 10:20:00', '2025-01-31 10:00:00', '3333333333', 'Gaji Januari', 'draft'),
+(5, 1, 7, 2, 2025, 10000000.00, 1100000.00, 100000.00, 11000000.00, '2025-02-06 09:37:40', '2025-02-06 10:35:00', '1111111111', '', 'draft');
 
 -- --------------------------------------------------------
 
@@ -711,7 +479,9 @@ INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`
 (4, 2, 0, 2025, 8, 3, 8, 1, 3),
 (5, 8, 2, 2025, 0, 0, 0, 0, 0),
 (6, 7, 2, 2025, 0, 0, 0, 0, 0),
-(7, 1, 2, 2025, 0, 0, 0, 0, 0);
+(7, 1, 2, 2025, 0, 0, 0, 0, 0),
+(8, 9, 4, 2025, 0, 0, 0, 0, 0),
+(9, 5, 2, 2025, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -856,13 +626,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=234;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -880,7 +650,7 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `payheads`
 --
 ALTER TABLE `payheads`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `payroll`
@@ -898,7 +668,7 @@ ALTER TABLE `payroll_detail`
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

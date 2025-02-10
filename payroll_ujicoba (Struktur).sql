@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 09, 2025 at 03:39 PM
+-- Generation Time: Feb 10, 2025 at 03:29 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -118,7 +118,10 @@ CREATE TABLE `employee_payheads` (
   `id_anggota` int(11) NOT NULL,
   `id_payhead` int(11) NOT NULL,
   `jenis` enum('earnings','deductions') DEFAULT NULL,
-  `amount` decimal(15,2) NOT NULL DEFAULT 0.00
+  `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft',
+  `remarks` text DEFAULT NULL,
+  `support_doc_path` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
