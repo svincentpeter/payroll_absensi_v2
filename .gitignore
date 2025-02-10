@@ -1,0 +1,25 @@
+# Abaikan semua file secara default
+*
+
+# Perbolehkan folder absensi dan isinya
+!absensi/
+!absensi/**
+# Perbolehkan folder payroll dan isinya
+!payroll/
+!payroll/**
+# Perbolehkan file lain yang kamu butuhkan
+!koneksi.php
+!helpers.php
+!login.php
+!logout.php
+!payroll_ujicoba.sql
+!payroll_ujicoba (Struktur).sql
+!sidebar.php
+!navbar_tabler.php
+!dist
+!dist/**
+!navbar.php
+!breadcrumb.php
+!chatgpt.txt
+!ujicoba.txt
+!.gitignore
