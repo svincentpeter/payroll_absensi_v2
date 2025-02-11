@@ -1,6 +1,4 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/employees.php
-
 session_start();
 
 // Buat CSRF token jika belum ada
@@ -157,51 +155,43 @@ function ProcessPayroll($conn) {
 
 /**
  * Fungsi CheckPayrollCompletion: Mengecek apakah untuk bulan dan tahun tertentu
- * semua anggota di setiap jenjang telah memiliki payroll dengan status final.
- * Mengembalikan array pesan per jenjang yang belum lengkap.
+ * seluruh karyawan di table anggota_sekolah sudah memiliki payroll dengan status final.
+ * Mengembalikan array dengan flag 'complete' dan pesan.
  */
 function CheckPayrollCompletion($conn) {
     $bulan = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : 0;
     $tahun = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : 0;
     if($bulan <= 0 || $tahun <= 0) {
-        send_response(1, 'Parameter bulan/tahun tidak valid.');
+         send_response(1, 'Parameter bulan/tahun tidak valid.');
     }
-    // Dapatkan total anggota per jenjang
-    $sqlTotal = "SELECT jenjang, COUNT(*) as total FROM anggota_sekolah GROUP BY jenjang";
-    $resultTotal = $conn->query($sqlTotal);
-    $totalByJenjang = [];
-    if ($resultTotal) {
-        while ($row = $resultTotal->fetch_assoc()) {
-            $totalByJenjang[$row['jenjang']] = $row['total'];
-        }
-    }
-    // Dapatkan jumlah payroll final per jenjang untuk bulan dan tahun tertentu
-    $sqlPayroll = "SELECT a.jenjang, COUNT(*) as completed FROM payroll p JOIN anggota_sekolah a ON p.id_anggota = a.id WHERE p.bulan = ? AND p.tahun = ? AND p.status = 'final' GROUP BY a.jenjang";
-    $stmt = $conn->prepare($sqlPayroll);
+    // Dapatkan total karyawan
+    $resultTotal = $conn->query("SELECT COUNT(*) AS total FROM anggota_sekolah");
+    $totalKaryawan = ($resultTotal) ? intval($resultTotal->fetch_assoc()['total']) : 0;
+    
+    // Hitung jumlah payroll final untuk bulan dan tahun tertentu
+    $stmt = $conn->prepare("SELECT COUNT(DISTINCT id_anggota) AS completed FROM payroll WHERE bulan = ? AND tahun = ? AND status = 'final'");
     $stmt->bind_param("ii", $bulan, $tahun);
     if(!$stmt->execute()){
-        $error = $stmt->error;
-        $stmt->close();
-        send_response(1, 'Gagal mengecek payroll: ' . $error);
+         $error = $stmt->error;
+         $stmt->close();
+         send_response(1, 'Gagal mengecek payroll: ' . $error);
     }
     $resultPayroll = $stmt->get_result();
-    $completedByJenjang = [];
+    $completed = 0;
     if ($resultPayroll) {
-        while ($row = $resultPayroll->fetch_assoc()) {
-            $completedByJenjang[$row['jenjang']] = $row['completed'];
-        }
+         $row = $resultPayroll->fetch_assoc();
+         $completed = intval($row['completed']);
     }
     $stmt->close();
-    // Bandingkan dan buat pesan notifikasi jika ada jenjang yang belum lengkap
+    
     $messages = [];
-    foreach ($totalByJenjang as $jenjang => $total) {
-        $completed = isset($completedByJenjang[$jenjang]) ? $completedByJenjang[$jenjang] : 0;
-        if ($completed < $total) {
-            $remaining = $total - $completed;
-            $messages[] = "Jenjang $jenjang: $remaining anggota belum melakukan payroll.";
-        }
+    if ($completed < $totalKaryawan) {
+         $remaining = $totalKaryawan - $completed;
+         $messages[] = "Terdapat $remaining karyawan yang belum selesai payroll.";
+         send_response(0, ['complete' => false, 'messages' => $messages]);
+    } else {
+         send_response(0, ['complete' => true, 'messages' => []]);
     }
-    send_response(0, $messages);
 }
 
 /**
@@ -266,7 +256,7 @@ function GetAllPayheads($conn) {
         send_response(1, 'Query gagal: ' . $conn->error);
     }
     $payheads = [];
-    while ($row = $result->fetch_assoc()) {
+    while ($row = $result->fetch_assoc()){
         $payheads[] = [
             'id'                => $row['id'],
             'nama_payhead'      => $row['nama_payhead'],
@@ -359,7 +349,7 @@ function LoadingEmployees($conn) {
     $totalData = ($resultTotal) ? $resultTotal->fetch_assoc()['total'] : 0;
 
     $data = [];
-    while ($row = $resData->fetch_assoc()) {
+    while ($row = $resData->fetch_assoc()){
         $masaKerja = ($row['masa_kerja_tahun'] > 0 ? $row['masa_kerja_tahun'] . ' Thn ' : '') .
                      ($row['masa_kerja_bulan'] > 0 ? $row['masa_kerja_bulan'] . ' Bln' : '');
         $masaKerja = trim($masaKerja) ?: '-';
@@ -379,7 +369,7 @@ function LoadingEmployees($conn) {
             $statusPayroll = '-';
         }
         
-        // Tombol aksi dalam dropdown
+        // Tombol aksi dalam dropdown (opsi Select Month dihapus)
         $aksi = '
 <div class="dropdown">
   <button class="btn" type="button" id="dropdownMenuButton_' . $row['id'] . '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -394,9 +384,6 @@ function LoadingEmployees($conn) {
     </a>
     <a class="dropdown-item btnViewDetail" href="javascript:void(0)" data-id="' . $row['id'] . '">
       <i class="bi bi-eye-fill"></i> View Detail
-    </a>
-    <a class="dropdown-item btnSelectMonth" href="javascript:void(0)" data-id="' . $row['id'] . '">
-      <i class="fa fa-calendar"></i> Select Month
     </a>
   </div>
 </div>';
@@ -433,7 +420,6 @@ function LoadingEmployees($conn) {
  */
 function EditEmployee($conn) {
     error_log("DEBUG: Entering EditEmployee");
-    // Cek token CSRF sudah dilakukan di handler utama
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $no_rekening = isset($_POST['no_rekening']) ? bersihkan_input($_POST['no_rekening']) : '';
     if ($id <= 0 || empty($no_rekening)) {
@@ -456,7 +442,7 @@ function EditEmployee($conn) {
         send_response(1, 'Prepare failed: ' . $conn->error);
     }
     $stmtUpdate->bind_param("si", $no_rekening, $id);
-    if ($stmtUpdate->execute()) {
+    if ($stmtUpdate->execute()){
         error_log("DEBUG: EditEmployee: Update successful for ID $id");
         send_response(0, 'No Rekening karyawan berhasil diperbarui.');
     } else {
@@ -468,10 +454,10 @@ function EditEmployee($conn) {
 
 /**
  * Menetapkan payheads kepada karyawan, beserta input nominal, unggahan dokumen, dan keterangan.
+ * Modifikasi: Dropdown pilihan bulan dan tahun dihapus.
  */
 function AssignPayheadsToEmployee($conn) {
     error_log("DEBUG: Entering AssignPayheadsToEmployee");
-    // Token CSRF sudah dicek di handler utama
     $empcode = isset($_POST['empcode']) ? intval($_POST['empcode']) : 0;
     $payheads    = isset($_POST['payheads']) ? json_decode($_POST['payheads'], true) : [];
     $pay_amounts = isset($_POST['pay_amounts']) ? json_decode($_POST['pay_amounts'], true) : [];
@@ -577,7 +563,7 @@ function ViewEmployeeDetail($conn) {
         $assigned = [];
         $totalPendapatan = 0;
         $totalPotongan = 0;
-        while ($rw = $resPH->fetch_assoc()) {
+        while ($rw = $resPH->fetch_assoc()){
             $assigned[] = [
                 'id_payhead'       => $rw['id_payhead'],
                 'nama_payhead'     => $rw['nama_payhead'],
@@ -659,14 +645,18 @@ function GetPayheadById($conn) {
     $stmt->close();
 }
 
-// --- Bagian untuk modal Select Month ---
-// Ambil daftar bulan–tahun yang sudah memiliki data payroll (tanpa pengecekan kelengkapan)
+// --- Bagian untuk modal Select Month (global payroll) ---
 $processedMonths = [];
-$sql = "SELECT DISTINCT bulan, tahun FROM payroll";
+// Dapatkan total karyawan
+$resultTotal = $conn->query("SELECT COUNT(*) as total FROM anggota_sekolah");
+$totalKaryawan = ($resultTotal) ? intval($resultTotal->fetch_assoc()['total']) : 0;
+$sql = "SELECT bulan, tahun, COUNT(DISTINCT id_anggota) as completed FROM payroll WHERE status = 'final' GROUP BY bulan, tahun";
 $result = $conn->query($sql);
 if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $processedMonths[] = ['bulan' => $row['bulan'], 'tahun' => $row['tahun']];
+    while ($row = $result->fetch_assoc()){
+         if (intval($row['completed']) === $totalKaryawan) {
+              $processedMonths[] = ['bulan' => intval($row['bulan']), 'tahun' => intval($row['tahun'])];
+         }
     }
 }
 ?>
@@ -687,13 +677,12 @@ if ($result) {
     <style>
         body { color: #000 !important; }
         .text-gray-800 { color: #000 !important; }
-        .btnEdit, .btnAssignPayheads, .btnViewDetail, .btnSelectMonth {
+        .btnEdit, .btnAssignPayheads, .btnViewDetail {
             transition: background-color 0.3s, transform 0.2s;
         }
-        .btnEdit:hover, .btnAssignPayheads:hover, .btnViewDetail:hover, .btnSelectMonth:hover {
+        .btnEdit:hover, .btnAssignPayheads:hover, .btnViewDetail:hover {
             transform: scale(1.05);
         }
-        /* Perbaikan styling card-header untuk keterbacaan */
         .card-header {
             background: #4e73df;
             color: white;
@@ -708,17 +697,19 @@ if ($result) {
         .modal-body > div {
             flex: 1; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; padding: 10px;
         }
+        /* Modifikasi ukuran dan posisi modal Assign Payheads */
         #ManageModal .modal-dialog {
-            max-width: 1500px; margin: auto; padding-top: 70px;
+            max-width: 1500px;
+            margin: auto;
+            margin-top: 50px;
         }
-        /* Pastikan select tidak terpotong */
         #all_payheads, #selected_payheads {
             white-space: normal !important;
             height: auto !important;
             min-height: 250px;
             overflow-y: auto;
         }
-        /* Styling untuk bulan yang sudah diproses */
+        /* Styling untuk bulan yang sudah diproses (modal Select Month) */
         .processed-month {
             background: #343a40 !important;
             color: #fff !important;
@@ -740,7 +731,7 @@ if ($result) {
                             <li class="breadcrumb-item active" aria-current="page">Payroll Anggota</li>
                         </ol>
                     </nav>
-                    <!-- Header untuk menampilkan bulan yang dipilih; bila diklik, bisa mengubah pilihan -->
+                    <!-- Header untuk menampilkan bulan yang dipilih; selalu tampil dengan tombol Ganti Kalender -->
                     <div id="selectedMonthDisplay" class="mb-3" style="cursor: pointer;"></div>
                     <h1 class="h3 mb-4 text-gray-800"><i class="bi bi-people-fill"></i> Payroll Anggota</h1>
                     <div id="alert-placeholder"></div>
@@ -759,7 +750,7 @@ if ($result) {
                                         if ($stmtJenjang) {
                                             $stmtJenjang->execute();
                                             $resJenjang = $stmtJenjang->get_result();
-                                            while ($row = $resJenjang->fetch_assoc()) {
+                                            while ($row = $resJenjang->fetch_assoc()){
                                                 echo '<option value="' . htmlspecialchars($row['jenjang']) . '">' . htmlspecialchars($row['jenjang']) . '</option>';
                                             }
                                             $stmtJenjang->close();
@@ -924,8 +915,9 @@ if ($result) {
     </div>
 
     <!-- MODAL: Assign Payheads (Improved) -->
+    <!-- Modifikasi: Dropdown pilihan bulan & tahun dihapus; ukuran dan posisi modal diubah -->
     <div class="modal fade" id="ManageModal" tabindex="-1" aria-labelledby="manageModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
           <form id="assign-payhead-form" enctype="multipart/form-data">
             <div class="modal-header bg-primary text-white">
@@ -936,7 +928,6 @@ if ($result) {
             </div>
             <div class="modal-body">
               <div class="container-fluid">
-                <!-- Row: Keterangan & Unggah Dokumen -->
                 <div class="row mb-4">
                   <div class="col-md-6">
                     <div class="form-group">
@@ -951,35 +942,7 @@ if ($result) {
                     </div>
                   </div>
                 </div>
-                <!-- Row: Pilih Periode Payroll -->
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="selectedMonth"><strong>Pilih Bulan</strong></label>
-                      <select id="selectedMonth" name="selectedMonth" class="form-control">
-                        <?php for($m=1; $m<=12; $m++): ?>
-                          <option value="<?= $m ?>"><?= getIndonesianMonthName($m) ?></option>
-                        <?php endfor; ?>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="selectedYear"><strong>Pilih Tahun</strong></label>
-                      <select id="selectedYear" name="selectedYear" class="form-control">
-                        <?php 
-                          $currentYear = date('Y');
-                          for($y = $currentYear - 5; $y <= $currentYear + 1; $y++): 
-                        ?>
-                          <option value="<?= $y ?>"><?= $y ?></option>
-                        <?php endfor; ?>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <!-- Row: Pemilihan Payheads -->
                 <div class="row">
-                  <!-- Kolom: Payheads Tersedia -->
                   <div class="col-md-4">
                     <div class="card">
                       <div class="card-header bg-secondary text-white">Payheads Tersedia</div>
@@ -993,12 +956,10 @@ if ($result) {
                           </button>
                         </div>
                         <select id="all_payheads" class="form-control" multiple style="height: 250px;">
-                          <!-- Data akan dimasukkan secara dinamis -->
                         </select>
                       </div>
                     </div>
                   </div>
-                  <!-- Kolom: Payheads Terpilih -->
                   <div class="col-md-4">
                     <div class="card">
                       <div class="card-header bg-secondary text-white">Payheads Terpilih</div>
@@ -1012,12 +973,10 @@ if ($result) {
                           </button>
                         </div>
                         <select id="selected_payheads" class="form-control" multiple style="height: 250px;">
-                          <!-- Data akan dimasukkan secara dinamis -->
                         </select>
                       </div>
                     </div>
                   </div>
-                  <!-- Kolom: Tetapkan Jumlah (Nominal) dengan Tabel -->
                   <div class="col-md-4">
                     <div class="card">
                       <div class="card-header bg-secondary text-white">Tetapkan Jumlah</div>
@@ -1031,20 +990,19 @@ if ($result) {
                             </tr>
                           </thead>
                           <tbody>
-                            <!-- Baris-baris akan ditambahkan secara dinamis -->
                           </tbody>
                         </table>
                       </div>
                     </div>
                   </div>
-                </div> <!-- End Row -->
-              </div> <!-- End Container Fluid -->
-              <!-- Hidden Inputs -->
+                </div>
+              </div>
               <input type="hidden" name="case" value="AssignPayheadsToEmployee">
               <input type="hidden" name="empcode" id="empcode">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
             </div>
             <div class="modal-footer">
+              <!-- Button Proses Payroll tetap ada -->
               <button type="button" class="btn btn-success" id="btnProcessPayroll">
                   <i class="bi bi-check-circle"></i> Proses Payroll
               </button>
@@ -1099,7 +1057,7 @@ if ($result) {
       </div>
     </div>
 
-    <!-- MODAL: Select Month (ditampilkan saat halaman dibuka) -->
+    <!-- MODAL: Select Month (global payroll) -->
     <div class="modal fade" id="SalaryMonthModal" tabindex="-1" aria-labelledby="salaryMonthModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-md" style="max-width: 600px;">
         <div class="modal-content">
@@ -1111,8 +1069,6 @@ if ($result) {
             <div class="row text-center">
               <?php
                 // Membuat grid bulan: 2 bulan sebelum - 14 bulan ke depan
-                $months = [];
-                $years  = [];
                 $currentYear  = date('Y');
                 $currentMonth = date('n');
                 $before2Month = $currentMonth - 2;
@@ -1127,9 +1083,7 @@ if ($result) {
                         $month -= 12;
                         $year  += 1;
                     }
-                    $months[] = getIndonesianMonthName($month);
-                    $years[]  = $year;
-                    // Cek apakah kombinasi bulan dan tahun sudah ada di data payroll
+                    // Cek apakah kombinasi bulan dan tahun sudah sepenuhnya diproses (seluruh karyawan sudah final)
                     $processed = false;
                     foreach ($processedMonths as $pm) {
                         if ($pm['bulan'] == $month && $pm['tahun'] == $year) {
@@ -1180,12 +1134,10 @@ if ($result) {
     $(document).ready(function() {
         $('[data-toggle="tooltip"]').tooltip();
 
-        // Fungsi untuk inisialisasi DataTable (dipanggil setelah bulan terpilih)
+        // Inisialisasi DataTable setelah bulan dipilih
         function initEmployeesTable() {
-            // Tampilkan container data karyawan
             $('#employeeContainer').show();
-            // Inisialisasi DataTable (jika belum diinisialisasi)
-            if ( ! $.fn.DataTable.isDataTable('#employees') ) {
+            if (!$.fn.DataTable.isDataTable('#employees')) {
                 $('#employees').DataTable({
                     processing: true,
                     serverSide: true,
@@ -1233,7 +1185,6 @@ if ($result) {
             }
         }
 
-        // Fungsi inisialisasi autonumeric
         function initAutoNumeric() {
             AutoNumeric.multiple('.currency-input', {
                 digitGroupSeparator: '.',
@@ -1244,7 +1195,6 @@ if ($result) {
         }
         initAutoNumeric();
 
-        // Fungsi untuk memperbarui nomor urut pada tabel "Tetapkan Jumlah"
         function updateRowNumbers() {
             $("#selected_payamount_table tbody tr").each(function(index) {
                 $(this).find("td:first").text(index + 1);
@@ -1266,91 +1216,32 @@ if ($result) {
             Toast.fire({ icon: icon, title: message });
         }
 
-        // Jika header bulan yang dipilih di-klik, tampilkan modal untuk mengganti bulan
-        $('#selectedMonthDisplay').on('click', function(){
+        // Inisialisasi header selectedMonthDisplay
+        function initSelectedMonthDisplay() {
+            if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
+                var selMonth = localStorage.getItem('selectedMonthPayroll');
+                var selYear = localStorage.getItem('selectedYearPayroll');
+                // Tambahkan tombol "Ganti Kalender" agar user dapat mengubah pilihan
+                $('#selectedMonthDisplay').html('<h4>Payroll Bulan: ' + selMonth + ' ' + selYear + ' <button id="btnChangeCalendar" class="btn btn-link">Ganti Kalender</button></h4>');
+            } else {
+                $('#selectedMonthDisplay').html('<h4>Klik di sini untuk memilih bulan payroll</h4>');
+                $('#SalaryMonthModal').modal('show');
+            }
+        }
+        initSelectedMonthDisplay();
+        initEmployeesTable();
+
+        // Event handler untuk klik header selectedMonthDisplay atau tombol Ganti Kalender
+        $('#selectedMonthDisplay').on('click', '#btnChangeCalendar, h4', function(){
             $('#SalaryMonthModal').modal('show');
         });
 
-        // Event handler untuk link bulan di modal Select Month
-        $('.month-link').on('click', function(e) {
-            e.preventDefault();
-            var monthNumber = $(this).data('month-number');
-            var monthName = $(this).data('month');
-            var year = $(this).data('year');
-            // Jika terdapat konteks per-employee (tombol Select Month di baris anggota)
-            if (window.currentEmpId) {
-                var employeeId = window.currentEmpId;
-                var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
-                targetUrl += "?id_anggota=" + employeeId;
-                targetUrl += "&bulan=" + encodeURIComponent(monthName);
-                targetUrl += "&tahun=" + encodeURIComponent(year);
-                window.location.href = targetUrl;
-            } else {
-                // Global: sebelum menyimpan pilihan bulan, kita dapat cek kelengkapan payroll (jika diinginkan)
-                $.ajax({
-                    url: 'employees.php?ajax=1',
-                    type: 'POST',
-                    dataType: 'json',
-                    data: { 
-                        case: 'CheckPayrollCompletion', 
-                        selectedMonth: monthNumber, 
-                        selectedYear: year, 
-                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>' 
-                    },
-                    success: function(resp) {
-                        if (resp.code === 0) {
-                            var messages = resp.result;
-                            if (messages.length > 0) {
-                                var messageText = messages.join("<br>");
-                                Swal.fire({
-                                    title: 'Perhatian!',
-                                    html: messageText + "<br><br>Apakah Anda tetap ingin memilih bulan ini?",
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonText: 'Ya, pilih bulan ini',
-                                    cancelButtonText: 'Batal'
-                                }).then((result) => {
-                                    if (result.isConfirmed) {
-                                        simpanPilihanBulan(monthNumber, monthName, year);
-                                    }
-                                });
-                            } else {
-                                simpanPilihanBulan(monthNumber, monthName, year);
-                            }
-                        } else {
-                            showToast(resp.result, 'error');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        showToast('Terjadi kesalahan saat mengecek payroll: ' + error, 'error');
-                    }
-                });
-            }
-        });
-
-        // Fungsi simpan pilihan bulan
-        function simpanPilihanBulan(monthNumber, monthName, year) {
-            localStorage.setItem('selectedMonthPayroll', monthName);
-            localStorage.setItem('selectedMonthNumber', monthNumber);
-            localStorage.setItem('selectedYearPayroll', year);
-            $('#selectedMonthDisplay').html('<h4>Payroll Bulan: ' + monthName + ' ' + year + '</h4>');
-            $('#SalaryMonthModal').modal('hide');
-            // Inisialisasi DataTable jika belum diinisialisasi
-            initEmployeesTable();
-        }
-
-        // Jika bulan sudah dipilih sebelumnya, langsung inisialisasi DataTable
-        if (localStorage.getItem('selectedMonthPayroll')) {
-            initEmployeesTable();
-        }
-
-        // Sisa kode DataTable dan event handler lainnya tetap sama seperti sebelumnya.
         $('#btnApplyFilter').on('click', function(){
-            empTable = $('#employees').DataTable().ajax.reload();
+            $('#employees').DataTable().ajax.reload();
         });
         $('#btnResetFilter').on('click', function(){
             $('#filterForm')[0].reset();
-            empTable = $('#employees').DataTable().ajax.reload();
+            $('#employees').DataTable().ajax.reload();
         });
 
         $('#employees tbody').on('click', '.btnEdit', function() {
@@ -1569,7 +1460,6 @@ if ($result) {
             var isValid = true;
             payHeads.forEach(function(payheadId){
                 var amount = payAmounts[payheadId];
-                // Validasi: harus tidak kosong, angka, dan lebih dari 0
                 if(amount === '' || isNaN(amount) || parseFloat(amount) <= 0){
                     $('input[name="pay_amounts[' + payheadId + ']"]').addClass('is-invalid');
                     isValid = false;
@@ -1674,30 +1564,17 @@ if ($result) {
             });
             initAutoNumeric();
         });
+        // Hapus event handler untuk tombol Select Month pada baris employee (tidak digunakan lagi)
         $('#employees tbody').on('click', '.btnSelectMonth', function() {
-            var employeeId = $(this).data('id');
-            window.currentEmpId = employeeId;
-            $('#SalaryMonthModal').modal('show');
+            // Tidak ada aksi untuk tombol Select Month
         });
-        $(document).on('click', '.month-link', function(e) {
-            e.preventDefault();
-            var monthName = $(this).data('month');
-            var year = $(this).data('year');
-            var employeeId = window.currentEmpId || 0;
-            if (employeeId) {
-                var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
-                targetUrl += "?id_anggota=" + employeeId;
-                targetUrl += "&bulan=" + encodeURIComponent(monthName);
-                targetUrl += "&tahun=" + encodeURIComponent(year);
-                window.location.href = targetUrl;
-            }
-        });
+        // Button Proses Payroll pada modal Assign Payheads
         $('#btnProcessPayroll').on('click', function(){
-            var selectedMonth = $('#selectedMonth').val();
-            var selectedYear = $('#selectedYear').val();
+            var selectedMonth = localStorage.getItem('selectedMonthNumber') || 0;
+            var selectedYear = localStorage.getItem('selectedYearPayroll') || 0;
             var empcode = $('#empcode').val();
-            if (!empcode) {
-                Swal.fire('Error', 'ID Karyawan tidak valid!', 'error');
+            if (!empcode || selectedMonth == 0 || selectedYear == 0) {
+                Swal.fire('Error', 'Pastikan ID karyawan dan bulan payroll valid!', 'error');
                 return;
             }
             Swal.fire({
@@ -1737,6 +1614,73 @@ if ($result) {
                 }
             });
         });
+
+        // --- Gabungkan event handler untuk .month-link ---
+        $(document).on('click', '.month-link', function(e) {
+            e.preventDefault();
+            var monthNumber = $(this).data('month-number');
+            var monthName = $(this).data('month');
+            var year = $(this).data('year');
+            // Jika ada konteks karyawan (Assign Payheads dari baris employee)
+            if (window.currentEmpId) {
+                var employeeId = window.currentEmpId;
+                var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
+                targetUrl += "?id_anggota=" + employeeId;
+                targetUrl += "&bulan=" + encodeURIComponent(monthName);
+                targetUrl += "&tahun=" + encodeURIComponent(year);
+                window.location.href = targetUrl;
+            } else {
+                // Global payroll: cek payroll completion terlebih dahulu
+                $.ajax({
+                    url: 'employees.php?ajax=1',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: { 
+                        case: 'CheckPayrollCompletion', 
+                        selectedMonth: monthNumber, 
+                        selectedYear: year, 
+                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>' 
+                    },
+                    success: function(resp) {
+                        if (resp.code === 0) {
+                            if (resp.result.complete === false) {
+                                var messages = resp.result.messages;
+                                var messageText = messages.join("<br>");
+                                Swal.fire({
+                                    title: 'Perhatian!',
+                                    html: messageText + "<br><br>Apakah Anda tetap ingin memilih bulan ini?",
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Ya, pilih bulan ini',
+                                    cancelButtonText: 'Batal'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                         simpanPilihanBulan(monthNumber, monthName, year);
+                                    }
+                                });
+                            } else {
+                                simpanPilihanBulan(monthNumber, monthName, year);
+                            }
+                        } else {
+                            showToast(resp.result, 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showToast('Terjadi kesalahan saat mengecek payroll: ' + error, 'error');
+                    }
+                });
+            }
+        });
+
+        // Fungsi untuk menyimpan pilihan bulan ke localStorage dan mengupdate header
+        function simpanPilihanBulan(monthNumber, monthName, year) {
+            localStorage.setItem('selectedMonthPayroll', monthName);
+            localStorage.setItem('selectedMonthNumber', monthNumber);
+            localStorage.setItem('selectedYearPayroll', year);
+            $('#selectedMonthDisplay').html('<h4>Payroll Bulan: ' + monthName + ' ' + year + ' <button id="btnChangeCalendar" class="btn btn-link">Ganti Kalender</button></h4>');
+            $('#SalaryMonthModal').modal('hide');
+            initEmployeesTable();
+        }
     });
     </script>
 </body>
