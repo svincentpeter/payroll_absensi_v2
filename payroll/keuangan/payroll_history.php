@@ -52,7 +52,6 @@ function authorize($allowed_roles = ['sdm', 'superadmin']) {
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
-
 // =========================
 // 2. Sanitasi Input & Helper
 // =========================
@@ -68,7 +67,6 @@ function bulanIntToName($bulan) {
     ];
     return isset($map[$bulan]) ? $map[$bulan] : 'Unknown';
 }
-
 
 // =========================
 // 3. Menangani Permintaan AJAX
@@ -97,7 +95,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     exit();
 }
 
-
 // =========================
 // 4. Fungsi CRUD dan Helper
 // =========================
@@ -111,8 +108,9 @@ function LoadingPayrollHistory($conn) {
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
+    // Perubahan: Ganti tabel payroll menjadi payroll_final
     $sqlBase = "
-        FROM payroll p
+        FROM payroll_final p
         JOIN anggota_sekolah a ON p.id_anggota = a.id
         WHERE 1=1
     ";
@@ -165,7 +163,8 @@ function LoadingPayrollHistory($conn) {
     $totalFiltered = $rowFiltered['total'];
     $stmtFiltered->close();
 
-    $sqlTotal = "SELECT COUNT(*) AS total FROM payroll";
+    // Perubahan: Ubah query total ke payroll_final
+    $sqlTotal = "SELECT COUNT(*) AS total FROM payroll_final";
     $resTotal = $conn->query($sqlTotal);
     if (!$resTotal) {
         send_response(1, 'Query gagal: ' . $conn->error);
@@ -234,16 +233,16 @@ function LoadingPayrollHistory($conn) {
   </ul>
 </div>';
         $data[] = [
-            "id"             => htmlspecialchars($row['id']),
-            "nama"           => bersihkan_input($row['nama']),
-            "jenjang"        => bersihkan_input($row['jenjang']),
-            "bulan"          => bulanIntToName($row['bulan']),
-            "tahun"          => $row['tahun'],
-            "gaji_pokok"     => 'Rp ' . number_format($row['gaji_pokok'], 2, ',', '.'),
-            "total_pendapatan" => 'Rp ' . number_format($row['total_pendapatan'], 2, ',', '.'),
-            "total_potongan"   => 'Rp ' . number_format($row['total_potongan'], 2, ',', '.'),
-            "gaji_bersih"    => 'Rp ' . number_format($row['gaji_bersih'], 2, ',', '.'),
-            "aksi"           => $aksi
+            "id"              => htmlspecialchars($row['id']),
+            "nama"            => bersihkan_input($row['nama']),
+            "jenjang"         => bersihkan_input($row['jenjang']),
+            "bulan"           => bulanIntToName($row['bulan']),
+            "tahun"           => $row['tahun'],
+            "gaji_pokok"      => 'Rp ' . number_format($row['gaji_pokok'], 2, ',', '.'),
+            "total_pendapatan"=> 'Rp ' . number_format($row['total_pendapatan'], 2, ',', '.'),
+            "total_potongan"  => 'Rp ' . number_format($row['total_potongan'], 2, ',', '.'),
+            "gaji_bersih"     => 'Rp ' . number_format($row['gaji_bersih'], 2, ',', '.'),
+            "aksi"            => $aksi
         ];
     }
     $stmtData->close();
@@ -265,13 +264,13 @@ function ViewPayrollDetail($conn) {
     if ($id_payroll <= 0) {
         send_response(1, 'ID Payroll tidak valid.');
     }
-    // Ambil data payroll beserta data karyawan dan salary_indices
+    // Perubahan: Ambil data dari tabel payroll_final
     $stmt = $conn->prepare("
         SELECT p.*, 
                a.uid, a.nip, a.nama, a.jenjang, a.role, a.job_title, a.status_kerja, 
                a.masa_kerja_tahun, a.masa_kerja_bulan, a.no_rekening, a.email, a.jenis_kelamin, a.agama,
                si.level AS salary_index_level, si.base_salary AS salary_index_base
-        FROM payroll p 
+        FROM payroll_final p 
         JOIN anggota_sekolah a ON p.id_anggota = a.id 
         LEFT JOIN salary_indices si ON a.salary_index_id = si.id
         WHERE p.id = ? LIMIT 1
@@ -419,8 +418,8 @@ function ViewPayrollDetail($conn) {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Page Content -->
                 <div class="container-fluid">
@@ -468,7 +467,7 @@ function ViewPayrollDetail($conn) {
                                     <select class="form-select" id="filterTahun" name="tahun">
                                         <option value="">Semua Tahun</option>
                                         <?php
-                                            $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll ORDER BY tahun DESC");
+                                            $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll_final ORDER BY tahun DESC");
                                             if ($stmtTahun) {
                                                 $stmtTahun->execute();
                                                 $resTahun = $stmtTahun->get_result();

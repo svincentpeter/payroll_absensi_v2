@@ -427,8 +427,6 @@ function DeleteUser($conn) {
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
-    <!-- Bootstrap Notify CSS -->
-    <link rel="stylesheet" href="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.css" nonce="<?php echo $nonce; ?>">
     <style nonce="<?php echo $nonce; ?>">
         .no-column { width: 60px; text-align: center; }
         #userTable th, #userTable td {

@@ -2,19 +2,21 @@
 // File: /payroll_absensi_v2/payroll/keuangan/list_payroll.php
 session_start();
 
-// Pastikan hanya user dengan role 'keuangan' atau 'superadmin' yang bisa mengakses halaman ini.
+// Pastikan hanya user dengan role 'keuangan' atau 'superadmin' yang dapat mengakses halaman ini.
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan','superadmin'])) {
     header("Location: /payroll_absensi_v2/login.php");
     exit();
 }
 
-// Sertakan koneksi ke database
+// Sertakan koneksi ke database dan helper (jika ada)
 require_once __DIR__ . '/../../koneksi.php';
+require_once __DIR__ . '/../../helpers.php';
 
-// Atur default filter: gunakan bulan dan tahun sekarang jika tidak ada parameter GET
+// Ambil filter bulan & tahun dari GET; jika tidak ada, gunakan bulan dan tahun sekarang.
 $filterMonth = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : date("n");
 $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date("Y");
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -28,16 +30,21 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
     <style>
         body { color: #000; }
         .breadcrumb { background: none; }
+        .header-period { cursor: pointer; }
     </style>
 </head>
 <body id="page-top">
     <div id="wrapper">
-        <!-- Include sidebar -->
+        <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
+        <!-- End of Sidebar -->
+
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
-                <!-- Include navbar -->
+                <!-- Navbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- End of Navbar -->
+
                 <div class="container-fluid">
                     <!-- Breadcrumb -->
                     <nav aria-label="breadcrumb">
@@ -46,53 +53,29 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
                             <li class="breadcrumb-item active" aria-current="page">Payroll Overview</li>
                         </ol>
                     </nav>
-                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-file-invoice-dollar"></i> Payroll Overview</h1>
-                    
-                    <!-- Filter Form -->
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <form id="filterForm" class="form-inline">
-                                <label for="filterMonth" class="mr-2">Bulan:</label>
-                                <select class="form-control mr-3" id="filterMonth" name="filterMonth">
-                                    <?php
-                                    // Tampilkan opsi bulan 1 sampai 12
-                                    for ($m = 1; $m <= 12; $m++) {
-                                        $monthName = date("F", mktime(0, 0, 0, $m, 1));
-                                        $selected = ($m == $filterMonth) ? "selected" : "";
-                                        echo '<option value="'.$m.'" '.$selected.'>'.$monthName.'</option>';
-                                    }
-                                    ?>
-                                </select>
-                                <label for="filterYear" class="mr-2">Tahun:</label>
-                                <select class="form-control mr-3" id="filterYear" name="filterYear">
-                                    <?php
-                                    // Tampilkan opsi tahun, misalnya dari 5 tahun yang lalu sampai 1 tahun mendatang
-                                    $currentYear = date("Y");
-                                    for ($y = $currentYear - 5; $y <= $currentYear + 1; $y++) {
-                                        $selected = ($y == $filterYear) ? "selected" : "";
-                                        echo '<option value="'.$y.'" '.$selected.'>'.$y.'</option>';
-                                    }
-                                    ?>
-                                </select>
-                                <button type="button" id="applyFilter" class="btn btn-primary">
-                                    <i class="fas fa-filter"></i> Terapkan Filter
-                                </button>
-                            </form>
-                        </div>
+
+                    <!-- Header: Tampilkan periode payroll yang terpilih, dengan tombol Ganti Kalender -->
+                    <div id="selectedMonthDisplay" class="mb-4 header-period">
+                        <h4>Payroll Bulan: <?= date("F", mktime(0,0,0,$filterMonth,1)); ?> <?= $filterYear; ?> 
+                            <button id="btnChangeCalendar" class="btn btn-link">Ganti Kalender</button>
+                        </h4>
                     </div>
 
-                    <!-- Table Payroll Overview -->
+                    <!-- Tabel Payroll Overview -->
                     <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">
-                              Daftar Payroll Periode <?= date("F", mktime(0,0,0,$filterMonth,1))." ".$filterYear; ?>
+                        <div class="card-header py-3 bg-primary">
+                            <h6 class="m-0 text-white">
+                                <i class="fas fa-file-invoice-dollar"></i> Daftar Payroll Periode <?= date("F", mktime(0,0,0,$filterMonth,1)) . " " . $filterYear; ?>
                             </h6>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <?php
-                                // Query data payroll berdasarkan bulan & tahun filter; sertakan a.id sebagai id_anggota
-                                // Perbaiki: gunakan subquery untuk menentukan effective_status
+                                /*
+                                 * Query ini menampilkan data payroll dengan status 'draft' untuk periode yang dipilih,
+                                 * namun hanya untuk karyawan yang belum memiliki data final di tabel payroll_final
+                                 * untuk bulan dan tahun yang sama.
+                                 */
                                 $query = "
                                   SELECT 
                                     p.id, 
@@ -104,15 +87,18 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
                                     a.nip, 
                                     a.jenjang,
                                     p.status,
-                                    (CASE 
-                                       WHEN (SELECT COUNT(*) FROM employee_payheads e 
-                                             WHERE e.id_anggota = a.id AND e.status = 'revisi') > 0 
-                                       THEN 'revisi'
-                                       ELSE p.status
-                                    END) AS effective_status
+                                    p.catatan
                                   FROM payroll p
                                   JOIN anggota_sekolah a ON p.id_anggota = a.id
-                                  WHERE p.bulan = ? AND p.tahun = ?
+                                  WHERE p.bulan = ? 
+                                    AND p.tahun = ? 
+                                    AND p.status = 'draft'
+                                    AND NOT EXISTS (
+                                        SELECT 1 FROM payroll_final pf
+                                        WHERE pf.id_anggota = p.id_anggota
+                                          AND pf.bulan = p.bulan
+                                          AND pf.tahun = p.tahun
+                                    )
                                   ORDER BY p.tgl_payroll DESC
                                 ";
                                 $stmt = $conn->prepare($query);
@@ -136,31 +122,20 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
                                     <tbody>
                                         <?php
                                         while ($row = $result->fetch_assoc()) {
-                                            // Gunakan effective_status sebagai status tampilan
-                                            $status = $row['effective_status'];
+                                            $periode = date("F", mktime(0,0,0,$row['bulan'],1)) . " " . $row['tahun'];
                                             echo "<tr>";
                                             echo "<td>" . htmlspecialchars($row['id']) . "</td>";
                                             echo "<td>" . htmlspecialchars($row['nama']) . "</td>";
                                             echo "<td>" . htmlspecialchars($row['nip']) . "</td>";
                                             echo "<td>" . htmlspecialchars($row['jenjang']) . "</td>";
-                                            $periode = date("F", mktime(0,0,0,$row['bulan'],1)) . " " . $row['tahun'];
                                             echo "<td>" . $periode . "</td>";
-                                            echo "<td>" . htmlspecialchars($status) . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                                             echo "<td>" . htmlspecialchars($row['tgl_payroll']) . "</td>";
-                                            
-                                            // Aksi: Jika status (effective) masih draft atau revisi, tampilkan tombol "Review"
-                                            // jika final, tampilkan tombol "Detail"
                                             echo "<td>";
-                                            if ($status == 'draft' || $status == 'revisi') {
-                                                echo '<a href="manage-salary.php?id_anggota=' . $row['id_anggota'] .
-                                                     '&bulan=' . $row['bulan'] .
-                                                     '&tahun=' . $row['tahun'] .
-                                                     '" class="btn btn-sm btn-warning mr-1">Review</a>';
-                                                echo '<span class="btn btn-sm btn-secondary disabled" title="Payroll belum final">Detail</span>';
-                                            } else if ($status == 'final') {
-                                                echo '<a href="payroll-details.php?id_payroll=' . $row['id'] .
-                                                     '" class="btn btn-sm btn-info">Detail</a>';
-                                            }
+                                            echo '<a href="manage-salary.php?id_anggota=' . $row['id_anggota'] .
+                                                 '&bulan=' . $row['bulan'] .
+                                                 '&tahun=' . $row['tahun'] .
+                                                 '" class="btn btn-sm btn-warning mr-1">Review</a>';
                                             echo "</td>";
                                             echo "</tr>";
                                         }
@@ -170,10 +145,62 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
                                 </table>
                             </div>
                         </div>
+                    </div> <!-- End Tabel Payroll Overview -->
+                </div> <!-- End container-fluid -->
+            </div> <!-- End content -->
+
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
                     </div>
-                    
-                </div> <!-- /.container-fluid -->
-    </div> <!-- End of #wrapper -->
+                </div>
+            </footer>
+        </div> <!-- End content-wrapper -->
+    </div> <!-- End wrapper -->
+
+    <!-- MODAL: Select Month (Payroll) -->
+    <div class="modal fade" id="SalaryMonthModal" tabindex="-1" aria-labelledby="salaryMonthModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-md" style="max-width: 600px;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="salaryMonthModalLabel"><i class="fa fa-calendar"></i> Pilih Bulan untuk Payroll</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row text-center">
+              <?php
+                // Membuat grid bulan: tampilkan 16 pilihan, misalnya 2 bulan sebelum sampai 13 bulan ke depan
+                $currentYear  = date('Y');
+                $currentMonth = date('n');
+                $startMonth = $currentMonth - 2;
+                $startYear  = $currentYear;
+                for ($i = 0; $i < 16; $i++) {
+                    $month = $startMonth + $i;
+                    $year  = $startYear;
+                    if ($month <= 0) {
+                        $month += 12;
+                        $year  -= 1;
+                    } elseif ($month > 12) {
+                        $month -= 12;
+                        $year  += 1;
+                    }
+                    // Highlight bulan yang sedang dipilih (berdasarkan filter saat ini)
+                    $highlight = ($month == $filterMonth && $year == $filterYear) ? 'bg-warning text-dark font-weight-bold' : 'bg-light';
+                    echo '<div class="col-3 mb-3">';
+                    echo '  <div class="p-2 ' . $highlight . '" style="border: 1px solid #ddd; border-radius: 5px;">';
+                    echo '    <a href="#" class="month-link" data-month-number="' . $month . '" data-month="' . htmlspecialchars(date("F", mktime(0, 0, 0, $month, 1))) . '" data-year="' . $year . '" style="color: inherit; text-decoration: none;">';
+                    echo '      ' . strtoupper(date("F", mktime(0, 0, 0, $month, 1))) . '<br>' . $year;
+                    echo '    </a>';
+                    echo '  </div>';
+                    echo '</div>';
+                }
+              ?>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -182,14 +209,29 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js"></script>
     <script>
         $(document).ready(function(){
-            // Inisialisasi DataTable
+            // Inisialisasi DataTable untuk tabel payroll
             $('#payrollTable').DataTable();
 
-            // Saat tombol filter ditekan, arahkan ulang halaman dengan parameter filter
-            $('#applyFilter').on('click', function(){
-                var month = $('#filterMonth').val();
-                var year  = $('#filterYear').val();
-                window.location.href = 'list_payroll.php?filterMonth=' + month + '&filterYear=' + year;
+            // Saat tombol "Ganti Kalender" (atau area header) diklik, tampilkan modal SalaryMonthModal
+            $('#btnChangeCalendar, #selectedMonthDisplay').on('click', function(e){
+                e.preventDefault();
+                $('#SalaryMonthModal').modal('show');
+            });
+
+            // Event handler untuk memilih bulan melalui modal
+            $(document).on('click', '.month-link', function(e){
+                e.preventDefault();
+                var monthNumber = $(this).data('month-number');
+                var monthName = $(this).data('month');
+                var year = $(this).data('year');
+
+                // Simpan pilihan bulan ke localStorage (jika diperlukan)
+                localStorage.setItem('selectedMonthPayroll', monthName);
+                localStorage.setItem('selectedMonthNumber', monthNumber);
+                localStorage.setItem('selectedYearPayroll', year);
+
+                // Arahkan ulang halaman dengan parameter filter baru
+                window.location.href = 'list_payroll.php?filterMonth=' + monthNumber + '&filterYear=' + year;
             });
         });
     </script>

@@ -199,6 +199,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 // ==================================================================
 // BAGIAN POST => Proses Insert payroll dan payroll_detail
 // ==================================================================
+// BAGIAN POST => Proses Insert payroll dan payroll_detail
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
     verify_csrf_token($csrf_token);
@@ -242,21 +243,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         }
         $stmtToFinal->close();
 
-        // (B) Insert ke tabel payroll
+        // (B) Insert ke tabel payroll dengan status 'final'
+        $status = 'final';
         $stmtPayroll = $conn->prepare("
             INSERT INTO payroll (
                 id_anggota, bulan, tahun, tgl_payroll,
                 gaji_pokok, total_pendapatan, total_potongan, gaji_bersih,
-                no_rekening, catatan, id_rekap_absensi
+                no_rekening, catatan, id_rekap_absensi, status
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         if (!$stmtPayroll) {
             throw new Exception("Prepare payroll gagal: " . $conn->error);
         }
         $gaji_bersih = $gaji_pokok + $total_earnings - $total_deductions;
         $stmtPayroll->bind_param(
-            "iiisddddssi",
+            "iiisddddssis",
             $id_anggota,
             $bulan_int,
             $tahun,
@@ -267,13 +269,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
             $gaji_bersih,
             $no_rekening,
             $catatan,
-            $id_rekap_absensi
+            $id_rekap_absensi,
+            $status
         );
         if (!$stmtPayroll->execute()) {
             throw new Exception("Gagal insert payroll: " . $stmtPayroll->error);
         }
         $id_payroll = $stmtPayroll->insert_id;
         $stmtPayroll->close();
+
+        // **[BARU]** (X) Insert data yang final ke tabel payroll_final (tanpa kolom 'status')
+$stmtPayrollFinal = $conn->prepare("
+INSERT INTO payroll_final (
+    id_anggota, bulan, tahun, tgl_payroll,
+    gaji_pokok, total_pendapatan, total_potongan, gaji_bersih,
+    no_rekening, catatan, id_rekap_absensi
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+");
+if (!$stmtPayrollFinal) {
+throw new Exception("Prepare payroll_final gagal: " . $conn->error);
+}
+$stmtPayrollFinal->bind_param(
+"iiisddddsis",
+$id_anggota,
+$bulan_int,
+$tahun,
+$tgl_payroll,
+$gaji_pokok,
+$total_earnings,
+$total_deductions,
+$gaji_bersih,
+$no_rekening,
+$catatan,
+$id_rekap_absensi
+);
+if (!$stmtPayrollFinal->execute()) {
+throw new Exception("Gagal insert payroll_final: " . $stmtPayrollFinal->error);
+}
+$stmtPayrollFinal->close();
+
 
         // (C) Insert detail payroll ke payroll_detail
         $stmtDetail = $conn->prepare("
