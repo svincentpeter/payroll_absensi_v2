@@ -17,9 +17,9 @@ $username = $_SESSION['username'] ?? '';
 $nama     = $_SESSION['nama'] ?? $username;
 $nip      = $_SESSION['nip'] ?? '';
 
-$foto = $_SESSION['foto_profil'] ?? 'img/undraw_profile.svg';
+$foto = $_SESSION['foto_profil'] ?? '../../assets/img/undraw_profile.svg';
 if (empty($foto)) {
-    $foto = 'img/undraw_profile.svg';
+    $foto = '../../assets/img/undraw_profile.svg';
 }
 
 $userId = $_SESSION['user_id'] ?? 0;

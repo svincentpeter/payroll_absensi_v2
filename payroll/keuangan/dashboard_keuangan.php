@@ -2,46 +2,16 @@
 // File: /payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php
 
 // =========================
-// 1. Pengaturan Keamanan
+// 1. Inisialisasi Session & Pengecekan Role
 // =========================
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
 
+// Mulai session tanpa konfigurasi cookie khusus
+session_start();
+
+// Sertakan file helper jika diperlukan
 require_once __DIR__ . '/../../helpers.php';
-start_session_safe();
-init_error_handling();
-generate_csrf_token();
 
-// Siapkan CSP nonce
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-// Periksa HTTPS
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $requestUri = str_replace(["\n", "\r"], '', $_SERVER['REQUEST_URI']);
-    $redirect   = 'https://' . $_SERVER['HTTP_HOST'] . $requestUri;
-    header("Location: $redirect", true, 301);
-    exit();
-}
-
-// Security Headers
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net https://cdn.jsdelivr.net/npm/chart.js 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
-
-// =========================
-// 2. Pemeriksaan Akses
-// =========================
+// Pengecekan akses: hanya pengguna dengan role "keuangan" atau "superadmin" yang diizinkan
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
     header("Location: /payroll_absensi_v2/login.php");
     exit();
@@ -50,7 +20,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['keuangan', 's
 require_once __DIR__ . '/../../koneksi.php';
 
 // =========================
-// 3. Proses Data Payroll & Filter
+// 2. Proses Data Payroll & Filter
 // =========================
 $bulan = isset($_GET['bulan']) ? intval($_GET['bulan']) : date('n');
 $tahun = isset($_GET['tahun']) ? intval($_GET['tahun']) : date('Y');
@@ -68,7 +38,7 @@ $namaBulan = [
     9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
 ];
 
-// 3a. Ambil Data Payroll sesuai filter
+// 2a. Ambil Data Payroll sesuai filter
 $sqlPayroll = "SELECT p.*, a.nama, a.jenjang, si.level
                FROM payroll p
                LEFT JOIN anggota_sekolah a ON p.id_anggota = a.id
@@ -86,7 +56,7 @@ if (!$resultPayroll) {
 }
 $stmtPayroll->close();
 
-// 3b. Total Gaji Pokok
+// 2b. Total Gaji Pokok
 $sqlTotalGaji = "SELECT SUM(gaji_pokok) AS total_gaji_pokok
                  FROM payroll
                  WHERE bulan = ? AND tahun = ?";
@@ -97,7 +67,7 @@ $res   = $stmt->get_result();
 $totalGajiPokok = $res->fetch_assoc()['total_gaji_pokok'] ?? 0;
 $stmt->close();
 
-// 3c. Total Gaji Bersih
+// 2c. Total Gaji Bersih
 $sqlTotalDiterima = "SELECT SUM(gaji_bersih) AS total_diterima
                      FROM payroll
                      WHERE bulan = ? AND tahun = ?";
@@ -108,7 +78,7 @@ $res          = $stmt->get_result();
 $totalDiterima = $res->fetch_assoc()['total_diterima'] ?? 0;
 $stmt->close();
 
-// 3d. Data Grafik Tren Gaji Bulanan
+// 2d. Data Grafik Tren Gaji Bulanan
 $sqlGajiBulanan = "SELECT p.bulan,
                           SUM(p.gaji_pokok) AS total_gaji_pokok,
                           SUM(p.gaji_bersih) AS total_gaji_bersih
@@ -130,7 +100,7 @@ while ($row = $res->fetch_assoc()) {
 }
 $stmt->close();
 
-// 3e. Perbandingan Guru vs Karyawan
+// 2e. Perbandingan Guru vs Karyawan
 $jenjang_filter = $_GET['jenjang_filter'] ?? 'all';
 $sqlJenjangOptions = "SELECT DISTINCT jenjang
                       FROM anggota_sekolah
@@ -181,7 +151,7 @@ $res           = $stmt->get_result();
 $employee_count = $res->fetch_assoc()['employee_count'] ?? 0;
 $stmt->close();
 
-// 3f. Data Total Anggota Sekolah
+// 2f. Data Total Anggota Sekolah
 $sqlTotalAnggota = "SELECT COUNT(*) as total_anggota FROM anggota_sekolah";
 $resTotal  = $conn->query($sqlTotalAnggota);
 $totalAnggota = 0;
@@ -191,7 +161,7 @@ if ($resTotal) {
     $resTotal->close();
 }
 
-// 3g. Jumlah guru & karyawan all
+// 2g. Jumlah guru & karyawan keseluruhan
 $sqlGuruAll = "SELECT COUNT(*) as guru_count
                FROM anggota_sekolah
                WHERE LOWER(job_title) LIKE '%guru%'";
@@ -221,13 +191,13 @@ if ($resKaryawanAll) {
     <title>Dashboard Keuangan - Payroll System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?= htmlspecialchars($nonce); ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?= htmlspecialchars($nonce); ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" nonce="<?= htmlspecialchars($nonce); ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?= htmlspecialchars($nonce); ?>">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" nonce="<?= htmlspecialchars($nonce); ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     
-    <style nonce="<?= htmlspecialchars($nonce); ?>">
+    <style>
         .text-gray-800 {
             color: #000 !important;
         }
@@ -579,13 +549,13 @@ if ($resKaryawanAll) {
         </div>
     </div>
     <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script nonce="<?= htmlspecialchars($nonce); ?>">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
+    <script>
     $(document).ready(function() {
         // Inisialisasi DataTables
         $('#dataPayrollTable').DataTable({
@@ -595,7 +565,7 @@ if ($resKaryawanAll) {
             "responsive": true
         });
 
-        // Popover & Tooltip (Bootstrap 5 menggunakan data-bs-*)
+        // Popover & Tooltip (Bootstrap 5 menggunakan data-bs-* )
         $('[data-bs-toggle="popover"]').popover();
         $('[data-bs-toggle="tooltip"]').tooltip();
 
@@ -685,14 +655,14 @@ if ($resKaryawanAll) {
         // Export Excel
         $('#exportExcel').click(function() {
             var url = '/payroll_absensi_v2/payroll/keuangan/export_rekap_gaji.php'
-                    + '?format=excel&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&jenjang_filter=<?= urlencode($jenjang_filter) ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>';
+                    + '?format=excel&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&jenjang_filter=<?= urlencode($jenjang_filter) ?>';
             window.location.href = url;
         });
 
         // Export PDF
         $('#exportPDF').click(function() {
             var url = '/payroll_absensi_v2/payroll/keuangan/export_rekap_gaji.php'
-                    + '?format=pdf&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&jenjang_filter=<?= urlencode($jenjang_filter) ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>';
+                    + '?format=pdf&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&jenjang_filter=<?= urlencode($jenjang_filter) ?>';
             window.location.href = url;
         });
 
@@ -777,3 +747,6 @@ if ($resKaryawanAll) {
     </script>
 </body>
 </html>
+<?php
+$conn->close();
+?>

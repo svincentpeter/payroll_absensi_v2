@@ -1,43 +1,16 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/audit_logs_keuangan.php (fix)
+// File: /payroll_absensi_v2/payroll/keuangan/audit_logs_keuangan.php (versi sederhana)
 // =========================
-// 1. Pengaturan Keamanan & Session
+// 1. Inisialisasi Session & Pengecekan Role
 // =========================
 
-// Set parameter cookie session
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses via JavaScript
-    'samesite' => 'Strict'
-]);
+// Mulai session (tanpa pengaturan cookie security tambahan)
+session_start();
 
+// Sertakan file helper (jika diperlukan fungsi-fungsi tambahan)
 require_once __DIR__ . '/../../helpers.php';
-start_session_safe();
-init_error_handling();
-generate_csrf_token();
 
-// Buat nonce untuk CSP dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-// Paksa HTTPS jika belum menggunakan HTTPS
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-
-// HSTS header
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
-// Proteksi CSRF
-generate_csrf_token();
-
-// Role Checking: hanya role "keuangan" yang boleh akses halaman ini
+// Role Checking: hanya role "keuangan" (atau "superadmin") yang boleh akses halaman ini
 function authorize($allowed_roles = ['keuangan', 'superadmin']) {
     if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
         header("Location: /payroll_absensi_v2/login.php");
@@ -46,19 +19,11 @@ function authorize($allowed_roles = ['keuangan', 'superadmin']) {
 }
 authorize();
 
-// Koneksi ke database
+// Sertakan koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) {
     ob_end_clean();
 }
-
-// Terapkan Content-Security-Policy (CSP) dengan nonce
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
 
 // =========================
 // 2. Fungsi Pendukung (Ikon, Warna & Badge)
@@ -127,9 +92,8 @@ function getActivityColor($action) {
 // 3. Ambil Data Audit Logs dengan Filter (Max 30)
 // =========================
 
-// Karena file ini khusus untuk role "keuangan", kita tambahkan kondisi tetap.
+// Karena file ini khusus untuk role "keuangan", tambahkan kondisi tetap.
 $conditions = [];
-// Selalu tambahkan kondisi untuk hanya menampilkan log dari role "keuangan"
 $conditions[] = "u.role = 'keuangan'";
 
 // Periksa parameter GET untuk filter tanggal dan pencarian
@@ -173,13 +137,13 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
     <meta charset="UTF-8">
     <title>Audit Logs Keuangan - Keuangan</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 4 CSS & SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- Bootstrap 5 CSS & SB Admin 2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <!-- Custom CSS untuk Card dan Timeline -->
-    <style nonce="<?php echo $nonce; ?>">
+    <style>
         body {
             background-color: #f8f9fc;
         }
@@ -226,7 +190,6 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             text-align: center;
             line-height: 32px;
             font-size: 18px;
-            /* Warna akan di-set secara inline */
         }
         .vertical-timeline-content {
             background: #ffffff;
@@ -270,7 +233,6 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
@@ -282,8 +244,8 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
@@ -375,8 +337,8 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
     <!-- End of Page Wrapper -->
 
     <!-- JS Dependencies -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 

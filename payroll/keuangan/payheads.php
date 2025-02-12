@@ -4,7 +4,7 @@
 // =========================
 // 1. Pengaturan Awal (tanpa sistem keamanan)
 // =========================
-
+require_once __DIR__ . '/../../helpers.php';
 // Mulai session secara standar
 session_start();
 
@@ -13,23 +13,6 @@ require_once __DIR__ . '/../../koneksi.php';
 
 // Hapus output buffering jika ada
 if (ob_get_length()) ob_end_clean();
-
-
-// =========================
-// 2. Fungsi Pendukung
-// =========================
-
-// Fungsi untuk format nominal ke format mata uang
-function formatNominal($nominal) {
-    return 'Rp ' . number_format($nominal, 2, ',', '.');
-}
-
-// Fungsi send_response() sederhana agar tetap bisa mengirimkan respons JSON
-function send_response($code, $result) {
-    echo json_encode(['code' => $code, 'result' => $result], JSON_UNESCAPED_UNICODE);
-    exit();
-}
-
 
 // =========================
 // 3. Menangani Permintaan AJAX

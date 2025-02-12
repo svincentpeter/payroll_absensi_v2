@@ -1,71 +1,19 @@
 <?php
-session_start();
-
-// Buat CSRF token jika belum ada
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+// Sertakan file helpers dan inisialisasi session serta CSRF token
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 // Sertakan koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
 /**
- * Mengirimkan respons JSON dengan format standar.
- */
-function send_response($code, $result) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['code' => $code, 'result' => $result], JSON_UNESCAPED_UNICODE);
-    exit();
-}
-
-/**
- * Membersihkan input dari karakter-karakter yang tidak diinginkan.
- */
-function bersihkan_input($data) {
-    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
-}
-
-/**
- * Menerjemahkan jenis payhead ke dalam bahasa Indonesia.
- */
-function translateJenis($jenis) {
-    $translations = [
-        'earnings'   => 'Pendapatan',
-        'deductions' => 'Potongan'
-    ];
-    return isset($translations[$jenis]) ? $translations[$jenis] : 'Tidak Diketahui';
-}
-
-/**
- * Mengembalikan nama bulan dalam Bahasa Indonesia.
- */
-function getIndonesianMonthName($monthNumber) {
-    $bulan = [
-        1  => 'Januari',
-        2  => 'Februari',
-        3  => 'Maret',
-        4  => 'April',
-        5  => 'Mei',
-        6  => 'Juni',
-        7  => 'Juli',
-        8  => 'Agustus',
-        9  => 'September',
-        10 => 'Oktober',
-        11 => 'November',
-        12 => 'Desember'
-    ];
-    return isset($bulan[$monthNumber]) ? $bulan[$monthNumber] : '';
-}
-
-/**
  * Fungsi ProcessPayroll untuk memproses data payroll dan mengirimkannya ke list payroll.
  */
 function ProcessPayroll($conn) {
-    // Pastikan token CSRF valid
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        send_response(1, 'Token CSRF tidak valid.');
-    }
+    // Pastikan token CSRF valid menggunakan helper
+    verify_csrf_token($_POST['csrf_token'] ?? '');
     
     // Ambil parameter dari POST
     $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
@@ -194,10 +142,8 @@ function CheckPayrollCompletion($conn) {
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     error_log("DEBUG: AJAX request received");
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Cek token CSRF untuk semua request POST
-        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-            send_response(1, 'Token CSRF tidak valid.');
-        }
+        // Verifikasi token CSRF menggunakan helper
+        verify_csrf_token($_POST['csrf_token'] ?? '');
         
         $case = isset($_POST['case']) ? trim($_POST['case']) : '';
         error_log("DEBUG: Case received: " . $case);
@@ -272,8 +218,8 @@ function LoadingEmployees($conn) {
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
-    $jenjangFilter = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
+    $search = isset($_POST['search']['value']) ? sanitize_input($_POST['search']['value']) : '';
+    $jenjangFilter = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     // Dapatkan periode dari POST (dari localStorage)
     $selectedMonth = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : date('n');
     $selectedYear = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : date('Y');
@@ -428,7 +374,7 @@ function LoadingEmployees($conn) {
 function EditEmployee($conn) {
     error_log("DEBUG: Entering EditEmployee");
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-    $no_rekening = isset($_POST['no_rekening']) ? bersihkan_input($_POST['no_rekening']) : '';
+    $no_rekening = isset($_POST['no_rekening']) ? sanitize_input($_POST['no_rekening']) : '';
     if ($id <= 0 || empty($no_rekening)) {
         error_log("DEBUG: EditEmployee: Invalid parameters id=$id, no_rekening=$no_rekening");
         send_response(1, 'ID dan No Rekening wajib diisi.');

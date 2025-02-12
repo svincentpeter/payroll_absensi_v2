@@ -1,39 +1,12 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/payroll-details.php (fix)
+// File: /payroll_absensi_v2/payroll/keuangan/payroll-details.php
 
 // =========================
-// 1. Pengaturan Keamanan
+// 1. Inisialisasi Session & Pengecekan Role
 // =========================
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,   // Hanya lewat HTTPS
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
-require_once __DIR__ . '/../../helpers.php';
-start_session_safe();
-init_error_handling();
-generate_csrf_token();
+session_start();
 
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
-
+// Cek Role: hanya untuk role "keuangan" dan "superadmin"
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
     header("Location: /payroll_absensi_v2/login.php");
     exit();
@@ -41,23 +14,8 @@ if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'supe
 
 require_once __DIR__ . '/../../koneksi.php';
 
-
 // =========================
-// 2. Fungsi Pendukung
-// =========================
-function bulanIntToName($bulan) {
-    $map = [
-        1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
-        4 => 'April', 5 => 'Mei', 6 => 'Juni',
-        7 => 'Juli', 8 => 'Agustus', 9 => 'September',
-        10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-    ];
-    return isset($map[$bulan]) ? $map[$bulan] : 'Tidak Diketahui';
-}
-
-
-// =========================
-// 3. Ambil Parameter & Data Payroll
+// 2. Ambil Parameter & Data Payroll
 // =========================
 $id_payroll = isset($_GET['id_payroll']) ? intval($_GET['id_payroll']) : 0;
 if ($id_payroll <= 0) {
@@ -127,7 +85,7 @@ try {
     }
     $gaji_bersih = $gaji_pokok + $total_pendapatan - $total_potongan;
 
-    // --- Ambil data Level Indeks (jika ada) ---
+    // Ambil data Level Indeks (jika ada)
     $salary_index_level = '';
     $salary_index_amount = 0;
     if (!empty($karyawan['salary_index_id'])) {
@@ -148,27 +106,28 @@ try {
     $gaji_pokok_employee = isset($karyawan['gaji_pokok']) ? (float)$karyawan['gaji_pokok'] : 0;
     $gaji_pokok = $gaji_pokok_employee + $salary_index_amount;
 
-    // Format tanggal payroll
+    // Format tanggal payroll menggunakan fungsi getIndonesianMonthName() dari helpers.php
+    // Pastikan fungsi tersebut sudah didefinisikan di file helpers.php
     $tglPayrollRaw = $payroll['tgl_payroll'];
     $timestamp = strtotime($tglPayrollRaw);
-    $tanggalCetak = date('d', $timestamp) . ' ' . bulanIntToName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
+    $tanggalCetak = date('d', $timestamp) . ' ' . getIndonesianMonthName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
 
     // Format periode
-    $periode = bulanIntToName((int)$payroll['bulan']) . ' ' . $payroll['tahun'];
+    $periode = getIndonesianMonthName((int)$payroll['bulan']) . ' ' . $payroll['tahun'];
 
     // Masa kerja karyawan
     $thn = isset($karyawan['masa_kerja_tahun']) ? (int)$karyawan['masa_kerja_tahun'] : 0;
     $bln = isset($karyawan['masa_kerja_bulan']) ? (int)$karyawan['masa_kerja_bulan'] : 0;
     $masaKerja = ($thn > 0 || $bln > 0) ? $thn . " Tahun" . ($bln > 0 ? " " . $bln . " Bulan" : "") : "";
 
-    // Nomor rekening: gunakan nilai dari karyawan, atau jika kosong, dari data payroll
+    // Nomor rekening: gunakan dari karyawan atau payroll
     $noRek = !empty($karyawan['no_rekening']) 
              ? $karyawan['no_rekening'] 
              : (isset($payroll['no_rekening']) && !empty($payroll['no_rekening']) ? $payroll['no_rekening'] : 'Belum ada');
-             
+
     if ($payroll['status'] !== 'final') {
-                die("Slip gaji hanya tersedia untuk payroll yang sudah final.");
-            }
+        die("Slip gaji hanya tersedia untuk payroll yang sudah final.");
+    }
             
     // Catatan payroll
     $catatan = trim($payroll['catatan']);
@@ -191,8 +150,9 @@ try {
     <meta charset="UTF-8">
     <title>Slip Gaji #<?= htmlspecialchars($id_payroll); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="/payroll_absensi_v2/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <!-- Sertakan Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="/payroll_absensi_v2/dist/css/bootstrap.min.css">
+    <style>
         body { background-color: #f8f9fa; }
         .invoice-box {
             max-width: 800px;
@@ -281,7 +241,6 @@ try {
             font-size: 18px;
             color: #007bff;
         }
-        /* Tombol Kembali di pojok kiri atas */
         .btn-back {
             position: fixed;
             top: 10px;
@@ -296,9 +255,7 @@ try {
         .btn-back:hover {
             background: #0056b3;
         }
-        /* Aturan untuk tampilan cetak (print) */
         @media print {
-            /* Atur margin halaman cetak menjadi 20mm */
             @page {
                 margin: 20mm;
             }
@@ -309,7 +266,6 @@ try {
                 box-shadow: none;
                 width: 100%;
             }
-            /* Sembunyikan tombol cetak dan tombol kembali pada saat mencetak */
             .btn-print,
             .btn-back {
                 display: none;
@@ -318,7 +274,7 @@ try {
     </style>
 </head>
 <body>
-    <!-- Tombol Kembali di pojok kiri atas -->
+    <!-- Tombol Kembali -->
     <a href="payroll_history.php" class="btn-back">Kembali</a>
     
     <div class="invoice-box">

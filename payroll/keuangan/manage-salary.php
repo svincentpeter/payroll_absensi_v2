@@ -1,72 +1,32 @@
 <?php
 // File: /payroll_absensi_v2/payroll/keuangan/manage-salary.php
-session_start();
 
-// 1. Cek Role
+// Mulai session dengan aman dan sertakan file helpers serta koneksi database
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+
+// Cek Role: hanya 'keuangan' dan 'superadmin' yang boleh akses
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
     header("Location: /payroll_absensi_v2/login.php");
     exit();
 }
 
-// 2. Include Koneksi dan Helpers
 require_once __DIR__ . '/../../koneksi.php';
-require_once __DIR__ . '/../../helpers.php';
 
-// 3. Inisialisasi Error Handling dan CSRF Token
+// Inisialisasi error handling dan CSRF token
 init_error_handling();
 generate_csrf_token();
-
-/**
- * Fungsi konversi nama bulan (English) -> integer (1–12).
- */
-function monthNameToInt($monthName) {
-    $lower = strtolower($monthName);
-    $map = [
-        'januari'   => 1,
-        'februari'  => 2,
-        'maret'     => 3,
-        'april'     => 4,
-        'mei'       => 5,
-        'juni'      => 6,
-        'juli'      => 7,
-        'agustus'   => 8,
-        'september' => 9,
-        'oktober'   => 10,
-        'november'  => 11,
-        'desember'  => 12
-    ];
-    return isset($map[$lower]) ? $map[$lower] : 0;
-}
-
-/**
- * Fungsi helper untuk mendapatkan nama bulan dalam Bahasa Indonesia berdasarkan angka.
- */
-function getIndonesianMonthName($month) {
-    $map = [
-        1 => 'Januari',
-        2 => 'Februari',
-        3 => 'Maret',
-        4 => 'April',
-        5 => 'Mei',
-        6 => 'Juni',
-        7 => 'Juli',
-        8 => 'Agustus',
-        9 => 'September',
-        10 => 'Oktober',
-        11 => 'November',
-        12 => 'Desember'
-    ];
-    return isset($map[$month]) ? $map[$month] : '';
-}
+$csrf_token = $_SESSION['csrf_token'];
 
 // --- Ambil parameter periode (bulan dan tahun) dari GET atau POST ---
+// Kami memanfaatkan fungsi sanitize_input() dan monthNameToInt() dari helpers.php
 $bulanVal = 0;
 $tahunVal = 0;
 if (isset($_GET['bulan'])) {
     if (is_numeric($_GET['bulan'])) {
         $bulanVal = intval($_GET['bulan']);
     } else {
-        $bulanVal = monthNameToInt(bersihkan_input($_GET['bulan']));
+        $bulanVal = monthNameToInt(sanitize_input($_GET['bulan']));
     }
 }
 if (isset($_GET['tahun'])) {
@@ -80,7 +40,6 @@ if ($bulanVal <= 0 || $tahunVal <= 0) {
     }
 }
 
-
 // ==================================================================
 // BAGIAN AJAX: Update / Delete Payhead / Reject Payroll
 // ==================================================================
@@ -88,23 +47,19 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         send_response(405, 'Metode Permintaan Tidak Diizinkan.');
     }
-    $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-    verify_csrf_token($csrf_token);
-    $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
+    $csrf_token_post = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
+    verify_csrf_token($csrf_token_post);
+    $case = isset($_POST['case']) ? sanitize_input($_POST['case']) : '';
 
-    switch($case) {
+    switch ($case) {
         case 'UpdatePayhead':
-            $id_anggota  = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
-            $id_payhead  = isset($_POST['id_payhead']) ? intval($_POST['id_payhead']) : 0;
-            $amount      = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
+            $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
+            $id_payhead = isset($_POST['id_payhead']) ? intval($_POST['id_payhead']) : 0;
+            $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
             if ($id_anggota <= 0 || $id_payhead <= 0) {
                 send_response(1, 'Parameter invalid.');
             }
-            $stmt = $conn->prepare("
-                UPDATE employee_payheads
-                   SET amount = ?
-                 WHERE id_anggota = ? AND id_payhead = ?
-            ");
+            $stmt = $conn->prepare("UPDATE employee_payheads SET amount = ? WHERE id_anggota = ? AND id_payhead = ?");
             if (!$stmt) {
                 send_response(1, 'Prepare failed: ' . $conn->error);
             }
@@ -112,9 +67,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             if ($stmt->execute()) {
                 $stmt->close();
                 $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-                $details = "Memperbarui Payhead ID $id_payhead untuk Karyawan ID $id_anggota dengan jumlah Rp " 
-                           . number_format($amount, 2, ',', '.');
-                if(!add_audit_log($conn, $user_id, 'UpdatePayhead', $details)){
+                $details = "Memperbarui Payhead ID $id_payhead untuk Karyawan ID $id_anggota dengan jumlah Rp " . number_format($amount, 2, ',', '.');
+                if (!add_audit_log($conn, $user_id, 'UpdatePayhead', $details)) {
                     send_response(1, 'Payhead berhasil diupdate, tetapi gagal mencatat audit log.');
                 }
                 send_response(0, 'Payhead berhasil diupdate.');
@@ -124,53 +78,37 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             }
             break;
 
-            case 'RejectPayroll': // Perbaikan reject payroll: update employee_payheads dan payroll
-                // Ambil parameter dari POST
-                $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
-                $bulanFromAjax = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
-                $tahunFromAjax = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
-                if ($id_anggota <= 0 || $bulanFromAjax <= 0 || $tahunFromAjax <= 0) {
-                     send_response(1, 'Parameter tidak valid (reject).');
-                }
-                // Update employee_payheads menjadi 'revisi'
-                $stmtReject = $conn->prepare("
-                    UPDATE employee_payheads
-                       SET status = 'revisi'
-                     WHERE id_anggota=? 
-                       AND status IN ('draft')
-                ");
-                $stmtReject->bind_param("i", $id_anggota);
-                if (!$stmtReject->execute()) {
-                    $stmtReject->close();
-                    send_response(1, 'Gagal menolak payroll (employee_payheads): ' . $stmtReject->error);
-                }
+        case 'RejectPayroll':
+            $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
+            $bulanFromAjax = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
+            $tahunFromAjax = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
+            if ($id_anggota <= 0 || $bulanFromAjax <= 0 || $tahunFromAjax <= 0) {
+                send_response(1, 'Parameter tidak valid (reject).');
+            }
+            $stmtReject = $conn->prepare("UPDATE employee_payheads SET status = 'revisi' WHERE id_anggota=? AND status IN ('draft')");
+            $stmtReject->bind_param("i", $id_anggota);
+            if (!$stmtReject->execute()) {
                 $stmtReject->close();
-                // Update tabel payroll: set status menjadi 'revisi' untuk periode tersebut
-                $stmtPayrollReject = $conn->prepare("
-                    UPDATE payroll
-                       SET status = 'revisi'
-                     WHERE id_anggota=? AND bulan=? AND tahun=?
-                ");
-                $stmtPayrollReject->bind_param("iii", $id_anggota, $bulanFromAjax, $tahunFromAjax);
-                if (!$stmtPayrollReject->execute()) {
-                    $stmtPayrollReject->close();
-                    send_response(1, 'Gagal menolak payroll (payroll): ' . $stmtPayrollReject->error);
-                }
+                send_response(1, 'Gagal menolak payroll (employee_payheads): ' . $stmtReject->error);
+            }
+            $stmtReject->close();
+            $stmtPayrollReject = $conn->prepare("UPDATE payroll SET status = 'revisi' WHERE id_anggota=? AND bulan=? AND tahun=?");
+            $stmtPayrollReject->bind_param("iii", $id_anggota, $bulanFromAjax, $tahunFromAjax);
+            if (!$stmtPayrollReject->execute()) {
                 $stmtPayrollReject->close();
-                send_response(0, 'Payroll ditolak. Status payheads dan payroll telah diubah menjadi revisi.');
-                break;
-            
+                send_response(1, 'Gagal menolak payroll (payroll): ' . $stmtPayrollReject->error);
+            }
+            $stmtPayrollReject->close();
+            send_response(0, 'Payroll ditolak. Status payheads dan payroll telah diubah menjadi revisi.');
+            break;
 
         case 'DeletePayhead':
-            $id_anggota  = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
-            $id_payhead  = isset($_POST['id_payhead']) ? intval($_POST['id_payhead']) : 0;
+            $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
+            $id_payhead = isset($_POST['id_payhead']) ? intval($_POST['id_payhead']) : 0;
             if ($id_anggota <= 0 || $id_payhead <= 0) {
                 send_response(1, 'Parameter invalid.');
             }
-            $stmtDel = $conn->prepare("
-                DELETE FROM employee_payheads
-                 WHERE id_anggota=? AND id_payhead=?
-            ");
+            $stmtDel = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota=? AND id_payhead=?");
             if (!$stmtDel) {
                 send_response(1, 'Prepare failed: ' . $conn->error);
             }
@@ -179,7 +117,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 $stmtDel->close();
                 $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
                 $details = "Menghapus Payhead ID $id_payhead untuk Karyawan ID $id_anggota.";
-                if(!add_audit_log($conn, $user_id, 'DeletePayhead', $details)){
+                if (!add_audit_log($conn, $user_id, 'DeletePayhead', $details)) {
                     send_response(1, 'Payhead berhasil dihapus, tetapi gagal mencatat audit log.');
                 }
                 send_response(0, 'Payhead berhasil dihapus.');
@@ -199,26 +137,24 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 // ==================================================================
 // BAGIAN POST => Proses Insert payroll dan payroll_detail
 // ==================================================================
-// BAGIAN POST => Proses Insert payroll dan payroll_detail
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
-    $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-    verify_csrf_token($csrf_token);
+    $csrf_token_post = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
+    verify_csrf_token($csrf_token_post);
 
-    // Ambil parameter dari POST atau GET
-    $id_anggota       = isset($_POST['id_anggota'])       ? intval($_POST['id_anggota'])       : (isset($_GET['id_anggota']) ? intval($_GET['id_anggota']) : 0);
-    $bulan_int        = isset($_POST['bulan_int'])        ? intval($_POST['bulan_int'])        : (isset($_GET['bulan_int']) ? intval($_GET['bulan_int']) : 0);
-    $tahun            = isset($_POST['tahun'])            ? intval($_POST['tahun'])            : (isset($_GET['tahun']) ? intval($_GET['tahun']) : 0);
+    $id_anggota       = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : (isset($_GET['id_anggota']) ? intval($_GET['id_anggota']) : 0);
+    $bulan_int        = isset($_POST['bulan_int']) ? intval($_POST['bulan_int']) : (isset($_GET['bulan_int']) ? intval($_GET['bulan_int']) : 0);
+    $tahun            = isset($_POST['tahun']) ? intval($_POST['tahun']) : (isset($_GET['tahun']) ? intval($_GET['tahun']) : 0);
     $id_rekap_absensi = isset($_POST['id_rekap_absensi']) ? intval($_POST['id_rekap_absensi']) : (isset($_GET['id_rekap_absensi']) ? intval($_GET['id_rekap_absensi']) : 0);
 
-    $no_rekening      = isset($_POST['no_rekening'])      ? bersihkan_input($_POST['no_rekening']) : '';
-    $gaji_pokok       = isset($_POST['gaji_pokok'])       ? floatval($_POST['gaji_pokok'])       : 0;
-    $total_earnings   = isset($_POST['total_earnings'])   ? floatval($_POST['total_earnings'])   : 0;
+    $no_rekening      = isset($_POST['no_rekening']) ? sanitize_input($_POST['no_rekening']) : '';
+    $gaji_pokok       = isset($_POST['gaji_pokok']) ? floatval($_POST['gaji_pokok']) : 0;
+    $total_earnings   = isset($_POST['total_earnings']) ? floatval($_POST['total_earnings']) : 0;
     $total_deductions = isset($_POST['total_deductions']) ? floatval($_POST['total_deductions']) : 0;
-    $payheads_ids     = isset($_POST['payheads_ids'])     ? $_POST['payheads_ids']              : [];
-    $payheads_jenis   = isset($_POST['payheads_jenis'])   ? $_POST['payheads_jenis']            : [];
-    $payheads_amount  = isset($_POST['payheads_amount'])  ? $_POST['payheads_amount']           : [];
-    $catatan          = isset($_POST['inputDescription']) ? bersihkan_input($_POST['inputDescription']) : '';
-    $tgl_payroll      = isset($_POST['tgl_payroll'])      ? bersihkan_input($_POST['tgl_payroll'])      : date('Y-m-d H:i:s');
+    $payheads_ids     = isset($_POST['payheads_ids']) ? $_POST['payheads_ids'] : [];
+    $payheads_jenis   = isset($_POST['payheads_jenis']) ? $_POST['payheads_jenis'] : [];
+    $payheads_amount  = isset($_POST['payheads_amount']) ? $_POST['payheads_amount'] : [];
+    $catatan          = isset($_POST['inputDescription']) ? sanitize_input($_POST['inputDescription']) : '';
+    $tgl_payroll      = isset($_POST['tgl_payroll']) ? sanitize_input($_POST['tgl_payroll']) : date('Y-m-d H:i:s');
 
     if ($id_anggota <= 0 || $bulan_int <= 0 || $tahun <= 0 || $id_rekap_absensi <= 0) {
         var_dump($_POST);
@@ -228,12 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     $conn->begin_transaction();
     try {
         // (A) Update employee_payheads menjadi 'final'
-        $stmtToFinal = $conn->prepare("
-            UPDATE employee_payheads
-               SET status='final'
-             WHERE id_anggota=? 
-               AND status IN ('draft','revisi')
-        ");
+        $stmtToFinal = $conn->prepare("UPDATE employee_payheads SET status='final' WHERE id_anggota=? AND status IN ('draft','revisi')");
         if (!$stmtToFinal) {
             throw new Exception("Gagal prepare update status payheads: " . $conn->error);
         }
@@ -245,81 +176,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
 
         // (B) Insert ke tabel payroll dengan status 'final'
         $status = 'final';
-        $stmtPayroll = $conn->prepare("
-            INSERT INTO payroll (
-                id_anggota, bulan, tahun, tgl_payroll,
-                gaji_pokok, total_pendapatan, total_potongan, gaji_bersih,
-                no_rekening, catatan, id_rekap_absensi, status
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
+        $stmtPayroll = $conn->prepare("INSERT INTO payroll (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok, total_pendapatan, total_potongan, gaji_bersih, no_rekening, catatan, id_rekap_absensi, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         if (!$stmtPayroll) {
             throw new Exception("Prepare payroll gagal: " . $conn->error);
         }
         $gaji_bersih = $gaji_pokok + $total_earnings - $total_deductions;
-        $stmtPayroll->bind_param(
-            "iiisddddssis",
-            $id_anggota,
-            $bulan_int,
-            $tahun,
-            $tgl_payroll,
-            $gaji_pokok,
-            $total_earnings,
-            $total_deductions,
-            $gaji_bersih,
-            $no_rekening,
-            $catatan,
-            $id_rekap_absensi,
-            $status
-        );
+        $stmtPayroll->bind_param("iiisddddssis", $id_anggota, $bulan_int, $tahun, $tgl_payroll, $gaji_pokok, $total_earnings, $total_deductions, $gaji_bersih, $no_rekening, $catatan, $id_rekap_absensi, $status);
         if (!$stmtPayroll->execute()) {
             throw new Exception("Gagal insert payroll: " . $stmtPayroll->error);
         }
         $id_payroll = $stmtPayroll->insert_id;
         $stmtPayroll->close();
 
-        // **[BARU]** (X) Insert data yang final ke tabel payroll_final (tanpa kolom 'status')
-$stmtPayrollFinal = $conn->prepare("
-INSERT INTO payroll_final (
-    id_anggota, bulan, tahun, tgl_payroll,
-    gaji_pokok, total_pendapatan, total_potongan, gaji_bersih,
-    no_rekening, catatan, id_rekap_absensi
-)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-");
-if (!$stmtPayrollFinal) {
-throw new Exception("Prepare payroll_final gagal: " . $conn->error);
-}
-$stmtPayrollFinal->bind_param(
-"iiisddddsis",
-$id_anggota,
-$bulan_int,
-$tahun,
-$tgl_payroll,
-$gaji_pokok,
-$total_earnings,
-$total_deductions,
-$gaji_bersih,
-$no_rekening,
-$catatan,
-$id_rekap_absensi
-);
-if (!$stmtPayrollFinal->execute()) {
-throw new Exception("Gagal insert payroll_final: " . $stmtPayrollFinal->error);
-}
-$stmtPayrollFinal->close();
-
+        // Insert ke tabel payroll_final (tanpa kolom 'status')
+        $stmtPayrollFinal = $conn->prepare("INSERT INTO payroll_final (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok, total_pendapatan, total_potongan, gaji_bersih, no_rekening, catatan, id_rekap_absensi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if (!$stmtPayrollFinal) {
+            throw new Exception("Prepare payroll_final gagal: " . $conn->error);
+        }
+        $stmtPayrollFinal->bind_param("iiisddddsis", $id_anggota, $bulan_int, $tahun, $tgl_payroll, $gaji_pokok, $total_earnings, $total_deductions, $gaji_bersih, $no_rekening, $catatan, $id_rekap_absensi);
+        if (!$stmtPayrollFinal->execute()) {
+            throw new Exception("Gagal insert payroll_final: " . $stmtPayrollFinal->error);
+        }
+        $stmtPayrollFinal->close();
 
         // (C) Insert detail payroll ke payroll_detail
-        $stmtDetail = $conn->prepare("
-            INSERT INTO payroll_detail (id_payroll, id_payhead, jenis, amount)
-            VALUES (?, ?, ?, ?)
-        ");
+        $stmtDetail = $conn->prepare("INSERT INTO payroll_detail (id_payroll, id_payhead, jenis, amount) VALUES (?, ?, ?, ?)");
         if (!$stmtDetail) {
             throw new Exception("Prepare payroll_detail gagal: " . $conn->error);
         }
         foreach ($payheads_ids as $index => $id_payhead) {
-            $jenis  = isset($payheads_jenis[$index]) ? bersihkan_input($payheads_jenis[$index]) : '';
+            $jenis = isset($payheads_jenis[$index]) ? sanitize_input($payheads_jenis[$index]) : '';
             $amount = isset($payheads_amount[$index]) ? floatval($payheads_amount[$index]) : 0;
             $stmtDetail->bind_param("iisd", $id_payroll, $id_payhead, $jenis, $amount);
             if (!$stmtDetail->execute()) {
@@ -331,11 +217,11 @@ $stmtPayrollFinal->close();
         $conn->commit();
 
         $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-        $details = "Membuat Payroll ID $id_payroll untuk Karyawan ID $id_anggota pada bulan $bulan_int tahun $tahun. "
+        $details = "Membuat Payroll ID $id_payroll untuk Karyawan ID $id_anggota pada bulan $bulan_int tahun $tahun. " 
                  . "Pendapatan = Rp " . number_format($total_earnings, 2, ',', '.') 
                  . ", Potongan = Rp " . number_format($total_deductions, 2, ',', '.') 
                  . ", Gaji Bersih = Rp " . number_format($gaji_bersih, 2, ',', '.');
-        if(!add_audit_log($conn, $user_id, 'InsertPayroll', $details)){
+        if (!add_audit_log($conn, $user_id, 'InsertPayroll', $details)) {
             error_log("Gagal mencatat audit log untuk InsertPayroll ID $id_payroll.");
         }
 
@@ -351,57 +237,47 @@ $stmtPayrollFinal->close();
     // BAGIAN GET => Review Payroll (Belum Insert ke payroll)
     // ==================================================================
     $id_anggota = isset($_GET['id_anggota']) ? intval($_GET['id_anggota']) : 0;
-$bulanParam  = isset($_GET['bulan']) ? bersihkan_input($_GET['bulan']) : '';
-$tahunStr   = isset($_GET['tahun']) ? bersihkan_input($_GET['tahun']) : '';
-$tglPayrollParam = isset($_GET['tgl']) ? bersihkan_input($_GET['tgl']) : date('Y-m-d H:i:s');
+    $bulanParam  = isset($_GET['bulan']) ? sanitize_input($_GET['bulan']) : '';
+    $tahunStr   = isset($_GET['tahun']) ? sanitize_input($_GET['tahun']) : '';
+    $tglPayrollParam = isset($_GET['tgl']) ? sanitize_input($_GET['tgl']) : date('Y-m-d H:i:s');
 
-if ($id_anggota <= 0 || empty($bulanParam) || empty($tahunStr)) {
-    die("Parameter tidak valid.");
-}
-
-if (is_numeric($bulanParam)) {
-    $bulan = intval($bulanParam);
-    $bulanName = getIndonesianMonthName($bulan);
-} else {
-    $bulan = monthNameToInt($bulanParam);
-    $bulanName = $bulanParam;
-}
-$tahun = intval($tahunStr);
-if ($bulan <= 0 || $tahun <= 0) {
-    die("Parameter bulan/tahun tidak valid.");
-}
-
-// Cek apakah payroll sudah ada untuk periode ini
-$stmtCheck = $conn->prepare("
-    SELECT id, status 
-      FROM payroll
-     WHERE id_anggota=? AND bulan=? AND tahun=?
-     LIMIT 1
-");
-if (!$stmtCheck) {
-    die("Prepare gagal: " . $conn->error);
-}
-$stmtCheck->bind_param("iii", $id_anggota, $bulan, $tahun);
-$stmtCheck->execute();
-$resCheck = $stmtCheck->get_result();
-if ($resCheck->num_rows > 0) {
-    $payroll = $resCheck->fetch_assoc();
-    $stmtCheck->close();
-    // Jika payroll sudah final, langsung redirect ke slip gaji
-    if ($payroll['status'] == 'final') {
-        header("Location: payroll-details.php?id_payroll=" . $payroll['id']);
-        exit();
+    if ($id_anggota <= 0 || empty($bulanParam) || empty($tahunStr)) {
+        die("Parameter tidak valid.");
     }
-    // Jika status belum final (draft atau revisi), lanjutkan untuk menampilkan halaman review payroll
-} else {
-    $stmtCheck->close();
-}
+
+    if (is_numeric($bulanParam)) {
+        $bulan = intval($bulanParam);
+        $bulanName = getIndonesianMonthName($bulan);
+    } else {
+        $bulan = monthNameToInt($bulanParam);
+        $bulanName = ucfirst($bulanParam);
+    }
+    $tahun = intval($tahunStr);
+    if ($bulan <= 0 || $tahun <= 0) {
+        die("Parameter bulan/tahun tidak valid.");
+    }
+
+    // Cek apakah payroll sudah ada untuk periode ini
+    $stmtCheck = $conn->prepare("SELECT id, status FROM payroll WHERE id_anggota=? AND bulan=? AND tahun=? LIMIT 1");
+    if (!$stmtCheck) {
+        die("Prepare gagal: " . $conn->error);
+    }
+    $stmtCheck->bind_param("iii", $id_anggota, $bulan, $tahun);
+    $stmtCheck->execute();
+    $resCheck = $stmtCheck->get_result();
+    if ($resCheck->num_rows > 0) {
+        $payroll = $resCheck->fetch_assoc();
+        $stmtCheck->close();
+        if ($payroll['status'] == 'final') {
+            header("Location: payroll-details.php?id_payroll=" . $payroll['id']);
+            exit();
+        }
+    } else {
+        $stmtCheck->close();
+    }
+
     // Pastikan rekap_absensi ada
-    $stmtRekap = $conn->prepare("
-        SELECT id FROM rekap_absensi
-         WHERE id_anggota=? AND bulan=? AND tahun=?
-         LIMIT 1
-    ");
+    $stmtRekap = $conn->prepare("SELECT id FROM rekap_absensi WHERE id_anggota=? AND bulan=? AND tahun=? LIMIT 1");
     if (!$stmtRekap) {
         die("Prepare rekap gagal: " . $conn->error);
     }
@@ -412,12 +288,7 @@ if ($resCheck->num_rows > 0) {
         $rowRekap = $resRekap->fetch_assoc();
         $id_rekap_absensi = $rowRekap['id'];
     } else {
-        $stmtIns = $conn->prepare("
-            INSERT INTO rekap_absensi
-              (id_anggota, bulan, tahun,
-               total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit)
-            VALUES (?, ?, ?, 0,0,0,0,0)
-        ");
+        $stmtIns = $conn->prepare("INSERT INTO rekap_absensi (id_anggota, bulan, tahun, total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit) VALUES (?, ?, ?, 0,0,0,0,0)");
         $stmtIns->bind_param("iii", $id_anggota, $bulan, $tahun);
         if (!$stmtIns->execute()) {
             die("Gagal insert rekap_absensi: " . $stmtIns->error);
@@ -428,13 +299,7 @@ if ($resCheck->num_rows > 0) {
     $stmtRekap->close();
 
     // Ambil data payhead (status, remarks, dokumen)
-    $stmtPH = $conn->prepare("
-        SELECT ep.id_payhead, ph.nama_payhead, ph.jenis, ep.amount,
-               ep.status, ep.remarks, ep.support_doc_path
-          FROM employee_payheads ep
-          JOIN payheads ph ON ep.id_payhead = ph.id
-         WHERE ep.id_anggota=?
-    ");
+    $stmtPH = $conn->prepare("SELECT ep.id_payhead, ph.nama_payhead, ph.jenis, ep.amount, ep.status, ep.remarks, ep.support_doc_path FROM employee_payheads ep JOIN payheads ph ON ep.id_payhead = ph.id WHERE ep.id_anggota=?");
     if (!$stmtPH) {
         die("Prepare payheads gagal: " . $conn->error);
     }
@@ -493,10 +358,7 @@ if ($resCheck->num_rows > 0) {
     $gaji_kotor  = $gaji_pokok + $total_earnings;
     $gaji_bersih = $gaji_kotor - $total_deductions;
 
-    $masa_kerja = ((int)($karyawan['masa_kerja_tahun'] ?? 0)) 
-                . " Tahun, " 
-                . ((int)($karyawan['masa_kerja_bulan'] ?? 0)) 
-                . " Bulan";
+    $masa_kerja = ((int)($karyawan['masa_kerja_tahun'] ?? 0)) . " Tahun, " . ((int)($karyawan['masa_kerja_bulan'] ?? 0)) . " Bulan";
 
     $namaKaryawan = $karyawan['nama'] ?? '';
     $noRek        = $karyawan['no_rekening'] ?? '';
@@ -504,7 +366,7 @@ if ($resCheck->num_rows > 0) {
 
     $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
     $log_details = "Mengakses Review Payroll untuk Karyawan ID $id_anggota pada bulan $bulan tahun $tahun.";
-    if(!add_audit_log($conn, $user_id, 'ViewPayroll', $log_details)){
+    if (!add_audit_log($conn, $user_id, 'ViewPayroll', $log_details)) {
         error_log("Gagal mencatat audit log untuk ViewPayroll ID $id_anggota.");
     }
 ?>
@@ -513,7 +375,6 @@ if ($resCheck->num_rows > 0) {
 <head>
   <meta charset="UTF-8">
   <title>Review Payroll - <?= htmlspecialchars($namaKaryawan); ?></title>
-  <!-- Sertakan AdminLTE, FontAwesome, dan AutoNumeric -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css">
   <style>
@@ -556,11 +417,10 @@ if ($resCheck->num_rows > 0) {
                         </div>
                     </div>
                     <div class="card-body">
-                        <!-- Form fields untuk review payroll (tidak dapat diubah jika hanya review) -->
+                        <!-- Form fields untuk review payroll -->
                         <div class="form-group">
                             <label for="inputName">Nama Karyawan</label>
-                            <input type="text" id="inputName" class="form-control" 
-                                   value="<?= htmlspecialchars($namaKaryawan); ?>" readonly>
+                            <input type="text" id="inputName" class="form-control" value="<?= htmlspecialchars($namaKaryawan); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="inputDescription">Catatan / Deskripsi Payroll</label>
@@ -568,38 +428,28 @@ if ($resCheck->num_rows > 0) {
                         </div>
                         <div class="form-group">
                             <label for="inputStatus">Periode Gaji</label>
-                            <input type="text" id="inputStatus" class="form-control" 
-                                   value="<?= htmlspecialchars($bulanName . ' ' . $tahun); ?>" readonly>
+                            <input type="text" id="inputStatus" class="form-control" value="<?= htmlspecialchars($bulanName . ' ' . $tahun); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="inputMasaKerja">Masa Kerja</label>
-                            <input type="text" id="inputMasaKerja" class="form-control" 
-                                   value="<?= htmlspecialchars($masa_kerja); ?>" readonly>
+                            <input type="text" id="inputMasaKerja" class="form-control" value="<?= htmlspecialchars($masa_kerja); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="inputLevelIndeks">Level Indeks</label>
-                            <input type="text" id="inputLevelIndeks" class="form-control" 
-                                   value="<?= htmlspecialchars($salary_index_level
-                                             ? $salary_index_level . ' (Rp ' 
-                                               . number_format($salary_index_amount, 2, ',', '.') . ')' 
-                                             : 'Belum ada'); ?>" 
-                                   readonly>
+                            <input type="text" id="inputLevelIndeks" class="form-control" value="<?= htmlspecialchars($salary_index_level ? $salary_index_level . ' (Rp ' . number_format($salary_index_amount, 2, ',', '.') . ')' : 'Belum ada'); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="inputNoRek">No. Rekening</label>
-                            <input type="text" id="inputNoRek" class="form-control" 
-                                   value="<?= htmlspecialchars($noRek); ?>">
+                            <input type="text" id="inputNoRek" class="form-control" value="<?= htmlspecialchars($noRek); ?>">
                         </div>
                         <div class="form-group">
                             <label for="inputTanggalPayroll">Tanggal Payroll</label>
-                            <input type="datetime-local" id="inputTanggalPayroll" class="form-control" 
-                                   value="<?= htmlspecialchars(date('Y-m-d\TH:i', strtotime($tglPayrollParam))); ?>" 
-                                   required>
+                            <input type="datetime-local" id="inputTanggalPayroll" class="form-control" value="<?= htmlspecialchars(date('Y-m-d\TH:i', strtotime($tglPayrollParam))); ?>" required>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- Kolom Kanan: Tampilkan perhitungan payroll dan detail payheads -->
+            <!-- Kolom Kanan: Perhitungan payroll & detail payheads -->
             <div class="col-md-6">
                 <div class="card card-secondary">
                     <div class="card-header">
@@ -613,23 +463,19 @@ if ($resCheck->num_rows > 0) {
                     <div class="card-body">
                         <div class="form-group">
                             <label for="inputGajiPokok">Gaji Pokok</label>
-                            <input type="text" id="inputGajiPokok" class="form-control currency-input" 
-                                   value="<?= htmlspecialchars($gaji_pokok); ?>">
+                            <input type="text" id="inputGajiPokok" class="form-control currency-input" value="<?= htmlspecialchars($gaji_pokok); ?>">
                         </div>
                         <div class="form-group">
                             <label for="inputTotalEarnings">Total Pendapatan (Payheads)</label>
-                            <input type="text" id="inputTotalEarnings" class="form-control currency-input" 
-                                   value="<?= htmlspecialchars($total_earnings); ?>" readonly>
+                            <input type="text" id="inputTotalEarnings" class="form-control currency-input" value="<?= htmlspecialchars($total_earnings); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="inputTotalDeductions">Total Potongan</label>
-                            <input type="text" id="inputTotalDeductions" class="form-control currency-input" 
-                                   value="<?= htmlspecialchars($total_deductions); ?>" readonly>
+                            <input type="text" id="inputTotalDeductions" class="form-control currency-input" value="<?= htmlspecialchars($total_deductions); ?>" readonly>
                         </div>
                         <div class="form-group">
                             <label for="inputNetSalary">Estimasi Gaji Bersih</label>
-                            <input type="text" id="inputNetSalary" class="form-control currency-input" 
-                                   value="<?= htmlspecialchars($gaji_bersih); ?>" readonly>
+                            <input type="text" id="inputNetSalary" class="form-control currency-input" value="<?= htmlspecialchars($gaji_bersih); ?>" readonly>
                         </div>
                     </div>
                 </div>
@@ -706,7 +552,6 @@ if ($resCheck->num_rows > 0) {
                 </div>
                 <!-- /.card-info -->
             </div>
-            <!-- /Kolom Kanan -->
         </div>
         <!-- Tombol Bawah -->
         <div class="row">
@@ -734,7 +579,7 @@ if ($resCheck->num_rows > 0) {
                     <input type="hidden" name="total_deductions"   id="fieldTotalDeductions" value="">
                     <input type="hidden" name="inputDescription"   id="fieldDescription"     value="">
                     <input type="hidden" name="tgl_payroll"        id="fieldTglPayroll"      value="">
-                    <input type="hidden" name="csrf_token"         value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                    <input type="hidden" name="csrf_token"         value="<?= htmlspecialchars($csrf_token); ?>">
                     
                     <button type="submit" class="btn btn-success float-right">
                         <i class="fas fa-check"></i> Proses Payroll
@@ -776,7 +621,7 @@ if ($resCheck->num_rows > 0) {
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                     <button type="submit" class="btn btn-primary">Simpan</button>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                 </div>
@@ -826,11 +671,11 @@ function initAutoNumeric() {
 $(document).ready(function() {
     initAutoNumeric();
 
-    // Recalc Gaji Bersih jika input gaji pokok berubah
-    const inputGajiPokok     = $('#inputGajiPokok');
+    // Recalculate gaji bersih jika input gaji pokok berubah
+    const inputGajiPokok = $('#inputGajiPokok');
     const inputTotalEarnings = $('#inputTotalEarnings');
     const inputTotalDeductions = $('#inputTotalDeductions');
-    const inputNetSalary     = $('#inputNetSalary');
+    const inputNetSalary = $('#inputNetSalary');
 
     function recalcNetSalary() {
         const gp = parseFloat(AutoNumeric.getAutoNumericElement(inputGajiPokok[0]).getNumber()) || 0;
@@ -853,8 +698,8 @@ $(document).ready(function() {
     // Edit Payhead
     $('.btnEditPayhead').on('click', function() {
         const payheadId = $(this).data('idpayhead');
-        const amount    = $(this).data('amount');
-        const jenis     = $(this).data('jenis');
+        const amount = $(this).data('amount');
+        const jenis = $(this).data('jenis');
         $('#edit_idpayhead').val(payheadId);
         $('#edit_amount').val(amount);
         $('#edit_jenis').val(jenis.charAt(0).toUpperCase() + jenis.slice(1));

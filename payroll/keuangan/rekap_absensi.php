@@ -1,53 +1,22 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/rekap_absensi.php (fix)
+// File: /payroll_absensi_v2/payroll/keuangan/rekap_absensi.php
 
 // =========================
-// 1. Pengaturan Keamanan
+// 1. Inisialisasi Session & Pengecekan Role
 // =========================
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses via JavaScript
-    'samesite' => 'Strict'
-]);
+session_start();
 
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../koneksi.php';
 
-start_session_safe();
-init_error_handling();
-generate_csrf_token();
-
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
+// Cek role: hanya pengguna dengan role "keuangan" atau "superadmin" yang diizinkan
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
     header("Location: /payroll_absensi_v2/login.php");
     exit();
 }
 
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
-
-if (ob_get_length()) ob_end_clean();
-
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+if (ob_get_length()) {
+    ob_end_clean();
 }
 
 // =========================
@@ -55,11 +24,7 @@ if (!isset($_SESSION['csrf_token'])) {
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Verifikasi token CSRF
-        $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-        verify_csrf_token($csrf_token);
-
-        // Ambil case dan bersihkan input
+        // Tidak ada verifikasi CSRF token
         $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
 
         switch ($case) {
@@ -171,9 +136,9 @@ function LoadingRekap($conn) {
         // Fungsi sederhana untuk konversi integer bulan ke nama bulan (Indonesia)
         $bulanText = function($m) {
             $namaBulan = [
-                1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April',
-                5=>'Mei', 6=>'Juni', 7=>'Juli', 8=>'Agustus',
-                9=>'September', 10=>'Oktober', 11=>'November', 12=>'Desember'
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
             ];
             return isset($namaBulan[$m]) ? $namaBulan[$m] : 'Tidak Diketahui';
         };
@@ -346,17 +311,17 @@ function DeleteRekap($conn) {
     <title>Manajemen Rekap Absensi</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- DataTables CSS untuk Bootstrap 5 -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
         /* Penyesuaian ukuran font, padding, dan warna tabel */
         #rekapTable.table-sm th,
         #rekapTable.table-sm td {
@@ -513,13 +478,10 @@ function DeleteRekap($conn) {
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="rekapModalLabel">Tambah Rekap Absensi</h5>
-                        <!-- Gunakan btn-close untuk Bootstrap 5 -->
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
-                        <!-- Sertakan CSRF Token -->
-                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                        <!-- Hidden ID untuk Edit -->
+                        <!-- Tidak ada input hidden untuk CSRF token -->
                         <input type="hidden" id="rekap_id" name="id">
 
                         <div class="form-group">
@@ -533,9 +495,9 @@ function DeleteRekap($conn) {
                                 <?php
                                 function bulanIntToNameSimple($bulan) {
                                     $namaBulan = [
-                                        1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April',
-                                        5=>'Mei', 6=>'Juni', 7=>'Juli', 8=>'Agustus',
-                                        9=>'September', 10=>'Oktober', 11=>'November', 12=>'Desember'
+                                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
                                     ];
                                     return isset($namaBulan[$bulan]) ? $namaBulan[$bulan] : 'Invalid';
                                 }
@@ -571,7 +533,6 @@ function DeleteRekap($conn) {
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <!-- Gunakan data-bs-dismiss untuk Bootstrap 5 -->
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                         <button type="submit" class="btn btn-primary" id="saveRekap">Simpan</button>
                     </div>
@@ -591,8 +552,7 @@ function DeleteRekap($conn) {
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
               <div class="modal-body">
-                  <!-- Sertakan CSRF Token -->
-                  <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                  <!-- Tidak ada input hidden untuk CSRF token -->
                   <input type="hidden" id="delete_id" name="id">
                   <p>Apakah Anda yakin ingin menghapus rekap absensi ini?</p>
               </div>
@@ -614,32 +574,24 @@ function DeleteRekap($conn) {
     </div>
 
     <!-- JS Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- Gunakan DataTables JS untuk Bootstrap 5 -->
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script nonce="<?php echo $nonce; ?>">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
+    <script>
     $(document).ready(function() {
-        // Inisialisasi tooltip Bootstrap 5 (gunakan data-bs-toggle)
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-            new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-        var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
-
-        // Inisialisasi DataTables untuk Rekap Absensi
+        // CSRF token tidak lagi digunakan
         var rekapTable = $('#rekapTable').DataTable({
             processing: true,
             serverSide: true,
@@ -648,7 +600,6 @@ function DeleteRekap($conn) {
                 type: 'POST',
                 data: function(d){
                     d.case = 'LoadingRekap';
-                    d.csrf_token = csrfToken;
                 },
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -690,7 +641,6 @@ function DeleteRekap($conn) {
         // EVENT: Submit Form Add/Edit Rekap
         $('#rekapForm').on('submit', function(e){
             e.preventDefault();
-            var formData = $(this).serialize();
             var caseType = $('#rekap_id').val() ? 'EditRekap' : 'AddRekap';
 
             $.ajax({
@@ -698,7 +648,6 @@ function DeleteRekap($conn) {
                 type: 'POST',
                 data: { 
                     case: caseType, 
-                    csrf_token: csrfToken,
                     id: $('#rekap_id').val(),
                     id_anggota: $('#id_anggota').val(),
                     bulan: $('#bulan').val(),
@@ -730,13 +679,11 @@ function DeleteRekap($conn) {
         // EVENT: Edit Rekap
         $('#rekapTable tbody').on('click', '.btnEdit', function(){
             var id = $(this).data('id');
-            // Ambil data rekap_absensi berdasarkan ID melalui AJAX
             $.ajax({
                 url: 'rekap_absensi.php?ajax=1',
                 type: 'POST',
                 data: { 
                     case: 'LoadingRekap', 
-                    csrf_token: csrfToken,
                     start: 0,
                     length: 1,
                     search: { value: id }
@@ -748,7 +695,6 @@ function DeleteRekap($conn) {
                         if(data){
                             $('#rekap_id').val(data.id);
                             $('#id_anggota').val(data.id_anggota);
-                            // Konversi nama bulan ke integer menggunakan fungsi getBulanInt()
                             $('#bulan').val(getBulanInt(data.bulan));
                             $('#tahun').val(data.tahun);
                             $('#total_hadir').val(data.total_hadir);
@@ -793,7 +739,6 @@ function DeleteRekap($conn) {
                 type: 'POST',
                 data: { 
                     case: 'DeleteRekap', 
-                    csrf_token: csrfToken,
                     id: id 
                 },
                 dataType: 'json',

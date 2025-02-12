@@ -2,35 +2,10 @@
 // File: /payroll_absensi_v2/payroll/keuangan/payroll_history.php
 
 // =========================
-// 1. Pengaturan Keamanan
+// 1. Inisialisasi Session & Pengecekan Role
 // =========================
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses via JS
-    'samesite' => 'Strict'
-]);
 session_start();
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://code.jquery.com https://cdn.jsdelivr.net https://cdn.datatables.net https://cdnjs.cloudflare.com 'nonce-$nonce'; 
-    style-src 'self' https://cdn.jsdelivr.net https://cdn.datatables.net https://cdnjs.cloudflare.com 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
+// Tidak lagi dibuat CSRF token dan nonce
 
 // Fungsi untuk mengirim response JSON
 function send_response($code, $result) {
@@ -53,7 +28,7 @@ require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
 // =========================
-// 2. Sanitasi Input & Helper
+// 2. Sanitasi Input & Fungsi Helper
 // =========================
 function bersihkan_input($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
@@ -73,10 +48,7 @@ function bulanIntToName($bulan) {
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-        if (empty($csrf_token) || !hash_equals($_SESSION['csrf_token'], $csrf_token)) {
-            send_response(403, 'Token CSRF tidak valid.');
-        }
+        // Tidak ada pengecekan CSRF token
         authorize();
         $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
         switch ($case) {
@@ -96,7 +68,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // =========================
-// 4. Fungsi CRUD dan Helper
+// 4. Fungsi CRUD & Helper untuk Payroll History
 // =========================
 
 function LoadingPayrollHistory($conn) {
@@ -108,7 +80,7 @@ function LoadingPayrollHistory($conn) {
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
-    // Perubahan: Data diambil dari tabel payroll_final
+    // Data diambil dari tabel payroll_final
     $sqlBase = "
         FROM payroll_final p
         JOIN anggota_sekolah a ON p.id_anggota = a.id
@@ -264,7 +236,7 @@ function ViewPayrollDetail($conn) {
     if ($id_payroll <= 0) {
         send_response(1, 'ID Payroll tidak valid.');
     }
-    // Perubahan: Ambil data dari tabel payroll_final
+    // Ambil data dari tabel payroll_final
     $stmt = $conn->prepare("
         SELECT p.*, 
                a.uid, a.nip, a.nama, a.jenjang, a.role, a.job_title, a.status_kerja, 
@@ -341,18 +313,17 @@ function ViewPayrollDetail($conn) {
     <title>History Payroll - Payroll Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- DataTables CSS untuk Bootstrap 5 -->
-    <!-- PERBAIKAN: Ganti file DataTables Bootstrap4 ke versi Bootstrap5 -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
@@ -434,7 +405,7 @@ function ViewPayrollDetail($conn) {
                         </div>
                         <div class="card-body">
                             <form id="filterPayrollForm" class="row gy-2 gx-3 align-items-center">
-                                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                                <!-- Tidak ada input hidden untuk CSRF token -->
                                 <div class="col-auto">
                                     <label for="filterJenjang" class="form-label"><strong>Jenjang:</strong></label>
                                     <select class="form-select" id="filterJenjang" name="jenjang">
@@ -457,7 +428,7 @@ function ViewPayrollDetail($conn) {
                                     <select class="form-select" id="filterBulan" name="bulan">
                                         <option value="">Semua Bulan</option>
                                         <?php
-                                            for ($m=1; $m<=12; $m++) {
+                                            for ($m = 1; $m <= 12; $m++) {
                                                 echo "<option value=\"$m\">" . bulanIntToName($m) . "</option>";
                                             }
                                         ?>
@@ -567,31 +538,28 @@ function ViewPayrollDetail($conn) {
     </div>
 
     <!-- JS Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- PERBAIKAN: Gunakan DataTables JS untuk Bootstrap 5 -->
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script nonce="<?php echo $nonce; ?>">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
+    <script>
     $(document).ready(function() {
         // Inisialisasi tooltip Bootstrap 5
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function(tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
-        var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
-
         // Inisialisasi DataTable untuk Payroll History
         var payrollTable = $('#payrollTable').DataTable({
             processing: true,
@@ -601,7 +569,6 @@ function ViewPayrollDetail($conn) {
                 type: "POST",
                 data: function(d) {
                     d.case = 'LoadingPayrollHistory';
-                    d.csrf_token = csrfToken;
                     d.jenjang = $('#filterJenjang').val();
                     d.bulan   = $('#filterBulan').val();
                     d.tahun   = $('#filterTahun').val();
@@ -680,8 +647,7 @@ function ViewPayrollDetail($conn) {
                     type: "POST",
                     data: {
                         case: 'ViewPayrollDetail',
-                        id_payroll: idPayroll,
-                        csrf_token: csrfToken
+                        id_payroll: idPayroll
                     },
                     beforeSend: function() {
                         $('#detailPayrollContent').html('<p>Memuat detail payroll...</p>');

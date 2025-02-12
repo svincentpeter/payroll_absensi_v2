@@ -60,6 +60,14 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     echo '</li>';
 }
 ?>
+<style>
+    .sidebar .nav-item.active > .nav-link,
+.sidebar .nav-item.active > .nav-link:hover {
+    background-color: #4e73df; /* Warna primer SB Admin 2 */
+    color: #fff;
+}
+
+</style>
 <!-- Sidebar -->
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
