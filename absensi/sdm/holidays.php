@@ -4,8 +4,6 @@
 // =========================
 // 1. Pengaturan Keamanan & Session
 // =========================
-
-// Atur session cookie parameters sebelum session_start()
 session_set_cookie_params([
     'lifetime' => 0,
     'path'     => '/',
@@ -197,12 +195,11 @@ function LoadingHolidays($conn) {
 
     $data = [];
     $no = $start + 1;
-
     while ($row = $dataQuery->fetch_assoc()) {
         // Tampilkan jenis hari libur dengan badge dan ikon
         $jenis = ($row['holiday_type'] == 'wajib') 
-                    ? '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Wajib</span>' 
-                    : '<span class="badge badge-info"><i class="fas fa-info-circle"></i> Opsional</span>';
+                    ? '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Wajib</span>' 
+                    : '<span class="badge bg-info"><i class="fas fa-info-circle"></i> Opsional</span>';
         // Tombol aksi dengan ikon (Edit dan Hapus)
         $aksi = '
             <button class="btn btn-sm btn-warning btn-edit" data-id="' . htmlspecialchars($row['holiday_id']) . '" title="Edit"><i class="fas fa-edit"></i></button>
@@ -338,8 +335,8 @@ function UpdateHoliday($conn) {
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
     }
+    // Jika tipe data holiday_type adalah string, gunakan "sssii" jika holiday_id adalah integer
     $stmt->bind_param("sssii", $nama, $deskripsi, $tanggal, $jenis, $id);
-    // Jika tipe data holiday_type adalah string, gunakan "ssssi" sesuai kebutuhan
     if ($stmt->execute()) {
         $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         $details_log = "Mengupdate Hari Libur ID $id: Judul='$nama', Tanggal='$tanggal', Jenis='$jenis'.";
@@ -399,12 +396,13 @@ function DeleteHoliday($conn) {
     <meta charset="UTF-8">
     <title>Manajemen Hari Libur - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap CSS -->
+    <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-<!-- SB Admin 2 CSS -->
+    <!-- SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
     <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- Disarankan menggunakan DataTables versi Bootstrap 5 jika tersedia -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
     <!-- SweetAlert2 CSS -->
@@ -461,7 +459,6 @@ function DeleteHoliday($conn) {
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
@@ -473,8 +470,8 @@ function DeleteHoliday($conn) {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
@@ -488,7 +485,7 @@ function DeleteHoliday($conn) {
                         <div class="card-body">
                             <form id="filterForm" class="form-inline">
                                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                                <button type="button" class="btn btn-primary mr-2" id="btnApplyFilter" title="Terapkan Filter">
+                                <button type="button" class="btn btn-primary me-2" id="btnApplyFilter" title="Terapkan Filter">
                                     <i class="fas fa-filter"></i> Filter
                                 </button>
                                 <button type="button" class="btn btn-secondary" id="btnResetFilter" title="Reset Filter">
@@ -498,11 +495,6 @@ function DeleteHoliday($conn) {
                         </div>
                     </div>
 
-                    <!-- Tombol Tambah Hari Libur -->
-                    <div class="mb-3">
-                        
-                    </div>
-
                     <!-- Alert Container -->
                     <div id="alert-container"></div>
 
@@ -510,9 +502,9 @@ function DeleteHoliday($conn) {
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
                             <h6 class="m-0 font-weight-bold text-white"><i class="fas fa-list"></i> Daftar Hari Libur</h6>
-                            <button type="button" class="btn btn-primary btn-success" data-toggle="modal" data-target="#addHolidayModal" title="Tambah Hari Libur">
-                            <i class="fas fa-plus-circle"></i> Tambah Hari Libur
-                        </button>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addHolidayModal" title="Tambah Hari Libur">
+                                <i class="fas fa-plus-circle"></i> Tambah Hari Libur
+                            </button>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -553,7 +545,7 @@ function DeleteHoliday($conn) {
     <!-- Loading Spinner -->
     <div id="loadingSpinner">
         <div class="spinner-border text-primary" role="status">
-            <span class="sr-only">Loading...</span>
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
 
@@ -564,9 +556,7 @@ function DeleteHoliday($conn) {
                 <form id="add-holiday-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="addHolidayModalLabel"><i class="fas fa-plus-circle"></i> Tambah Hari Libur</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup" title="Tutup Modal">
-                            <span>&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" title="Tutup Modal"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="AddHoliday">
@@ -597,7 +587,7 @@ function DeleteHoliday($conn) {
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal" title="Tutup Modal">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" title="Tutup Modal">
                             <i class="fas fa-times"></i> Tutup
                         </button>
                         <button type="submit" class="btn btn-primary" title="Simpan Data">
@@ -617,9 +607,7 @@ function DeleteHoliday($conn) {
                 <form id="edit-holiday-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="editHolidayModalLabel"><i class="fas fa-edit"></i> Edit Hari Libur</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup" title="Tutup Modal">
-                            <span>&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" title="Tutup Modal"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="UpdateHoliday">
@@ -651,7 +639,7 @@ function DeleteHoliday($conn) {
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal" title="Tutup Modal">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" title="Tutup Modal">
                             <i class="fas fa-times"></i> Tutup
                         </button>
                         <button type="submit" class="btn btn-primary" title="Update Data">
@@ -669,9 +657,9 @@ function DeleteHoliday($conn) {
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
     <!-- Bootstrap Bundle (termasuk Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-<!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- DataTables JS (Bootstrap 5) -->
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <!-- Bootstrap Datepicker JS -->
@@ -680,8 +668,11 @@ function DeleteHoliday($conn) {
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
-        // Inisialisasi tooltip
-        $('[data-toggle="tooltip"]').tooltip();
+        // Inisialisasi tooltip menggunakan Bootstrap 5 (gunakan data-bs-toggle)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
 
         // Inisialisasi SweetAlert2 Toast
         const Toast = Swal.mixin({
@@ -740,7 +731,7 @@ function DeleteHoliday($conn) {
             autoWidth: false
         });
 
-        // Filter (contoh, jika diperlukan)
+        // Filter
         $('#btnApplyFilter').on('click', function(){
             $.ajax({
                 url: 'holidays.php?ajax=1',
@@ -753,7 +744,7 @@ function DeleteHoliday($conn) {
                 },
                 success: function(response){
                     if(response.code === 0){
-                        showToast('Filter berhasil diterapkan.');
+                        showToast('Filter berhasil diterapkan.', 'success');
                     }
                 },
                 error: function(){
@@ -775,7 +766,7 @@ function DeleteHoliday($conn) {
                 },
                 success: function(response){
                     if(response.code === 0){
-                        showToast('Filter berhasil direset.');
+                        showToast('Filter berhasil direset.', 'success');
                     }
                 },
                 error: function(){

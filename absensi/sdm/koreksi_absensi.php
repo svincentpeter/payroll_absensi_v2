@@ -4,7 +4,6 @@
 // =========================
 // 1. Pengaturan Keamanan, Session, dan Koneksi
 // =========================
-
 session_set_cookie_params([
     'lifetime' => 0, // Berlaku selama browser dibuka
     'path'     => '/',
@@ -34,7 +33,7 @@ if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
 // Header HSTS
 header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
 
-// Susun Content Security Policy (CSP) tanpa newline
+// Susun Content Security Policy (tanpa newline)
 $csp = "default-src 'self'; " .
        "script-src 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; " .
        "style-src 'self' https://stackpath.bootstrapcdn.com https://fonts.googleapis.com https://cdn.datatables.net 'nonce-$nonce'; " .
@@ -66,7 +65,6 @@ function get_nama_karyawan($conn) {
     return $nama;
 }
 
-// Fungsi untuk menghapus data absensi
 function delete_absensi($conn, $id_absensi) {
     $sqlDelete = "DELETE FROM absensi WHERE id = ?";
     $stmt = mysqli_prepare($conn, $sqlDelete);
@@ -132,9 +130,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: koreksi_absensi.php");
                 exit;
             }
-            // Validasi format waktu (HH:MM) untuk field yang ada nilainya
-            $valid_time_fields = ['jam_masuk','scan_masuk','jam_pulang','scan_pulang','scan_istirahat_1','scan_istirahat_2'];
-            foreach ($valid_time_fields as $field) {
+            // Validasi waktu (format HH:MM) untuk field yang ada isinya
+            $time_fields = ['jam_masuk','scan_masuk','jam_pulang','scan_pulang','scan_istirahat_1','scan_istirahat_2'];
+            foreach ($time_fields as $field) {
                 if (!empty($_POST[$field])) {
                     $dt = DateTime::createFromFormat('H:i', $_POST[$field]);
                     if (!$dt || $dt->format('H:i') !== $_POST[$field]) {
@@ -274,7 +272,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Proses Server-side DataTables (Ajax)
     elseif (isset($_POST['draw'])) {
-        // Tentukan kolom-kolom yang akan diambil
         $columns = [
             'a.id',
             'a.tanggal',
@@ -296,11 +293,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'a.jenis_absensi'
         ];
 
-        // Filter dari parameter POST
         $bulan      = isset($_POST['bulan']) ? mysqli_real_escape_string($conn, $_POST['bulan']) : '';
         $departemen = isset($_POST['departemen']) ? mysqli_real_escape_string($conn, $_POST['departemen']) : '';
 
-        // Query dasar
         $sql = "FROM absensi a 
                 LEFT JOIN anggota_sekolah g ON a.nip = g.nip
                 LEFT JOIN holidays h ON a.tanggal = h.holiday_date
@@ -312,32 +307,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql .= " AND UPPER(a.departemen) = UPPER('$departemen') ";
         }
 
-        // Total data
         $resTotal = mysqli_query($conn, "SELECT COUNT(*) as total $sql");
         $totalData = mysqli_fetch_assoc($resTotal)['total'];
 
-        // Pencarian global
         $searchValue = $_POST['search']['value'] ?? '';
         if (!empty($searchValue)) {
             $searchValue = mysqli_real_escape_string($conn, $searchValue);
             $sql .= " AND (a.nama LIKE '%$searchValue%' OR a.nip LIKE '%$searchValue%' OR a.departemen LIKE '%$searchValue%') ";
         }
-        // Total data setelah filter
         $resTotalFiltered = mysqli_query($conn, "SELECT COUNT(*) as total $sql");
         $totalFiltered = mysqli_fetch_assoc($resTotalFiltered)['total'];
 
-        // Sorting
         $orderColumnIndex = $_POST['order'][0]['column'] ?? 0;
         $orderColumn = $columns[$orderColumnIndex] ?? $columns[0];
         $orderDir = in_array($_POST['order'][0]['dir'] ?? 'asc', ['asc', 'desc']) ? $_POST['order'][0]['dir'] : 'asc';
         $sql .= " ORDER BY $orderColumn $orderDir ";
 
-        // Paging
         $start  = intval($_POST['start'] ?? 0);
         $length = intval($_POST['length'] ?? 10);
         $sql .= " LIMIT $start, $length ";
 
-        // Ambil data
         $query = "SELECT " . implode(", ", $columns) . " $sql";
         $resData = mysqli_query($conn, $query);
 
@@ -349,8 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $jamPulang = !empty($row['jam_pulang']) ? date('H:i', strtotime($row['jam_pulang'])) : '-';
             $scanPulang= !empty($row['scan_pulang']) ? date('H:i', strtotime($row['scan_pulang'])) : '-';
 
-            // Tombol aksi untuk edit dan delete
-            $aksi = '<button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#modalEdit" 
+            $aksi = '<button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEdit" 
                         data-id="'.$row['id'].'"
                         data-tanggal="'.bersihkan_input($row['tanggal']).'"
                         data-jadwal="'.bersihkan_input($row['jadwal']).'"
@@ -372,7 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         title="Edit Absensi">
                         <i class="fas fa-edit"></i> Edit
                      </button>
-                     <button class="btn btn-danger btn-sm ml-2" data-toggle="modal" data-target="#modalDelete" 
+                     <button class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#modalDelete" 
                         data-id="'.$row['id'].'"
                         data-nama="'.bersihkan_input($row['nama']).'"
                         data-tanggal="'.bersihkan_input($row['tanggal']).'"
@@ -393,7 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nestedData[] = bersihkan_input($row['lembur']);
             $nestedData[] = bersihkan_input($jamMasuk);
             $nestedData[] = bersihkan_input($scanMasuk);
-            $nestedData[] = $row['terlambat'] ? '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Ya</span>' : '<span class="badge badge-success"><i class="fas fa-check"></i> Tidak</span>';
+            $nestedData[] = $row['terlambat'] ? '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Ya</span>' : '<span class="badge bg-success"><i class="fas fa-check"></i> Tidak</span>';
             $nestedData[] = ($row['scan_istirahat_1']) ? bersihkan_input($row['scan_istirahat_1']) : '-';
             $nestedData[] = ($row['scan_istirahat_2']) ? bersihkan_input($row['scan_istirahat_2']) : '-';
             $nestedData[] = bersihkan_input($jamPulang);
@@ -408,7 +396,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 case 'libur':  $badge = 'badge-success'; break;
                 case 'lembur': $badge = 'badge-info'; break;
             }
-            $nestedData[] = '<span class="badge '.$badge.'"><i class="fas fa-check-circle"></i> '.ucfirst($jenis).'</span>';
+            $nestedData[] = '<span class="badge ' . $badge . '"><i class="fas fa-check-circle"></i> ' . ucfirst($jenis) . '</span>';
             $nestedData[] = $aksi;
             $data[] = $nestedData;
         }
@@ -442,11 +430,11 @@ $namaKaryawan = get_nama_karyawan($conn);
     <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <!-- Bootstrap CSS -->
+    <!-- Bootstrap 5.3.3 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-<!-- SB Admin 2 CSS -->
+    <!-- SB Admin 2 CSS -->
     <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <!-- DataTables CSS -->
+    <!-- DataTables CSS (Bootstrap 4) -->
     <link href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <link href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
@@ -455,11 +443,6 @@ $namaKaryawan = get_nama_karyawan($conn);
     <!-- jQuery UI CSS -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" nonce="<?php echo $nonce; ?>">
     <style nonce="<?php echo $nonce; ?>">
-        .fc-holiday {
-            background-color: #ffcccc !important;
-            border-color: #ff6666 !important;
-            color: #000 !important;
-        }
         .no-column {
             width: 70px;
             text-align: center;
@@ -489,11 +472,9 @@ $namaKaryawan = get_nama_karyawan($conn);
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
-
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
@@ -501,29 +482,24 @@ $namaKaryawan = get_nama_karyawan($conn);
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
-
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-edit"></i> Koreksi Absensi</h1>
                     
-                    <!-- Notifikasi (jika ada) -->
+                    <!-- Notifikasi -->
                     <?php if (isset($_SESSION['notif_success'])): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <i class="fas fa-check-circle"></i> <?php echo bersihkan_input($_SESSION['notif_success']); ?>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         <?php unset($_SESSION['notif_success']); ?>
                     <?php endif; ?>
                     <?php if (isset($_SESSION['notif_error'])): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="fas fa-times-circle"></i> <?php echo bersihkan_input($_SESSION['notif_error']); ?>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         <?php unset($_SESSION['notif_error']); ?>
                     <?php endif; ?>
@@ -531,22 +507,22 @@ $namaKaryawan = get_nama_karyawan($conn);
                     <!-- Filter Form -->
                     <div class="d-flex justify-content-between mb-3">
                         <form method="GET" class="form-inline">
-                            <label class="mr-2" for="bulan"><i class="fas fa-calendar-alt"></i> Pilih Bulan:</label>
-                            <input type="month" name="bulan" id="bulan" class="form-control mr-3" value="<?php echo bersihkan_input($bulan); ?>">
-                            <label class="mr-2" for="departemen"><i class="fas fa-building"></i> Departemen:</label>
-                            <input type="text" name="departemen" id="departemen" class="form-control mr-3" placeholder="Masukkan departemen" value="<?php echo bersihkan_input($departemen); ?>">
+                            <label class="me-2" for="bulan"><i class="fas fa-calendar-alt"></i> Pilih Bulan:</label>
+                            <input type="month" name="bulan" id="bulan" class="form-control me-3" value="<?php echo bersihkan_input($bulan); ?>">
+                            <label class="me-2" for="departemen"><i class="fas fa-building"></i> Departemen:</label>
+                            <input type="text" name="departemen" id="departemen" class="form-control me-3" placeholder="Masukkan departemen" value="<?php echo bersihkan_input($departemen); ?>">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search"></i> Tampilkan
                             </button>
                         </form>
                     </div>
 
-                    <!-- Kalender Hari Libur (optional) -->
+                    <!-- Kalender (opsional) -->
                     <div class="mb-4" id="calendar-container">
                         <div id="calendar"></div>
                     </div>
 
-                    <!-- Tabel Absensi dengan Server-side Processing -->
+                    <!-- Tabel Absensi (server-side processing) -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
                             <h6 class="m-0 font-weight-bold"><i class="fas fa-table"></i> Daftar Absensi</h6>
@@ -581,8 +557,8 @@ $namaKaryawan = get_nama_karyawan($conn);
                     </div>
 
                     <!-- Modal Edit Absensi -->
-                    <div class="modal fade" id="modalEdit" tabindex="-1" role="dialog" aria-labelledby="modalEditLabel" aria-hidden="true">
-                      <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal fade" id="modalEdit" tabindex="-1" aria-labelledby="modalEditLabel" aria-hidden="true">
+                      <div class="modal-dialog modal-lg">
                         <form method="POST" class="modal-content">
                           <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                           <input type="hidden" name="action" value="update">
@@ -591,69 +567,67 @@ $namaKaryawan = get_nama_karyawan($conn);
                           <input type="hidden" name="bulan" value="<?php echo htmlspecialchars($bulan); ?>">
                           <div class="modal-header">
                             <h5 class="modal-title" id="modalEditLabel"><i class="fas fa-edit"></i> Edit Absensi</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" title="Tutup Modal">
-                              <span aria-hidden="true">&times;</span>
-                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Tutup Modal"></button>
                           </div>
                           <div class="modal-body">
                             <!-- Form Update -->
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_tanggal"><i class="fas fa-calendar-alt"></i> Tanggal</label>
                                   <input type="date" name="tanggal" id="edit_tanggal" class="form-control" required>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_jadwal"><i class="fas fa-clock"></i> Jadwal</label>
                                   <input type="text" name="jadwal" id="edit_jadwal" class="form-control" placeholder="Misal: Guru/Karyawan" autocomplete="off">
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_jam_kerja"><i class="fas fa-business-time"></i> Jam Kerja</label>
                                   <input type="text" name="jam_kerja" id="edit_jam_kerja" class="form-control" placeholder="08:00-16:00" autocomplete="off">
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_valid"><i class="fas fa-check"></i> Valid</label>
                                   <input type="number" name="valid" id="edit_valid" class="form-control" min="0" max="1" placeholder="0 atau 1">
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_pin"><i class="fas fa-key"></i> PIN</label>
                                   <input type="text" name="pin" id="edit_pin" class="form-control" placeholder="Masukkan PIN" autocomplete="off">
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_nip"><i class="fas fa-id-card"></i> NIP</label>
                                   <input type="text" name="nip" id="edit_nip" class="form-control" placeholder="Masukkan NIP" autocomplete="off">
                                 </div>
-                                <div class="form-group col-md-6">
+                                <div class="col-md-6 mb-3">
                                   <label for="edit_nama"><i class="fas fa-user"></i> Nama</label>
                                   <input type="text" name="nama" id="edit_nama" class="form-control autocomplete-nama" placeholder="Masukkan nama" autocomplete="off">
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-2">
+                            <div class="row">
+                                <div class="col-md-2 mb-3">
                                   <label for="edit_departemen_label"><i class="fas fa-building"></i> Departemen</label>
                                   <input type="text" id="edit_departemen_label" class="form-control" disabled>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="col-md-2 mb-3">
                                   <label for="edit_lembur"><i class="fas fa-hourglass-half"></i> Lembur</label>
                                   <input type="number" name="lembur" id="edit_lembur" class="form-control" placeholder="0/1" min="0" max="1" autocomplete="off">
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="col-md-2 mb-3">
                                   <label for="edit_jam_masuk"><i class="fas fa-sign-in-alt"></i> Jam Masuk</label>
                                   <input type="time" name="jam_masuk" id="edit_jam_masuk" class="form-control">
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="col-md-2 mb-3">
                                   <label for="edit_scan_masuk"><i class="fas fa-fingerprint"></i> Scan Masuk</label>
                                   <input type="time" name="scan_masuk" id="edit_scan_masuk" class="form-control">
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="col-md-2 mb-3">
                                   <label for="edit_terlambat"><i class="fas fa-exclamation-triangle"></i> Terlambat</label>
                                   <div class="form-check">
                                       <input class="form-check-input" type="checkbox" name="terlambat" id="edit_terlambat" value="1">
                                       <label class="form-check-label" for="edit_terlambat">Ya</label>
                                   </div>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="col-md-2 mb-3">
                                   <label for="edit_jenis_absensi"><i class="fas fa-info-circle"></i> Absensi</label>
                                   <select name="jenis_absensi" id="edit_jenis_absensi" class="form-control">
                                       <option value="Normal">Normal</option>
@@ -666,27 +640,27 @@ $namaKaryawan = get_nama_karyawan($conn);
                                   </select>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-3">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_scan_istirahat_1"><i class="fas fa-utensils"></i> Scan Istirahat 1</label>
                                   <input type="time" name="scan_istirahat_1" id="edit_scan_istirahat_1" class="form-control">
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_scan_istirahat_2"><i class="fas fa-utensils"></i> Scan Istirahat 2</label>
                                   <input type="time" name="scan_istirahat_2" id="edit_scan_istirahat_2" class="form-control">
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_jam_pulang"><i class="fas fa-sign-out-alt"></i> Jam Pulang</label>
                                   <input type="time" name="jam_pulang" id="edit_jam_pulang" class="form-control">
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="col-md-3 mb-3">
                                   <label for="edit_scan_pulang"><i class="fas fa-fingerprint"></i> Scan Pulang</label>
                                   <input type="time" name="scan_pulang" id="edit_scan_pulang" class="form-control">
                                 </div>
                             </div>
                           </div>
                           <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal" title="Batal"><i class="fas fa-times"></i> Batal</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" title="Batal"><i class="fas fa-times"></i> Batal</button>
                             <button type="submit" class="btn btn-primary" title="Simpan Perubahan">
                                 <i class="fas fa-save"></i> Simpan Perubahan
                                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
@@ -697,8 +671,8 @@ $namaKaryawan = get_nama_karyawan($conn);
                     </div>
 
                     <!-- Modal Delete Absensi -->
-                    <div class="modal fade" id="modalDelete" tabindex="-1" role="dialog" aria-labelledby="modalDeleteLabel" aria-hidden="true">
-                      <div class="modal-dialog" role="document">
+                    <div class="modal fade" id="modalDelete" tabindex="-1" aria-labelledby="modalDeleteLabel" aria-hidden="true">
+                      <div class="modal-dialog">
                         <form method="POST" class="modal-content">
                           <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                           <input type="hidden" name="action" value="delete">
@@ -707,15 +681,13 @@ $namaKaryawan = get_nama_karyawan($conn);
                           <input type="hidden" name="bulan" value="<?php echo htmlspecialchars($bulan); ?>">
                           <div class="modal-header">
                             <h5 class="modal-title" id="modalDeleteLabel"><i class="fas fa-trash-alt"></i> Hapus Absensi</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close" title="Tutup Modal">
-                              <span aria-hidden="true">&times;</span>
-                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Tutup Modal"></button>
                           </div>
                           <div class="modal-body">
                             <p>Apakah Anda yakin ingin menghapus data absensi untuk <strong id="delete_nama"></strong> pada tanggal <strong id="delete_tanggal"></strong>?</p>
                           </div>
                           <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal" title="Batal"><i class="fas fa-times"></i> Batal</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" title="Batal"><i class="fas fa-times"></i> Batal</button>
                             <button type="submit" class="btn btn-danger" title="Hapus"><i class="fas fa-trash"></i> Hapus</button>
                           </div>
                         </form>
@@ -741,16 +713,18 @@ $namaKaryawan = get_nama_karyawan($conn);
     <!-- End Page Wrapper -->
 
     <!-- JavaScript Dependencies -->
-    <!-- jQuery -->
+    <!-- jQuery & jQuery UI -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- DataTables -->
+    <!-- Bootstrap Bundle (dengan Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- DataTables JS (Bootstrap 4) -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- DataTables Buttons & Responsive -->
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
@@ -758,12 +732,41 @@ $namaKaryawan = get_nama_karyawan($conn);
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.colVis.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- FullCalendar -->
+    <!-- FullCalendar & Moment.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- SB Admin 2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
-        // Inisialisasi DataTables dengan server-side processing
+        // Inisialisasi tooltip dengan Bootstrap 5
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Inisialisasi SweetAlert2 Toast
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+        function showToast(message, icon = 'success') {
+            Toast.fire({
+                icon: icon,
+                title: message
+            });
+        }
+
+        var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
+
+        // Inisialisasi DataTable untuk Absensi (server-side processing)
         var table = $('#absensiTable').DataTable({
             processing: true,
             serverSide: true,
@@ -794,13 +797,28 @@ $namaKaryawan = get_nama_karyawan($conn);
             ]
         });
 
-        // Tooltip
-        $('[data-toggle="tooltip"]').tooltip();
+        // Inisialisasi FullCalendar (opsional)
+        $('#calendar').fullCalendar({
+            header: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'month,agendaWeek,agendaDay'
+            },
+            editable: false,
+            events: [] // Tambahkan event hari libur jika diperlukan
+        });
 
-        // Modal Edit: Isi data saat modal ditampilkan
+        // Autocomplete untuk nama karyawan
+        var namaKaryawan = <?php echo json_encode($namaKaryawan); ?>;
+        $(".autocomplete-nama").autocomplete({
+            source: namaKaryawan,
+            minLength: 2
+        });
+
+        // Modal Edit: Isi data dari atribut data-* saat modal ditampilkan
         $('#modalEdit').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget); 
-            var modal  = $(this);
+            var button = $(event.relatedTarget);
+            var modal = $(this);
             modal.find('#edit_id_absensi').val(button.data('id'));
             modal.find('#edit_tanggal').val(button.data('tanggal'));
             modal.find('#edit_jadwal').val(button.data('jadwal'));
@@ -826,10 +844,10 @@ $namaKaryawan = get_nama_karyawan($conn);
             modal.find('#edit_jenis_absensi').val(button.data('jenis_absensi'));
         });
 
-        // Modal Delete: Isi data saat modal ditampilkan
+        // Modal Delete: Isi data dari atribut data-* saat modal ditampilkan
         $('#modalDelete').on('show.bs.modal', function (event) {
             var button = $(event.relatedTarget);
-            var modal  = $(this);
+            var modal = $(this);
             modal.find('#delete_id_absensi').val(button.data('id'));
             modal.find('#delete_nama').text(button.data('nama'));
             modal.find('#delete_tanggal').text(button.data('tanggal'));
@@ -843,27 +861,9 @@ $namaKaryawan = get_nama_karyawan($conn);
         // Tampilkan spinner saat form disubmit
         $('form').on('submit', function(e) {
             var $form = $(this);
-            var $btn  = $form.find('button[type="submit"]');
+            var $btn = $form.find('button[type="submit"]');
             $btn.prop('disabled', true);
             $btn.find('.spinner-border').removeClass('d-none');
-        });
-
-        // Inisialisasi FullCalendar (optional)
-        $('#calendar').fullCalendar({
-            header: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'month,agendaWeek,agendaDay'
-            },
-            editable: false,
-            events: [] // Tambahkan event hari libur jika diperlukan
-        });
-
-        // Autocomplete untuk nama karyawan
-        var namaKaryawan = <?php echo json_encode($namaKaryawan); ?>;
-        $(".autocomplete-nama").autocomplete({
-            source: namaKaryawan,
-            minLength: 2
         });
 
         // Fade out alert setelah 3 detik

@@ -19,11 +19,8 @@ $nip      = $_SESSION['nip'] ?? '';
 
 // Fungsi helper untuk menentukan apakah link aktif atau tidak.
 function isActive($menuUrl) {
-    // Dapatkan path URL halaman saat ini
     $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    // Gabungkan BASE_URL dengan URL menu agar perbandingan konsisten
     $fullMenuUrl = BASE_URL . $menuUrl;
-    // Jika halaman saat ini dimulai dengan URL menu, kembalikan 'active'
     if (strpos($currentPath, $fullMenuUrl) === 0) {
         return 'active';
     }
@@ -32,7 +29,6 @@ function isActive($menuUrl) {
 
 // Fungsi untuk menghasilkan item collapse menu (update ke Bootstrap 5)
 function renderCollapseMenu($id, $iconClass, $title, $items) {
-    // Agar variabel $role bisa digunakan di dalam fungsi
     global $role;
     
     $isAnyActive = false;
@@ -42,11 +38,9 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             break;
         }
     }
-    // Jika user dengan role keuangan dan menu ini adalah dropdown keuangan, paksa aktifkan dropdown-nya.
     if ($role === 'keuangan' && $id === 'collapseKeuangan') {
          $isAnyActive = true;
     }
-    // Jika ada item aktif, tambahkan kelas "active" pada parent <li> dan "show" pada collapse-nya.
     $activeClass  = $isAnyActive ? ' active' : '';
     $collapseShow = $isAnyActive ? ' show' : '';
 
@@ -96,16 +90,14 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     <hr class="sidebar-divider">
 
     <!-- Menu berdasarkan Peran -->
-
     <?php if ($role === 'superadmin' || $role === 'keuangan'): ?>
         <?php
-        // Dashboard Keuangan untuk Superadmin dan Keuangan
         $keuanganItems = [
             'Dashboard Keuangan'   => '/payroll/keuangan/dashboard_keuangan.php',
             'Payroll Anggota'      => '/payroll/keuangan/employees.php',
             'Payheads'             => '/payroll/keuangan/payheads.php',
             'Rekap Absensi'        => '/payroll/keuangan/rekap_absensi.php',
-            'List Payroll'        => '/payroll/keuangan/list_payroll.php',
+            'List Payroll'         => '/payroll/keuangan/list_payroll.php',
             'History Payroll'      => '/payroll/keuangan/payroll_history.php',
             'Rekap Payroll'        => '/payroll/keuangan/rekap_payroll.php',
             'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php'

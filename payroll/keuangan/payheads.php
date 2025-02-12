@@ -8,15 +8,10 @@
 // Mulai session secara standar
 session_start();
 
-// Tidak ada pengaturan cookie khusus, CSP, atau pemaksaan HTTPS
-// Tidak ada HSTS header
-// Tidak ada proteksi CSRF
-// Tidak ada validasi role
-
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
-// Tidak ada output buffering khusus
+// Hapus output buffering jika ada
 if (ob_get_length()) ob_end_clean();
 
 
@@ -35,6 +30,7 @@ function send_response($code, $result) {
     exit();
 }
 
+
 // =========================
 // 3. Menangani Permintaan AJAX
 // =========================
@@ -42,8 +38,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Debug: Log seluruh data POST (opsional)
         error_log("DEBUG: Data POST: " . print_r($_POST, true));
-
-        // Tidak ada verifikasi CSRF dan validasi role
 
         // Ambil case
         $case = isset($_POST['case']) ? trim($_POST['case']) : '';
@@ -72,6 +66,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     }
     exit();
 }
+
 
 // =========================
 // 4. Fungsi CRUD (Tanpa Audit Log dan Validasi Keamanan)
@@ -187,20 +182,20 @@ function LoadingPayheads($conn) {
                     ? '<span class="badge bg-success">Pendapatan</span>' 
                     : '<span class="badge bg-danger">Potongan</span>';
         // Tombol Aksi (dropdown dengan ikon tiga titik vertikal)
-        $aksi = "
-<div class=\"dropdown\">
-  <button class=\"btn\" type=\"button\" id=\"dropdownMenuButton_" . htmlspecialchars($row['id']) . "\" data-bs-toggle=\"dropdown\" aria-expanded=\"false\">
-    <i class=\"bi bi-three-dots-vertical\"></i>
+        $aksi = '
+<div class="dropdown">
+  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
+    <i class="bi bi-three-dots-vertical"></i>
   </button>
-  <div class=\"dropdown-menu\" aria-labelledby=\"dropdownMenuButton_" . htmlspecialchars($row['id']) . "\">
-    <a class=\"dropdown-item btn-edit\" href=\"javascript:void(0)\" data-id=\"" . htmlspecialchars($row['id']) . "\" title=\"Edit\">
-      <i class=\"fas fa-pencil-alt\"></i> Edit
+  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
+    <a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Edit">
+      <i class="fas fa-pencil-alt"></i> Edit
     </a>
-    <a class=\"dropdown-item btn-delete\" href=\"javascript:void(0)\" data-id=\"" . htmlspecialchars($row['id']) . "\" title=\"Hapus\">
-      <i class=\"fas fa-trash-alt\"></i> Hapus
+    <a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Hapus">
+      <i class="fas fa-trash-alt"></i> Hapus
     </a>
   </div>
-</div>";
+</div>';
 
         $data[] = [
             "no" => $no++,
@@ -402,10 +397,10 @@ function DeletePayhead($conn) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.2/css/buttons.bootstrap4.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css">
+    <!-- DataTables CSS untuk Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -472,7 +467,7 @@ function DeletePayhead($conn) {
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-        <!-- Sidebar (tidak ada sistem keamanan, jadi Anda bisa menghapus include jika tidak diperlukan) -->
+        <!-- Sidebar (tanpa sistem keamanan, jadi bisa digunakan apa adanya) -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
 
@@ -498,9 +493,9 @@ function DeletePayhead($conn) {
                             <strong>Filter Payheads</strong>
                         </div>
                         <div class="card-body">
-                            <form id="filterForm" class="form-inline">
-                                <div class="form-group mb-2 mr-3">
-                                    <label for="filterJenisPayhead" class="mr-2"><strong>Jenis Payhead:</strong></label>
+                            <form id="filterForm" class="row align-items-center">
+                                <div class="form-group mb-2 me-3">
+                                    <label for="filterJenisPayhead" class="me-2"><strong>Jenis Payhead:</strong></label>
                                     <select class="form-control" id="filterJenisPayhead" name="jenis_payhead" style="width:200px">
                                         <option value="">Semua Jenis</option>
                                         <option value="earnings">Earnings (Pendapatan)</option>
@@ -508,10 +503,10 @@ function DeletePayhead($conn) {
                                     </select>
                                 </div>
                                 <div class="form-group mb-2 d-flex align-items-end">
-                                    <button type="button" class="btn btn-primary mr-2" id="btnApplyFilter">
+                                    <button type="button" class="btn btn-primary me-2" id="btnApplyFilter">
                                         <i class="fas fa-filter"></i> Filter
                                     </button>
-                                    <button type="button" class="btn btn-secondary mr-2" id="btnResetFilter">
+                                    <button type="button" class="btn btn-secondary me-2" id="btnResetFilter">
                                         <i class="fas fa-undo"></i> Reset
                                     </button>
                                     <button type="button" class="btn btn-success" id="btnExportData">
@@ -527,10 +522,10 @@ function DeletePayhead($conn) {
                     <!-- Tabel Rekap Payheads -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold text-white">
+                            <h6 class="m-0 fw-bold text-white">
                                 <i class="fas fa-clipboard-list"></i> Daftar Payheads
                             </h6>
-                            <button type="button" class="btn btn-primary btn-success" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
                                 <i class="fas fa-plus"></i> Tambah Payhead
                             </button>
                         </div>
@@ -560,12 +555,12 @@ function DeletePayhead($conn) {
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
-                        <span>&copy; <?php echo date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
+                        <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
                     </div>
                 </div>
             </footer>
-        </div>
-    </div>
+        </div> <!-- End content-wrapper -->
+    </div> <!-- End wrapper -->
 
     <!-- Modal Tambah -->
     <div class="modal fade" id="addPayheadModal" tabindex="-1" aria-labelledby="addPayheadModalLabel" aria-hidden="true">
@@ -697,18 +692,20 @@ function DeletePayhead($conn) {
 
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Gunakan bootstrap.bundle.min.js versi Bootstrap 5.3.3 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.bootstrap4.min.js"></script>
+    <!-- DataTables JS untuk Bootstrap 5 -->
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -738,7 +735,7 @@ function DeletePayhead($conn) {
             });
         }
 
-        // Inisialisasi AutoNumeric
+        // Inisialisasi AutoNumeric untuk input nominal di modal Tambah dan Edit
         new AutoNumeric('#nominal', {
             digitGroupSeparator: '.',
             decimalCharacter: ',',
@@ -754,11 +751,11 @@ function DeletePayhead($conn) {
 
         $('#nominal').on('blur', function() {
             var an = AutoNumeric.getAutoNumericElement('#nominal');
-            console.log("DEBUG: Nominal (Tambah) setelah blur: ", an.getNumber());
+            console.log("DEBUG: Nilai nominal (Tambah) setelah blur: ", an.getNumber());
         });
         $('#edit_nominal').on('blur', function() {
             var an = AutoNumeric.getAutoNumericElement('#edit_nominal');
-            console.log("DEBUG: Nominal (Edit) setelah blur: ", an.getNumber());
+            console.log("DEBUG: Nilai nominal (Edit) setelah blur: ", an.getNumber());
         });
 
         var payheadsTable = $('#payheadsTable').DataTable({
@@ -823,11 +820,12 @@ function DeletePayhead($conn) {
         });
 
         $('#btnApplyFilter').on('click', function(){
+            // Contoh pencatatan audit log (jika diperlukan)
             $.ajax({
                 url: 'payheads.php?ajax=1',
                 type: 'POST',
                 data: {
-                    case: 'AddAuditLog', // meskipun case ini tidak diproses karena tidak ada fungsi AddAuditLog, Anda dapat mengubahnya atau menghapusnya
+                    case: 'AddAuditLog', // Jika tidak ada fungsi ini, Anda bisa menghapus bagian ini
                     details: `Pengguna menerapkan filter Jenis Payhead: ${$('#filterJenisPayhead').val() || 'Semua'}.`
                 },
                 success: function(response){
@@ -883,6 +881,7 @@ function DeletePayhead($conn) {
             });
         });
 
+        // Validasi form bootstrap 5 (menggunakan kelas .needs-validation)
         (function() {
             'use strict';
             window.addEventListener('load', function() {
@@ -899,6 +898,7 @@ function DeletePayhead($conn) {
             }, false);
         })();
 
+        // Tambah Payhead
         $('#add-payhead-form').on('submit', function(e) {
             e.preventDefault();
             console.log("DEBUG: Nilai nominal (Tambah) sebelum submit:", $('#nominal').val());
@@ -939,91 +939,92 @@ function DeletePayhead($conn) {
             });
         });
 
+        // Tampilkan data detail untuk proses edit
         $(document).on('click', '.btn-edit', function() {
-    var id = $(this).data('id');
-    var modal = $('#editPayheadModal');
-    var form = $('#edit-payhead-form');
-    form[0].reset();
-    form.removeClass('was-validated');
-    $.ajax({
-        url: "payheads.php?ajax=1",
-        type: "POST",
-        data: { id: id, case: 'GetPayheadDetail' },
-        dataType: "json",
-        success: function(response){
-            if (response.code == 0) {
-                $('#edit_payhead_id').val(response.result.id);
-                $('#edit_nama_payhead').val(response.result.nama_payhead);
-                $('#edit_jenis_payhead').val(response.result.jenis);
-                $('#edit_deskripsi').val(response.result.deskripsi);
-                // PERBAIKAN: Gunakan AutoNumeric API untuk mengatur nilai
-                var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
-                anEdit.set(response.result.nominal);
-                modal.modal('show');
-            } else {
-                showToast(response.result, 'error');
+            var id = $(this).data('id');
+            var modal = $('#editPayheadModal');
+            var form = $('#edit-payhead-form');
+            form[0].reset();
+            form.removeClass('was-validated');
+            $.ajax({
+                url: "payheads.php?ajax=1",
+                type: "POST",
+                data: { id: id, case: 'GetPayheadDetail' },
+                dataType: "json",
+                success: function(response){
+                    if (response.code == 0) {
+                        $('#edit_payhead_id').val(response.result.id);
+                        $('#edit_nama_payhead').val(response.result.nama_payhead);
+                        $('#edit_jenis_payhead').val(response.result.jenis);
+                        $('#edit_deskripsi').val(response.result.deskripsi);
+                        // Gunakan AutoNumeric API untuk mengatur nilai
+                        var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
+                        anEdit.set(response.result.nominal);
+                        modal.modal('show');
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(){
+                    showToast('Terjadi kesalahan mengambil detail payhead.', 'error');
+                }
+            });
+        });
+
+        // Update Payhead
+        $('#edit-payhead-form').on('submit', function(e) {
+            e.preventDefault();
+            console.log("DEBUG: Nilai nominal (Edit) sebelum submit:", $('#edit_nominal').val());
+            var form = $(this);
+
+            // Update nilai input dari AutoNumeric
+            var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
+            $('#edit_nominal').val(anEdit.getNumber());
+
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                form.addClass('was-validated');
+                return;
             }
-        },
-        error: function(){
-            showToast('Terjadi kesalahan mengambil detail payhead.', 'error');
-        }
-    });
-});
+            var formData = form.serialize();
+            $.ajax({
+                url: "payheads.php?ajax=1",
+                type: "POST",
+                data: formData,
+                dataType: "json",
+                beforeSend: function(){
+                    form.find('button[type="submit"]').prop('disabled', true);
+                    form.find('.spinner-border').removeClass('d-none');
+                },
+                success: function(response){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    if (response.code == 0) {
+                        showToast(response.result, 'success');
+                        $('#editPayheadModal').modal('hide');
+                        payheadsTable.ajax.reload(null, false);
+                        form[0].reset();
+                        form.removeClass('was-validated');
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    showToast('Terjadi kesalahan saat update payhead.', 'error');
+                }
+            });
+        });
 
-
-$('#edit-payhead-form').on('submit', function(e) {
-    e.preventDefault();
-    console.log("DEBUG: Nilai nominal (Edit) sebelum submit:", $('#edit_nominal').val());
-    var form = $(this);
-
-    // PERBAIKAN: Update nilai input dari AutoNumeric
-    var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
-    $('#edit_nominal').val(anEdit.getNumber());
-
-    // (Optional) Lakukan pengecekan validitas lagi jika diperlukan
-    if (!this.checkValidity()) {
-        e.stopPropagation();
-        form.addClass('was-validated');
-        return;
-    }
-    var formData = form.serialize();
-    $.ajax({
-        url: "payheads.php?ajax=1",
-        type: "POST",
-        data: formData,
-        dataType: "json",
-        beforeSend: function(){
-            form.find('button[type="submit"]').prop('disabled', true);
-            form.find('.spinner-border').removeClass('d-none');
-        },
-        success: function(response){
-            form.find('button[type="submit"]').prop('disabled', false);
-            form.find('.spinner-border').addClass('d-none');
-            if (response.code == 0) {
-                showToast(response.result, 'success');
-                $('#editPayheadModal').modal('hide');
-                payheadsTable.ajax.reload(null, false);
-                form[0].reset();
-                form.removeClass('was-validated');
-            } else {
-                showToast(response.result, 'error');
-            }
-        },
-        error: function(){
-            form.find('button[type="submit"]').prop('disabled', false);
-            form.find('.spinner-border').addClass('d-none');
-            showToast('Terjadi kesalahan saat update payhead.', 'error');
-        }
-    });
-});
-
-
+        // Tampilkan modal Delete
         $(document).on('click', '.btn-delete', function() {
             var id = $(this).data('id');
             $('#delete_id').val(id);
             $('#deleteModal').modal('show');
         });
 
+        // Proses Delete Payhead
         $('#deleteForm').on('submit', function(e){
             e.preventDefault();
             var id = $('#delete_id').val();

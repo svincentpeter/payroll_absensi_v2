@@ -14,7 +14,7 @@ session_set_cookie_params([
     'samesite' => 'Strict'
 ]);
 
-require_once __DIR__ . '/../../helpers.php'; // Pastikan file ini berisi fungsi-fungsi bantuan
+require_once __DIR__ . '/../../helpers.php'; // Pastikan file ini berisi fungsi‐fungsi bantuan
 start_session_safe();
 init_error_handling();
 generate_csrf_token();
@@ -41,12 +41,8 @@ authorize();
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn/datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
+// Perhatikan bahwa pada header CSP kami menghindari newline dan menyertakan nonce
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; img-src 'self'; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self'");
 
 // =========================
 // Fungsi Helper
@@ -59,11 +55,11 @@ function getStatusBadge($status) {
     $status_lower = strtolower($status);
     switch ($status_lower) {
         case 'tetap':
-            return '<span class="badge badge-success">Tetap</span>';
+            return '<span class="badge bg-success">Tetap</span>';
         case 'kontrak':
-            return '<span class="badge badge-secondary">Kontrak</span>';
+            return '<span class="badge bg-secondary">Kontrak</span>';
         default:
-            return '<span class="badge badge-secondary">' . htmlspecialchars($status) . '</span>';
+            return '<span class="badge bg-secondary">' . htmlspecialchars($status) . '</span>';
     }
 }
 
@@ -167,7 +163,7 @@ function LoadingGuru($conn) {
     while ($row = mysqli_fetch_assoc($result)) {
         $aksi = '
 <div class="dropdown">
-  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
     <i class="bi bi-three-dots-vertical"></i>
   </button>
   <div class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
@@ -215,7 +211,7 @@ function LoadingGuru($conn) {
 }
 
 function CreateGuru($conn) {
-    // Tangkap input, termasuk kolom Pendidikan
+    // Tangkap input, termasuk kolom pendidikan
     $nip             = bersihkan_input($_POST['nip'] ?? '');
     $nama            = bersihkan_input($_POST['nama'] ?? '');
     $jenjang         = bersihkan_input($_POST['jenjang'] ?? '');
@@ -656,12 +652,11 @@ function generateUID($conn) {
  */
 function AssignPayheadsToEmployee($conn) {
     // Ambil data
-    $empcode     = isset($_POST['empcode']) ? intval($_POST['empcode']) : 0;
-    $payheads    = isset($_POST['payheads']) ? $_POST['payheads'] : [];
-    $pay_amounts = isset($_POST['pay_amounts']) ? $_POST['pay_amounts'] : [];
+    $empcode       = isset($_POST['empcode']) ? intval($_POST['empcode']) : 0;
+    $payheads      = isset($_POST['payheads']) ? $_POST['payheads'] : [];
+    $pay_amounts   = isset($_POST['pay_amounts']) ? $_POST['pay_amounts'] : [];
     $change_reason = isset($_POST['change_reason']) ? bersihkan_input($_POST['change_reason']) : '';
     
-    // Validasi
     if ($empcode <= 0) {
         send_response(1, 'ID karyawan tidak valid.');
     }
@@ -674,17 +669,11 @@ function AssignPayheadsToEmployee($conn) {
     if (isset($_FILES['supporting_document']) && $_FILES['supporting_document']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['supporting_document']['tmp_name'];
         $fileName = $_FILES['supporting_document']['name'];
-        $fileSize = $_FILES['supporting_document']['size'];
-        $fileType = $_FILES['supporting_document']['type'];
-        $fileNameCmps = explode(".", $fileName);
-        $fileExtension = strtolower(end($fileNameCmps));
-        
-        // Validasi tipe file
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
         $allowedfileExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
         if (!in_array($fileExtension, $allowedfileExtensions)) {
             send_response(1, 'Tipe file tidak diperbolehkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
         }
-        // Tentukan nama file baru dan folder tujuan
         $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
         $uploadFileDir = __DIR__ . '/../../uploads/changes/';
         if (!is_dir($uploadFileDir)) {
@@ -694,37 +683,25 @@ function AssignPayheadsToEmployee($conn) {
         if(!move_uploaded_file($fileTmpPath, $dest_path)) {
             send_response(1, 'Terjadi kesalahan saat mengunggah file.');
         }
-        // Simpan path relatif atau URL (sesuaikan dengan konfigurasi server Anda)
         $doc_path = '/uploads/changes/' . $newFileName;
     }
     
-    // Mulai transaksi
     $conn->begin_transaction();
     try {
-        // Hapus payheads lama untuk karyawan
         $stmtDelete = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota = ?");
-        if ($stmtDelete === false) {
-            throw new Exception("Prepare failed: " . $conn->error);
-        }
         $stmtDelete->bind_param("i", $empcode);
         if (!$stmtDelete->execute()) {
             throw new Exception("Execute failed: " . $stmtDelete->error);
         }
         $stmtDelete->close();
 
-        // Persiapkan insert payheads baru. Asumsikan tabel employee_payheads sekarang memiliki kolom:
-        // id_anggota, id_payhead, jenis, amount, change_reason, doc_path, status_payroll
-        // status_payroll diisi 'draft' (status awal)
-        $stmtInsert = $conn->prepare("
-            INSERT INTO employee_payheads (id_anggota, id_payhead, jenis, amount, change_reason, doc_path, status_payroll)
-            VALUES (?, ?, ?, ?, ?, ?, 'draft')
-        ");
-        if ($stmtInsert === false) {
-            throw new Exception("Prepare failed: " . $conn->error);
-        }
-        // Persiapkan statement untuk ambil jenis payhead
         $stmtGetJenis = $conn->prepare("SELECT jenis FROM payheads WHERE id = ? LIMIT 1");
         if ($stmtGetJenis === false) {
+            throw new Exception("Prepare failed: " . $conn->error);
+        }
+        $stmtInsert = $conn->prepare("INSERT INTO employee_payheads (id_anggota, id_payhead, jenis, amount, change_reason, doc_path, status_payroll)
+            VALUES (?, ?, ?, ?, ?, ?, 'draft')");
+        if ($stmtInsert === false) {
             throw new Exception("Prepare failed: " . $conn->error);
         }
         foreach ($payheads as $payhead_id) {
@@ -755,7 +732,7 @@ function AssignPayheadsToEmployee($conn) {
         $stmtInsert->close();
         
         $conn->commit();
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+        $user_id = $_SESSION['user_id'] ?? 0;
         $details = "Menetapkan payheads ke karyawan ID $empcode. Payheads: " . implode(', ', $payheads) .
                    ". Alasan: " . $change_reason .
                    ($doc_path ? " (Dokumen: $doc_path)" : "");
@@ -767,6 +744,9 @@ function AssignPayheadsToEmployee($conn) {
     }
 }
 
+// =========================
+// 3. Render Halaman HTML (jika bukan AJAX)
+// =========================
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -817,13 +797,13 @@ function AssignPayheadsToEmployee($conn) {
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">Manajemen Data Guru/Karyawan</h1>
                     <div class="d-flex justify-content-end mb-3 flex-wrap">
-                        <button class="btn btn-primary mr-2 mb-2" data-toggle="modal" data-target="#modalAdd">
+                        <button class="btn btn-primary me-2 mb-2" data-bs-toggle="modal" data-bs-target="#modalAdd">
                             <i class="fas fa-plus"></i> Tambah Guru/Karyawan
                         </button>
-                        <button class="btn btn-success mb-2" data-toggle="modal" data-target="#modalGajiPokok">
+                        <button class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#modalGajiPokok">
                             <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
                         </button>
-                        <button class="btn btn-info ml-2 mb-2" data-toggle="modal" data-target="#modalTunjangan">
+                        <button class="btn btn-info ms-2 mb-2" data-bs-toggle="modal" data-bs-target="#modalTunjangan">
                             <i class="fas fa-hand-holding-usd"></i> Tunjangan
                         </button>
                     </div>
@@ -833,8 +813,8 @@ function AssignPayheadsToEmployee($conn) {
                         <div class="card-header">Filter Data Guru/Karyawan</div>
                         <div class="card-body">
                             <form id="filterForm" method="GET" class="form-inline">
-                                <label class="mr-2" for="filterJenjang">Jenjang:</label>
-                                <select class="form-control mr-2" id="filterJenjang" name="jenjang">
+                                <label class="me-2" for="filterJenjang">Jenjang:</label>
+                                <select class="form-control me-2" id="filterJenjang" name="jenjang">
                                     <option value="">Semua Jenjang</option>
                                     <?php
                                     $sqlJenjang = "SELECT DISTINCT jenjang FROM anggota_sekolah ORDER BY jenjang ASC";
@@ -847,7 +827,7 @@ function AssignPayheadsToEmployee($conn) {
                                     }
                                     ?>
                                 </select>
-                                <button type="button" id="btnApplyFilter" class="btn btn-primary mr-2">
+                                <button type="button" id="btnApplyFilter" class="btn btn-primary me-2">
                                     <i class="fas fa-filter"></i> Terapkan
                                 </button>
                                 <button type="button" id="btnResetFilter" class="btn btn-secondary">
@@ -892,7 +872,7 @@ function AssignPayheadsToEmployee($conn) {
 
                     <div id="loadingSpinner">
                         <div class="spinner-border text-primary" role="status">
-                            <span class="sr-only">Loading...</span>
+                            <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
                 </div>
@@ -917,9 +897,7 @@ function AssignPayheadsToEmployee($conn) {
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="modalAddLabel">Tambah Data Guru/Karyawan</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                <span>&times;</span>
-              </button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
               <!-- Data Pekerjaan -->
@@ -1078,7 +1056,6 @@ function AssignPayheadsToEmployee($conn) {
                       </div>
                   </div>
               </div>
-              
               <div class="row">
                   <div class="col-md-4">
                       <div class="form-group">
@@ -1101,7 +1078,7 @@ function AssignPayheadsToEmployee($conn) {
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
               <button type="submit" class="btn btn-success">
                   <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                   Simpan
@@ -1113,7 +1090,7 @@ function AssignPayheadsToEmployee($conn) {
     </div>
 
     <!-- MODAL: Edit Guru/Karyawan -->
-    <div class="modal fade" id="modalEdit" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal fade" id="modalEdit" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="edit-guru-form" method="POST" class="needs-validation" novalidate>
           <input type="hidden" name="case" value="UpdateGuru">
@@ -1122,9 +1099,7 @@ function AssignPayheadsToEmployee($conn) {
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Edit Data Guru/Karyawan</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                <span>&times;</span>
-              </button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
               <!-- Data Pekerjaan -->
@@ -1313,7 +1288,7 @@ function AssignPayheadsToEmployee($conn) {
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
               <button type="submit" class="btn btn-primary">
                   <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                   Update
@@ -1325,14 +1300,12 @@ function AssignPayheadsToEmployee($conn) {
     </div>
 
     <!-- MODAL: View Detail Guru/Karyawan -->
-    <div class="modal fade" id="modalView" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal fade" id="modalView" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Detail Data Guru/Karyawan</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-              <span>&times;</span>
-            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
           <div class="modal-body" style="color: #000">
             <h6>Data Pekerjaan</h6>
@@ -1373,14 +1346,14 @@ function AssignPayheadsToEmployee($conn) {
             </table>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- MODAL: Delete Guru/Karyawan -->
-    <div class="modal fade" id="modalDelete" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal fade" id="modalDelete" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
         <form id="delete-guru-form" class="modal-content">
           <input type="hidden" name="case" value="DeleteGuru">
@@ -1389,16 +1362,14 @@ function AssignPayheadsToEmployee($conn) {
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
               <p>Anda yakin ingin menghapus data berikut?</p>
               <p><strong id="delNama"></strong></p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
               <button type="submit" class="btn btn-danger">
                   <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                   Hapus
@@ -1417,21 +1388,19 @@ function AssignPayheadsToEmployee($conn) {
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiPokokLabel">Atur Gaji Pokok</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
             <hr>
             <div class="form-group text-center">
-                <button type="button" class="btn btn-secondary mr-2" data-toggle="modal" data-target="#modalGajiStrataGuru">
+                <button type="button" class="btn btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#modalGajiStrataGuru">
                     <i class="fas fa-chart-bar"></i> Atur Gaji Strata Guru
                 </button>
-                <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#modalGajiStrataKaryawan">
+                <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalGajiStrataKaryawan">
                     <i class="fas fa-chart-bar"></i> Atur Gaji Strata Karyawan
                 </button>
             </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
             <button type="submit" class="btn btn-success">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                 Simpan
@@ -1449,9 +1418,7 @@ function AssignPayheadsToEmployee($conn) {
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiStrataGuruLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Guru)</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
           <div class="modal-body">
             <div class="table-responsive">
@@ -1517,7 +1484,7 @@ function AssignPayheadsToEmployee($conn) {
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
             <button type="submit" class="btn btn-primary">
               <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
               Simpan
@@ -1535,9 +1502,7 @@ function AssignPayheadsToEmployee($conn) {
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiStrataKaryawanLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Karyawan)</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
           <div class="modal-body">
             <div class="table-responsive">
@@ -1603,7 +1568,7 @@ function AssignPayheadsToEmployee($conn) {
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
             <button type="submit" class="btn btn-primary">
               <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
               Simpan
@@ -1621,9 +1586,7 @@ function AssignPayheadsToEmployee($conn) {
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalTunjanganLabel">Atur Tunjangan</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
           <div class="modal-body">
             <div class="form-group">
@@ -1640,7 +1603,7 @@ function AssignPayheadsToEmployee($conn) {
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
             <button type="submit" class="btn btn-primary">
               <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
               Simpan
@@ -1651,137 +1614,123 @@ function AssignPayheadsToEmployee($conn) {
     </div>
 
     <!-- MODAL: Assign Payheads -->
-<div class="modal fade" id="ManageModal" tabindex="-1" aria-labelledby="manageModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title text-center" id="manageModalLabel">Tetapkan Payheads ke Karyawan</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span>&times;</span>
-        </button>
+    <div class="modal fade" id="ManageModal" tabindex="-1" aria-labelledby="manageModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title text-center" id="manageModalLabel">Tetapkan Payheads ke Karyawan</h4>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="assign-payhead-form" enctype="multipart/form-data">
+            <div class="modal-body d-flex" style="gap:15px;">
+              <!-- Hidden Inputs -->
+              <input type="hidden" name="case" value="AssignPayheadsToEmployee">
+              <input type="hidden" name="empcode" id="empcode">
+              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
+              
+              <!-- Bagian kiri: Payheads Tersedia -->
+              <div style="flex:1;">
+                <label><strong>Payheads Tersedia:</strong></label>
+                <input type="text" id="searchAllPayheads" class="form-control mb-2" placeholder="Cari Payheads Tersedia...">
+                <button type="button" id="selectHeads" class="btn btn-success btn-sm mb-2">
+                  <i class="fa fa-arrow-circle-right"></i> Tetapkan
+                </button>
+                <select id="all_payheads" class="form-control" multiple size="10"></select>
+              </div>
+              
+              <!-- Bagian Tengah: Payheads Terpilih -->
+              <div style="flex:1;">
+                <label><strong>Payheads Terpilih:</strong></label>
+                <input type="text" id="searchSelectedPayheads" class="form-control mb-2" placeholder="Cari Payheads Terpilih...">
+                <button type="button" id="removeHeads" class="btn btn-danger btn-sm mb-2">
+                  <i class="fa fa-arrow-circle-left"></i> Hapus
+                </button>
+                <select id="selected_payheads" class="form-control" multiple size="10"></select>
+              </div>
+              
+              <!-- Bagian Kanan: Input Amount dan Keterangan Perubahan -->
+              <div style="flex:1;">
+                <label><strong>Tetapkan Jumlah & Keterangan:</strong></label>
+                <div id="selected_payamount"></div>
+                <div class="form-group mt-2">
+                  <label for="change_reason"><small>Alasan Perubahan:</small></label>
+                  <textarea name="change_reason" id="change_reason" class="form-control" placeholder="Masukkan alasan perubahan (misalnya, promosi, penyesuaian tunjangan)"></textarea>
+                </div>
+                <div class="form-group mt-2">
+                  <label for="supporting_document"><small>Upload Dokumen Pendukung:</small></label>
+                  <input type="file" name="supporting_document" id="supporting_document" class="form-control-file" accept=".pdf,.jpg,.png">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check-circle"></i> Tetapkan Payheads
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="fas fa-times-circle"></i> Batal
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-      <!-- Tambahkan form attribute enctype untuk upload file -->
-      <form id="assign-payhead-form" enctype="multipart/form-data">
-        <div class="modal-body" style="display:flex; gap:15px;">
-          <!-- Hidden Inputs -->
-          <input type="hidden" name="case" value="AssignPayheadsToEmployee">
-          <input type="hidden" name="empcode" id="empcode" />
-          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-          
-          <!-- Bagian kiri: Payheads Tersedia -->
-          <div style="flex:1;">
-            <label><strong>Payheads Tersedia:</strong></label>
-            <input type="text" id="searchAllPayheads" class="form-control mb-2" placeholder="Cari Payheads Tersedia...">
-            <button type="button" id="selectHeads" class="btn btn-success btn-sm mb-2">
-              <i class="fa fa-arrow-circle-right"></i> Tetapkan
-            </button>
-            <select id="all_payheads" class="form-control" multiple size="10"></select>
-          </div>
-          
-          <!-- Bagian Tengah: Payheads Terpilih -->
-          <div style="flex:1;">
-            <label><strong>Payheads Terpilih:</strong></label>
-            <input type="text" id="searchSelectedPayheads" class="form-control mb-2" placeholder="Cari Payheads Terpilih...">
-            <button type="button" id="removeHeads" class="btn btn-danger btn-sm mb-2">
-              <i class="fa fa-arrow-circle-left"></i> Hapus
-            </button>
-            <select id="selected_payheads" class="form-control" multiple size="10"></select>
-          </div>
-          
-          <!-- Bagian Kanan: Input Amount dan Keterangan Perubahan -->
-          <div style="flex:1;">
-            <label><strong>Tetapkan Jumlah & Keterangan:</strong></label>
-            <div id="selected_payamount"></div>
-            <!-- Field baru untuk keterangan perubahan -->
-            <div class="form-group mt-2">
-              <label for="change_reason"><small>Alasan Perubahan:</small></label>
-              <textarea name="change_reason" id="change_reason" class="form-control" placeholder="Masukkan alasan perubahan (misalnya, promosi, penyesuaian tunjangan)"></textarea>
-            </div>
-            <!-- Field upload dokumen pendukung -->
-            <div class="form-group mt-2">
-              <label for="supporting_document"><small>Upload Dokumen Pendukung:</small></label>
-              <input type="file" name="supporting_document" id="supporting_document" class="form-control-file" accept=".pdf,.jpg,.png">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-check-circle"></i> Tetapkan Payheads
-            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-          </button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">
-            <i class="fas fa-times-circle"></i> Batal
-          </button>
-        </div>
-      </form>
     </div>
-  </div>
-</div>
 
-
-<!-- MODAL: Select Month -->
-<div class="modal fade" id="SalaryMonthModal" tabindex="-1" aria-labelledby="salaryMonthModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-md" style="max-width: 600px;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="salaryMonthModalLabel">
-          <i class="fa fa-calendar"></i> Pilih Bulan untuk Payroll
-        </h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span>&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <!-- Grid Bulan: Contoh membuat grid dari 2 bulan sebelum hingga 14 bulan ke depan -->
-        <div class="row text-center">
-          <?php
-          // Hitung periode: 16 bulan (2 bulan sebelumnya hingga 14 bulan ke depan)
-          $months = [];
-          $years  = [];
-          $currentYear  = date('Y');
-          $currentMonth = date('n');
-          $startMonth = $currentMonth - 2;
-          $startYear = $currentYear;
-          for ($i = 0; $i < 16; $i++) {
-              $month = $startMonth + $i;
-              $year = $startYear;
-              if ($month <= 0) {
-                  $month += 12;
-                  $year -= 1;
-              } elseif ($month > 12) {
-                  $month -= 12;
-                  $year += 1;
+    <!-- MODAL: Select Month -->
+    <div class="modal fade" id="SalaryMonthModal" tabindex="-1" aria-labelledby="salaryMonthModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-md" style="max-width: 600px;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="salaryMonthModalLabel">
+              <i class="fa fa-calendar"></i> Pilih Bulan untuk Payroll
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row text-center">
+              <?php
+              // Hitung periode: 16 bulan (2 bulan sebelumnya hingga 14 bulan ke depan)
+              $months = [];
+              $years  = [];
+              $currentYear  = date('Y');
+              $currentMonth = date('n');
+              $startMonth = $currentMonth - 2;
+              $startYear = $currentYear;
+              for ($i = 0; $i < 16; $i++) {
+                  $month = $startMonth + $i;
+                  $year = $startYear;
+                  if ($month <= 0) {
+                      $month += 12;
+                      $year -= 1;
+                  } elseif ($month > 12) {
+                      $month -= 12;
+                      $year += 1;
+                  }
+                  $months[] = $month;
+                  $years[]  = $year;
               }
-              $months[] = $month;
-              $years[]  = $year;
-          }
-          // Fungsi untuk mengubah nomor bulan ke nama bulan Indonesia
-          function getIndonesianMonthName($month) {
-              $names = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
-              return isset($names[$month]) ? $names[$month] : '';
-          }
-          // Loop untuk tampilkan grid
-          for ($i = 0; $i < count($months); $i++) {
-              $m = getIndonesianMonthName($months[$i]);
-              $y = $years[$i];
-              // Highlight bulan saat ini
-              $highlightClass = ($months[$i] == $currentMonth && $y == $currentYear) ? 'bg-warning font-weight-bold' : '';
-              echo '<div class="col-sm-3 mb-3">';
-              echo '  <div class="' . $highlightClass . '" style="padding:10px; border:1px solid #ddd; border-radius:5px;">';
-              echo '    <a href="#" class="month-link" data-month="' . $months[$i] . '" data-year="' . $y . '" style="color:#333; text-decoration:none;">';
-              echo strtoupper($m) . '<br>' . $y;
-              echo '    </a>';
-              echo '  </div>';
-              echo '</div>';
-          }
-          ?>
+              function getIndonesianMonthName($month) {
+                  $names = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+                  return isset($names[$month]) ? $names[$month] : '';
+              }
+              for ($i = 0; $i < count($months); $i++) {
+                  $m = getIndonesianMonthName($months[$i]);
+                  $y = $years[$i];
+                  $highlightClass = ($months[$i] == $currentMonth && $y == $currentYear) ? 'bg-warning fw-bold' : '';
+                  echo '<div class="col-sm-3 mb-3">';
+                  echo '  <div class="' . $highlightClass . '" style="padding:10px; border:1px solid #ddd; border-radius:5px;">';
+                  echo '    <a href="#" class="month-link" data-month="' . $months[$i] . '" data-year="' . $y . '" style="color:#333; text-decoration:none;">';
+                  echo strtoupper($m) . '<br>' . $y;
+                  echo '    </a>';
+                  echo '  </div>';
+                  echo '</div>';
+              }
+              ?>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-
 
     <!-- JavaScript Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
@@ -1801,38 +1750,38 @@ function AssignPayheadsToEmployee($conn) {
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
-    // Inisialisasi SweetAlert2 Toast
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-        }
-    });
-
-    function showToast(message, icon = 'success') {
-        Toast.fire({
-            icon: icon,
-            title: message
-        });
-    }
-
-    function getStatusBadge(status) {
-        let s = (status || '').toLowerCase();
-        if (s === 'tetap') {
-            return '<span class="badge badge-success">Tetap</span>';
-        } else if (s === 'kontrak') {
-            return '<span class="badge badge-secondary">Kontrak</span>';
-        } else {
-            return '<span class="badge badge-secondary">' + (status || '') + '</span>';
-        }
-    }
-
     $(document).ready(function() {
+        // Inisialisasi SweetAlert2 Toast
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+
+        function showToast(message, icon = 'success') {
+            Toast.fire({
+                icon: icon,
+                title: message
+            });
+        }
+
+        function getStatusBadge(status) {
+            let s = (status || '').toLowerCase();
+            if (s === 'tetap') {
+                return '<span class="badge bg-success">Tetap</span>';
+            } else if (s === 'kontrak') {
+                return '<span class="badge bg-secondary">Kontrak</span>';
+            } else {
+                return '<span class="badge bg-secondary">' + (status || '') + '</span>';
+            }
+        }
+
         var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
 
         // Inisialisasi DataTable
@@ -2090,7 +2039,6 @@ function AssignPayheadsToEmployee($conn) {
                         $('#editNamaAnak3').val(response.result.nama_anak_3 || '');
                         $('#editSalaryIndex').val(response.result.salary_index_id || 0);
                         $('#editRole').val(response.result.role || '');
-
                         modal.modal('show');
                     } else {
                         showToast(response.result, 'error');
@@ -2185,207 +2133,88 @@ function AssignPayheadsToEmployee($conn) {
             });
         });
 
-        // Form: Update Gaji Strata Guru
-        $('#gaji-strata-form-guru').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalGajiStrataGuru').modal('hide');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat mengupdate gaji strata Guru.', 'error');
-                }
-            });
-        });
-
-        // Form: Update Gaji Strata Karyawan
-        $('#gaji-strata-form-karyawan').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalGajiStrataKaryawan').modal('hide');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat mengupdate gaji strata Karyawan.', 'error');
-                }
-            });
-        });
-
-        // Form: Update Tunjangan
-        $('#tunjangan-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalTunjangan').modal('hide');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat mengupdate tunjangan.', 'error');
-                }
-            });
-        });
+        // Assign Payheads (Fitur Tambahan)
         $(document).on('click', '.btn-assign', function() {
-    // Form: Submit Assign Payheads (Fitur Tambahan)
-    $('#assign-payhead-form').on('submit', function(e){
-  e.preventDefault();
-  var form = $(this);
-  // Buat FormData dari form
-  var formData = new FormData(this);
-  // Validasi sederhana untuk input nominal payheads
-  var isValid = true;
-  $('#selected_payheads option').each(function() {
-      var payheadId = $(this).val();
-      var inputSelector = 'input[name="pay_amounts[' + payheadId + ']"]';
-      var amount = $(inputSelector).val();
-      if(amount === '' || parseFloat(amount) < 0){
-          $(inputSelector).addClass('is-invalid');
-          isValid = false;
-      } else {
-          $(inputSelector).removeClass('is-invalid');
-      }
-  });
-  if(!isValid){
-      showToast('Pastikan semua jumlah payhead valid (>=0)!', 'error');
-      return;
-  }
-  $.ajax({
-      url:'manage_guru_karyawan.php?ajax=1',
-      type:'POST',
-      data: formData,
-      dataType:'json',
-      processData: false,
-      contentType: false,
-      beforeSend:function(){
-          form.find('button[type="submit"]').prop('disabled', true);
-          form.find('.spinner-border').removeClass('d-none');
-      },
-      success:function(resp){
-          form.find('button[type="submit"]').prop('disabled', false);
-          form.find('.spinner-border').addClass('d-none');
-          if(resp.code === 0){
-              showToast(resp.result, 'success');
-              empTable.ajax.reload(null, false);
-              setTimeout(function(){
-                  $('#ManageModal').modal('hide');
-                  form[0].reset();
-                  $('#all_payheads').empty();
-                  $('#selected_payheads').empty();
-                  $('#selected_payamount').empty();
-              }, 200);
-          } else {
-              showToast(resp.result, 'error');
-          }
-      },
-      error:function(){
-          form.find('button[type="submit"]').prop('disabled', false);
-          form.find('.spinner-border').addClass('d-none');
-          showToast('Terjadi kesalahan saat menetapkan payheads.', 'error');
-      }
-  });
-});
-    $('#ManageModal').modal('show');
-});
+            $('#assign-payhead-form').on('submit', function(e){
+                e.preventDefault();
+                var form = $(this);
+                var formData = new FormData(this);
+                var isValid = true;
+                $('#selected_payheads option').each(function() {
+                    var payheadId = $(this).val();
+                    var inputSelector = 'input[name="pay_amounts[' + payheadId + ']"]';
+                    var amount = $(inputSelector).val();
+                    if(amount === '' || parseFloat(amount) < 0){
+                        $(inputSelector).addClass('is-invalid');
+                        isValid = false;
+                    } else {
+                        $(inputSelector).removeClass('is-invalid');
+                    }
+                });
+                if(!isValid){
+                    showToast('Pastikan semua jumlah payhead valid (>=0)!', 'error');
+                    return;
+                }
+                $.ajax({
+                    url:'manage_guru_karyawan.php?ajax=1',
+                    type:'POST',
+                    data: formData,
+                    dataType:'json',
+                    processData: false,
+                    contentType: false,
+                    beforeSend:function(){
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success:function(resp){
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if(resp.code === 0){
+                            showToast(resp.result, 'success');
+                            // Jika tabel karyawan di-refresh (misalnya, jika menggunakan variabel empTable)
+                            guruTable.ajax.reload(null, false);
+                            setTimeout(function(){
+                                $('#ManageModal').modal('hide');
+                                form[0].reset();
+                                $('#all_payheads').empty();
+                                $('#selected_payheads').empty();
+                                $('#selected_payamount').empty();
+                            }, 200);
+                        } else {
+                            showToast(resp.result, 'error');
+                        }
+                    },
+                    error:function(){
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menetapkan payheads.', 'error');
+                    }
+                });
+            });
+            $('#ManageModal').modal('show');
+        });
 
-        
-
-
-        // Pada event klik tombol "Select Month" di DataTable (misalnya, di bagian modal atau event handler tombol)
-        $('#guruTable tbody').on('click', '.btnSelectMonth', function() {
-    var employeeId = $(this).data('id');
-    window.currentEmpId = employeeId;
-    $('#SalaryMonthModal').modal('show');
-});
-
-
-// Event klik pada link bulan di modal Select Month
-$(document).on('click', '.month-link', function(e) {
-    e.preventDefault();
-    var month = $(this).data('month'); // nomor bulan (1-12)
-    var year  = $(this).data('year');
-    var employeeId = window.currentEmpId || 0;
-    if (employeeId === 0) {
-        showToast('ID Karyawan tidak valid!', 'error');
-        return;
-    }
-    // Misalnya, arahkan ke halaman review payroll di role SDM, misal: sdm/manage-payroll-review.php
-    var targetUrl = "/payroll_absensi_v2/sdm/manage-payroll-review.php";
-    targetUrl += "?id_anggota=" + employeeId;
-    targetUrl += "&bulan=" + encodeURIComponent(month);
-    targetUrl += "&tahun=" + encodeURIComponent(year);
-    window.location.href = targetUrl;
-});
-
+        // Select Month untuk payroll (misalnya, pada event tombol "Select Month")
+        $('#guruTable tbody').on('click', '.btn-select-month', function() {
+            var employeeId = $(this).data('id');
+            window.currentEmpId = employeeId;
+            $('#SalaryMonthModal').modal('show');
+        });
+        $(document).on('click', '.month-link', function(e) {
+            e.preventDefault();
+            var month = $(this).data('month'); // nomor bulan (1-12)
+            var year  = $(this).data('year');
+            var employeeId = window.currentEmpId || 0;
+            if (employeeId === 0) {
+                showToast('ID Karyawan tidak valid!', 'error');
+                return;
+            }
+            var targetUrl = "/payroll_absensi_v2/sdm/manage-payroll-review.php";
+            targetUrl += "?id_anggota=" + employeeId;
+            targetUrl += "&bulan=" + encodeURIComponent(month);
+            targetUrl += "&tahun=" + encodeURIComponent(year);
+            window.location.href = targetUrl;
+        });
     });
     </script>
 </body>

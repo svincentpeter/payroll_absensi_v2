@@ -1,9 +1,14 @@
 <?php
-// superadmin/dashboard_superadmin.php
+// File: superadmin/dashboard_superadmin.php
+
+// Mulai session dan buat nonce untuk Content Security Policy
 session_start();
+$nonce = base64_encode(random_bytes(16));
+$_SESSION['csp_nonce'] = $nonce;
+
 require_once '../../koneksi.php'; // Sesuaikan path jika diperlukan
 
-// Memeriksa apakah pengguna sudah login dan memiliki peran 'superadmin'
+// Periksa apakah pengguna sudah login dan memiliki peran 'superadmin'
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'superadmin') {
     header("Location: ../../login.php");
     exit();
@@ -22,15 +27,18 @@ try {
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Superadmin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap 5.3.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap CSS dan SB Admin 2 -->
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <!-- SB Admin 2 CSS dari CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <!-- Font Awesome & Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
 </head>
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
@@ -42,13 +50,14 @@ try {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">Dashboard Superadmin</h1>
                     
-                    <!-- Tampilkan notifikasi -->
+                    <!-- Tampilkan notifikasi (jika ada) -->
                     <?php if (isset($_SESSION['notif_success'])): ?>
                         <div class="alert alert-success">
                             <?= htmlspecialchars($_SESSION['notif_success']); ?>
@@ -61,7 +70,8 @@ try {
 
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="card border-left-primary mb-4">
+                            <!-- Gunakan kelas border-start-primary (Bootstrap 5) -->
+                            <div class="card border-start-primary mb-4">
                                 <div class="card-body">
                                     <h5 class="card-title">Dashboard Keuangan</h5>
                                     <p class="card-text">
@@ -74,7 +84,8 @@ try {
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card border-left-success mb-4">
+                            <!-- Gunakan kelas border-start-success (Bootstrap 5) -->
+                            <div class="card border-start-success mb-4">
                                 <div class="card-body">
                                     <h5 class="card-title">Dashboard SDM</h5>
                                     <p class="card-text">
@@ -93,9 +104,10 @@ try {
         </div> <!-- end content-wrapper -->
     </div> <!-- end wrapper -->
 
-    <script src="../../assets/vendor/jquery/jquery.min.js"></script>
+    <!-- JS Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="../../assets/vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src="../../assets/js/sb-admin-2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
 </body>
 </html>

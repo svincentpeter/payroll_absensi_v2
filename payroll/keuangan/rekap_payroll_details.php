@@ -4,8 +4,6 @@
 // =========================
 // 1. Pengaturan Keamanan
 // =========================
-
-// Atur session cookie parameters sebelum session_start()
 session_set_cookie_params([
     'lifetime' => 0,
     'path'     => '/',
@@ -18,16 +16,13 @@ session_set_cookie_params([
 require_once __DIR__ . '/../../koneksi.php';
 require_once __DIR__ . '/../../helpers.php';
 
-// Mulai session, error handling, dan generate CSRF token
 start_session_safe();
 init_error_handling();
 generate_csrf_token();
 
-// Buat nonce untuk Content Security Policy dan simpan di session
 $nonce = base64_encode(random_bytes(16));
 $_SESSION['csp_nonce'] = $nonce;
 
-// Paksa HTTPS jika belum menggunakan HTTPS
 if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
     $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     header('HTTP/1.1 301 Moved Permanently');
@@ -35,10 +30,13 @@ if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
     exit();
 }
 
-// HSTS header
 header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
 
-// Terapkan Content Security Policy
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin', 'sdm'])) {
+    header("Location: /payroll_absensi_v2/login.php");
+    exit();
+}
+
 header("Content-Security-Policy: default-src 'self'; 
     script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
     style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net 'nonce-$nonce'; 
@@ -46,31 +44,11 @@ header("Content-Security-Policy: default-src 'self';
     font-src 'self' https://cdnjs.cloudflare.com; 
     connect-src 'self'");
 
-// Pengecekan role: hanya user dengan peran 'keuangan', 'superadmin', atau 'sdm' yang boleh mengakses
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin', 'sdm'])) {
-    header("Location: /payroll_absensi_v2/login.php");
-    exit();
-}
+if (ob_get_length()) ob_end_clean();
 
-// Inisialisasi token CSRF jika belum ada
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-
-// Ambil parameter 'jenjang' dari URL dan validasi
-$jenjang = isset($_GET['jenjang']) ? bersihkan_input($_GET['jenjang']) : '';
-if (empty($jenjang)) {
-    echo "Jenjang tidak valid.";
-    exit();
-}
-
-// Tambahkan Audit Log saat pengguna mengakses halaman ini
-add_audit_log(
-    $conn,
-    $_SESSION['user_id'],
-    'AccessPage',
-    "Pengguna dengan ID {$_SESSION['user_id']} dan peran '{$_SESSION['role']}' mengakses halaman Rekap Payroll Details untuk jenjang '{$jenjang}'."
-);
 
 // =========================
 // 2. Fungsi Pendukung
@@ -95,6 +73,21 @@ if (!function_exists('bulanIntToName')) {
     }
 }
 
+// Ambil parameter jenjang dari URL dan validasi
+$jenjang = isset($_GET['jenjang']) ? bersihkan_input($_GET['jenjang']) : '';
+if (empty($jenjang)) {
+    echo "Jenjang tidak valid.";
+    exit();
+}
+
+// Tambahkan audit log saat mengakses halaman ini
+add_audit_log(
+    $conn,
+    $_SESSION['user_id'],
+    'AccessPage',
+    "Pengguna dengan ID {$_SESSION['user_id']} dan peran '{$_SESSION['role']}' mengakses halaman Rekap Payroll Details untuk jenjang '{$jenjang}'."
+);
+
 // =========================
 // 3. Handle Permintaan AJAX
 // =========================
@@ -107,7 +100,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
         switch ($case) {
             case 'LoadingRekapPayrollDetails':
-                // Catat audit log untuk aksi loading detail
                 add_audit_log(
                     $conn,
                     $_SESSION['user_id'],
@@ -251,7 +243,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
 
     $data = [];
     while ($row = $resData->fetch_assoc()) {
-        // Buat dropdown dengan 2 button, sama persis seperti di payroll_history.php
+        // Tombol aksi: dropdown dengan dua pilihan (lihat payroll dan view detail)
         $aksi = '
 <div class="dropdown">
   <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id_payroll']) . '" data-bs-toggle="dropdown" aria-expanded="false">
@@ -301,17 +293,18 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     <title>Detail Rekap Payroll - <?php echo htmlspecialchars($jenjang); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
-    <!-- DataTables CSS (Bootstrap 4) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <!-- Custom CSS -->
-    <style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- DataTables CSS untuk Bootstrap 5 -->
+    <!-- PERBAIKAN: Gunakan DataTables versi Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- Font Awesome & Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
+    <style nonce="<?php echo $nonce; ?>">
         thead th {
             background-color: #343a40;
             color: white;
@@ -401,25 +394,25 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                             <strong>Filter Detail Rekap Payroll</strong>
                         </div>
                         <div class="card-body">
-                            <form id="filterForm" class="form-inline">
+                            <form id="filterForm" class="row gy-2 gx-3 align-items-center">
                                 <!-- Sertakan CSRF Token -->
                                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                 <!-- Filter Bulan -->
-                                <div class="form-group mb-2 mr-3">
-                                    <label for="filterBulan" class="mr-2">Bulan:</label>
-                                    <select class="form-control" id="filterBulan" name="bulan" style="width:120px">
+                                <div class="col-auto">
+                                    <label for="filterBulan" class="form-label"><strong>Bulan:</strong></label>
+                                    <select class="form-select" id="filterBulan" name="bulan" style="width:120px">
                                         <option value="">Semua Bulan</option>
                                         <?php
-                                            for ($m = 1; $m <= 12; $m++) {
+                                            for ($m=1; $m<=12; $m++) {
                                                 echo "<option value=\"$m\">" . bulanIntToName($m) . "</option>";
                                             }
                                         ?>
                                     </select>
                                 </div>
                                 <!-- Filter Tahun -->
-                                <div class="form-group mb-2 mr-3">
-                                    <label for="filterTahun" class="mr-2">Tahun:</label>
-                                    <select class="form-control" id="filterTahun" name="tahun" style="width:120px">
+                                <div class="col-auto">
+                                    <label for="filterTahun" class="form-label"><strong>Tahun:</strong></label>
+                                    <select class="form-select" id="filterTahun" name="tahun" style="width:120px">
                                         <option value="">Semua Tahun</option>
                                         <?php
                                             $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll WHERE id_anggota IN (SELECT id FROM anggota_sekolah WHERE jenjang = ?) ORDER BY tahun DESC");
@@ -435,15 +428,18 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                                         ?>
                                     </select>
                                 </div>
-                                <button type="button" class="btn btn-primary mb-2 mr-2" id="btnApplyFilter">
-                                    <i class="fas fa-filter"></i> Terapkan Filter
-                                </button>
-                                <button type="button" class="btn btn-secondary mb-2" id="btnResetFilter">
-                                    <i class="fas fa-undo"></i> Reset Filter
-                                </button>
+                                <div class="col-auto">
+                                    <button type="button" class="btn btn-primary mb-2 me-2" id="btnApplyFilter">
+                                        <i class="fas fa-filter"></i> Terapkan Filter
+                                    </button>
+                                    <button type="button" class="btn btn-secondary mb-2" id="btnResetFilter">
+                                        <i class="fas fa-undo"></i> Reset Filter
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
+                    <!-- End Filter Section -->
 
                     <!-- Tabel Detail Rekap Payroll -->
                     <div class="card shadow mb-4">
@@ -472,9 +468,10 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                         </div>
                     </div>
                 </div>
-                <!-- /.container-fluid -->
+                <!-- End Page Content -->
             </div>
-            <!-- /.content -->
+            <!-- End Main Content -->
+
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
@@ -483,9 +480,9 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                 </div>
             </footer>
         </div>
-        <!-- /.content-wrapper -->
+        <!-- End Content Wrapper -->
     </div>
-    <!-- ./wrapper -->
+    <!-- End Page Wrapper -->
 
     <!-- Modal: Detail Payroll -->
     <div class="modal fade" id="detailPayrollModal" tabindex="-1" aria-labelledby="detailPayrollModalLabel" aria-hidden="true">
@@ -517,35 +514,28 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/js/all.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- Gunakan DataTables JS untuk Bootstrap 5 -->
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- Perbarui ke DataTables untuk Bootstrap 5 (jika tersedia) -->
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function(){
-        $('[data-toggle="tooltip"]').tooltip();
-
-        // Inisialisasi SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-            }
+        // Inisialisasi tooltip dengan Bootstrap 5 (gunakan data-bs-toggle)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
         });
-
-        function showToast(message, icon = 'success') {
-            Toast.fire({
-                icon: icon,
-                title: message
-            });
-        }
 
         var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
 
@@ -630,16 +620,16 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                 url: 'rekap_payroll_details.php?ajax=1&jenjang=<?php echo urlencode($jenjang); ?>',
                 type: 'POST',
                 data: {
-                    case: 'AddAuditLog',
+                    case: 'AddAuditLog', // Opsional: Jika ada fungsi audit log, atau hapus jika tidak
                     csrf_token: csrfToken,
                     action: 'ApplyFilter',
                     details: `Pengguna menerapkan filter Bulan: ${$('#filterBulan').val() || 'Semua'}, Tahun: ${$('#filterTahun').val() || 'Semua'}.`
                 },
                 success: function(response){
-                    // Jika audit log berhasil, tidak perlu ditampilkan
+                    // Audit log dicatat (jika ada)
                 },
                 error: function(){
-                    // Jika gagal mencatat audit log, tetap lanjutkan
+                    // Tetap lanjutkan meskipun audit log gagal
                 }
             });
             rekapPayrollDetailsTable.ajax.reload();
@@ -655,17 +645,17 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                     csrf_token: csrfToken
                 },
                 success: function(response){
-                    // Jika perlu, catat reset filter
+                    // Audit log (opsional)
                 },
                 error: function(){
-                    // Gagal mencatat audit log, tetapi lanjutkan
+                    // Tetap lanjutkan
                 }
             });
             $('#filterForm')[0].reset();
             rekapPayrollDetailsTable.ajax.reload();
         });
 
-        // Optional: Trigger filter pada enter key
+        // Optional: Trigger filter on Enter key
         $('#filterForm').on('keypress', function(e){
             if(e.which === 13){
                 $('#btnApplyFilter').click();
@@ -719,7 +709,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                             if(earnings.length > 0){
                                 html += '<div class="row mt-2">';
                                 earnings.forEach(function(ph){
-                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {minimumFractionDigits:2});
+                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
                                     html += '<div class="col-12 mb-1"><span class="badge bg-success me-2">' + ph.nama_payhead + '</span> <span class="text-success">Rp ' + nominal + '</span></div>';
                                 });
                                 html += '</div>';
@@ -737,7 +727,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                             if(deductions.length > 0){
                                 html += '<div class="row mt-2">';
                                 deductions.forEach(function(ph){
-                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {minimumFractionDigits:2});
+                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
                                     html += '<div class="col-12 mb-1"><span class="badge bg-danger me-2">' + ph.nama_payhead + '</span> <span class="text-danger">Rp ' + nominal + '</span></div>';
                                 });
                                 html += '</div>';

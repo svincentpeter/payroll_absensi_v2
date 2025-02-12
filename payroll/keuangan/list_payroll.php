@@ -16,21 +16,22 @@ require_once __DIR__ . '/../../helpers.php';
 $filterMonth = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : date("n");
 $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date("Y");
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <title>Payroll Overview - Keuangan</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- CSS Bootstrap & DataTables -->
-    <link rel="stylesheet" href="/payroll_absensi_v2/assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/payroll_absensi_v2/assets/css/sb-admin-2.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css">
+    <!-- CSS Bootstrap 5, SB Admin 2, dan DataTables (Bootstrap 5) melalui CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <style>
         body { color: #000; }
         .breadcrumb { background: none; }
         .header-period { cursor: pointer; }
+        /* Jika masih terdapat kelas margin dari Bootstrap 4, gunakan utilitas Bootstrap 5 (mr- -> me-) */
+        .mr-1 { margin-right: 0.25rem !important; }
     </style>
 </head>
 <body id="page-top">
@@ -132,10 +133,11 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
                                             echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                                             echo "<td>" . htmlspecialchars($row['tgl_payroll']) . "</td>";
                                             echo "<td>";
+                                            // Ganti kelas 'mr-1' dengan 'me-1' untuk Bootstrap 5
                                             echo '<a href="manage-salary.php?id_anggota=' . $row['id_anggota'] .
                                                  '&bulan=' . $row['bulan'] .
                                                  '&tahun=' . $row['tahun'] .
-                                                 '" class="btn btn-sm btn-warning mr-1">Review</a>';
+                                                 '" class="btn btn-sm btn-warning me-1">Review</a>';
                                             echo "</td>";
                                             echo "</tr>";
                                         }
@@ -186,7 +188,7 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
                         $year  += 1;
                     }
                     // Highlight bulan yang sedang dipilih (berdasarkan filter saat ini)
-                    $highlight = ($month == $filterMonth && $year == $filterYear) ? 'bg-warning text-dark font-weight-bold' : 'bg-light';
+                    $highlight = ($month == $filterMonth && $year == $filterYear) ? 'bg-warning text-dark fw-bold' : 'bg-light';
                     echo '<div class="col-3 mb-3">';
                     echo '  <div class="p-2 ' . $highlight . '" style="border: 1px solid #ddd; border-radius: 5px;">';
                     echo '    <a href="#" class="month-link" data-month-number="' . $month . '" data-month="' . htmlspecialchars(date("F", mktime(0, 0, 0, $month, 1))) . '" data-year="' . $year . '" style="color: inherit; text-decoration: none;">';
@@ -204,9 +206,11 @@ $filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date
 
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="/payroll_absensi_v2/assets/js/bootstrap.bundle.min.js"></script>
+    <!-- Gunakan bootstrap.bundle.min.js versi Bootstrap 5.3.3 melalui CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables JS untuk Bootstrap 5 -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
     <script>
         $(document).ready(function(){
             // Inisialisasi DataTable untuk tabel payroll

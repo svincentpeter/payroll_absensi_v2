@@ -11,7 +11,6 @@ session_set_cookie_params([
     'samesite' => 'Strict'
 ]);
 
-// Sertakan helpers.php (pastikan path-nya benar)
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
@@ -87,19 +86,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Inisialisasi kategori status
         $status_categories = ['hadir', 'terlambat', 'izin', 'sakit', 'cuti', 'tanpa_keterangan', 'libur'];
         $monthly_data = []; // Format: ['YYYY-MM' => ['hadir'=>x, 'terlambat'=>y, ...], ...]
-
         foreach ($attendance_records as $record) {
             $tanggal = $record['tanggal'];
             $status = strtolower($record['status_kehadiran']);
             $terlambat = intval($record['terlambat']);
             $month = date('Y-m', strtotime($tanggal));
-
             if (!isset($monthly_data[$month])) {
                 foreach ($status_categories as $cat) {
                     $monthly_data[$month][$cat] = 0;
                 }
             }
-
             if ($status === 'hadir') {
                 if ($terlambat === 1) {
                     $monthly_data[$month]['terlambat'] += 1;
@@ -120,7 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $data_cuti = [];
         $data_tanpa_keterangan = [];
         $data_libur = [];
-
         ksort($monthly_data);
         foreach ($monthly_data as $month => $data) {
             $labels[] = $month;
@@ -132,7 +127,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $data_tanpa_keterangan[] = $data['tanpa_keterangan'];
             $data_libur[] = $data['libur'];
         }
-
         // Total untuk grafik pie
         $total_hadir = array_sum($data_hadir);
         $total_terlambat = array_sum($data_terlambat);
@@ -141,7 +135,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $total_cuti = array_sum($data_cuti);
         $total_tanpa_keterangan = array_sum($data_tanpa_keterangan);
         $total_libur = array_sum($data_libur);
-
         $pie_data = [
             'hadir' => $total_hadir,
             'terlambat' => $total_terlambat,
@@ -179,13 +172,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $anggota[] = $row;
             }
         }
-
         $performance_data = [];
         foreach ($anggota as $a) {
             $id = intval($a['id']);
             $nama = $a['nama'];
             $nip = $a['nip'];
-
             $query_absensi = "SELECT 
                                 SUM(CASE WHEN status_kehadiran = 'hadir' AND terlambat = 0 THEN 1 ELSE 0 END) AS total_hadir,
                                 SUM(CASE WHEN status_kehadiran = 'hadir' AND terlambat = 1 THEN 1 ELSE 0 END) AS total_terlambat,
@@ -215,7 +206,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'score' => $score
             ];
         }
-
         // Urutkan data performa (terbaik ke terburuk)
         usort($performance_data, function($a, $b) {
             return $b['score'] - $a['score'];
@@ -229,25 +219,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $labels[] = $p['nama'] . " (" . $p['nip'] . ")";
             $scores[] = $p['score'];
         }
-
-        // Catat Audit Log
         $user_id = intval($_SESSION['user_id']);
         $details_log = "Mengambil data performa untuk semua anggota.";
         add_audit_log($conn, $user_id, 'GetPerformanceData', $details_log);
-
         send_response(0, [
             'labels' => $labels,
             'scores' => $scores
         ]);
-
     } else {
         send_response(404, 'Aksi tidak dikenali.');
     }
-    // Pastikan tidak ada output tambahan
     exit();
 }
 
-// 3. Jika bukan permintaan AJAX, render halaman HTML dashboard
+// 3. Jika bukan permintaan AJAX, render halaman HTML dashboard SDM
+
 // Ambil data anggota (guru/karyawan) untuk dropdown filter
 $query = "SELECT id, nama, nip, job_title FROM anggota_sekolah ORDER BY nama ASC";
 $result = $conn->query($query);
@@ -264,14 +250,11 @@ if ($result && $result->num_rows > 0) {
     <meta charset="UTF-8">
     <title>Dashboard SDM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap CSS dan SB Admin 2 -->
+    <!-- Bootstrap 5 CSS dan SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <!-- Chart.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- Chart.js & Chartjs Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- Chart.js Data Labels Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?php echo $nonce; ?>"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
@@ -289,11 +272,9 @@ if ($result && $result->num_rows > 0) {
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
-
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
@@ -301,8 +282,8 @@ if ($result && $result->num_rows > 0) {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Main Content -->
                 <div class="container-fluid">
@@ -314,7 +295,7 @@ if ($result && $result->num_rows > 0) {
                             <strong>Filter Absensi</strong>
                         </div>
                         <div class="card-body">
-                            <form id="filterForm">
+                            <form id="filterForm" class="form-inline">
                                 <div class="form-row align-items-end">
                                     <div class="form-group col-md-6">
                                         <label for="anggotaSelect">Pilih Guru/Karyawan</label>
@@ -420,11 +401,11 @@ if ($result && $result->num_rows > 0) {
 
     <!-- JavaScript Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-<script src="../../assets/vendor/jquery-easing/jquery.easing.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="../../assets/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
-        // Inisialisasi Chart.js
         let barChart, lineChart, pieChart, performanceChart;
 
         function renderAttendanceCharts(data) {

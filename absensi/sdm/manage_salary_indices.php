@@ -54,7 +54,7 @@ if (ob_get_length()) ob_end_clean();
 // Implementasi CSP dengan nonce
 header("Content-Security-Policy: default-src 'self'; 
     script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
+    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn/datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
     img-src 'self'; 
     font-src 'self' https://cdnjs.cloudflare.com; 
     connect-src 'self'");
@@ -211,7 +211,7 @@ function LoadingSalaryIndices($conn) {
     $no = $start + 1;
 
     while ($row = $dataQuery->fetch_assoc()) {
-        // Format gaji pokok dengan format rupiah (misalnya)
+        // Format base_salary sebagai rupiah
         $base_salary = number_format($row['base_salary'], 2, ',', '.');
         // Jika max_years null, tampilkan tanda "-"
         $max_years = ($row['max_years'] === null) ? '-' : (int)$row['max_years'];
@@ -219,7 +219,7 @@ function LoadingSalaryIndices($conn) {
         // Tombol Aksi dengan dropdown tiga titik vertikal
         $aksi = '
 <div class="dropdown">
-  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
     <i class="bi bi-three-dots-vertical"></i>
   </button>
   <div class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
@@ -420,7 +420,7 @@ function DeleteSalaryIndex($conn) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.2/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
@@ -482,7 +482,6 @@ function DeleteSalaryIndex($conn) {
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
@@ -494,8 +493,8 @@ function DeleteSalaryIndex($conn) {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Page Content -->
                 <div class="container-fluid">
@@ -693,22 +692,20 @@ function DeleteSalaryIndex($conn) {
     <!-- DataTables -->
     <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
-    <!-- Bootstrap Notify (jika diperlukan) -->
-    <script src="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
-        // SweetAlert2 Toast Mixin
+        // Inisialisasi SweetAlert2 Toast
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -814,7 +811,7 @@ function DeleteSalaryIndex($conn) {
                 success: function(response){
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
-                    if (response.code == 0) {
+                    if(response.code == 0) {
                         showToast(response.result, 'success');
                         $('#addSalaryIndexModal').modal('hide');
                         salaryIndicesTable.ajax.reload(null, false);
@@ -845,7 +842,7 @@ function DeleteSalaryIndex($conn) {
                 data: { id: id, case: 'GetSalaryIndexDetail', csrf_token: csrfToken },
                 dataType: "json",
                 success: function(response){
-                    if (response.code == 0) {
+                    if(response.code == 0) {
                         $('#edit_id').val(response.result.id);
                         $('#edit_level').val(response.result.level);
                         $('#edit_min_years').val(response.result.min_years);
@@ -885,7 +882,7 @@ function DeleteSalaryIndex($conn) {
                 success: function(response){
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
-                    if (response.code == 0) {
+                    if(response.code == 0) {
                         showToast(response.result, 'success');
                         $('#editSalaryIndexModal').modal('hide');
                         salaryIndicesTable.ajax.reload(null, false);
@@ -932,7 +929,7 @@ function DeleteSalaryIndex($conn) {
                 success: function(response){
                     $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', false);
                     $('#delete-salary-index-form').find('.spinner-border').addClass('d-none');
-                    if (response.code == 0) {
+                    if(response.code == 0) {
                         showToast(response.result, 'success');
                         $('#deleteSalaryIndexModal').modal('hide');
                         salaryIndicesTable.ajax.reload(null, false);
@@ -947,7 +944,6 @@ function DeleteSalaryIndex($conn) {
                 }
             });
         });
-
     });
     </script>
 </body>
