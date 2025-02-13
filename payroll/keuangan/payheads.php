@@ -1,11 +1,10 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/payheads.php (Tanpa Sistem Keamanan)
+// File: /payroll_absensi_v2/payroll/keuangan/payheads.php
 
-// =========================
-// 1. Pengaturan Awal (tanpa sistem keamanan)
-// =========================
+// ==============================================================================
+// 1. Pengaturan Awal (penghapusan sistem keamanan hanya contoh - HARAP DIGANTI!)
+// ==============================================================================
 require_once __DIR__ . '/../../helpers.php';
-// Mulai session secara standar
 session_start();
 
 // Koneksi ke database
@@ -14,9 +13,9 @@ require_once __DIR__ . '/../../koneksi.php';
 // Hapus output buffering jika ada
 if (ob_get_length()) ob_end_clean();
 
-// =========================
+// ==============================================================================
 // 3. Menangani Permintaan AJAX
-// =========================
+// ==============================================================================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Debug: Log seluruh data POST (opsional)
@@ -50,11 +49,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     exit();
 }
 
+// ==============================================================================
+// 4. Fungsi CRUD (Tanpa Audit Log & Validasi Keamanan yang detail - Contoh Saja)
+// ==============================================================================
 
-// =========================
-// 4. Fungsi CRUD (Tanpa Audit Log dan Validasi Keamanan)
-// =========================
-
+/**
+ * Memuat data Payheads secara server-side dengan DataTables
+ */
 function LoadingPayheads($conn) {
     // DataTables parameters
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
@@ -65,7 +66,7 @@ function LoadingPayheads($conn) {
     // Filter Jenis Payhead
     $filterJenis = isset($_POST['jenis_payhead']) ? trim($_POST['jenis_payhead']) : '';
 
-    // Total records
+    // Ambil total records tanpa filter
     $sqlTotal = "SELECT COUNT(*) as total FROM payheads";
     $resultTotal = mysqli_query($conn, $sqlTotal);
     if (!$resultTotal) {
@@ -74,7 +75,7 @@ function LoadingPayheads($conn) {
     $rowTotal = mysqli_fetch_assoc($resultTotal);
     $recordsTotal = $rowTotal['total'];
 
-    // Membangun query filter + ORDER
+    // Bangun query filter
     $sqlFilter = "SELECT * FROM payheads WHERE 1=1";
     $sqlFilterCount = "SELECT COUNT(*) as total FROM payheads WHERE 1=1";
     $paramsFilterCount = [];
@@ -120,7 +121,7 @@ function LoadingPayheads($conn) {
     $recordsFiltered = isset($rowFiltered['total']) ? $rowFiltered['total'] : 0;
     $stmtFiltered->close();
 
-    // Order by
+    // Sorting (order by)
     $orderBy = " ORDER BY id DESC";
     if (isset($_POST['order'], $_POST['columns'])) {
         $columnIndex = intval($_POST['order'][0]['column']);
@@ -132,7 +133,7 @@ function LoadingPayheads($conn) {
         }
     }
 
-    // Limit
+    // Paginasi / limit
     $limit = " LIMIT ?, ?";
     $paramsFilter[] = $start;
     $paramsFilter[] = $length;
@@ -153,31 +154,37 @@ function LoadingPayheads($conn) {
         send_response(1, 'Query Error: ' . $stmtData->error);
     }
 
+    // Susun data untuk DataTables
     $data = [];
     $no = $start + 1;
 
     while ($row = $dataQuery->fetch_assoc()) {
-        // Format nominal (diambil dari kolom "nominal")
+        // Format nominal menggunakan fungsi dari helpers.php
         $nominal_tetap = formatNominal($row['nominal']);
 
-        // Tampilkan jenis dengan badge
+        // Badge untuk jenis
         $jenis = ($row['jenis'] == 'earnings') 
-                    ? '<span class="badge bg-success">Pendapatan</span>' 
-                    : '<span class="badge bg-danger">Potongan</span>';
-        // Tombol Aksi (dropdown dengan ikon tiga titik vertikal)
+            ? '<span class="badge bg-success"><i class="fas fa-plus-circle me-1"></i>Pendapatan</span>' 
+            : '<span class="badge bg-danger"><i class="fas fa-minus-circle me-1"></i>Potongan</span>';
+
+        // Tombol Aksi
         $aksi = '
 <div class="dropdown">
   <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
     <i class="bi bi-three-dots-vertical"></i>
   </button>
-  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
-    <a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Edit">
-      <i class="fas fa-pencil-alt"></i> Edit
-    </a>
-    <a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Hapus">
-      <i class="fas fa-trash-alt"></i> Hapus
-    </a>
-  </div>
+  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
+    <li>
+      <a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Edit">
+        <i class="fas fa-pencil-alt"></i> Edit
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Hapus">
+        <i class="fas fa-trash-alt"></i> Hapus
+      </a>
+    </li>
+  </ul>
 </div>';
 
         $data[] = [
@@ -200,19 +207,23 @@ function LoadingPayheads($conn) {
     exit();
 }
 
+/**
+ * Menambahkan Payhead baru ke dalam database
+ */
 function AddPayhead($conn) {
     // DEBUG: Log data POST pada fungsi AddPayhead
     error_log("DEBUG: AddPayhead POST: " . print_r($_POST, true));
 
-    $nama_payhead = isset($_POST['nama_payhead']) ? trim($_POST['nama_payhead']) : '';
-    $jenis = isset($_POST['jenis_payhead']) ? trim($_POST['jenis_payhead']) : '';
-    $deskripsi = isset($_POST['deskripsi']) ? trim($_POST['deskripsi']) : '';
-    $nominal_input = isset($_POST['nominal']) ? $_POST['nominal'] : '';
-    $nominal = floatval($nominal_input);
+    $nama_payhead   = isset($_POST['nama_payhead']) ? trim($_POST['nama_payhead']) : '';
+    $jenis          = isset($_POST['jenis_payhead']) ? trim($_POST['jenis_payhead']) : '';
+    $deskripsi      = isset($_POST['deskripsi']) ? trim($_POST['deskripsi']) : '';
+    $nominal_input  = isset($_POST['nominal']) ? $_POST['nominal'] : '';
+    $nominal        = floatval($nominal_input);
 
     // DEBUG: Log nilai nominal sebelum dan sesudah konversi
     error_log("DEBUG: Nilai nominal input: " . var_export($nominal_input, true) . " | Setelah floatval: " . $nominal);
 
+    // Validasi sederhana
     if (empty($nama_payhead) || empty($jenis)) {
         send_response(2, 'Semua field wajib diisi.');
     }
@@ -237,7 +248,7 @@ function AddPayhead($conn) {
     }
     $stmt->close();
 
-    // Insert dengan field nominal
+    // Insert ke DB
     $stmt = $conn->prepare("INSERT INTO payheads (nama_payhead, jenis, deskripsi, nominal) VALUES (?, ?, ?, ?)");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -252,6 +263,9 @@ function AddPayhead($conn) {
     exit();
 }
 
+/**
+ * Mengambil detail Payhead untuk kebutuhan edit
+ */
 function GetPayheadDetail($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
@@ -272,11 +286,11 @@ function GetPayheadDetail($conn) {
         error_log("DEBUG: Detail Payhead: " . print_r($payhead, true));
 
         send_response(0, [
-            'id' => $payhead['id'],
-            'nama_payhead' => $payhead['nama_payhead'],
-            'jenis' => $payhead['jenis'],
-            'deskripsi' => $payhead['deskripsi'],
-            'nominal' => $payhead['nominal']
+            'id'            => $payhead['id'],
+            'nama_payhead'  => $payhead['nama_payhead'],
+            'jenis'         => $payhead['jenis'],
+            'deskripsi'     => $payhead['deskripsi'],
+            'nominal'       => $payhead['nominal']
         ]);
     } else {
         send_response(2, 'Payhead tidak ditemukan.');
@@ -285,18 +299,22 @@ function GetPayheadDetail($conn) {
     exit();
 }
 
+/**
+ * Mengupdate data Payhead berdasarkan ID
+ */
 function UpdatePayhead($conn) {
     error_log("DEBUG: UpdatePayhead POST: " . print_r($_POST, true));
 
-    $id = isset($_POST['edit_payhead_id']) ? intval($_POST['edit_payhead_id']) : 0;
-    $nama_payhead = isset($_POST['edit_nama_payhead']) ? trim($_POST['edit_nama_payhead']) : '';
-    $jenis = isset($_POST['edit_jenis_payhead']) ? trim($_POST['edit_jenis_payhead']) : '';
-    $deskripsi = isset($_POST['edit_deskripsi']) ? trim($_POST['edit_deskripsi']) : '';
-    $nominal_input = isset($_POST['nominal']) ? $_POST['nominal'] : '';
-    $nominal = floatval($nominal_input);
+    $id             = isset($_POST['edit_payhead_id']) ? intval($_POST['edit_payhead_id']) : 0;
+    $nama_payhead   = isset($_POST['edit_nama_payhead']) ? trim($_POST['edit_nama_payhead']) : '';
+    $jenis          = isset($_POST['edit_jenis_payhead']) ? trim($_POST['edit_jenis_payhead']) : '';
+    $deskripsi      = isset($_POST['edit_deskripsi']) ? trim($_POST['edit_deskripsi']) : '';
+    $nominal_input  = isset($_POST['nominal']) ? $_POST['nominal'] : '';
+    $nominal        = floatval($nominal_input);
 
     error_log("DEBUG: UpdatePayhead - Nilai nominal input: " . var_export($nominal_input, true) . " | Setelah floatval: " . $nominal);
     
+    // Validasi sederhana
     if ($id <= 0 || empty($nama_payhead) || empty($jenis)) {
         send_response(3, 'Field wajib diisi dan ID Payhead harus valid.');
     }
@@ -308,7 +326,7 @@ function UpdatePayhead($conn) {
         send_response(5, 'Masukkan nominal payhead.');
     }
     
-    // Cek duplikasi (sederhana)
+    // Cek duplikasi sederhana
     $stmt = $conn->prepare("SELECT id FROM payheads WHERE nama_payhead = ? AND jenis = ? AND id != ? LIMIT 1");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -321,6 +339,7 @@ function UpdatePayhead($conn) {
     }
     $stmt->close();
     
+    // Update data
     $stmt = $conn->prepare("UPDATE payheads SET nama_payhead = ?, jenis = ?, deskripsi = ?, nominal = ? WHERE id = ?");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -335,13 +354,16 @@ function UpdatePayhead($conn) {
     exit();
 }
 
+/**
+ * Menghapus data Payhead dari database
+ */
 function DeletePayhead($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
         send_response(3, 'ID Payhead tidak valid.');
     }
 
-    // Cek apakah payhead sedang digunakan di tabel payroll_detail
+    // Cek apakah payhead sedang digunakan di payroll_detail
     $stmt = $conn->prepare("SELECT id FROM payroll_detail WHERE id_payhead = ? LIMIT 1");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -357,6 +379,7 @@ function DeletePayhead($conn) {
     }
     $stmt->close();
 
+    // Hapus data
     $stmt = $conn->prepare("DELETE FROM payheads WHERE id = ?");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -370,65 +393,48 @@ function DeletePayhead($conn) {
     $stmt->close();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <title>Manajemen Payheads - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
-    <!-- DataTables CSS untuk Bootstrap 5 -->
+    <!-- DataTables CSS (Bootstrap 5) -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
     <style>
-        .btn {
-            transition: background-color 0.3s, transform 0.2s;
-        }
-        .btn:hover {
-            transform: scale(1.05);
-        }
-        .aksi-column .btn {
-            margin-right: 5px;
-            margin-bottom: 5px;
-        }
-        /* Custom Styles untuk Kartu */
+        /* Contoh style tambahan / custom:
+           - Menghilangkan background card-header custom agar tidak tabrakan dengan SB Admin 2
+           - Silakan sesuaikan jika ingin tampilan berbeda */
+        
+        /* Hilangkan style gradien card-header agar konsisten dengan SB Admin 2 */
         .card-header {
-            background: linear-gradient(45deg, #0d47a1, #42a5f5);
-            color: white;
+            background-color: #4e73df; /* SB Admin 2 default header color */
+            color: #fff;
         }
-        /* Menambahkan efek hover */
+
+        /* Hover effect pada baris tabel */
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
-        #payheadsTable.table-sm tbody tr:nth-of-type(odd) {
-            background-color: #f9f9f9;
-        }
-        #payheadsTable.table-sm tbody tr:nth-of-type(even) {
-            background-color: #ffffff;
-        }
-        #payheadsTable.table-sm tbody tr:hover {
-            background-color: #e2e6ea;
-        }
-        #payheadsTable.table-sm th, #payheadsTable.table-sm td {
-            font-size: 13px;
-            vertical-align: middle;
-            white-space: nowrap;
-        }
-        thead th {
-            background-color: #343a40;
-            color: white;
-            text-align: left;
-        }
+
+        /* Tabel responsif tambahan */
         .table-responsive {
             overflow-x: auto;
         }
+
+        /* Spinner loading di tengah layar */
         #loadingSpinner {
             display: none;
             position: fixed;
@@ -438,19 +444,12 @@ function DeletePayhead($conn) {
             margin: auto;
             top: 0; left: 0; bottom: 0; right: 0;
         }
-        @media (max-width: 768px) {
-            .form-inline .form-group {
-                width: 100%;
-                margin-right: 0 !important;
-                margin-bottom: 10px;
-            }
-        }
     </style>
 </head>
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-        <!-- Sidebar (tanpa sistem keamanan, jadi bisa digunakan apa adanya) -->
+        <!-- Sidebar (sudah disesuaikan dengan SB Admin 2) -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
 
@@ -461,61 +460,65 @@ function DeletePayhead($conn) {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-                <!-- Breadcrumb -->
+
+                <!-- Breadcrumb (opsional, jika pakai) -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Page Content -->
                 <div class="container-fluid">
+                    <!-- Judul Halaman -->
                     <h1 class="h3 mb-4 text-gray-800">
-                        <i class="fas fa-money-check-alt"></i> Manajemen Payheads
+                        <i class="fas fa-money-check-alt me-2"></i>Manajemen Payheads
                     </h1>
 
-                    <!-- Filter -->
-                    <div class="card mb-4" style="background-color: #f8f9fa; border-radius: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <div class="card-header" style="background-color: #ffffff;">
-                            <strong>Filter Payheads</strong>
+                    <!-- Card Filter -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <strong><i class="fas fa-filter me-2"></i>Filter Payheads</strong>
                         </div>
                         <div class="card-body">
                             <form id="filterForm" class="row align-items-center">
-                                <div class="form-group mb-2 me-3">
-                                    <label for="filterJenisPayhead" class="me-2"><strong>Jenis Payhead:</strong></label>
-                                    <select class="form-control" id="filterJenisPayhead" name="jenis_payhead" style="width:200px">
+                                <!-- Filter Jenis Payhead -->
+                                <div class="col-md-3 mb-2">
+                                    <label for="filterJenisPayhead" class="form-label">
+                                        <i class="fas fa-layer-group me-1"></i>Jenis Payhead
+                                    </label>
+                                    <select class="form-select" id="filterJenisPayhead" name="jenis_payhead">
                                         <option value="">Semua Jenis</option>
                                         <option value="earnings">Earnings (Pendapatan)</option>
                                         <option value="deductions">Deductions (Potongan)</option>
                                     </select>
                                 </div>
-                                <div class="form-group mb-2 d-flex align-items-end">
+                                <!-- Tombol Apply Filter -->
+                                <div class="col-md-3 mb-2 d-flex align-items-end">
                                     <button type="button" class="btn btn-primary me-2" id="btnApplyFilter">
-                                        <i class="fas fa-filter"></i> Filter
+                                        <i class="fas fa-check-circle"></i> Terapkan
                                     </button>
                                     <button type="button" class="btn btn-secondary me-2" id="btnResetFilter">
                                         <i class="fas fa-undo"></i> Reset
-                                    </button>
-                                    <button type="button" class="btn btn-success" id="btnExportData">
-                                        <i class="fas fa-file-export"></i> Export
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
 
+                    <!-- Placeholder Alert (jika diperlukan) -->
                     <div id="alert-placeholder"></div>
 
-                    <!-- Tabel Rekap Payheads -->
+                    <!-- Tabel Data Payheads -->
                     <div class="card shadow mb-4">
-                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <h6 class="m-0 fw-bold text-white">
-                                <i class="fas fa-clipboard-list"></i> Daftar Payheads
+                                <i class="fas fa-clipboard-list me-1"></i>Daftar Payheads
                             </h6>
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
+                            <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
                                 <i class="fas fa-plus"></i> Tambah Payhead
                             </button>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table id="payheadsTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
-                                    <thead class="thead">
+                                <table id="payheadsTable" class="table table-sm table-bordered table-hover table-striped display nowrap" style="width:100%">
+                                    <thead>
                                         <tr>
                                             <th>No</th>
                                             <th>Nama Payhead</th>
@@ -525,16 +528,17 @@ function DeletePayhead($conn) {
                                             <th>Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody></tbody>
+                                    <tbody></tbody> <!-- Akan diisi DataTables -->
                                 </table>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!-- end container-fluid -->
+                <!-- end .container-fluid -->
             </div>
             <!-- end #content -->
 
+            <!-- Footer -->
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
@@ -545,47 +549,64 @@ function DeletePayhead($conn) {
         </div> <!-- End content-wrapper -->
     </div> <!-- End wrapper -->
 
-    <!-- Modal Tambah -->
+    <!-- Modal Tambah Payhead -->
     <div class="modal fade" id="addPayheadModal" tabindex="-1" aria-labelledby="addPayheadModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form id="add-payhead-form" class="needs-validation" novalidate>
                     <div class="modal-header">
-                        <h5 class="modal-title" id="addPayheadModalLabel">Tambah Payhead</h5>
+                        <h5 class="modal-title" id="addPayheadModalLabel">
+                            <i class="fas fa-plus-circle me-2"></i>Tambah Payhead
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
-                        <!-- Tidak ada CSRF token -->
+                        <!-- Field "case" untuk AJAX di server -->
                         <input type="hidden" name="case" value="AddPayhead">
-                        <div class="form-group">
-                            <label for="nama_payhead">Nama Payhead <span class="text-danger">*</span></label>
+                        <!-- Nama Payhead -->
+                        <div class="mb-3">
+                            <label for="nama_payhead" class="form-label">
+                                <i class="fas fa-tag me-1"></i>Nama Payhead <span class="text-danger">*</span>
+                            </label>
                             <input type="text" class="form-control" id="nama_payhead" name="nama_payhead" required>
                             <div class="invalid-feedback">Nama payhead belum diisi.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="jenis_payhead">Jenis <span class="text-danger">*</span></label>
-                            <select class="form-control" id="jenis_payhead" name="jenis_payhead" required>
+                        <!-- Jenis Payhead -->
+                        <div class="mb-3">
+                            <label for="jenis_payhead" class="form-label">
+                                <i class="fas fa-layer-group me-1"></i>Jenis <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="jenis_payhead" name="jenis_payhead" required>
                                 <option value="">---Pilih Jenis---</option>
                                 <option value="earnings">Earnings (Pendapatan)</option>
                                 <option value="deductions">Deductions (Potongan)</option>
                             </select>
                             <div class="invalid-feedback">Pilih jenis payhead.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="deskripsi">Deskripsi <span class="text-danger">*</span></label>
+                        <!-- Deskripsi -->
+                        <div class="mb-3">
+                            <label for="deskripsi" class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>Deskripsi <span class="text-danger">*</span>
+                            </label>
                             <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3" required></textarea>
                             <div class="invalid-feedback">Masukkan deskripsi payhead.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="nominal">Nominal Tetap <span class="text-danger">*</span></label>
+                        <!-- Nominal -->
+                        <div class="mb-3">
+                            <label for="nominal" class="form-label">
+                                <i class="fas fa-money-bill-wave me-1"></i>Nominal Tetap <span class="text-danger">*</span>
+                            </label>
                             <input type="text" step="0.01" class="form-control" id="nominal" name="nominal" required>
                             <div class="invalid-feedback">Masukkan nominal payhead.</div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Tutup
+                        </button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Simpan
+                            <!-- Spinner kecil saat loading -->
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                         </button>
                     </div>
@@ -594,45 +615,63 @@ function DeletePayhead($conn) {
         </div>
     </div>
 
-    <!-- Modal Edit -->
+    <!-- Modal Edit Payhead -->
     <div class="modal fade" id="editPayheadModal" tabindex="-1" aria-labelledby="editPayheadModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form id="edit-payhead-form" class="needs-validation" novalidate>
                     <div class="modal-header">
-                        <h5 class="modal-title" id="editPayheadModalLabel">Edit Payhead</h5>
+                        <h5 class="modal-title" id="editPayheadModalLabel">
+                            <i class="fas fa-edit me-2"></i>Edit Payhead
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
+                        <!-- Field "case" untuk AJAX di server -->
                         <input type="hidden" name="case" value="UpdatePayhead">
                         <input type="hidden" id="edit_payhead_id" name="edit_payhead_id">
-                        <div class="form-group">
-                            <label for="edit_nama_payhead">Nama Payhead <span class="text-danger">*</span></label>
+
+                        <!-- Nama Payhead -->
+                        <div class="mb-3">
+                            <label for="edit_nama_payhead" class="form-label">
+                                <i class="fas fa-tag me-1"></i>Nama Payhead <span class="text-danger">*</span>
+                            </label>
                             <input type="text" class="form-control" id="edit_nama_payhead" name="edit_nama_payhead" required>
                             <div class="invalid-feedback">Nama payhead belum diisi.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="edit_jenis_payhead">Jenis <span class="text-danger">*</span></label>
-                            <select class="form-control" id="edit_jenis_payhead" name="edit_jenis_payhead" required>
+                        <!-- Jenis Payhead -->
+                        <div class="mb-3">
+                            <label for="edit_jenis_payhead" class="form-label">
+                                <i class="fas fa-layer-group me-1"></i>Jenis <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="edit_jenis_payhead" name="edit_jenis_payhead" required>
                                 <option value="">---Pilih Jenis---</option>
                                 <option value="earnings">Earnings (Pendapatan)</option>
                                 <option value="deductions">Deductions (Potongan)</option>
                             </select>
                             <div class="invalid-feedback">Pilih jenis payhead.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="edit_deskripsi">Deskripsi <span class="text-danger">*</span></label>
+                        <!-- Deskripsi -->
+                        <div class="mb-3">
+                            <label for="edit_deskripsi" class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>Deskripsi <span class="text-danger">*</span>
+                            </label>
                             <textarea class="form-control" id="edit_deskripsi" name="edit_deskripsi" rows="3" required></textarea>
                             <div class="invalid-feedback">Masukkan deskripsi payhead.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="edit_nominal">Nominal Tetap <span class="text-danger">*</span></label>
+                        <!-- Nominal -->
+                        <div class="mb-3">
+                            <label for="edit_nominal" class="form-label">
+                                <i class="fas fa-money-bill-wave me-1"></i>Nominal Tetap <span class="text-danger">*</span>
+                            </label>
                             <input type="text" step="0.01" class="form-control" id="edit_nominal" name="nominal" required>
                             <div class="invalid-feedback">Masukkan nominal payhead.</div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Tutup
+                        </button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Update
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
@@ -643,30 +682,36 @@ function DeletePayhead($conn) {
         </div>
     </div>
 
-    <!-- Modal Delete -->
+    <!-- Modal Delete Payhead -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <form id="deleteForm">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">Hapus Payhead</h5>
+              <h5 class="modal-title">
+                <i class="fas fa-trash-alt me-2"></i>Hapus Payhead
+              </h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
               <div class="modal-body">
-                  <!-- Tidak ada CSRF token -->
                   <input type="hidden" id="delete_id" name="id">
-                  <p>Yakin ingin menghapus item ini?</p>
+                  <p>Yakin ingin menghapus data ini?</p>
               </div>
               <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tidak</button>
-                  <button type="submit" class="btn btn-danger">Ya, Hapus</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                      <i class="fas fa-times"></i> Batal
+                  </button>
+                  <button type="submit" class="btn btn-danger">
+                      <i class="fas fa-check"></i> Ya, Hapus
+                      <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                  </button>
               </div>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Loading Spinner -->
+    <!-- Loading Spinner (untuk menandakan proses loading AJAX) -->
     <div id="loadingSpinner">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
@@ -675,9 +720,9 @@ function DeletePayhead($conn) {
 
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Gunakan bootstrap.bundle.min.js versi Bootstrap 5.3.3 -->
+    <!-- Bootstrap 5.3.3 bundle (dengan Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables JS untuk Bootstrap 5 -->
+    <!-- DataTables JS (Bootstrap 5) -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
@@ -689,6 +734,7 @@ function DeletePayhead($conn) {
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <!-- SB Admin 2 (opsional jika Anda memakainya) -->
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -699,6 +745,7 @@ function DeletePayhead($conn) {
     $(document).ready(function() {
         console.log("DEBUG: Document ready.");
 
+        // Inisialisasi Toast dengan SweetAlert2
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -718,7 +765,7 @@ function DeletePayhead($conn) {
             });
         }
 
-        // Inisialisasi AutoNumeric untuk input nominal di modal Tambah dan Edit
+        // Inisialisasi AutoNumeric untuk input nominal di modal Tambah & Edit
         new AutoNumeric('#nominal', {
             digitGroupSeparator: '.',
             decimalCharacter: ',',
@@ -732,15 +779,7 @@ function DeletePayhead($conn) {
             unformatOnSubmit: true
         });
 
-        $('#nominal').on('blur', function() {
-            var an = AutoNumeric.getAutoNumericElement('#nominal');
-            console.log("DEBUG: Nilai nominal (Tambah) setelah blur: ", an.getNumber());
-        });
-        $('#edit_nominal').on('blur', function() {
-            var an = AutoNumeric.getAutoNumericElement('#edit_nominal');
-            console.log("DEBUG: Nilai nominal (Edit) setelah blur: ", an.getNumber());
-        });
-
+        // Definisikan DataTable
         var payheadsTable = $('#payheadsTable').DataTable({
             processing: true,
             serverSide: true,
@@ -752,9 +791,11 @@ function DeletePayhead($conn) {
                     d.jenis_payhead = $('#filterJenisPayhead').val();
                 },
                 beforeSend: function(){
+                    // Tampilkan spinner
                     $('#loadingSpinner').show();
                 },
                 complete: function(){
+                    // Sembunyikan spinner
                     $('#loadingSpinner').hide();
                 },
                 error: function(){
@@ -802,69 +843,23 @@ function DeletePayhead($conn) {
             autoWidth: false
         });
 
+        // Tombol "Terapkan Filter"
         $('#btnApplyFilter').on('click', function(){
-            // Contoh pencatatan audit log (jika diperlukan)
-            $.ajax({
-                url: 'payheads.php?ajax=1',
-                type: 'POST',
-                data: {
-                    case: 'AddAuditLog', // Jika tidak ada fungsi ini, Anda bisa menghapus bagian ini
-                    details: `Pengguna menerapkan filter Jenis Payhead: ${$('#filterJenisPayhead').val() || 'Semua'}.`
-                },
-                success: function(response){
-                    if(response.code === 0){
-                        showToast('Filter berhasil diterapkan.', 'success');
-                    }
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
-                }
-            });
             payheadsTable.ajax.reload();
         });
 
+        // Tombol "Reset Filter"
         $('#btnResetFilter').on('click', function(){
-            $.ajax({
-                url: 'payheads.php?ajax=1',
-                type: 'POST',
-                data: {
-                    case: 'AddAuditLog',
-                    details: 'Pengguna mereset semua filter Payhead.'
-                },
-                success: function(response){
-                    if(response.code === 0){
-                        showToast('Filter berhasil direset.', 'success');
-                    }
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
-                }
-            });
             $('#filterForm')[0].reset();
             payheadsTable.ajax.reload();
         });
 
+        // Tombol "Export Data" -> Trigger Export Excel
         $('#btnExportData').on('click', function(){
             payheadsTable.button('.buttons-excel').trigger();
-            $.ajax({
-                url: 'payheads.php?ajax=1',
-                type: 'POST',
-                data: {
-                    case: 'AddAuditLog',
-                    details: 'Pengguna mengekspor data payheads ke Excel.'
-                },
-                success: function(response){
-                    if(response.code === 0){
-                        showToast('Data berhasil diekspor ke Excel.', 'success');
-                    }
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
-                }
-            });
         });
 
-        // Validasi form bootstrap 5 (menggunakan kelas .needs-validation)
+        // Validasi form bootstrap 5 (menggunakan .needs-validation)
         (function() {
             'use strict';
             window.addEventListener('load', function() {
@@ -881,10 +876,9 @@ function DeletePayhead($conn) {
             }, false);
         })();
 
-        // Tambah Payhead
+        // Form Tambah Payhead
         $('#add-payhead-form').on('submit', function(e) {
             e.preventDefault();
-            console.log("DEBUG: Nilai nominal (Tambah) sebelum submit:", $('#nominal').val());
             var form = $(this);
             if (!this.checkValidity()) {
                 e.stopPropagation();
@@ -922,7 +916,7 @@ function DeletePayhead($conn) {
             });
         });
 
-        // Tampilkan data detail untuk proses edit
+        // Tombol Edit -> ambil detail
         $(document).on('click', '.btn-edit', function() {
             var id = $(this).data('id');
             var modal = $('#editPayheadModal');
@@ -940,9 +934,10 @@ function DeletePayhead($conn) {
                         $('#edit_nama_payhead').val(response.result.nama_payhead);
                         $('#edit_jenis_payhead').val(response.result.jenis);
                         $('#edit_deskripsi').val(response.result.deskripsi);
-                        // Gunakan AutoNumeric API untuk mengatur nilai
+                        // Set nominal ke AutoNumeric (modal Edit)
                         var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
                         anEdit.set(response.result.nominal);
+
                         modal.modal('show');
                     } else {
                         showToast(response.result, 'error');
@@ -954,13 +949,12 @@ function DeletePayhead($conn) {
             });
         });
 
-        // Update Payhead
+        // Form Update Payhead
         $('#edit-payhead-form').on('submit', function(e) {
             e.preventDefault();
-            console.log("DEBUG: Nilai nominal (Edit) sebelum submit:", $('#edit_nominal').val());
             var form = $(this);
 
-            // Update nilai input dari AutoNumeric
+            // Update nilai input dari AutoNumeric (modal Edit) sebelum submit
             var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
             $('#edit_nominal').val(anEdit.getNumber());
 
@@ -1000,14 +994,14 @@ function DeletePayhead($conn) {
             });
         });
 
-        // Tampilkan modal Delete
+        // Tombol Hapus -> Tampilkan modal konfirmasi
         $(document).on('click', '.btn-delete', function() {
             var id = $(this).data('id');
             $('#delete_id').val(id);
             $('#deleteModal').modal('show');
         });
 
-        // Proses Delete Payhead
+        // Form Delete Payhead
         $('#deleteForm').on('submit', function(e){
             e.preventDefault();
             var id = $('#delete_id').val();
@@ -1046,6 +1040,7 @@ function DeletePayhead($conn) {
             });
         });
 
+        // Aksi tekan Enter di filter form
         $('#filterForm').on('keypress', function(e){
             if(e.which === 13) {
                 $('#btnApplyFilter').click();
@@ -1053,6 +1048,5 @@ function DeletePayhead($conn) {
         });
     });
     </script>
-
 </body>
 </html>

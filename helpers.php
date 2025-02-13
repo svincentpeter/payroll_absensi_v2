@@ -27,6 +27,13 @@ function sanitize_input($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
+// Tambahkan alias untuk fungsi bersihkan_input()
+if (!function_exists('bersihkan_input')) {
+    function bersihkan_input($data) {
+        return sanitize_input($data);
+    }
+}
+
 /**
  * Mengirim respons JSON dan mengakhiri eksekusi script.
  *
@@ -219,4 +226,6 @@ function monthNameToInt($monthName) {
 function formatNominal($nominal) {
     return 'Rp ' . number_format($nominal, 2, ',', '.');
 }
+
+
 ?>

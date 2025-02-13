@@ -32,7 +32,7 @@ if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
 header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
 
 // Implementasi Content-Security-Policy dengan nonce
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce' https://cdn.jsdelivr.net https://code.jquery.com; style-src 'self' 'nonce-$nonce' https://stackpath.bootstrapcdn.com; img-src 'self'; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self'");
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce' https://cdn.jsdelivr.net https://code.jquery.com https://cdn.jsdelivr.net/npm/sweetalert2@11; style-src 'self' 'nonce-$nonce' https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css; img-src 'self'; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self'");
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
@@ -50,7 +50,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['sdm', 'supera
     exit();
 }
 
-// 2. Menangani Permintaan AJAX (gunakan method POST agar lebih aman)
+// 2. Menangani Permintaan AJAX (metode POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // Verifikasi CSRF token
     $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
@@ -232,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit();
 }
 
-// 3. Jika bukan permintaan AJAX, render halaman HTML dashboard SDM
+// 3. Jika bukan permintaan AJAX, render halaman HTML dashboard
 
 // Ambil data anggota (guru/karyawan) untuk dropdown filter
 $query = "SELECT id, nama, nip, job_title FROM anggota_sekolah ORDER BY nama ASC";
@@ -253,11 +253,15 @@ if ($result && $result->num_rows > 0) {
     <!-- Bootstrap 5 CSS dan SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- Font Awesome untuk icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Chart.js & Chartjs Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?php echo $nonce; ?>"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
     <style nonce="<?php echo $nonce; ?>">
         .chart-container {
             position: relative;
@@ -272,7 +276,7 @@ if ($result && $result->num_rows > 0) {
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-        <!-- Sidebar -->
+        <!-- Sidebar (gunakan include sesuai struktur folder) -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
         <!-- Content Wrapper -->
@@ -287,37 +291,35 @@ if ($result && $result->num_rows > 0) {
 
                 <!-- Main Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">Dashboard SDM</h1>
+                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-users me-2"></i>Dashboard SDM</h1>
 
-                    <!-- Form Filter -->
+                    <!-- Card Filter -->
                     <div class="card mb-4">
                         <div class="card-header">
-                            <strong>Filter Absensi</strong>
+                            <strong><i class="fas fa-filter me-1"></i>Filter Absensi</strong>
                         </div>
                         <div class="card-body">
-                            <form id="filterForm" class="form-inline">
-                                <div class="form-row align-items-end">
-                                    <div class="form-group col-md-6">
-                                        <label for="anggotaSelect">Pilih Guru/Karyawan</label>
-                                        <select id="anggotaSelect" class="form-control" required>
-                                            <option value="" disabled selected>-- Pilih Guru/Karyawan --</option>
-                                            <?php foreach ($anggota as $a): ?>
-                                                <option value="<?= htmlspecialchars($a['id']); ?>">
-                                                    <?= htmlspecialchars($a['nama']) . " (" . htmlspecialchars($a['nip']) . ")"; ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <button type="button" id="resetFilter" class="btn btn-secondary">
-                                            Reset Filter
-                                        </button>
-                                    </div>
-                                    <div class="form-group col-md-3">
-                                        <button type="button" id="viewPerformance" class="btn btn-info">
-                                            Lihat Performa Guru/Karyawan
-                                        </button>
-                                    </div>
+                            <form id="filterForm" class="row align-items-end">
+                                <div class="col-md-6 mb-2">
+                                    <label for="anggotaSelect" class="form-label"><i class="fas fa-user me-1"></i>Pilih Guru/Karyawan</label>
+                                    <select id="anggotaSelect" class="form-select" required>
+                                        <option value="" disabled selected>-- Pilih Guru/Karyawan --</option>
+                                        <?php foreach ($anggota as $a): ?>
+                                            <option value="<?= htmlspecialchars($a['id']); ?>">
+                                                <?= htmlspecialchars($a['nama']) . " (" . htmlspecialchars($a['nip']) . ")"; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <button type="button" id="resetFilter" class="btn btn-secondary w-100">
+                                        <i class="fas fa-undo me-1"></i>Reset Filter
+                                    </button>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <button type="button" id="viewPerformance" class="btn btn-info w-100">
+                                        <i class="fas fa-chart-bar me-1"></i>Lihat Performa Guru/Karyawan
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -329,7 +331,7 @@ if ($result && $result->num_rows > 0) {
                         <div class="col-lg-6 mb-4">
                             <div class="card">
                                 <div class="card-header">
-                                    <strong>Grafik Absensi Bulanan</strong>
+                                    <strong><i class="fas fa-chart-bar me-1"></i>Grafik Absensi Bulanan</strong>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
@@ -342,7 +344,7 @@ if ($result && $result->num_rows > 0) {
                         <div class="col-lg-6 mb-4">
                             <div class="card">
                                 <div class="card-header">
-                                    <strong>Grafik Tren Absensi</strong>
+                                    <strong><i class="fas fa-chart-line me-1"></i>Grafik Tren Absensi</strong>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
@@ -353,12 +355,12 @@ if ($result && $result->num_rows > 0) {
                         </div>
                     </div>
 
-                    <!-- Pie Chart -->
+                    <!-- Grafik Pie -->
                     <div class="row" id="pieChartContainer">
                         <div class="col-lg-12 mb-4">
                             <div class="card">
                                 <div class="card-header">
-                                    <strong>Grafik Proporsi Absensi</strong>
+                                    <strong><i class="fas fa-chart-pie me-1"></i>Grafik Proporsi Absensi</strong>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
@@ -373,8 +375,21 @@ if ($result && $result->num_rows > 0) {
                     <div class="row" id="performanceChartContainer" style="display: none;">
                         <div class="col-lg-12 mb-4">
                             <div class="card">
-                                <div class="card-header">
-                                    <strong>Grafik Performa 3 Terbaik dan 3 Terburuk</strong>
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <strong><i class="fas fa-trophy me-1"></i>Grafik Performa Terbaik & Terburuk</strong>
+                                    <!-- Dropdown aksi dengan 3 titik vertikal -->
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm" type="button" id="performanceActions" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu" aria-labelledby="performanceActions">
+                                            <li>
+                                                <a class="dropdown-item" href="#" id="refreshPerformance">
+                                                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
@@ -386,8 +401,10 @@ if ($result && $result->num_rows > 0) {
                     </div>
 
                 </div>
-                <!-- End Main Content -->
+                <!-- end .container-fluid -->
             </div>
+            <!-- end #content -->
+
             <!-- Footer -->
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
@@ -396,16 +413,33 @@ if ($result && $result->num_rows > 0) {
                     </div>
                 </div>
             </footer>
-        </div>
-    </div>
+        </div> <!-- End content-wrapper -->
+    </div> <!-- End wrapper -->
 
-    <!-- JavaScript Dependencies -->
+    <!-- JS Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?php echo $nonce; ?>"></script>
     <script nonce="<?php echo $nonce; ?>">
     $(document).ready(function() {
+        // Inisialisasi SweetAlert2 Toast
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+        function showToast(message, icon = 'success') {
+            Toast.fire({
+                icon: icon,
+                title: message
+            });
+        }
+
         let barChart, lineChart, pieChart, performanceChart;
 
         function renderAttendanceCharts(data) {
@@ -660,7 +694,7 @@ if ($result && $result->num_rows > 0) {
                 dataType: 'json',
                 success: function(response) {
                     if (response.code !== 0) {
-                        alert(response.result);
+                        showToast(response.result, 'error');
                         return;
                     }
                     $('#attendanceChartsContainer').show();
@@ -670,7 +704,7 @@ if ($result && $result->num_rows > 0) {
                 },
                 error: function(xhr, status, error) {
                     console.error(xhr.responseText);
-                    alert('Terjadi kesalahan saat mengambil data absensi.');
+                    showToast('Terjadi kesalahan saat mengambil data absensi.', 'error');
                 }
             });
         }
@@ -686,7 +720,7 @@ if ($result && $result->num_rows > 0) {
                 dataType: 'json',
                 success: function(response) {
                     if (response.code !== 0) {
-                        alert(response.result);
+                        showToast(response.result, 'error');
                         return;
                     }
                     $('#attendanceChartsContainer').hide();
@@ -696,7 +730,7 @@ if ($result && $result->num_rows > 0) {
                 },
                 error: function(xhr, status, error) {
                     console.error(xhr.responseText);
-                    alert('Terjadi kesalahan saat mengambil data performa.');
+                    showToast('Terjadi kesalahan saat mengambil data performa.', 'error');
                 }
             });
         }
@@ -723,9 +757,16 @@ if ($result && $result->num_rows > 0) {
         $('#resetFilter').on('click', function() {
             $('#anggotaSelect').val('');
             resetCharts();
+            showToast('Filter direset.', 'info');
         });
 
-        $('#viewPerformance').on('click', function() {
+        $('#viewPerformance').on('click', function(e) {
+            e.preventDefault();
+            fetchPerformanceData();
+        });
+
+        $('#refreshPerformance').on('click', function(e) {
+            e.preventDefault();
             fetchPerformanceData();
         });
 

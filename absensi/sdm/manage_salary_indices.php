@@ -1,49 +1,18 @@
 <?php
 // File: /payroll_absensi_v2/pegawai/manage_salary_indices.php
 
-// =========================
-// 1. Pengaturan Keamanan
-// =========================
-
-// Atur parameter cookie session sebelum session_start()
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses via JavaScript
-    'samesite' => 'Strict'
-]);
-
+session_start();
 require_once __DIR__ . '/../../helpers.php';
-start_session_safe();
-init_error_handling();
-generate_csrf_token();
-
-// Buat nonce untuk CSP dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-// Paksa HTTPS jika belum menggunakan HTTPS
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-
-// HSTS header
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
-// Pastikan CSRF token tersedia
-generate_csrf_token();
 
 // Role Checking: hanya role sdm dan superadmin yang boleh mengakses
 function authorize($allowed_roles = ['sdm', 'superadmin']) {
     if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        send_response(403, 'Akses ditolak.');
+        header("HTTP/1.1 403 Forbidden");
+        echo "Akses ditolak.";
+        exit();
     }
 }
+authorize();
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
@@ -51,28 +20,14 @@ require_once __DIR__ . '/../../koneksi.php';
 // Nonaktifkan output buffering jika ada
 if (ob_get_length()) ob_end_clean();
 
-// Implementasi CSP dengan nonce
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn/datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
 
 // =========================
 // 2. Menangani Permintaan AJAX
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Verifikasi CSRF
-        $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-        verify_csrf_token($csrf_token);
 
-        // Role Check
-        authorize();
-
-        // Ambil case
-        $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
+        $case = isset($_POST['case']) ? trim($_POST['case']) : '';
 
         switch ($case) {
             case 'LoadingSalaryIndices':
@@ -91,8 +46,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 DeleteSalaryIndex($conn);
                 break;
             case 'AddAuditLog':
-                $action = isset($_POST['action']) ? bersihkan_input($_POST['action']) : '';
-                $details = isset($_POST['details']) ? bersihkan_input($_POST['details']) : '';
+                $action = isset($_POST['action']) ? trim($_POST['action']) : '';
+                $details = isset($_POST['details']) ? trim($_POST['details']) : '';
 
                 if (!empty($action) && !empty($details)) {
                     $logged = add_audit_log(
@@ -119,6 +74,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     exit();
 }
 
+
 // =========================
 // 3. Fungsi CRUD untuk Salary Indices dengan Audit Log
 // =========================
@@ -128,7 +84,7 @@ function LoadingSalaryIndices($conn) {
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
+    $search = isset($_POST['search']['value']) ? trim($_POST['search']['value']) : '';
 
     // Total records
     $sqlTotal = "SELECT COUNT(*) as total FROM salary_indices";
@@ -174,11 +130,10 @@ function LoadingSalaryIndices($conn) {
     $orderBy = " ORDER BY id DESC";
     if (isset($_POST['order'], $_POST['columns'])) {
         $columnIndex = intval($_POST['order'][0]['column']);
-        // Pastikan hanya kolom yang diizinkan
         $allowedColumns = ['level', 'min_years', 'max_years', 'base_salary', 'description'];
         if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedColumns)) {
             $colName = $_POST['columns'][$columnIndex]['data'];
-            $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
+            $colSortOrder = (isset($_POST['order'][0]['dir']) && $_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
             $orderBy = " ORDER BY $colName $colSortOrder";
         }
     }
@@ -211,25 +166,27 @@ function LoadingSalaryIndices($conn) {
     $no = $start + 1;
 
     while ($row = $dataQuery->fetch_assoc()) {
-        // Format base_salary sebagai rupiah
         $base_salary = number_format($row['base_salary'], 2, ',', '.');
-        // Jika max_years null, tampilkan tanda "-"
         $max_years = ($row['max_years'] === null) ? '-' : (int)$row['max_years'];
 
-        // Tombol Aksi dengan dropdown tiga titik vertikal
+        // Dropdown aksi menggunakan tiga titik vertikal (Bootstrap 5)
         $aksi = '
 <div class="dropdown">
-  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
     <i class="bi bi-three-dots-vertical"></i>
   </button>
-  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
-    <a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Edit">
+  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
+    <li>
+      <a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Edit">
         <i class="fas fa-pencil-alt"></i> Edit
-    </a>
-    <a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Hapus">
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '" title="Hapus">
         <i class="fas fa-trash-alt"></i> Hapus
-    </a>
-  </div>
+      </a>
+    </li>
+  </ul>
 </div>';
 
         $data[] = [
@@ -285,9 +242,7 @@ function AddSalaryIndex($conn) {
     if ($stmt->execute()) {
         $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         $details_log = "Menambahkan Indeks Gaji: Level='$level', Min Tahun='$min_years', Max Tahun='" . ($max_years ?? 'NULL') . "', Gaji Pokok='$base_salary', Keterangan='$description'.";
-        if (!add_audit_log($conn, $user_id, 'AddSalaryIndex', $details_log)) {
-            log_error("Gagal mencatat audit log untuk AddSalaryIndex ID " . $stmt->insert_id . ".");
-        }
+        add_audit_log($conn, $user_id, 'AddSalaryIndex', $details_log);
         send_response(0, 'Indeks gaji berhasil ditambahkan.');
     } else {
         send_response(1, 'Gagal menambah indeks gaji: ' . $stmt->error);
@@ -313,12 +268,9 @@ function GetSalaryIndexDetail($conn) {
         $row = $result->fetch_assoc();
         $stmt->close();
 
-        // Catat audit log untuk melihat detail
         $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         $details_log = "Melihat detail Indeks Gaji ID $id: Level='{$row['level']}', Min Tahun='{$row['min_years']}', Max Tahun='" . ($row['max_years'] ?? 'NULL') . "', Gaji Pokok='{$row['base_salary']}', Keterangan='{$row['description']}'.";
-        if (!add_audit_log($conn, $user_id, 'ViewSalaryIndexDetail', $details_log)) {
-            log_error("Gagal mencatat audit log untuk ViewSalaryIndexDetail ID $id.");
-        }
+        add_audit_log($conn, $user_id, 'ViewSalaryIndexDetail', $details_log);
 
         send_response(0, [
             'id' => $row['id'],
@@ -369,9 +321,7 @@ function UpdateSalaryIndex($conn) {
     if ($stmt->execute()) {
         $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         $details_log = "Mengupdate Indeks Gaji ID $id: Level='$level', Min Tahun='$min_years', Max Tahun='" . ($max_years ?? 'NULL') . "', Gaji Pokok='$base_salary', Keterangan='$description'.";
-        if (!add_audit_log($conn, $user_id, 'UpdateSalaryIndex', $details_log)) {
-            log_error("Gagal mencatat audit log untuk UpdateSalaryIndex ID $id.");
-        }
+        add_audit_log($conn, $user_id, 'UpdateSalaryIndex', $details_log);
         send_response(0, 'Indeks gaji berhasil diupdate.');
     } else {
         send_response(1, 'Gagal mengupdate data: ' . $stmt->error);
@@ -399,35 +349,32 @@ function DeleteSalaryIndex($conn) {
     // Audit Log
     $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
     $details_log = "Menghapus Indeks Gaji ID $id.";
-    if (!add_audit_log($conn, $user_id, 'DeleteSalaryIndex', $details_log)) {
-        log_error("Gagal mencatat audit log untuk DeleteSalaryIndex ID $id.");
-    }
+    add_audit_log($conn, $user_id, 'DeleteSalaryIndex', $details_log);
 
     send_response(0, 'Indeks gaji berhasil dihapus.');
     $stmt->close();
     exit();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <title>Manajemen Indeks/Kenaikan Gaji Pokok - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 4 CSS -->
-    <link rel="stylesheet" href="/payroll_absensi_v2/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
+    <!-- DataTables CSS (Bootstrap 5) -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
-    <!-- Bootstrap Notify CSS (opsional) -->
-    <link rel="stylesheet" href="/payroll_absensi_v2/plugins/bootstrap-notify/bootstrap-notify.min.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
@@ -438,7 +385,7 @@ function DeleteSalaryIndex($conn) {
             margin-right: 5px;
             margin-bottom: 5px;
         }
-        /* Custom Styles untuk Kartu */
+        /* Card header menggunakan gradien seperti di payheads.php */
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
@@ -498,13 +445,11 @@ function DeleteSalaryIndex($conn) {
 
                 <!-- Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">
-                        <i class="fas fa-chart-line"></i> Manajemen Indeks/Kenaikan Gaji Pokok
-                    </h1>
+                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-chart-line"></i> Manajemen Indeks/Kenaikan Gaji Pokok</h1>
 
                     <!-- Tombol Tambah -->
                     <div class="d-flex justify-content-end mb-3">
-                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addSalaryIndexModal">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSalaryIndexModal">
                             <i class="fas fa-plus"></i> Tambah Indeks Gaji
                         </button>
                     </div>
@@ -512,7 +457,7 @@ function DeleteSalaryIndex($conn) {
                     <!-- Tabel Indeks Gaji -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold text-white"><i class="fas fa-clipboard-list"></i> Daftar Indeks Gaji</h6>
+                            <h6 class="m-0 fw-bold text-white"><i class="fas fa-clipboard-list"></i> Daftar Indeks Gaji</h6>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -537,13 +482,11 @@ function DeleteSalaryIndex($conn) {
                     <!-- Loading Spinner -->
                     <div id="loadingSpinner">
                         <div class="spinner-border text-primary" role="status">
-                            <span class="sr-only">Loading...</span>
+                            <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
                 </div>
-                <!-- end container-fluid -->
             </div>
-            <!-- end #content -->
 
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
@@ -562,39 +505,36 @@ function DeleteSalaryIndex($conn) {
                 <form id="add-salary-index-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="addSalaryIndexModalLabel"><i class="fas fa-plus"></i> Tambah Indeks Gaji</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                            <span>&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="AddSalaryIndex">
-                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                        <div class="form-group">
-                            <label for="level">Level <span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="level" class="form-label">Level <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="level" name="level" required>
                             <div class="invalid-feedback">Level belum diisi.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="min_years">Min. Masa Kerja (Tahun) <span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="min_years" class="form-label">Min. Masa Kerja (Tahun) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="min_years" name="min_years" min="0" required>
                             <div class="invalid-feedback">Minimal masa kerja belum diisi.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="max_years">Max. Masa Kerja (Tahun)</label>
+                        <div class="mb-3">
+                            <label for="max_years" class="form-label">Max. Masa Kerja (Tahun)</label>
                             <input type="number" class="form-control" id="max_years" name="max_years" min="0">
                         </div>
-                        <div class="form-group">
-                            <label for="base_salary">Gaji Pokok (Rp) <span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="base_salary" class="form-label">Gaji Pokok (Rp) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="base_salary" name="base_salary" min="0" step="0.01" required>
                             <div class="invalid-feedback">Gaji pokok belum diisi.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="description">Keterangan</label>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Keterangan</label>
                             <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tutup</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Simpan
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
@@ -612,40 +552,37 @@ function DeleteSalaryIndex($conn) {
                 <form id="edit-salary-index-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="editSalaryIndexModalLabel"><i class="fas fa-edit"></i> Edit Indeks Gaji</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                            <span>&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="UpdateSalaryIndex">
                         <input type="hidden" id="edit_id" name="edit_id">
-                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                        <div class="form-group">
-                            <label for="edit_level">Level <span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="edit_level" class="form-label">Level <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="edit_level" name="edit_level" required>
                             <div class="invalid-feedback">Level belum diisi.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="edit_min_years">Min. Masa Kerja (Tahun) <span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="edit_min_years" class="form-label">Min. Masa Kerja (Tahun) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="edit_min_years" name="edit_min_years" min="0" required>
                             <div class="invalid-feedback">Minimal masa kerja belum diisi.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="edit_max_years">Max. Masa Kerja (Tahun)</label>
+                        <div class="mb-3">
+                            <label for="edit_max_years" class="form-label">Max. Masa Kerja (Tahun)</label>
                             <input type="number" class="form-control" id="edit_max_years" name="edit_max_years" min="0">
                         </div>
-                        <div class="form-group">
-                            <label for="edit_base_salary">Gaji Pokok (Rp) <span class="text-danger">*</span></label>
+                        <div class="mb-3">
+                            <label for="edit_base_salary" class="form-label">Gaji Pokok (Rp) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="edit_base_salary" name="edit_base_salary" min="0" step="0.01" required>
                             <div class="invalid-feedback">Gaji pokok belum diisi.</div>
                         </div>
-                        <div class="form-group">
-                            <label for="edit_description">Keterangan</label>
+                        <div class="mb-3">
+                            <label for="edit_description" class="form-label">Keterangan</label>
                             <textarea class="form-control" id="edit_description" name="edit_description" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tutup</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Update
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
@@ -663,17 +600,14 @@ function DeleteSalaryIndex($conn) {
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title"><i class="fas fa-trash-alt"></i> Hapus Indeks Gaji</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                <span>&times;</span>
-              </button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
-              <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
               <input type="hidden" id="delete_id" name="id">
               <p>Yakin ingin menghapus Indeks Gaji <strong id="delete_level"></strong>?</p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Tidak</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tidak</button>
               <button type="submit" class="btn btn-danger">
                 <i class="fas fa-trash"></i> Ya, Hapus
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
@@ -684,26 +618,33 @@ function DeleteSalaryIndex($conn) {
       </div>
     </div>
 
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
     <!-- JS Dependencies -->
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- Bootstrap Bundle (termasuk Popper) -->
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- DataTables -->
-    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap 5 Bundle (dengan Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
+    <!-- DataTables JS (Bootstrap 5) -->
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
-    <script nonce="<?php echo $nonce; ?>">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
     $(document).ready(function() {
         // Inisialisasi SweetAlert2 Toast
         const Toast = Swal.mixin({
@@ -724,8 +665,6 @@ function DeleteSalaryIndex($conn) {
             });
         }
         
-        var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
-
         // Inisialisasi DataTable untuk Salary Indices
         var salaryIndicesTable = $('#salaryIndicesTable').DataTable({
             processing: true,
@@ -735,7 +674,6 @@ function DeleteSalaryIndex($conn) {
                 type: "POST",
                 data: function(d) {
                     d.case = 'LoadingSalaryIndices';
-                    d.csrf_token = csrfToken;
                 },
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -839,7 +777,7 @@ function DeleteSalaryIndex($conn) {
             $.ajax({
                 url: "manage_salary_indices.php?ajax=1",
                 type: "POST",
-                data: { id: id, case: 'GetSalaryIndexDetail', csrf_token: csrfToken },
+                data: { id: id, case: 'GetSalaryIndexDetail' },
                 dataType: "json",
                 success: function(response){
                     if(response.code == 0) {
@@ -920,7 +858,7 @@ function DeleteSalaryIndex($conn) {
             $.ajax({
                 url: "manage_salary_indices.php?ajax=1",
                 type: "POST",
-                data: { id: id, case: 'DeleteSalaryIndex', csrf_token: csrfToken },
+                data: { id: id, case: 'DeleteSalaryIndex' },
                 dataType: "json",
                 beforeSend: function(){
                     $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', true);

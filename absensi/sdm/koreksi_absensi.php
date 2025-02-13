@@ -1,60 +1,31 @@
 <?php
 // File: /payroll_absensi_v2/koreksi_absensi.php
 
-// =========================
-// 1. Pengaturan Keamanan, Session, dan Koneksi
-// =========================
-session_set_cookie_params([
-    'lifetime' => 0, // Berlaku selama browser dibuka
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya melalui HTTPS
-    'httponly' => true,      // Tidak dapat diakses via JavaScript
-    'samesite' => 'Strict'
-]);
+// ==============================================================================
+// 1. Pengaturan Awal & Keamanan
+// ==============================================================================
 
+session_start();
 require_once __DIR__ . '/../../helpers.php';
-start_session_safe();
-init_error_handling();
-generate_csrf_token();
+require_once __DIR__ . '/../../koneksi.php';
 
-// Buat nonce untuk CSP dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
+// Hapus output buffering jika ada
+if (ob_get_length()) ob_end_clean();
 
-// Paksa HTTPS jika belum
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header("HTTP/1.1 301 Moved Permanently");
-    header("Location: " . $redirect);
-    exit();
-}
-
-// Header HSTS
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
-// Susun Content Security Policy (tanpa newline)
-$csp = "default-src 'self'; " .
-       "script-src 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; " .
-       "style-src 'self' https://stackpath.bootstrapcdn.com https://fonts.googleapis.com https://cdn.datatables.net 'nonce-$nonce'; " .
-       "img-src 'self'; " .
-       "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " .
-       "connect-src 'self'";
-$csp = str_replace(["\r", "\n"], '', $csp);
-header("Content-Security-Policy: $csp");
-
-// Cek role (hanya untuk sdm dan superadmin)
+// Pastikan hanya role sdm dan superadmin yang boleh mengakses halaman ini
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['sdm', 'superadmin'])) {
     header("HTTP/1.1 403 Forbidden");
     echo "Akses ditolak.";
     exit();
 }
 
-// Koneksi ke database
-require_once __DIR__ . '/../../koneksi.php';
-if (ob_get_length()) ob_end_clean();
+// Generate CSRF token (jika belum ada)
+generate_csrf_token();
 
-// Fungsi tambahan
+// ==============================================================================
+// 2. Fungsi Tambahan Khusus Koreksi Absensi
+// ==============================================================================
+
 function get_nama_karyawan($conn) {
     $sql = "SELECT nama FROM anggota_sekolah GROUP BY nama";
     $result = mysqli_query($conn, $sql);
@@ -82,19 +53,19 @@ function delete_absensi($conn, $id_absensi) {
     }
 }
 
-// =========================
-// 2. Proses POST: Update, Delete, dan Server-side DataTables
-// =========================
+// ==============================================================================
+// 3. Proses POST: Update, Delete, dan Server-side DataTables
+// ==============================================================================
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Pastikan CSRF token valid untuk semua proses POST
+    if (!isset($_POST['csrf_token'])) {
+        send_response(403, 'Token CSRF tidak ditemukan.');
+    }
+    verify_csrf_token($_POST['csrf_token']);
+
     // Proses Update dan Delete (dengan adanya parameter action)
     if (isset($_POST['action'])) {
-        // Verifikasi CSRF
-        if (!isset($_POST['csrf_token']) || !verify_csrf_token(trim($_POST['csrf_token']))) {
-            $_SESSION['notif_error'] = "Token keamanan tidak valid.";
-            header("Location: koreksi_absensi.php");
-            exit;
-        }
         $action = $_POST['action'];
         if ($action === 'update') {
             $id_absensi      = $_POST['id_absensi'] ?? '';
@@ -105,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: koreksi_absensi.php");
                 exit;
             }
-            // Sanitasi input
+            // Sanitasi dan ambil input
             $tanggal          = $_POST['tanggal'] ?? '';
             $jadwal           = $_POST['jadwal'] ?? '';
             $jam_kerja        = $_POST['jam_kerja'] ?? '';
@@ -113,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pin              = $_POST['pin'] ?? '';
             $nip              = $_POST['nip'] ?? '';
             $nama             = $_POST['nama'] ?? '';
+            $departemen       = $departemen_post;
             $lembur           = isset($_POST['lembur']) ? (int) $_POST['lembur'] : 0;
             $jam_masuk        = $_POST['jam_masuk'] ?? '';
             $scan_masuk       = $_POST['scan_masuk'] ?? '';
@@ -123,14 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $scan_istirahat_1 = $_POST['scan_istirahat_1'] ?? '';
             $scan_istirahat_2 = $_POST['scan_istirahat_2'] ?? '';
 
-            // Validasi tanggal (format Y-m-d)
+            // Validasi format tanggal (Y-m-d)
             $dtTanggal = DateTime::createFromFormat('Y-m-d', $tanggal);
             if (!$dtTanggal || $dtTanggal->format('Y-m-d') !== $tanggal) {
                 $_SESSION['notif_error'] = "Format tanggal tidak valid.";
                 header("Location: koreksi_absensi.php");
                 exit;
             }
-            // Validasi waktu (format HH:MM) untuk field yang ada isinya
+            // Validasi format waktu (HH:MM) untuk field yang diisi
             $time_fields = ['jam_masuk','scan_masuk','jam_pulang','scan_pulang','scan_istirahat_1','scan_istirahat_2'];
             foreach ($time_fields as $field) {
                 if (!empty($_POST[$field])) {
@@ -229,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pin,
                 $nip,
                 $nama,
-                $departemen_post,
+                $departemen,
                 $lembur,
                 $jam_masuk,
                 $scan_masuk_datetime,
@@ -242,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id_absensi
             );
             if (mysqli_stmt_execute($stmt)) {
-                $audit_details = "Mengupdate data absensi ID $id_absensi. Data: tanggal=$tanggal, jadwal=$jadwal, jam_kerja=$jam_kerja, valid=$valid, pin=$pin, nip=$nip, nama=$nama, departemen=$departemen_post, lembur=$lembur, jam_masuk=$jam_masuk, scan_masuk=$scan_masuk_datetime, terlambat=$terlambat, scan_istirahat_1=$scan_istirahat_1_datetime, scan_istirahat_2=$scan_istirahat_2_datetime, jam_pulang=$jam_pulang, scan_pulang=$scan_pulang_datetime, jenis_absensi=$jenis_absensi.";
+                $audit_details = "Mengupdate data absensi ID $id_absensi. Data: tanggal=$tanggal, jadwal=$jadwal, jam_kerja=$jam_kerja, valid=$valid, pin=$pin, nip=$nip, nama=$nama, departemen=$departemen, lembur=$lembur, jam_masuk=$jam_masuk, scan_masuk=$scan_masuk_datetime, terlambat=$terlambat, scan_istirahat_1=$scan_istirahat_1_datetime, scan_istirahat_2=$scan_istirahat_2_datetime, jam_pulang=$jam_pulang, scan_pulang=$scan_pulang_datetime, jenis_absensi=$jenis_absensi.";
                 add_audit_log($conn, $_SESSION['user_id'], 'UpdateAbsensi', $audit_details);
                 $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dikoreksi.";
                 mysqli_stmt_close($stmt);
@@ -333,40 +305,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [];
         $no = $start + 1;
         while ($row = mysqli_fetch_assoc($resData)) {
-            $jamMasuk  = !empty($row['jam_masuk']) ? date('H:i', strtotime($row['jam_masuk'])) : '-';
-            $scanMasuk = !empty($row['scan_masuk']) ? date('H:i', strtotime($row['scan_masuk'])) : '-';
-            $jamPulang = !empty($row['jam_pulang']) ? date('H:i', strtotime($row['jam_pulang'])) : '-';
-            $scanPulang= !empty($row['scan_pulang']) ? date('H:i', strtotime($row['scan_pulang'])) : '-';
+            // Format waktu untuk kolom yang relevan
+            $jamMasuk   = !empty($row['jam_masuk']) ? date('H:i', strtotime($row['jam_masuk'])) : '-';
+            $scanMasuk  = !empty($row['scan_masuk']) ? date('H:i', strtotime($row['scan_masuk'])) : '-';
+            $jamPulang  = !empty($row['jam_pulang']) ? date('H:i', strtotime($row['jam_pulang'])) : '-';
+            $scanPulang = !empty($row['scan_pulang']) ? date('H:i', strtotime($row['scan_pulang'])) : '-';
 
-            $aksi = '<button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEdit" 
-                        data-id="'.$row['id'].'"
-                        data-tanggal="'.bersihkan_input($row['tanggal']).'"
-                        data-jadwal="'.bersihkan_input($row['jadwal']).'"
-                        data-jam_kerja="'.bersihkan_input($row['jam_kerja']).'"
-                        data-valid="'.$row['valid'].'"
-                        data-pin="'.bersihkan_input($row['pin']).'"
-                        data-nip="'.bersihkan_input($row['nip']).'"
-                        data-nama="'.bersihkan_input($row['nama']).'"
-                        data-departemen="'.htmlspecialchars(strtoupper($row['departemen'])).'"
-                        data-lembur="'.$row['lembur'].'"
-                        data-jam_masuk="'.(($jamMasuk==='-')?'':$jamMasuk).'"
-                        data-scan_masuk="'.(($scanMasuk==='-')?'':$scanMasuk).'"
-                        data-terlambat="'.$row['terlambat'].'"
-                        data-scan_istirahat_1="'.(($row['scan_istirahat_1'])?bersihkan_input($row['scan_istirahat_1']):'').'"
-                        data-scan_istirahat_2="'.(($row['scan_istirahat_2'])?bersihkan_input($row['scan_istirahat_2']):'').'"
-                        data-jam_pulang="'.(($jamPulang==='-')?'':$jamPulang).'"
-                        data-scan_pulang="'.(($scanPulang==='-')?'':$scanPulang).'"
-                        data-jenis_absensi="'.$row['jenis_absensi'].'"
-                        title="Edit Absensi">
-                        <i class="fas fa-edit"></i> Edit
-                     </button>
-                     <button class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#modalDelete" 
-                        data-id="'.$row['id'].'"
-                        data-nama="'.bersihkan_input($row['nama']).'"
-                        data-tanggal="'.bersihkan_input($row['tanggal']).'"
-                        title="Hapus Absensi">
-                        <i class="fas fa-trash"></i> Delete
-                     </button>';
+            // Buat dropdown aksi (gunakan tiga titik vertikal)
+            $aksi = '
+            <div class="dropdown">
+              <button class="btn btn-secondary btn-sm" type="button" id="dropdownMenuButton_'.$row['id'].'" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_'.$row['id'].'">
+                <li>
+                  <a class="dropdown-item btn-edit" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modalEdit"
+                     data-id="'.$row['id'].'"
+                     data-tanggal="'.bersihkan_input($row['tanggal']).'"
+                     data-jadwal="'.bersihkan_input($row['jadwal']).'"
+                     data-jam_kerja="'.bersihkan_input($row['jam_kerja']).'"
+                     data-valid="'.$row['valid'].'"
+                     data-pin="'.bersihkan_input($row['pin']).'"
+                     data-nip="'.bersihkan_input($row['nip']).'"
+                     data-nama="'.bersihkan_input($row['nama']).'"
+                     data-departemen="'.htmlspecialchars(strtoupper($row['departemen'])).'"
+                     data-lembur="'.$row['lembur'].'"
+                     data-jam_masuk="'.(($jamMasuk==='-')?'':$jamMasuk).'"
+                     data-scan_masuk="'.(($scanMasuk==='-')?'':$scanMasuk).'"
+                     data-terlambat="'.$row['terlambat'].'"
+                     data-scan_istirahat_1="'.(($row['scan_istirahat_1'])?bersihkan_input($row['scan_istirahat_1']):'').'"
+                     data-scan_istirahat_2="'.(($row['scan_istirahat_2'])?bersihkan_input($row['scan_istirahat_2']):'').'"
+                     data-jam_pulang="'.(($jamPulang==='-')?'':$jamPulang).'"
+                     data-scan_pulang="'.(($scanPulang==='-')?'':$scanPulang).'"
+                     data-jenis_absensi="'.$row['jenis_absensi'].'"
+                     title="Edit Absensi">
+                    <i class="fas fa-edit"></i> Edit Absensi
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item btn-delete" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modalDelete"
+                     data-id="'.$row['id'].'"
+                     data-nama="'.bersihkan_input($row['nama']).'"
+                     data-tanggal="'.bersihkan_input($row['tanggal']).'"
+                     title="Hapus Absensi">
+                    <i class="fas fa-trash-alt"></i> Hapus Absensi
+                  </a>
+                </li>
+              </ul>
+            </div>
+            ';
 
             $nestedData = [];
             $nestedData[] = $no++;
@@ -414,10 +401,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 } // Akhir proses POST
 
+// ==============================================================================
+// 4. Tampilan HTML
+// ==============================================================================
+
 // Ambil filter GET untuk tampilan
 $bulan      = $_GET['bulan'] ?? '';
 $departemen = $_GET['departemen'] ?? '';
-$csrf_token = $_SESSION['csrf_token'];
 $namaKaryawan = get_nama_karyawan($conn);
 ?>
 <!DOCTYPE html>
@@ -427,22 +417,22 @@ $namaKaryawan = get_nama_karyawan($conn);
     <title>Koreksi Absensi - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Font Awesome -->
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <!-- Bootstrap 5.3.3 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <!-- DataTables CSS (Bootstrap 4) -->
-    <link href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css" rel="stylesheet">
     <!-- FullCalendar CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet">
     <!-- jQuery UI CSS -->
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <style>
         .no-column {
             width: 70px;
             text-align: center;
@@ -463,9 +453,10 @@ $namaKaryawan = get_nama_karyawan($conn);
         .fc-view-container {
             font-size: 0.85rem;
         }
+        /* Override header agar konsisten dengan tema SB Admin 2 */
         .card-header {
-            background: linear-gradient(45deg, #0d47a1, #42a5f5);
-            color: white;
+            background: #4e73df;
+            color: #fff;
         }
     </style>
 </head>
@@ -484,23 +475,38 @@ $namaKaryawan = get_nama_karyawan($conn);
                 <!-- End of Topbar -->
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
+
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-edit"></i> Koreksi Absensi</h1>
                     
-                    <!-- Notifikasi -->
-                    <?php if (isset($_SESSION['notif_success'])): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle"></i> <?php echo bersihkan_input($_SESSION['notif_success']); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
+                    <!-- Notifikasi SweetAlert2 (jika ada pesan dari session) -->
+                    <?php if(isset($_SESSION['notif_success'])): ?>
+                        <script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Sukses',
+                                text: <?php echo json_encode($_SESSION['notif_success']); ?>,
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                        });
+                        </script>
                         <?php unset($_SESSION['notif_success']); ?>
                     <?php endif; ?>
-                    <?php if (isset($_SESSION['notif_error'])): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-times-circle"></i> <?php echo bersihkan_input($_SESSION['notif_error']); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
+                    <?php if(isset($_SESSION['notif_error'])): ?>
+                        <script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: <?php echo json_encode($_SESSION['notif_error']); ?>,
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                        });
+                        </script>
                         <?php unset($_SESSION['notif_error']); ?>
                     <?php endif; ?>
 
@@ -511,9 +517,7 @@ $namaKaryawan = get_nama_karyawan($conn);
                             <input type="month" name="bulan" id="bulan" class="form-control me-3" value="<?php echo bersihkan_input($bulan); ?>">
                             <label class="me-2" for="departemen"><i class="fas fa-building"></i> Departemen:</label>
                             <input type="text" name="departemen" id="departemen" class="form-control me-3" placeholder="Masukkan departemen" value="<?php echo bersihkan_input($departemen); ?>">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Tampilkan
-                            </button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tampilkan</button>
                         </form>
                     </div>
 
@@ -560,11 +564,11 @@ $namaKaryawan = get_nama_karyawan($conn);
                     <div class="modal fade" id="modalEdit" tabindex="-1" aria-labelledby="modalEditLabel" aria-hidden="true">
                       <div class="modal-dialog modal-lg">
                         <form method="POST" class="modal-content">
-                          <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                           <input type="hidden" name="action" value="update">
                           <input type="hidden" name="id_absensi" id="edit_id_absensi">
                           <input type="hidden" name="departemen" id="edit_departemen">
                           <input type="hidden" name="bulan" value="<?php echo htmlspecialchars($bulan); ?>">
+                          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                           <div class="modal-header">
                             <h5 class="modal-title" id="modalEditLabel"><i class="fas fa-edit"></i> Edit Absensi</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Tutup Modal"></button>
@@ -674,11 +678,11 @@ $namaKaryawan = get_nama_karyawan($conn);
                     <div class="modal fade" id="modalDelete" tabindex="-1" aria-labelledby="modalDeleteLabel" aria-hidden="true">
                       <div class="modal-dialog">
                         <form method="POST" class="modal-content">
-                          <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                           <input type="hidden" name="action" value="delete">
                           <input type="hidden" name="id_absensi" id="delete_id_absensi">
                           <input type="hidden" name="departemen" id="delete_departemen" value="<?php echo htmlspecialchars($departemen); ?>">
                           <input type="hidden" name="bulan" value="<?php echo htmlspecialchars($bulan); ?>">
+                          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                           <div class="modal-header">
                             <h5 class="modal-title" id="modalDeleteLabel"><i class="fas fa-trash-alt"></i> Hapus Absensi</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Tutup Modal"></button>
@@ -698,6 +702,7 @@ $namaKaryawan = get_nama_karyawan($conn);
                 <!-- End Page Content -->
             </div>
             <!-- End Main Content -->
+
             <!-- Footer -->
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
@@ -706,7 +711,6 @@ $namaKaryawan = get_nama_karyawan($conn);
                     </div>
                 </div>
             </footer>
-            <!-- End Footer -->
         </div>
         <!-- End Content Wrapper -->
     </div>
@@ -714,57 +718,37 @@ $namaKaryawan = get_nama_karyawan($conn);
 
     <!-- JavaScript Dependencies -->
     <!-- jQuery & jQuery UI -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- Bootstrap Bundle (dengan Popper) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- DataTables JS (Bootstrap 4) -->
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <!-- DataTables Buttons & Responsive -->
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.colVis.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables & Plugins -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
     <!-- FullCalendar & Moment.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
     <!-- SB Admin 2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script nonce="<?php echo $nonce; ?>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
     $(document).ready(function() {
-        // Inisialisasi tooltip dengan Bootstrap 5
+        // Inisialisasi tooltip
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function(tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
-
-        // Inisialisasi SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-            }
-        });
-        function showToast(message, icon = 'success') {
-            Toast.fire({
-                icon: icon,
-                title: message
-            });
-        }
-
-        var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
 
         // Inisialisasi DataTable untuk Absensi (server-side processing)
         var table = $('#absensiTable').DataTable({
@@ -775,11 +759,12 @@ $namaKaryawan = get_nama_karyawan($conn);
                 type: 'POST',
                 data: {
                     bulan: "<?php echo bersihkan_input($bulan); ?>",
-                    departemen: "<?php echo bersihkan_input($departemen); ?>"
+                    departemen: "<?php echo bersihkan_input($departemen); ?>",
+                    csrf_token: "<?php echo $_SESSION['csrf_token']; ?>"
                 }
             },
             language: {
-                url: "https://cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
+                url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/id.json"
             },
             dom: 'Bfrtip',
             buttons: [
@@ -805,7 +790,7 @@ $namaKaryawan = get_nama_karyawan($conn);
                 right: 'month,agendaWeek,agendaDay'
             },
             editable: false,
-            events: [] // Tambahkan event hari libur jika diperlukan
+            events: [] // Event kalender dapat ditambahkan jika diperlukan
         });
 
         // Autocomplete untuk nama karyawan
@@ -866,7 +851,7 @@ $namaKaryawan = get_nama_karyawan($conn);
             $btn.find('.spinner-border').removeClass('d-none');
         });
 
-        // Fade out alert setelah 3 detik
+        // (Opsional) Fade out alert jika menggunakan notifikasi non-SweetAlert2
         window.setTimeout(function () {
             $(".alert").fadeTo(500, 0).slideUp(500, function () {
                 $(this).remove();

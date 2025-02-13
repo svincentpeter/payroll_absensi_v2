@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 11, 2025 at 05:08 AM
+-- Generation Time: Feb 13, 2025 at 04:03 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -80,7 +80,7 @@ CREATE TABLE `anggota_sekolah` (
   `pendidikan` varchar(50) DEFAULT NULL,
   `status_perkawinan` varchar(20) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
-  `nama_suami` varchar(100) DEFAULT NULL,
+  `nama_pasangan` varchar(100) DEFAULT NULL,
   `jumlah_anak` int(11) DEFAULT 0,
   `nama_anak_1` varchar(100) NOT NULL DEFAULT '',
   `nama_anak_2` varchar(100) NOT NULL DEFAULT '',
@@ -132,7 +132,8 @@ CREATE TABLE `employee_payheads` (
 
 CREATE TABLE `gaji_pokok_roles` (
   `role` varchar(20) NOT NULL,
-  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00
+  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `pendidikan` varchar(50) NOT NULL DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -212,6 +213,28 @@ CREATE TABLE `payroll_detail` (
   `id_payhead` int(11) NOT NULL,
   `jenis` enum('earnings','deductions') NOT NULL,
   `amount` decimal(15,2) NOT NULL DEFAULT 0.00
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payroll_final`
+--
+
+CREATE TABLE `payroll_final` (
+  `id` int(11) NOT NULL,
+  `id_anggota` int(11) NOT NULL,
+  `id_rekap_absensi` int(11) DEFAULT NULL,
+  `bulan` int(11) NOT NULL,
+  `tahun` int(11) NOT NULL,
+  `gaji_pokok` decimal(15,2) DEFAULT NULL,
+  `total_pendapatan` decimal(15,2) DEFAULT NULL,
+  `total_potongan` decimal(15,2) DEFAULT NULL,
+  `gaji_bersih` decimal(15,2) DEFAULT NULL,
+  `tgl_payroll` datetime NOT NULL,
+  `no_rekening` varchar(50) DEFAULT NULL,
+  `catatan` text DEFAULT NULL,
+  `finalized_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -346,6 +369,14 @@ ALTER TABLE `payroll_detail`
   ADD KEY `idx_payhead` (`id_payhead`);
 
 --
+-- Indexes for table `payroll_final`
+--
+ALTER TABLE `payroll_final`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_anggota` (`id_anggota`),
+  ADD KEY `bulan` (`bulan`,`tahun`);
+
+--
 -- Indexes for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
@@ -408,6 +439,12 @@ ALTER TABLE `payroll`
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payroll_final`
+--
+ALTER TABLE `payroll_final`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --

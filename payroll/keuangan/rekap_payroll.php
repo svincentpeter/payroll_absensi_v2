@@ -1,11 +1,10 @@
 <?php
 // File: /payroll_absensi_v2/payroll/keuangan/rekap_payroll.php
 
-session_start();
-
-// Inklusi koneksi dan helpers
+// Mulai session dengan aman dan inklusi koneksi serta helpers
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
 require_once __DIR__ . '/../../koneksi.php';
-require_once __DIR__ . '/../../helpers.php'; // Pastikan path ini benar
 
 // Periksa apakah pengguna sudah login dan memiliki peran yang sesuai
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin', 'sdm'])) {
@@ -21,54 +20,23 @@ add_audit_log(
     "Pengguna dengan ID {$_SESSION['user_id']} dan peran '{$_SESSION['role']}' mengakses halaman Rekap Payroll."
 );
 
-/**
- * Fungsi untuk mengonversi angka bulan ke nama bulan dalam Bahasa Indonesia
- */
-function bulanIntToName($bulan) {
-    $namaBulan = [
-        '1'  => 'Januari',
-        '2'  => 'Februari',
-        '3'  => 'Maret',
-        '4'  => 'April',
-        '5'  => 'Mei',
-        '6'  => 'Juni',
-        '7'  => 'Juli',
-        '8'  => 'Agustus',
-        '9'  => 'September',
-        '10' => 'Oktober',
-        '11' => 'November',
-        '12' => 'Desember'
-    ];
-    return isset($namaBulan[$bulan]) ? $namaBulan[$bulan] : 'Invalid';
-}
+// Inisialisasi token CSRF menggunakan fungsi helper
+generate_csrf_token();
 
-// Nonaktifkan output buffering agar JSON tidak terganggu
+// Hapus output buffering jika ada
 if (ob_get_length()) ob_end_clean();
-
-// Nonaktifkan display_errors dan aktifkan logging error
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/error.log');
-error_reporting(E_ALL);
-
-// Inisialisasi Token CSRF jika belum ada (untuk proteksi)
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
 
 // --- HANDLE AJAX REQUEST ---
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     // Pastikan method POST
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        // Verifikasi Token CSRF
+        // Verifikasi Token CSRF (gunakan fungsi helper verify_csrf_token)
         $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-        if (empty($csrf_token) || !hash_equals($_SESSION['csrf_token'], $csrf_token)) {
-            send_response(403, 'Token CSRF tidak valid.');
-        }
+        verify_csrf_token($csrf_token);
 
-        $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
+        // Gunakan sanitize_input() dari helpers.php (tidak lagi menggunakan bersihkan_input())
+        $case = isset($_POST['case']) ? sanitize_input($_POST['case']) : '';
 
         switch ($case) {
             case 'LoadingRekapPayroll':
@@ -84,8 +52,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
             case 'AddAuditLog':
                 // Catat aksi audit log
-                $action = isset($_POST['action']) ? bersihkan_input($_POST['action']) : '';
-                $details = isset($_POST['details']) ? bersihkan_input($_POST['details']) : '';
+                $action  = isset($_POST['action']) ? sanitize_input($_POST['action']) : '';
+                $details = isset($_POST['details']) ? sanitize_input($_POST['details']) : '';
 
                 if (!empty($action) && !empty($details)) {
                     $logged = add_audit_log(
@@ -126,10 +94,10 @@ function LoadingRekapPayroll($conn) {
     $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length  = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search  = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
+    $search  = isset($_POST['search']['value']) ? sanitize_input($_POST['search']['value']) : '';
 
     // Filter tambahan
-    $jenjang = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
+    $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
@@ -254,10 +222,10 @@ function LoadingRekapPayroll($conn) {
     while ($row = $resData->fetch_assoc()) {
         $data[] = [
             "jenjang"           => htmlspecialchars($row['jenjang']),
-            "total_gaji_pokok"  => 'Rp ' . number_format($row['total_gaji_pokok'], 2, ',', '.'),
-            "total_pendapatan"  => 'Rp ' . number_format($row['total_pendapatan'], 2, ',', '.'),
-            "total_potongan"    => 'Rp ' . number_format($row['total_potongan'], 2, ',', '.'),
-            "total_gaji_bersih" => 'Rp ' . number_format($row['total_gaji_bersih'], 2, ',', '.'),
+            "total_gaji_pokok"  => formatNominal($row['total_gaji_pokok']),
+            "total_pendapatan"  => formatNominal($row['total_pendapatan']),
+            "total_potongan"    => formatNominal($row['total_potongan']),
+            "total_gaji_bersih" => formatNominal($row['total_gaji_bersih']),
             "aksi" => '
                 <a href="rekap_payroll_details.php?jenjang=' . urlencode($row['jenjang']) . '" class="btn btn-info btn-sm me-1" data-bs-toggle="tooltip" title="Lihat Payroll Detail">
                     <i class="fas fa-file-invoice"></i>
@@ -285,7 +253,8 @@ function LoadingRekapPayroll($conn) {
  * pengeluaran (earnings & deductions) secara kompak dengan grid dua kolom.
  */
 function ViewRekapPayrollDetail($conn) {
-    $jenjang = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
+    // Ganti penggunaan bersihkan_input() dengan sanitize_input()
+    $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     if (empty($jenjang)) {
         send_response(1, 'Jenjang tidak valid.');
     }
@@ -334,10 +303,10 @@ function ViewRekapPayrollDetail($conn) {
     $result2 = $stmt2->get_result();
     $summary = $result2->fetch_assoc();
     if ($summary) {
-        $summary['total_gaji_pokok'] = 'Rp ' . number_format($summary['total_gaji_pokok'], 2, ',', '.');
-        $summary['total_pendapatan'] = 'Rp ' . number_format($summary['total_pendapatan'], 2, ',', '.');
-        $summary['total_potongan']   = 'Rp ' . number_format($summary['total_potongan'], 2, ',', '.');
-        $summary['total_gaji_bersih'] = 'Rp ' . number_format($summary['total_gaji_bersih'], 2, ',', '.');
+        $summary['total_gaji_pokok'] = formatNominal($summary['total_gaji_pokok']);
+        $summary['total_pendapatan'] = formatNominal($summary['total_pendapatan']);
+        $summary['total_potongan']   = formatNominal($summary['total_potongan']);
+        $summary['total_gaji_bersih'] = formatNominal($summary['total_gaji_bersih']);
     } else {
         $summary = [];
     }
@@ -383,7 +352,7 @@ function ViewRekapPayrollDetail($conn) {
     if (!empty($earnings)) {
         $no = 1;
         foreach ($earnings as $e) {
-            $nominal = 'Rp ' . number_format($e['total_amount'], 2, ',', '.');
+            $nominal = formatNominal($e['total_amount']);
             $html .= '<tr>';
             $html .= '<td>' . $no++ . '</td>';
             $html .= '<td>' . htmlspecialchars($e['nama_payhead']) . '</td>';
@@ -410,7 +379,7 @@ function ViewRekapPayrollDetail($conn) {
     if (!empty($deductions)) {
         $no = 1;
         foreach ($deductions as $d) {
-            $nominal = 'Rp ' . number_format($d['total_amount'], 2, ',', '.');
+            $nominal = formatNominal($d['total_amount']);
             $html .= '<tr>';
             $html .= '<td>' . $no++ . '</td>';
             $html .= '<td>' . htmlspecialchars($d['nama_payhead']) . '</td>';
@@ -437,18 +406,17 @@ function ViewRekapPayrollDetail($conn) {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- DataTables CSS untuk Bootstrap 5 -->
-    <!-- PERBAIKAN: Gunakan DataTables untuk Bootstrap 5 -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
         /* Custom Styles untuk halaman Rekap Payroll */
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
@@ -463,11 +431,6 @@ function ViewRekapPayrollDetail($conn) {
         .btn:hover {
             transform: scale(1.05);
         }
-        .select2-container--bootstrap4 .select2-selection--single {
-            background-color: transparent !important;
-            border: 1px solid #ccc !important;
-            color: #000;
-        }
         thead th {
             background-color: #343a40;
             color: white;
@@ -480,9 +443,6 @@ function ViewRekapPayrollDetail($conn) {
         }
         tbody tr:nth-of-type(even) {
             background-color: #ffffff;
-        }
-        tbody tr:hover {
-            background-color: #e2e6ea;
         }
         #rekapPayrollTable th, #rekapPayrollTable td {
             font-size: 14px;
@@ -548,7 +508,7 @@ function ViewRekapPayrollDetail($conn) {
                                         <option value="">Semua Bulan</option>
                                         <?php
                                             for ($m=1; $m<=12; $m++) {
-                                                echo "<option value=\"$m\">" . bulanIntToName($m) . "</option>";
+                                                echo "<option value=\"$m\">" . getIndonesianMonthName($m) . "</option>";
                                             }
                                         ?>
                                     </select>
@@ -663,7 +623,6 @@ function ViewRekapPayrollDetail($conn) {
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
     <!-- DataTables JS untuk Bootstrap 5 -->
     <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
-    <!-- Perbarui ke DataTables untuk Bootstrap 5 -->
     <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>

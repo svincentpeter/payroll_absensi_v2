@@ -2,55 +2,29 @@
 // File: /payroll_absensi_v2/payroll/keuangan/payroll_history.php
 
 // =========================
-// 1. Inisialisasi Session & Pengecekan Role
+// 1. Inisialisasi Session, Include Helpers & Pengecekan Role
 // =========================
-session_start();
-// Tidak lagi dibuat CSRF token dan nonce
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();  // Memulai session dengan aman
 
-// Fungsi untuk mengirim response JSON
-function send_response($code, $result) {
-    if ($code !== 0) {
-        error_log("Response Code $code: " . json_encode($result));
-    }
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['code' => $code, 'result' => $result]);
+// Cek Role: hanya untuk role "keuangan" dan "superadmin"
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['sdm', 'superadmin'])) {
+    header("Location: /payroll_absensi_v2/login.php");
     exit();
 }
 
-// Role Checking: Hanya untuk role 'sdm' dan 'superadmin'
-function authorize($allowed_roles = ['sdm', 'superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        send_response(403, 'Akses ditolak.');
-    }
-}
 
+// Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
 // =========================
-// 2. Sanitasi Input & Fungsi Helper
-// =========================
-function bersihkan_input($data) {
-    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
-}
-function bulanIntToName($bulan) {
-    $map = [
-        1 => 'January', 2 => 'February', 3 => 'March',
-        4 => 'April',   5 => 'May',       6 => 'June',
-        7 => 'July',    8 => 'August',    9 => 'September',
-        10 => 'October',11 => 'November',12 => 'December'
-    ];
-    return isset($map[$bulan]) ? $map[$bulan] : 'Unknown';
-}
-
-// =========================
-// 3. Menangani Permintaan AJAX
+// 2. Menangani Permintaan AJAX
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Tidak ada pengecekan CSRF token
-        authorize();
-        $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
+        $case = isset($_POST['case']) ? sanitize_input($_POST['case']) : '';
         switch ($case) {
             case 'LoadingPayrollHistory':
                 LoadingPayrollHistory($conn);
@@ -68,15 +42,15 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // =========================
-// 4. Fungsi CRUD & Helper untuk Payroll History
+// 3. Fungsi CRUD & Helper untuk Payroll History
 // =========================
 
 function LoadingPayrollHistory($conn) {
     $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length  = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search  = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
-    $jenjang = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
+    $search  = isset($_POST['search']['value']) ? sanitize_input($_POST['search']['value']) : '';
+    $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
@@ -206,14 +180,14 @@ function LoadingPayrollHistory($conn) {
 </div>';
         $data[] = [
             "id"              => htmlspecialchars($row['id']),
-            "nama"            => bersihkan_input($row['nama']),
-            "jenjang"         => bersihkan_input($row['jenjang']),
-            "bulan"           => bulanIntToName($row['bulan']),
+            "nama"            => sanitize_input($row['nama']),
+            "jenjang"         => sanitize_input($row['jenjang']),
+            "bulan"           => getIndonesianMonthName($row['bulan']),
             "tahun"           => $row['tahun'],
-            "gaji_pokok"      => 'Rp ' . number_format($row['gaji_pokok'], 2, ',', '.'),
-            "total_pendapatan"=> 'Rp ' . number_format($row['total_pendapatan'], 2, ',', '.'),
-            "total_potongan"  => 'Rp ' . number_format($row['total_potongan'], 2, ',', '.'),
-            "gaji_bersih"     => 'Rp ' . number_format($row['gaji_bersih'], 2, ',', '.'),
+            "gaji_pokok"      => formatNominal($row['gaji_pokok']),
+            "total_pendapatan"=> formatNominal($row['total_pendapatan']),
+            "total_potongan"  => formatNominal($row['total_potongan']),
+            "gaji_bersih"     => formatNominal($row['gaji_bersih']),
             "aksi"            => $aksi
         ];
     }
@@ -261,12 +235,12 @@ function ViewPayrollDetail($conn) {
     $row = $result->fetch_assoc();
     $stmt->close();
 
-    // Format angka dan bulan
-    $row['gaji_pokok']      = 'Rp ' . number_format($row['gaji_pokok'], 2, ',', '.');
-    $row['total_pendapatan'] = 'Rp ' . number_format($row['total_pendapatan'], 2, ',', '.');
-    $row['total_potongan']   = 'Rp ' . number_format($row['total_potongan'], 2, ',', '.');
-    $row['gaji_bersih']      = 'Rp ' . number_format($row['gaji_bersih'], 2, ',', '.');
-    $row['bulan']            = bulanIntToName($row['bulan']);
+    // Format angka dan bulan menggunakan formatNominal dan getIndonesianMonthName
+    $row['gaji_pokok']      = formatNominal($row['gaji_pokok']);
+    $row['total_pendapatan'] = formatNominal($row['total_pendapatan']);
+    $row['total_potongan']   = formatNominal($row['total_potongan']);
+    $row['gaji_bersih']      = formatNominal($row['gaji_bersih']);
+    $row['bulan']            = getIndonesianMonthName($row['bulan']);
     $masaKerja = '';
     if ($row['masa_kerja_tahun'] > 0) {
         $masaKerja .= $row['masa_kerja_tahun'] . ' Thn ';
@@ -429,7 +403,7 @@ function ViewPayrollDetail($conn) {
                                         <option value="">Semua Bulan</option>
                                         <?php
                                             for ($m = 1; $m <= 12; $m++) {
-                                                echo "<option value=\"$m\">" . bulanIntToName($m) . "</option>";
+                                                echo "<option value=\"$m\">" . getIndonesianMonthName($m) . "</option>";
                                             }
                                         ?>
                                     </select>

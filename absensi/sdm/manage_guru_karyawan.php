@@ -2,189 +2,106 @@
 // File: /payroll_absensi_v2/kelola/manage_guru_karyawan.php
 
 // =========================
-// 1. Pengaturan Keamanan, Session, dan Koneksi
+// 1. Pengaturan Session dan Role
 // =========================
+session_start();
 
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
+require_once __DIR__ . '/../../koneksi.php';
 
-require_once __DIR__ . '/../../helpers.php'; // Pastikan file ini berisi fungsi‐fungsi bantuan
-start_session_safe();
-init_error_handling();
-generate_csrf_token();
-
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header("HTTP/1.1 301 Moved Permanently");
-    header("Location: " . $redirect);
-    exit();
-}
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-generate_csrf_token();
-
+// Fungsi cek role (tetap dipertahankan)
 function authorize($allowed_roles = ['sdm', 'superadmin']) {
     if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        send_response(403, 'Akses ditolak.');
+        die('Akses ditolak.');
     }
 }
 authorize();
 
-require_once __DIR__ . '/../../koneksi.php';
-if (ob_get_length()) ob_end_clean();
-
-// Perhatikan bahwa pada header CSP kami menghindari newline dan menyertakan nonce
-header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; img-src 'self'; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self'");
-
-// =========================
-// Fungsi Helper
-// =========================
-
-/**
- * Menghasilkan Badge (label) untuk Status Kerja.
- */
-function getStatusBadge($status) {
-    $status_lower = strtolower($status);
-    switch ($status_lower) {
-        case 'tetap':
-            return '<span class="badge bg-success">Tetap</span>';
-        case 'kontrak':
-            return '<span class="badge bg-secondary">Kontrak</span>';
-        default:
-            return '<span class="badge bg-secondary">' . htmlspecialchars($status) . '</span>';
-    }
-}
-
-/**
- * Mengambil Gaji Pokok berdasarkan role (P = guru, lainnya = karyawan)
- */
-function getGajiPokokByRole($conn, $role) {
-    if ($role === 'P') {
-        $lookup = 'guru';
-    } else {
-        $lookup = 'karyawan';
-    }
-    $stmt = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_roles WHERE role = ?");
-    if ($stmt) {
-        $stmt->bind_param("s", $lookup);
-        $stmt->execute();
-        $stmt->bind_result($gaji_pokok);
-        if ($stmt->fetch()) {
-            $stmt->close();
-            return floatval($gaji_pokok);
-        }
-        $stmt->close();
-    }
-    return 0.0;
-}
-
 // =========================
 // 2. Menangani Permintaan AJAX
 // =========================
-if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $csrf_token = isset($_POST['csrf_token']) ? trim($_POST['csrf_token']) : '';
-        verify_csrf_token($csrf_token);
-        authorize();
-
-        $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
-        switch ($case) {
-            case 'LoadingGuru':
-                LoadingGuru($conn);
-                break;
-            case 'CreateGuru':
-                CreateGuru($conn);
-                break;
-            case 'GetGuruDetail':
-                GetGuruDetail($conn);
-                break;
-            case 'UpdateGuru':
-                UpdateGuru($conn);
-                break;
-            case 'DeleteGuru':
-                DeleteGuru($conn);
-                break;
-            case 'update_gaji_pokok':
-                updateGajiPokok($conn);
-                break;
-            case 'update_gaji_strata_guru':
-                updateGajiStrataGuru($conn);
-                break;
-            case 'update_gaji_strata_karyawan':
-                updateGajiStrataKaryawan($conn);
-                break;
-            case 'update_tunjangan':
-                updateTunjangan($conn);
-                break;
-            case 'AssignPayheadsToEmployee':
-                AssignPayheadsToEmployee($conn);
-                break;
-            // Tambahan kasus lain jika diperlukan (misalnya AddAuditLog)
-            default:
-                send_response(404, 'Kasus tidak ditemukan.');
-        }
-    } else {
-        send_response(405, 'Metode Permintaan Tidak Diizinkan.');
+if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
+    switch ($_POST['case']) {
+        case 'LoadingGuru':
+            LoadingGuru($conn);
+            break;
+        case 'CreateGuru':
+            CreateGuru($conn);
+            break;
+        case 'GetGuruDetail':
+            GetGuruDetail($conn);
+            break;
+        case 'UpdateGuru':
+            UpdateGuru($conn);
+            break;
+        case 'DeleteGuru':
+            DeleteGuru($conn);
+            break;
+        case 'update_gaji_pokok':
+            updateGajiPokok($conn);
+            break;
+        case 'update_gaji_strata_guru':
+            updateGajiStrataGuru($conn);
+            break;
+        case 'update_gaji_strata_karyawan':
+            updateGajiStrataKaryawan($conn);
+            break;
+        case 'update_tunjangan':
+            updateTunjangan($conn);
+            break;
+        default:
+            send_response(400, 'Case tidak valid.');
     }
     exit();
 }
 
 // =========================
-// Fungsi-Fungsi AJAX CRUD
+// 3. Fungsi-Fungsi AJAX CRUD
 // =========================
 
 function LoadingGuru($conn) {
-    // Contoh sederhana untuk keperluan DataTables
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
+    $jenjangFilter = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
 
+    // Hitung total record
     $sqlTotal = "SELECT COUNT(*) as total FROM anggota_sekolah";
     $resultTotal = mysqli_query($conn, $sqlTotal);
     $rowTotal = mysqli_fetch_assoc($resultTotal);
     $recordsTotal = $rowTotal['total'];
 
+    // Query data dengan filter
     $sql = "SELECT * FROM anggota_sekolah WHERE 1=1";
     if (!empty($search)) {
         $sql .= " AND (nip LIKE '%$search%' OR nama LIKE '%$search%')";
+    }
+    if (!empty($jenjangFilter)) {
+        $sql .= " AND jenjang = '$jenjangFilter'";
     }
     $sql .= " ORDER BY id DESC LIMIT $start, $length";
     $result = mysqli_query($conn, $sql);
     $data = [];
     while ($row = mysqli_fetch_assoc($result)) {
+        // Buat dropdown aksi dengan tiga titik vertikal (Bootstrap 5)
         $aksi = '
 <div class="dropdown">
-  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+  <button class="btn btn-sm" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
     <i class="bi bi-three-dots-vertical"></i>
   </button>
-  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
-    <a class="dropdown-item btn-view" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
+    <li><a class="dropdown-item btn-view" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
       <i class="fas fa-eye"></i> View Detail
-    </a>
-    <a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+    </a></li>
+    <li><a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
       <i class="fas fa-pencil-alt"></i> Edit
-    </a>
-    <a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+    </a></li>
+    <li><a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
       <i class="fas fa-trash-alt"></i> Hapus
-    </a>
-    <!-- Tombol Assign Payheads dan Select Month -->
-    <a class="dropdown-item btn-assign" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
-      <i class="bi bi-cash-stack"></i> Assign Payheads
-    </a>
-    <a class="dropdown-item btn-select-month" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
-      <i class="fa fa-calendar"></i> Select Month
-    </a>
-  </div>
+    </a></li>
+  </ul>
 </div>';
+
         $data[] = [
             "id"           => $row['id'],
             "uid"          => htmlspecialchars($row['uid']),
@@ -193,7 +110,7 @@ function LoadingGuru($conn) {
             "jenjang"      => htmlspecialchars($row['jenjang']),
             "job_title"    => htmlspecialchars($row['job_title']),
             "role"         => htmlspecialchars($row['role']),
-            "status_kerja" => getStatusBadge($row['status_kerja']),
+            "status_kerja" => $row['status_kerja'],
             "masa_kerja"   => $row['masa_kerja_tahun'] . " Thn " . $row['masa_kerja_bulan'] . " Bln",
             "pendidikan"   => htmlspecialchars($row['pendidikan']),
             "email"        => htmlspecialchars($row['email']),
@@ -211,7 +128,7 @@ function LoadingGuru($conn) {
 }
 
 function CreateGuru($conn) {
-    // Tangkap input, termasuk kolom pendidikan
+    // Tangkap input dan sanitasi
     $nip             = bersihkan_input($_POST['nip'] ?? '');
     $nama            = bersihkan_input($_POST['nama'] ?? '');
     $jenjang         = bersihkan_input($_POST['jenjang'] ?? '');
@@ -227,12 +144,10 @@ function CreateGuru($conn) {
     $no_rekening     = bersihkan_input($_POST['no_rekening'] ?? '');
     $no_hp           = bersihkan_input($_POST['no_hp'] ?? '');
     $email           = bersihkan_input($_POST['email'] ?? '');
-    $nama_suami      = bersihkan_input($_POST['nama_suami'] ?? '');
+    // Ganti nama_suami menjadi nama_pasangan
+    $nama_pasangan   = bersihkan_input($_POST['nama_pasangan'] ?? '');
     $jumlah_anak     = (int)($_POST['jumlah_anak'] ?? 0);
     $salary_index_id = (int)($_POST['salary_index_id'] ?? null);
-    $nama_anak_1     = bersihkan_input($_POST['nama_anak_1'] ?? '');
-    $nama_anak_2     = bersihkan_input($_POST['nama_anak_2'] ?? '');
-    $nama_anak_3     = bersihkan_input($_POST['nama_anak_3'] ?? '');
 
     if (empty($nip) || empty($nama) || empty($jenjang) || empty($role)) {
         send_response(1, 'NIP, Nama, Jenjang, dan Role wajib diisi.');
@@ -254,8 +169,8 @@ function CreateGuru($conn) {
 
     $uid = generateUID($conn);
     $status_kerja = 'Tetap';
-    
-    // AUTO-GENERATE GAJI POKOK BERDASARKAN STRATA
+
+    // Auto-generate gaji pokok (misal berdasarkan role dan pendidikan)
     if ($role === 'P' && !empty($pendidikan)) {
         $query = "SELECT gaji_pokok FROM gaji_pokok_strata_guru WHERE jenjang = ? AND strata = ? LIMIT 1";
         $stmt = $conn->prepare($query);
@@ -282,15 +197,15 @@ function CreateGuru($conn) {
         uid, nip, password, nama, jenjang, job_title, status_kerja,
         masa_kerja_tahun, masa_kerja_bulan, remark, jenis_kelamin, tanggal_lahir,
         usia, agama, alamat_domisili, alamat_ktp, no_rekening, no_hp,
-        pendidikan, status_perkawinan, email, nama_suami, jumlah_anak,
-        nama_anak_1, nama_anak_2, nama_anak_3, salary_index_id, gaji_pokok, role
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, '', ?, ?, ?, ?, ?, ?, ?, ?, '', '', ?, ?, ?, ?, ?, ?, ?, ?)";
+        pendidikan, status_perkawinan, email, nama_pasangan, jumlah_anak,
+        salary_index_id, gaji_pokok, role
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, '', ?, ?, ?, ?, ?, ?, ?, ?, '', '', ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         send_response(1, 'Terjadi kesalahan query: ' . $conn->error);
     }
     $stmt->bind_param(
-        "sssssssisssssssssssssssssds",
+        "sssssssisssssssssssidds",
         $uid,
         $nip,
         $defaultPassword,
@@ -306,12 +221,10 @@ function CreateGuru($conn) {
         $alamat_ktp,
         $no_rekening,
         $no_hp,
+        $pendidikan,
         $email,
-        $nama_suami,
+        $nama_pasangan,
         $jumlah_anak,
-        $nama_anak_1,
-        $nama_anak_2,
-        $nama_anak_3,
         $salary_index_id,
         $gaji_pokok,
         $role
@@ -345,9 +258,10 @@ function GetGuruDetail($conn) {
     if ($result && $result->num_rows == 1) {
         $data = $result->fetch_assoc();
         unset($data['password']);
-        unset($data['gaji_pokok']);
         $data['religion'] = $data['agama'];
         $data['jk'] = $data['jenis_kelamin'];
+        // Pastikan field nama_pasangan dikirim ke frontend
+        $data['nama_pasangan'] = $data['nama_pasangan'];
         $stmt->close();
         $user_id = $_SESSION['user_id'] ?? 0;
         $details_log = "Melihat detail data guru/karyawan ID $id: Nama='" . $data['nama'] . "'.";
@@ -378,11 +292,9 @@ function UpdateGuru($conn) {
     $no_hp           = bersihkan_input($_POST['no_hp'] ?? '');
     $pendidikan      = bersihkan_input($_POST['pendidikan'] ?? '');
     $email           = bersihkan_input($_POST['email'] ?? '');
-    $nama_suami      = bersihkan_input($_POST['nama_suami'] ?? '');
+    // Ganti nama_suami menjadi nama_pasangan
+    $nama_pasangan   = bersihkan_input($_POST['nama_pasangan'] ?? '');
     $jumlah_anak     = (int)($_POST['jumlah_anak'] ?? 0);
-    $nama_anak_1     = bersihkan_input($_POST['nama_anak_1'] ?? '');
-    $nama_anak_2     = bersihkan_input($_POST['nama_anak_2'] ?? '');
-    $nama_anak_3     = bersihkan_input($_POST['nama_anak_3'] ?? '');
     $salary_index_id = (int)($_POST['salary_index_id'] ?? null);
     $password_baru   = $_POST['password'] ?? '';
 
@@ -422,11 +334,8 @@ function UpdateGuru($conn) {
         'no_hp'           => $no_hp,
         'pendidikan'      => $pendidikan,
         'email'           => $email,
-        'nama_suami'      => $nama_suami,
+        'nama_pasangan'   => $nama_pasangan,
         'jumlah_anak'     => $jumlah_anak,
-        'nama_anak_1'     => $nama_anak_1,
-        'nama_anak_2'     => $nama_anak_2,
-        'nama_anak_3'     => $nama_anak_3,
         'salary_index_id' => $salary_index_id
     ];
 
@@ -439,7 +348,7 @@ function UpdateGuru($conn) {
     $values  = [];
     foreach ($fields as $col => $val) {
         $updates[] = "$col = ?";
-        if ($col === 'salary_index_id' || $col === 'jumlah_anak' || $col === 'usia') {
+        if (in_array($col, ['salary_index_id','jumlah_anak','usia'])) {
             $types .= 'i';
         } else {
             $types .= 's';
@@ -616,6 +525,7 @@ function updateTunjangan($conn) {
     $tunjangan_walikelas = isset($_POST['tunjangan_walikelas']) ? floatval($_POST['tunjangan_walikelas']) : 0;
     $tunjangan_kehadiran = isset($_POST['tunjangan_kehadiran']) ? floatval($_POST['tunjangan_kehadiran']) : 0;
     
+    // Pastikan tabel "tunjangan" telah ada di database Anda
     $stmt = $conn->prepare("UPDATE tunjangan SET tunjangan_struktural=?, tunjangan_walikelas=?, tunjangan_kehadiran=? WHERE id=1");
     if (!$stmt) {
         send_response(1, 'Query error: ' . $conn->error);
@@ -645,108 +555,30 @@ function generateUID($conn) {
     return $uid;
 }
 
-/**
- * Fungsi AssignPayheadsToEmployee:
- * Menetapkan payheads ke karyawan sekaligus menyimpan alasan perubahan dan dokumen pendukung.
- * Data payroll disimpan dengan status "draft".
- */
-function AssignPayheadsToEmployee($conn) {
-    // Ambil data
-    $empcode       = isset($_POST['empcode']) ? intval($_POST['empcode']) : 0;
-    $payheads      = isset($_POST['payheads']) ? $_POST['payheads'] : [];
-    $pay_amounts   = isset($_POST['pay_amounts']) ? $_POST['pay_amounts'] : [];
-    $change_reason = isset($_POST['change_reason']) ? bersihkan_input($_POST['change_reason']) : '';
-    
-    if ($empcode <= 0) {
-        send_response(1, 'ID karyawan tidak valid.');
+// Fungsi helper untuk mengambil gaji pokok berdasarkan role
+function getGajiPokokByRole($conn, $role) {
+    if ($role === 'P') {
+        $lookup = 'guru';
+    } else {
+        $lookup = 'karyawan';
     }
-    if (empty($payheads)) {
-        send_response(1, 'Tidak ada payheads yang dipilih.');
+    $stmt = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_roles WHERE role = ?");
+    if ($stmt) {
+        $stmt->bind_param("s", $lookup);
+        $stmt->execute();
+        $stmt->bind_result($gaji_pokok);
+        if ($stmt->fetch()) {
+            $stmt->close();
+            return floatval($gaji_pokok);
+        }
+        $stmt->close();
     }
-    
-    // Tangani file upload dokumen pendukung, jika ada
-    $doc_path = null;
-    if (isset($_FILES['supporting_document']) && $_FILES['supporting_document']['error'] === UPLOAD_ERR_OK) {
-        $fileTmpPath = $_FILES['supporting_document']['tmp_name'];
-        $fileName = $_FILES['supporting_document']['name'];
-        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $allowedfileExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
-        if (!in_array($fileExtension, $allowedfileExtensions)) {
-            send_response(1, 'Tipe file tidak diperbolehkan. Hanya PDF, JPG, JPEG, dan PNG yang diperbolehkan.');
-        }
-        $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
-        $uploadFileDir = __DIR__ . '/../../uploads/changes/';
-        if (!is_dir($uploadFileDir)) {
-            mkdir($uploadFileDir, 0755, true);
-        }
-        $dest_path = $uploadFileDir . $newFileName;
-        if(!move_uploaded_file($fileTmpPath, $dest_path)) {
-            send_response(1, 'Terjadi kesalahan saat mengunggah file.');
-        }
-        $doc_path = '/uploads/changes/' . $newFileName;
-    }
-    
-    $conn->begin_transaction();
-    try {
-        $stmtDelete = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota = ?");
-        $stmtDelete->bind_param("i", $empcode);
-        if (!$stmtDelete->execute()) {
-            throw new Exception("Execute failed: " . $stmtDelete->error);
-        }
-        $stmtDelete->close();
-
-        $stmtGetJenis = $conn->prepare("SELECT jenis FROM payheads WHERE id = ? LIMIT 1");
-        if ($stmtGetJenis === false) {
-            throw new Exception("Prepare failed: " . $conn->error);
-        }
-        $stmtInsert = $conn->prepare("INSERT INTO employee_payheads (id_anggota, id_payhead, jenis, amount, change_reason, doc_path, status_payroll)
-            VALUES (?, ?, ?, ?, ?, ?, 'draft')");
-        if ($stmtInsert === false) {
-            throw new Exception("Prepare failed: " . $conn->error);
-        }
-        foreach ($payheads as $payhead_id) {
-            $payhead_id = intval($payhead_id);
-            $nilai = isset($pay_amounts[$payhead_id])
-                ? floatval(str_replace(['.', ','], ['', '.'], $pay_amounts[$payhead_id]))
-                : 0.0;
-            if ($nilai < 0) {
-                throw new Exception("Nilai payhead tidak boleh negatif.");
-            }
-            $stmtGetJenis->bind_param("i", $payhead_id);
-            if (!$stmtGetJenis->execute()) {
-                throw new Exception("Execute failed: " . $stmtGetJenis->error);
-            }
-            $resultJenis = $stmtGetJenis->get_result();
-            if ($resultJenis->num_rows === 0) {
-                throw new Exception("Payhead dengan ID $payhead_id tidak ditemukan.");
-            }
-            $rowJenis = $resultJenis->fetch_assoc();
-            $jenis = $rowJenis['jenis'];
-            
-            $stmtInsert->bind_param("iisdss", $empcode, $payhead_id, $jenis, $nilai, $change_reason, $doc_path);
-            if (!$stmtInsert->execute()) {
-                throw new Exception("Insert failed: " . $stmtInsert->error);
-            }
-        }
-        $stmtGetJenis->close();
-        $stmtInsert->close();
-        
-        $conn->commit();
-        $user_id = $_SESSION['user_id'] ?? 0;
-        $details = "Menetapkan payheads ke karyawan ID $empcode. Payheads: " . implode(', ', $payheads) .
-                   ". Alasan: " . $change_reason .
-                   ($doc_path ? " (Dokumen: $doc_path)" : "");
-        add_audit_log($conn, $user_id, 'AssignPayheadsToEmployee', $details);
-        send_response(0, 'Payheads berhasil ditugaskan / diperbarui.');
-    } catch (Exception $e) {
-        $conn->rollback();
-        send_response(1, 'Gagal menugaskan payheads: ' . $e->getMessage());
-    }
+    return 0.0;
 }
-
-// =========================
-// 3. Render Halaman HTML (jika bukan AJAX)
-// =========================
+?>
+<?php
+// Contoh inisialisasi session (dianggap sudah ada koneksi ke database)
+// session_start();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -755,15 +587,17 @@ function AssignPayheadsToEmployee($conn) {
     <title>Manajemen Data Guru/Karyawan - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- CSS dari CDN -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
+    <!-- Bootstrap 5.3.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- SB Admin 2 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
         body, .text-gray-800 { color: #000 !important; }
         #guruTable th, #guruTable td { vertical-align: middle; white-space: nowrap; }
         .table-responsive { overflow-x: auto; }
@@ -788,9 +622,9 @@ function AssignPayheadsToEmployee($conn) {
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
-                <!-- Topbar -->
+                <!-- Navbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- End of Topbar -->
+                <!-- End of Navbar -->
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
@@ -893,7 +727,6 @@ function AssignPayheadsToEmployee($conn) {
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="add-guru-form" method="POST" class="needs-validation" novalidate>
           <input type="hidden" name="case" value="CreateGuru">
-          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="modalAddLabel">Tambah Data Guru/Karyawan</h5>
@@ -989,7 +822,7 @@ function AssignPayheadsToEmployee($conn) {
                       </div>
                   </div>
               </div>
-              <!-- Kolom Pendidikan untuk auto-generate gaji berdasarkan strata -->
+              <!-- Kolom Pendidikan -->
               <div class="row">
                   <div class="col-md-6">
                       <div class="form-group">
@@ -1037,8 +870,8 @@ function AssignPayheadsToEmployee($conn) {
                   </div>
                   <div class="col-md-6">
                       <div class="form-group">
-                          <label for="addNamaSuami">Nama Suami</label>
-                          <input type="text" name="nama_suami" id="addNamaSuami" class="form-control">
+                          <label for="addNamaPasangan">Nama Pasangan</label>
+                          <input type="text" name="nama_pasangan" id="addNamaPasangan" class="form-control">
                       </div>
                   </div>
               </div>
@@ -1094,7 +927,6 @@ function AssignPayheadsToEmployee($conn) {
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="edit-guru-form" method="POST" class="needs-validation" novalidate>
           <input type="hidden" name="case" value="UpdateGuru">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <input type="hidden" name="id" id="editId">
           <div class="modal-content">
             <div class="modal-header">
@@ -1162,7 +994,6 @@ function AssignPayheadsToEmployee($conn) {
                       </div>
                   </div>
               </div>
-
               <!-- Data Pribadi -->
               <h6 class="mt-4 mb-2">Data Pribadi</h6>
               <div class="row">
@@ -1197,7 +1028,6 @@ function AssignPayheadsToEmployee($conn) {
                       </div>
                   </div>
               </div>
-
               <!-- Data Kontak -->
               <h6 class="mt-4 mb-2">Data Kontak</h6>
               <div class="row">
@@ -1237,8 +1067,8 @@ function AssignPayheadsToEmployee($conn) {
                   </div>
                   <div class="col-md-6">
                       <div class="form-group">
-                          <label for="editNamaSuami">Nama Suami</label>
-                          <input type="text" name="nama_suami" id="editNamaSuami" class="form-control">
+                          <label for="editNamaPasangan">Nama Pasangan</label>
+                          <input type="text" name="nama_pasangan" id="editNamaPasangan" class="form-control">
                       </div>
                   </div>
               </div>
@@ -1338,7 +1168,7 @@ function AssignPayheadsToEmployee($conn) {
             <h6 class="mt-3">Data Lainnya</h6>
             <table class="table table-sm">
               <tr><th>Remark</th><td id="detailRemark"></td></tr>
-              <tr><th>Nama Suami</th><td id="detailNamaSuami"></td></tr>
+              <tr><th>Nama Pasangan</th><td id="detailNamaPasangan"></td></tr>
               <tr><th>Jumlah Anak</th><td id="detailJumlahAnak"></td></tr>
               <tr><th>Nama Anak 1</th><td id="detailNamaAnak1"></td></tr>
               <tr><th>Nama Anak 2</th><td id="detailNamaAnak2"></td></tr>
@@ -1357,12 +1187,11 @@ function AssignPayheadsToEmployee($conn) {
       <div class="modal-dialog">
         <form id="delete-guru-form" class="modal-content">
           <input type="hidden" name="case" value="DeleteGuru">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <input type="hidden" name="id" id="delId">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <p>Anda yakin ingin menghapus data berikut?</p>
@@ -1385,7 +1214,6 @@ function AssignPayheadsToEmployee($conn) {
       <div class="modal-dialog modal-md">
         <form id="gaji-pokok-form" method="POST" class="modal-content">
           <input type="hidden" name="case" value="update_gaji_pokok">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiPokokLabel">Atur Gaji Pokok</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -1415,7 +1243,6 @@ function AssignPayheadsToEmployee($conn) {
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="gaji-strata-form-guru" method="POST" class="modal-content">
           <input type="hidden" name="case" value="update_gaji_strata_guru">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiStrataGuruLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Guru)</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -1499,7 +1326,6 @@ function AssignPayheadsToEmployee($conn) {
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="gaji-strata-form-karyawan" method="POST" class="modal-content">
           <input type="hidden" name="case" value="update_gaji_strata_karyawan">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiStrataKaryawanLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Karyawan)</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -1583,7 +1409,6 @@ function AssignPayheadsToEmployee($conn) {
       <div class="modal-dialog modal-md modal-dialog-scrollable">
         <form id="tunjangan-form" method="POST" class="modal-content">
           <input type="hidden" name="case" value="update_tunjangan">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalTunjanganLabel">Atur Tunjangan</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -1613,177 +1438,57 @@ function AssignPayheadsToEmployee($conn) {
       </div>
     </div>
 
-    <!-- MODAL: Assign Payheads -->
-    <div class="modal fade" id="ManageModal" tabindex="-1" aria-labelledby="manageModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h4 class="modal-title text-center" id="manageModalLabel">Tetapkan Payheads ke Karyawan</h4>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <form id="assign-payhead-form" enctype="multipart/form-data">
-            <div class="modal-body d-flex" style="gap:15px;">
-              <!-- Hidden Inputs -->
-              <input type="hidden" name="case" value="AssignPayheadsToEmployee">
-              <input type="hidden" name="empcode" id="empcode">
-              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
-              
-              <!-- Bagian kiri: Payheads Tersedia -->
-              <div style="flex:1;">
-                <label><strong>Payheads Tersedia:</strong></label>
-                <input type="text" id="searchAllPayheads" class="form-control mb-2" placeholder="Cari Payheads Tersedia...">
-                <button type="button" id="selectHeads" class="btn btn-success btn-sm mb-2">
-                  <i class="fa fa-arrow-circle-right"></i> Tetapkan
-                </button>
-                <select id="all_payheads" class="form-control" multiple size="10"></select>
-              </div>
-              
-              <!-- Bagian Tengah: Payheads Terpilih -->
-              <div style="flex:1;">
-                <label><strong>Payheads Terpilih:</strong></label>
-                <input type="text" id="searchSelectedPayheads" class="form-control mb-2" placeholder="Cari Payheads Terpilih...">
-                <button type="button" id="removeHeads" class="btn btn-danger btn-sm mb-2">
-                  <i class="fa fa-arrow-circle-left"></i> Hapus
-                </button>
-                <select id="selected_payheads" class="form-control" multiple size="10"></select>
-              </div>
-              
-              <!-- Bagian Kanan: Input Amount dan Keterangan Perubahan -->
-              <div style="flex:1;">
-                <label><strong>Tetapkan Jumlah & Keterangan:</strong></label>
-                <div id="selected_payamount"></div>
-                <div class="form-group mt-2">
-                  <label for="change_reason"><small>Alasan Perubahan:</small></label>
-                  <textarea name="change_reason" id="change_reason" class="form-control" placeholder="Masukkan alasan perubahan (misalnya, promosi, penyesuaian tunjangan)"></textarea>
-                </div>
-                <div class="form-group mt-2">
-                  <label for="supporting_document"><small>Upload Dokumen Pendukung:</small></label>
-                  <input type="file" name="supporting_document" id="supporting_document" class="form-control-file" accept=".pdf,.jpg,.png">
-                </div>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="submit" class="btn btn-primary">
-                <i class="fas fa-check-circle"></i> Tetapkan Payheads
-                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-              </button>
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                <i class="fas fa-times-circle"></i> Batal
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL: Select Month -->
-    <div class="modal fade" id="SalaryMonthModal" tabindex="-1" aria-labelledby="salaryMonthModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-md" style="max-width: 600px;">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="salaryMonthModalLabel">
-              <i class="fa fa-calendar"></i> Pilih Bulan untuk Payroll
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row text-center">
-              <?php
-              // Hitung periode: 16 bulan (2 bulan sebelumnya hingga 14 bulan ke depan)
-              $months = [];
-              $years  = [];
-              $currentYear  = date('Y');
-              $currentMonth = date('n');
-              $startMonth = $currentMonth - 2;
-              $startYear = $currentYear;
-              for ($i = 0; $i < 16; $i++) {
-                  $month = $startMonth + $i;
-                  $year = $startYear;
-                  if ($month <= 0) {
-                      $month += 12;
-                      $year -= 1;
-                  } elseif ($month > 12) {
-                      $month -= 12;
-                      $year += 1;
-                  }
-                  $months[] = $month;
-                  $years[]  = $year;
-              }
-              function getIndonesianMonthName($month) {
-                  $names = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
-                  return isset($names[$month]) ? $names[$month] : '';
-              }
-              for ($i = 0; $i < count($months); $i++) {
-                  $m = getIndonesianMonthName($months[$i]);
-                  $y = $years[$i];
-                  $highlightClass = ($months[$i] == $currentMonth && $y == $currentYear) ? 'bg-warning fw-bold' : '';
-                  echo '<div class="col-sm-3 mb-3">';
-                  echo '  <div class="' . $highlightClass . '" style="padding:10px; border:1px solid #ddd; border-radius:5px;">';
-                  echo '    <a href="#" class="month-link" data-month="' . $months[$i] . '" data-year="' . $y . '" style="color:#333; text-decoration:none;">';
-                  echo strtoupper($m) . '<br>' . $y;
-                  echo '    </a>';
-                  echo '  </div>';
-                  echo '</div>';
-              }
-              ?>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- JavaScript Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.colVis.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
-    <script nonce="<?php echo $nonce; ?>">
-    $(document).ready(function() {
-        // Inisialisasi SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-            }
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Bootstrap 5.3.3 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.colVis.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    // Inisialisasi SweetAlert2 Toast
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+
+    function showToast(message, icon = 'success') {
+        Toast.fire({
+            icon: icon,
+            title: message
         });
+    }
 
-        function showToast(message, icon = 'success') {
-            Toast.fire({
-                icon: icon,
-                title: message
-            });
+    function getStatusBadge(status) {
+        let s = (status || '').toLowerCase();
+        if (s === 'tetap') {
+            return '<span class="badge bg-success">Tetap</span>';
+        } else if (s === 'kontrak') {
+            return '<span class="badge bg-secondary">Kontrak</span>';
+        } else {
+            return '<span class="badge bg-secondary">' + (status || '') + '</span>';
         }
+    }
 
-        function getStatusBadge(status) {
-            let s = (status || '').toLowerCase();
-            if (s === 'tetap') {
-                return '<span class="badge bg-success">Tetap</span>';
-            } else if (s === 'kontrak') {
-                return '<span class="badge bg-secondary">Kontrak</span>';
-            } else {
-                return '<span class="badge bg-secondary">' + (status || '') + '</span>';
-            }
-        }
-
-        var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
-
+    $(document).ready(function() {
         // Inisialisasi DataTable
         var guruTable = $('#guruTable').DataTable({
             processing: true,
@@ -1793,7 +1498,6 @@ function AssignPayheadsToEmployee($conn) {
                 type: "POST",
                 data: function(d) {
                     d.case = 'LoadingGuru';
-                    d.csrf_token = csrfToken;
                     d.jenjang = $('#filterJenjang').val();
                 },
                 beforeSend: function(){
@@ -1860,48 +1564,14 @@ function AssignPayheadsToEmployee($conn) {
         });
 
         $('#btnApplyFilter').on('click', function(){
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: {
-                    case: 'AddAuditLog',
-                    csrf_token: csrfToken,
-                    action: 'ApplyFilter',
-                    details: 'Pengguna menerapkan filter data guru/karyawan.'
-                },
-                success: function(response){
-                    if(response.code === 0){
-                        showToast('Filter diterapkan.');
-                    }
-                },
-                error: function(){
-                    showToast('Gagal mencatat audit log.', 'error');
-                }
-            });
             guruTable.ajax.reload();
+            showToast('Filter diterapkan.');
         });
 
         $('#btnResetFilter').on('click', function(){
             $('#filterForm')[0].reset();
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: {
-                    case: 'AddAuditLog',
-                    csrf_token: csrfToken,
-                    action: 'ResetFilter',
-                    details: 'Pengguna mereset filter data guru/karyawan.'
-                },
-                success: function(response){
-                    if(response.code === 0){
-                        showToast('Filter direset.');
-                    }
-                },
-                error: function(){
-                    showToast('Gagal mencatat audit log.', 'error');
-                }
-            });
             guruTable.ajax.reload();
+            showToast('Filter direset.');
         });
 
         // Form create
@@ -1950,7 +1620,7 @@ function AssignPayheadsToEmployee($conn) {
             $.ajax({
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: { case: 'GetGuruDetail', id: id, csrf_token: csrfToken },
+                data: { case: 'GetGuruDetail', id: id },
                 dataType: "json",
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -1980,7 +1650,7 @@ function AssignPayheadsToEmployee($conn) {
                         $('#detailEmail').text(response.result.email);
 
                         $('#detailRemark').text(response.result.remark || '');
-                        $('#detailNamaSuami').text(response.result.nama_suami || '');
+                        $('#detailNamaPasangan').text(response.result.nama_pasangan || '');
                         $('#detailJumlahAnak').text(response.result.jumlah_anak || 0);
                         $('#detailNamaAnak1').text(response.result.nama_anak_1 || '');
                         $('#detailNamaAnak2').text(response.result.nama_anak_2 || '');
@@ -2008,7 +1678,7 @@ function AssignPayheadsToEmployee($conn) {
             $.ajax({
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: { case: 'GetGuruDetail', id: id, csrf_token: csrfToken },
+                data: { case: 'GetGuruDetail', id: id },
                 dataType: "json",
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -2032,13 +1702,14 @@ function AssignPayheadsToEmployee($conn) {
                         $('#editNoHP').val(response.result.no_hp || '');
                         $('#editPendidikan').val(response.result.pendidikan || '');
                         $('#editEmail').val(response.result.email || '');
-                        $('#editNamaSuami').val(response.result.nama_suami || '');
+                        $('#editNamaPasangan').val(response.result.nama_pasangan || '');
                         $('#editJumlahAnak').val(response.result.jumlah_anak || 0);
                         $('#editNamaAnak1').val(response.result.nama_anak_1 || '');
                         $('#editNamaAnak2').val(response.result.nama_anak_2 || '');
                         $('#editNamaAnak3').val(response.result.nama_anak_3 || '');
                         $('#editSalaryIndex').val(response.result.salary_index_id || 0);
                         $('#editRole').val(response.result.role || '');
+
                         modal.modal('show');
                     } else {
                         showToast(response.result, 'error');
@@ -2070,7 +1741,7 @@ function AssignPayheadsToEmployee($conn) {
             $.ajax({
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: { case: 'DeleteGuru', id: id, csrf_token: csrfToken },
+                data: { case: 'DeleteGuru', id: id },
                 dataType: "json",
                 beforeSend: function(){
                     form.find('button[type="submit"]').prop('disabled', true);
@@ -2133,87 +1804,115 @@ function AssignPayheadsToEmployee($conn) {
             });
         });
 
-        // Assign Payheads (Fitur Tambahan)
-        $(document).on('click', '.btn-assign', function() {
-            $('#assign-payhead-form').on('submit', function(e){
-                e.preventDefault();
-                var form = $(this);
-                var formData = new FormData(this);
-                var isValid = true;
-                $('#selected_payheads option').each(function() {
-                    var payheadId = $(this).val();
-                    var inputSelector = 'input[name="pay_amounts[' + payheadId + ']"]';
-                    var amount = $(inputSelector).val();
-                    if(amount === '' || parseFloat(amount) < 0){
-                        $(inputSelector).addClass('is-invalid');
-                        isValid = false;
-                    } else {
-                        $(inputSelector).removeClass('is-invalid');
-                    }
-                });
-                if(!isValid){
-                    showToast('Pastikan semua jumlah payhead valid (>=0)!', 'error');
-                    return;
-                }
-                $.ajax({
-                    url:'manage_guru_karyawan.php?ajax=1',
-                    type:'POST',
-                    data: formData,
-                    dataType:'json',
-                    processData: false,
-                    contentType: false,
-                    beforeSend:function(){
-                        form.find('button[type="submit"]').prop('disabled', true);
-                        form.find('.spinner-border').removeClass('d-none');
-                    },
-                    success:function(resp){
-                        form.find('button[type="submit"]').prop('disabled', false);
-                        form.find('.spinner-border').addClass('d-none');
-                        if(resp.code === 0){
-                            showToast(resp.result, 'success');
-                            // Jika tabel karyawan di-refresh (misalnya, jika menggunakan variabel empTable)
-                            guruTable.ajax.reload(null, false);
-                            setTimeout(function(){
-                                $('#ManageModal').modal('hide');
-                                form[0].reset();
-                                $('#all_payheads').empty();
-                                $('#selected_payheads').empty();
-                                $('#selected_payamount').empty();
-                            }, 200);
-                        } else {
-                            showToast(resp.result, 'error');
-                        }
-                    },
-                    error:function(){
-                        form.find('button[type="submit"]').prop('disabled', false);
-                        form.find('.spinner-border').addClass('d-none');
-                        showToast('Terjadi kesalahan saat menetapkan payheads.', 'error');
-                    }
-                });
-            });
-            $('#ManageModal').modal('show');
-        });
-
-        // Select Month untuk payroll (misalnya, pada event tombol "Select Month")
-        $('#guruTable tbody').on('click', '.btn-select-month', function() {
-            var employeeId = $(this).data('id');
-            window.currentEmpId = employeeId;
-            $('#SalaryMonthModal').modal('show');
-        });
-        $(document).on('click', '.month-link', function(e) {
+        // Form: Update Gaji Strata Guru
+        $('#gaji-strata-form-guru').on('submit', function(e) {
             e.preventDefault();
-            var month = $(this).data('month'); // nomor bulan (1-12)
-            var year  = $(this).data('year');
-            var employeeId = window.currentEmpId || 0;
-            if (employeeId === 0) {
-                showToast('ID Karyawan tidak valid!', 'error');
+            var form = $(this);
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                form.addClass('was-validated');
                 return;
             }
-            var targetUrl = "/payroll_absensi_v2/sdm/manage-payroll-review.php";
-            targetUrl += "?id_anggota=" + employeeId;
-            targetUrl += "&bulan=" + encodeURIComponent(month);
-            targetUrl += "&tahun=" + encodeURIComponent(year);
-            window.location.href = targetUrl;
+            var formData = form.serialize();
+            $.ajax({
+                url: "manage_guru_karyawan.php?ajax=1",
+                type: "POST",
+                data: formData,
+                dataType: "json",
+                beforeSend: function(){
+                    form.find('button[type="submit"]').prop('disabled', true);
+                    form.find('.spinner-border').removeClass('d-none');
+                },
+                success: function(response){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    if(response.code == 0) {
+                        showToast(response.result);
+                        $('#modalGajiStrataGuru').modal('hide');
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    showToast('Terjadi kesalahan saat mengupdate gaji strata Guru.', 'error');
+                }
+            });
+        });
+
+        // Form: Update Gaji Strata Karyawan
+        $('#gaji-strata-form-karyawan').on('submit', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                form.addClass('was-validated');
+                return;
+            }
+            var formData = form.serialize();
+            $.ajax({
+                url: "manage_guru_karyawan.php?ajax=1",
+                type: "POST",
+                data: formData,
+                dataType: "json",
+                beforeSend: function(){
+                    form.find('button[type="submit"]').prop('disabled', true);
+                    form.find('.spinner-border').removeClass('d-none');
+                },
+                success: function(response){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    if(response.code == 0) {
+                        showToast(response.result);
+                        $('#modalGajiStrataKaryawan').modal('hide');
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    showToast('Terjadi kesalahan saat mengupdate gaji strata Karyawan.', 'error');
+                }
+            });
+        });
+
+        // Form: Update Tunjangan
+        $('#tunjangan-form').on('submit', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                form.addClass('was-validated');
+                return;
+            }
+            var formData = form.serialize();
+            $.ajax({
+                url: "manage_guru_karyawan.php?ajax=1",
+                type: "POST",
+                data: formData,
+                dataType: "json",
+                beforeSend: function(){
+                    form.find('button[type="submit"]').prop('disabled', true);
+                    form.find('.spinner-border').removeClass('d-none');
+                },
+                success: function(response){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    if(response.code == 0) {
+                        showToast(response.result);
+                        $('#modalTunjangan').modal('hide');
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    showToast('Terjadi kesalahan saat mengupdate tunjangan.', 'error');
+                }
+            });
         });
     });
     </script>
