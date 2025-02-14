@@ -1,21 +1,24 @@
 <?php
 // File: /payroll_absensi_v2/payroll/keuangan/payheads.php
 
-// ==============================================================================
-// 1. Pengaturan Awal (penghapusan sistem keamanan hanya contoh - HARAP DIGANTI!)
-// ==============================================================================
+// =========================
+// 1. Pengaturan Awal
+// =========================
 require_once __DIR__ . '/../../helpers.php';
-session_start();
+start_session_safe();
+init_error_handling();
+authorize(['sdm', 'superadmin']);
 
-// Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
 // Hapus output buffering jika ada
-if (ob_get_length()) ob_end_clean();
+if (ob_get_length()) {
+    ob_end_clean();
+}
 
-// ==============================================================================
-// 3. Menangani Permintaan AJAX
-// ==============================================================================
+// =========================
+// 2. Menangani Permintaan AJAX
+// =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Debug: Log seluruh data POST (opsional)
@@ -49,12 +52,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     exit();
 }
 
-// ==============================================================================
-// 4. Fungsi CRUD (Tanpa Audit Log & Validasi Keamanan yang detail - Contoh Saja)
-// ==============================================================================
+// =========================
+// 3. Fungsi CRUD untuk Payheads
+// =========================
 
 /**
- * Memuat data Payheads secara server-side dengan DataTables
+ * Memuat data Payheads secara server-side dengan DataTables.
  */
 function LoadingPayheads($conn) {
     // DataTables parameters
@@ -159,7 +162,7 @@ function LoadingPayheads($conn) {
     $no = $start + 1;
 
     while ($row = $dataQuery->fetch_assoc()) {
-        // Format nominal menggunakan fungsi dari helpers.php
+        // Format nominal menggunakan fungsi formatNominal() dari helpers.php
         $nominal_tetap = formatNominal($row['nominal']);
 
         // Badge untuk jenis
@@ -208,10 +211,9 @@ function LoadingPayheads($conn) {
 }
 
 /**
- * Menambahkan Payhead baru ke dalam database
+ * Menambahkan Payhead baru ke dalam database.
  */
 function AddPayhead($conn) {
-    // DEBUG: Log data POST pada fungsi AddPayhead
     error_log("DEBUG: AddPayhead POST: " . print_r($_POST, true));
 
     $nama_payhead   = isset($_POST['nama_payhead']) ? trim($_POST['nama_payhead']) : '';
@@ -220,7 +222,6 @@ function AddPayhead($conn) {
     $nominal_input  = isset($_POST['nominal']) ? $_POST['nominal'] : '';
     $nominal        = floatval($nominal_input);
 
-    // DEBUG: Log nilai nominal sebelum dan sesudah konversi
     error_log("DEBUG: Nilai nominal input: " . var_export($nominal_input, true) . " | Setelah floatval: " . $nominal);
 
     // Validasi sederhana
@@ -235,7 +236,7 @@ function AddPayhead($conn) {
         send_response(5, 'Masukkan nominal payhead.');
     }
 
-    // Cek duplikasi (sederhana)
+    // Cek duplikasi
     $stmt = $conn->prepare("SELECT id FROM payheads WHERE nama_payhead = ? AND jenis = ? LIMIT 1");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -255,6 +256,10 @@ function AddPayhead($conn) {
     }
     $stmt->bind_param("sssd", $nama_payhead, $jenis, $deskripsi, $nominal);
     if ($stmt->execute()) {
+        // Catat audit log menggunakan identifier dari session (misalnya, NIP)
+        $user_id = $_SESSION['nip'] ?? '';
+        $details_log = "Menambahkan Payhead: Nama='$nama_payhead', Jenis='$jenis', Nominal='$nominal'.";
+        add_audit_log($conn, $user_id, 'AddPayhead', $details_log);
         send_response(0, 'Payhead berhasil ditambahkan.');
     } else {
         send_response(1, 'Gagal menambah payhead: ' . $stmt->error);
@@ -264,7 +269,7 @@ function AddPayhead($conn) {
 }
 
 /**
- * Mengambil detail Payhead untuk kebutuhan edit
+ * Mengambil detail Payhead untuk kebutuhan edit.
  */
 function GetPayheadDetail($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -282,9 +287,11 @@ function GetPayheadDetail($conn) {
     if ($result && $result->num_rows == 1) {
         $payhead = $result->fetch_assoc();
         $stmt->close();
-
         error_log("DEBUG: Detail Payhead: " . print_r($payhead, true));
-
+        // Catat audit log
+        $user_id = $_SESSION['nip'] ?? '';
+        $details_log = "Melihat detail Payhead ID $id: Nama='" . $payhead['nama_payhead'] . "'.";
+        add_audit_log($conn, $user_id, 'GetPayheadDetail', $details_log);
         send_response(0, [
             'id'            => $payhead['id'],
             'nama_payhead'  => $payhead['nama_payhead'],
@@ -300,7 +307,7 @@ function GetPayheadDetail($conn) {
 }
 
 /**
- * Mengupdate data Payhead berdasarkan ID
+ * Mengupdate data Payhead berdasarkan ID.
  */
 function UpdatePayhead($conn) {
     error_log("DEBUG: UpdatePayhead POST: " . print_r($_POST, true));
@@ -346,6 +353,10 @@ function UpdatePayhead($conn) {
     }
     $stmt->bind_param("sssdi", $nama_payhead, $jenis, $deskripsi, $nominal, $id);
     if ($stmt->execute()) {
+        // Catat audit log
+        $user_id = $_SESSION['nip'] ?? '';
+        $details_log = "Mengupdate Payhead ID $id: Nama='$nama_payhead', Jenis='$jenis', Nominal='$nominal'.";
+        add_audit_log($conn, $user_id, 'UpdatePayhead', $details_log);
         send_response(0, 'Payhead berhasil diupdate.');
     } else {
         send_response(1, 'Gagal mengupdate payhead: ' . $stmt->error);
@@ -355,7 +366,7 @@ function UpdatePayhead($conn) {
 }
 
 /**
- * Menghapus data Payhead dari database
+ * Menghapus data Payhead dari database.
  */
 function DeletePayhead($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -389,10 +400,16 @@ function DeletePayhead($conn) {
         send_response(1, 'Gagal menghapus payhead: ' . $stmt->error);
     }
 
+    // Catat audit log
+    $user_id = $_SESSION['nip'] ?? '';
+    $details_log = "Menghapus Payhead ID $id.";
+    add_audit_log($conn, $user_id, 'DeletePayhead', $details_log);
+
     send_response(0, 'Payhead berhasil dihapus.');
     $stmt->close();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">

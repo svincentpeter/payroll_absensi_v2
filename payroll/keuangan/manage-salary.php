@@ -560,8 +560,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
                     <i class="fas fa-arrow-left"></i> Cancel
                 </a>
 
-                <!-- Form Insert Payroll -->
-                <form action="" method="POST" style="display:inline;">
+                <!-- Form Insert Payroll dengan id formPayroll -->
+                <form id="formPayroll" action="" method="POST" style="display:inline;">
                     <input type="hidden" name="id_anggota" value="<?= htmlspecialchars($id_anggota); ?>">
                     <input type="hidden" name="bulan_int"  value="<?= htmlspecialchars($bulan); ?>">
                     <input type="hidden" name="tahun"      value="<?= htmlspecialchars($tahun); ?>">
@@ -577,6 +577,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
                     <input type="hidden" name="gaji_pokok"         id="fieldGajiPokok"       value="">
                     <input type="hidden" name="total_earnings"     id="fieldTotalEarnings"   value="">
                     <input type="hidden" name="total_deductions"   id="fieldTotalDeductions" value="">
+                    <!-- Hidden untuk catatan, nilainya akan diambil dari textarea inputDescription -->
                     <input type="hidden" name="inputDescription"   id="fieldDescription"     value="">
                     <input type="hidden" name="tgl_payroll"        id="fieldTglPayroll"      value="">
                     <input type="hidden" name="csrf_token"         value="<?= htmlspecialchars($csrf_token); ?>">
@@ -686,11 +687,13 @@ $(document).ready(function() {
     inputGajiPokok.on('keyup', recalcNetSalary);
 
     // Set nilai hidden field saat submit "Proses Payroll"
-    $('form[action=""]').on('submit', function(e){
+    // Menggunakan id formPayroll untuk memastikan hanya form insert payroll yang terpengaruh
+    $('#formPayroll').on('submit', function(e){
         $('#fieldNoRek').val($('#inputNoRek').val());
         $('#fieldGajiPokok').val(AutoNumeric.getAutoNumericElement(inputGajiPokok[0]).getNumber());
         $('#fieldTotalEarnings').val(AutoNumeric.getAutoNumericElement(inputTotalEarnings[0]).getNumber());
         $('#fieldTotalDeductions').val(AutoNumeric.getAutoNumericElement(inputTotalDeductions[0]).getNumber());
+        // Ambil nilai catatan dari textarea inputDescription
         $('#fieldDescription').val($('#inputDescription').val());
         $('#fieldTglPayroll').val($('#inputTanggalPayroll').val());
     });

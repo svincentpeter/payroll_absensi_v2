@@ -1,63 +1,23 @@
 <?php
 // File: /payroll_absensi_v2/sdm/dashboard_sdm.php
 
-// 1. Pengaturan Keamanan: session cookie, HTTPS, HSTS, CSP, dll.
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,       // Hanya lewat HTTPS
-    'httponly' => true,       // Tidak dapat diakses via JavaScript
-    'samesite' => 'Strict'
-]);
-
+// Mulai session, inisialisasi error handling, dan koneksi ke database
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-generate_csrf_token();
-
-// Buat nonce untuk Content-Security-Policy dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-// Paksa HTTPS jika belum menggunakan HTTPS
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-
-// HSTS header
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
-// Implementasi Content-Security-Policy dengan nonce
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce' https://cdn.jsdelivr.net https://code.jquery.com https://cdn.jsdelivr.net/npm/sweetalert2@11; style-src 'self' 'nonce-$nonce' https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css; img-src 'self'; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self'");
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
-// Fungsi Role Checking (hanya role 'sdm' dan 'superadmin' yang boleh akses)
-function authorize($allowed_roles = ['sdm', 'superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        send_response(403, 'Akses ditolak.');
-    }
-}
+// Gunakan fungsi authorize() dari helpers.php
+// Hanya role 'sdm' dan 'superadmin' yang diperbolehkan
+authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
-// Cek apakah pengguna sudah login dan memiliki role sdm atau superadmin
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['sdm', 'superadmin'])) {
-    header("Location: ../login.php");
-    exit();
-}
-
-// 2. Menangani Permintaan AJAX (metode POST)
+// 1. Menangani Permintaan AJAX (metode POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    // Verifikasi CSRF token
-    $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-    verify_csrf_token($csrf_token);
 
-    // Cek role pengguna
-    authorize();
+    // (Opsional) Cek ulang otorisasi jika diperlukan
+    authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
     $action = $_POST['action'];
 
@@ -145,10 +105,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'libur' => $total_libur
         ];
 
-        // Catat Audit Log
-        $user_id = intval($_SESSION['user_id']);
-        $details_log = "Mengambil data absensi untuk anggota ID $id_anggota.";
-        add_audit_log($conn, $user_id, 'GetAttendanceData', $details_log);
+        // Catat Audit Log dengan menggunakan NIP (dari session)
+        $user_nip = $_SESSION['nip'] ?? '';
+        $details_log = "Mengambil data absensi untuk anggota dengan NIP: $user_nip, ID anggota: $id_anggota.";
+        add_audit_log($conn, $user_nip, 'GetAttendanceData', $details_log);
 
         send_response(0, [
             'monthly_labels' => $labels,
@@ -219,9 +179,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $labels[] = $p['nama'] . " (" . $p['nip'] . ")";
             $scores[] = $p['score'];
         }
-        $user_id = intval($_SESSION['user_id']);
-        $details_log = "Mengambil data performa untuk semua anggota.";
-        add_audit_log($conn, $user_id, 'GetPerformanceData', $details_log);
+        // Catat Audit Log dengan menggunakan NIP
+        $user_nip = $_SESSION['nip'] ?? '';
+        $details_log = "Mengambil data performa untuk semua anggota oleh pengguna dengan NIP $user_nip.";
+        add_audit_log($conn, $user_nip, 'GetPerformanceData', $details_log);
         send_response(0, [
             'labels' => $labels,
             'scores' => $scores
@@ -232,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit();
 }
 
-// 3. Jika bukan permintaan AJAX, render halaman HTML dashboard
+// 2. Jika bukan permintaan AJAX, render halaman HTML dashboard
 
 // Ambil data anggota (guru/karyawan) untuk dropdown filter
 $query = "SELECT id, nama, nip, job_title FROM anggota_sekolah ORDER BY nama ASC";
@@ -244,6 +205,7 @@ if ($result && $result->num_rows > 0) {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>

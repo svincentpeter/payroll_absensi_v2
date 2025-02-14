@@ -1,25 +1,21 @@
 <?php
 // File: /payroll_absensi_v2/pegawai/manage_salary_indices.php
 
-session_start();
+// =========================
+// 1. Pengaturan Session, Koneksi, dan Helper
+// =========================
 require_once __DIR__ . '/../../helpers.php';
-
-// Role Checking: hanya role sdm dan superadmin yang boleh mengakses
-function authorize($allowed_roles = ['sdm', 'superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        header("HTTP/1.1 403 Forbidden");
-        echo "Akses ditolak.";
-        exit();
-    }
-}
-authorize();
+start_session_safe();
+init_error_handling();
+authorize(['sdm', 'superadmin']); // Hanya role sdm dan superadmin yang boleh mengakses
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
-// Nonaktifkan output buffering jika ada
-if (ob_get_length()) ob_end_clean();
-
+// Nonaktifkan output buffering (jika ada)
+if (ob_get_length()) {
+    ob_end_clean();
+}
 
 // =========================
 // 2. Menangani Permintaan AJAX
@@ -50,12 +46,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 $details = isset($_POST['details']) ? trim($_POST['details']) : '';
 
                 if (!empty($action) && !empty($details)) {
-                    $logged = add_audit_log(
-                        $conn,
-                        $_SESSION['user_id'],
-                        $action,
-                        $details
-                    );
+                    // Gunakan identifier dari session; misalnya, gunakan 'nip' dari session
+                    $user_id = $_SESSION['nip'] ?? '';
+                    $logged = add_audit_log($conn, $user_id, $action, $details);
                     if ($logged) {
                         send_response(0, 'Audit log berhasil dicatat.');
                     } else {
@@ -240,7 +233,7 @@ function AddSalaryIndex($conn) {
     }
     $stmt->bind_param("siids", $level, $min_years, $max_years, $base_salary, $description);
     if ($stmt->execute()) {
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+        $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Menambahkan Indeks Gaji: Level='$level', Min Tahun='$min_years', Max Tahun='" . ($max_years ?? 'NULL') . "', Gaji Pokok='$base_salary', Keterangan='$description'.";
         add_audit_log($conn, $user_id, 'AddSalaryIndex', $details_log);
         send_response(0, 'Indeks gaji berhasil ditambahkan.');
@@ -268,7 +261,7 @@ function GetSalaryIndexDetail($conn) {
         $row = $result->fetch_assoc();
         $stmt->close();
 
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+        $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Melihat detail Indeks Gaji ID $id: Level='{$row['level']}', Min Tahun='{$row['min_years']}', Max Tahun='" . ($row['max_years'] ?? 'NULL') . "', Gaji Pokok='{$row['base_salary']}', Keterangan='{$row['description']}'.";
         add_audit_log($conn, $user_id, 'ViewSalaryIndexDetail', $details_log);
 
@@ -319,7 +312,7 @@ function UpdateSalaryIndex($conn) {
     }
     $stmt->bind_param("siidsi", $level, $min_years, $max_years, $base_salary, $description, $id);
     if ($stmt->execute()) {
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+        $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Mengupdate Indeks Gaji ID $id: Level='$level', Min Tahun='$min_years', Max Tahun='" . ($max_years ?? 'NULL') . "', Gaji Pokok='$base_salary', Keterangan='$description'.";
         add_audit_log($conn, $user_id, 'UpdateSalaryIndex', $details_log);
         send_response(0, 'Indeks gaji berhasil diupdate.');
@@ -347,7 +340,7 @@ function DeleteSalaryIndex($conn) {
     }
 
     // Audit Log
-    $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+    $user_id = $_SESSION['nip'] ?? '';
     $details_log = "Menghapus Indeks Gaji ID $id.";
     add_audit_log($conn, $user_id, 'DeleteSalaryIndex', $details_log);
 
@@ -356,6 +349,7 @@ function DeleteSalaryIndex($conn) {
     exit();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">

@@ -1,8 +1,5 @@
 <?php
-/**
- * navbar.php
- * Partial file untuk Topbar sesuai template SB Admin 2.
- */
+// navbar.php
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -22,15 +19,16 @@ if (empty($foto)) {
     $foto = '../../assets/img/undraw_profile.svg';
 }
 
-$userId = $_SESSION['user_id'] ?? 0;
-$stmt = $conn->prepare("SELECT action, created_at FROM audit_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 3");
-$stmt->bind_param("i", $userId);
+// Gunakan kolom nip untuk filter audit log, karena di tabel audit_logs kolomnya adalah 'nip'
+$stmt = $conn->prepare("SELECT action, created_at FROM audit_logs WHERE nip = ? ORDER BY created_at DESC LIMIT 3");
+$stmt->bind_param("s", $nip);
 $stmt->execute();
 $alerts = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 $notifCount = ($alerts && count($alerts) > 0) ? count($alerts) : 0;
 ?>
+
 
 <!-- Topbar -->
 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">

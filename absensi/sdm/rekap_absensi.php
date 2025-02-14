@@ -4,17 +4,16 @@
 // =========================
 // 1. Inisialisasi Session & Pengecekan Role
 // =========================
-session_start();
-
 require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+init_error_handling();
+
+// Gunakan fungsi authorize() untuk memastikan hanya role "keuangan" dan "superadmin" yang boleh mengakses
+authorize(['keuangan', 'superadmin']);
+
 require_once __DIR__ . '/../../koneksi.php';
 
-// Cek role: hanya pengguna dengan role "keuangan" atau "superadmin" yang diizinkan
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
-    header("Location: /payroll_absensi_v2/login.php");
-    exit();
-}
-
+// Hapus output buffering jika ada
 if (ob_get_length()) {
     ob_end_clean();
 }
@@ -24,7 +23,7 @@ if (ob_get_length()) {
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Tidak ada verifikasi CSRF token
+        // Tidak ada verifikasi CSRF token (sistem keamanan tambahan dihapus)
         $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
 
         switch ($case) {
@@ -63,6 +62,7 @@ function LoadingRekap($conn) {
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
 
+    // Bangun query dasar
     $sqlBase = "FROM rekap_absensi WHERE 1=1";
     $params = [];
     $types  = "";
@@ -76,6 +76,7 @@ function LoadingRekap($conn) {
         }
     }
 
+    // Hitung filtered records
     $sqlCountFilter = "SELECT COUNT(*) AS total " . $sqlBase;
     $stmtFiltered = $conn->prepare($sqlCountFilter);
     if ($stmtFiltered === false) {
@@ -90,6 +91,7 @@ function LoadingRekap($conn) {
     $totalFiltered = isset($rowFiltered['total']) ? $rowFiltered['total'] : 0;
     $stmtFiltered->close();
 
+    // Hitung total records (tanpa filter)
     $sqlTotal = "SELECT COUNT(*) AS total FROM rekap_absensi";
     $resTotal = $conn->query($sqlTotal);
     if (!$resTotal) {
@@ -98,8 +100,10 @@ function LoadingRekap($conn) {
     $rowTotal = $resTotal->fetch_assoc();
     $recordsTotal = isset($rowTotal['total']) ? $rowTotal['total'] : 0;
 
+    // Data query
     $sqlData = "SELECT id, id_anggota, bulan, tahun, total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit " . $sqlBase;
 
+    // Sorting
     $orderBy = " ORDER BY id DESC";
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $colIndex = intval($_POST['order'][0]['column']);
@@ -133,7 +137,7 @@ function LoadingRekap($conn) {
 
     $data = [];
     while ($row = $resData->fetch_assoc()) {
-        // Fungsi sederhana untuk konversi integer bulan ke nama bulan (Indonesia)
+        // Konversi integer bulan ke nama bulan (Indonesia)
         $bulanText = function($m) {
             $namaBulan = [
                 1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -143,7 +147,7 @@ function LoadingRekap($conn) {
             return isset($namaBulan[$m]) ? $namaBulan[$m] : 'Tidak Diketahui';
         };
 
-        // Tombol aksi (Edit dan Delete)
+        // Tombol aksi (Edit & Delete)
         $aksi = '
         <button class="btn btn-primary btn-sm btnEdit" data-id="' . $row['id'] . '">
           <i class="bi bi-pencil-square"></i> Edit
@@ -178,7 +182,7 @@ function LoadingRekap($conn) {
 }
 
 /**
- * Fungsi untuk menambahkan data rekap_absensi
+ * Fungsi untuk menambahkan data rekap_absensi.
  */
 function AddRekap($conn) {
     $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
@@ -194,6 +198,7 @@ function AddRekap($conn) {
         send_response(1, 'Parameter rekap tidak valid.');
     }
 
+    // Cek apakah rekap untuk karyawan dan periode yang sama sudah ada
     $stmtCheck = $conn->prepare("SELECT id FROM rekap_absensi WHERE id_anggota=? AND bulan=? AND tahun=? LIMIT 1");
     if (!$stmtCheck) {
         send_response(1, 'Prepare failed: ' . $conn->error);
@@ -202,7 +207,7 @@ function AddRekap($conn) {
     $stmtCheck->execute();
     $resCheck = $stmtCheck->get_result();
     if ($resCheck->num_rows > 0) {
-        send_response(1, 'Rekap absensi untuk karyawan ini dan bulan tersebut sudah ada.');
+        send_response(1, 'Rekap absensi untuk karyawan ini dan periode tersebut sudah ada.');
     }
     $stmtCheck->close();
 
@@ -213,7 +218,10 @@ function AddRekap($conn) {
     }
     $stmt->bind_param("iiiiiiii", $id_anggota, $bulan, $tahun, $hadir, $izin, $cuti, $tk, $sakit);
     if ($stmt->execute()) {
-        add_audit_log($conn, $_SESSION['user_id'], 'AddRekap', "Menambah rekap absensi untuk ID Anggota $id_anggota bulan $bulan tahun $tahun");
+        // Catat audit log menggunakan identifier dari session (misalnya, NIP)
+        $user_id = $_SESSION['nip'] ?? '';
+        $details_log = "Menambah rekap absensi untuk ID Anggota $id_anggota, Bulan $bulan, Tahun $tahun";
+        add_audit_log($conn, $user_id, 'AddRekap', $details_log);
         send_response(0, 'Data rekap absensi berhasil ditambah.');
     } else {
         send_response(1, 'Gagal menambah rekap: ' . $stmt->error);
@@ -223,7 +231,7 @@ function AddRekap($conn) {
 }
 
 /**
- * Fungsi untuk mengedit data rekap_absensi
+ * Fungsi untuk mengedit data rekap_absensi.
  */
 function EditRekap($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -240,6 +248,7 @@ function EditRekap($conn) {
         send_response(1, 'ID rekap_absensi atau parameter tidak valid.');
     }
 
+    // Cek apakah rekap dengan ID tersebut ada
     $stmtCheck = $conn->prepare("SELECT id FROM rekap_absensi WHERE id=? LIMIT 1");
     if (!$stmtCheck) {
         send_response(1, 'Prepare failed: ' . $conn->error);
@@ -260,7 +269,9 @@ function EditRekap($conn) {
     }
     $stmt->bind_param("iiiiiiiii", $id_anggota, $bulan, $tahun, $hadir, $izin, $cuti, $tk, $sakit, $id);
     if ($stmt->execute()) {
-        add_audit_log($conn, $_SESSION['user_id'], 'EditRekap', "Mengedit rekap absensi ID $id");
+        $user_id = $_SESSION['nip'] ?? '';
+        $details_log = "Mengedit rekap absensi ID $id";
+        add_audit_log($conn, $user_id, 'EditRekap', $details_log);
         send_response(0, 'Data rekap absensi berhasil diupdate.');
     } else {
         send_response(1, 'Gagal update rekap: ' . $stmt->error);
@@ -270,7 +281,7 @@ function EditRekap($conn) {
 }
 
 /**
- * Fungsi untuk menghapus data rekap_absensi
+ * Fungsi untuk menghapus data rekap_absensi.
  */
 function DeleteRekap($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -278,6 +289,7 @@ function DeleteRekap($conn) {
         send_response(1, 'ID rekap_absensi tidak valid.');
     }
 
+    // Pastikan rekap dengan ID tersebut ada
     $stmtCheck = $conn->prepare("SELECT id FROM rekap_absensi WHERE id=? LIMIT 1");
     if (!$stmtCheck) {
         send_response(1, 'Prepare failed: ' . $conn->error);
@@ -296,14 +308,18 @@ function DeleteRekap($conn) {
     }
     $stmt->bind_param("i", $id);
     if ($stmt->execute()) {
-        add_audit_log($conn, $_SESSION['user_id'], 'DeleteRekap', "Menghapus rekap absensi ID $id");
+        $user_id = $_SESSION['nip'] ?? '';
+        $details_log = "Menghapus rekap absensi ID $id";
+        add_audit_log($conn, $user_id, 'DeleteRekap', $details_log);
         send_response(0, 'Data rekap absensi berhasil dihapus.');
     } else {
         send_response(1, 'Gagal hapus rekap: ' . $stmt->error);
     }
     $stmt->close();
+    exit();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>

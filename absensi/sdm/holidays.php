@@ -2,72 +2,32 @@
 // File: /payroll_absensi_v2/payroll/keuangan/holidays.php
 
 // =========================
-// 1. Pengaturan Keamanan & Session
+// 1. Session, Error Handling, dan Role Checking
 // =========================
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses via JavaScript
-    'samesite' => 'Strict'
-]);
-
 require_once __DIR__ . '/../../helpers.php'; 
 start_session_safe();
 init_error_handling();
-generate_csrf_token();
 
-// Buat nonce untuk CSP dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-// Paksa HTTPS jika belum menggunakan HTTPS
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-
-// HSTS header
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
-// Implementasi CSP dengan nonce
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
+// Pengecekan role (hanya untuk sdm dan superadmin)
+authorize(['sdm', 'superadmin']);
 
 // =========================
-// 2. Role Checking (Hanya untuk sdm dan superadmin)
-// =========================
-function authorize($allowed_roles = ['sdm', 'superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        send_response(403, 'Akses ditolak.');
-    }
-}
-authorize();
-
-// =========================
-// 3. Koneksi ke Database
+// 2. Koneksi ke Database
 // =========================
 require_once __DIR__ . '/../../koneksi.php';
 
 // Nonaktifkan output buffering (jika ada)
-if (ob_get_length()) ob_end_clean();
+if (ob_get_length()) {
+    ob_end_clean();
+}
 
 // =========================
-// 4. Tangani Permintaan AJAX (Server-side processing)
+// 3. Tangani Permintaan AJAX (Server-side processing)
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        // Verifikasi CSRF
-        $csrf_token = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-        verify_csrf_token($csrf_token);
+        // Catatan: Sistem CSRF dihapus
 
         // Ambil parameter 'case' untuk menentukan aksi
         $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
@@ -90,15 +50,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 break;
             case 'AddAuditLog':
                 // Contoh pencatatan audit log (jika diperlukan)
-                $action = isset($_POST['action']) ? bersihkan_input($_POST['action']) : '';
+                $action  = isset($_POST['action']) ? bersihkan_input($_POST['action']) : '';
                 $details = isset($_POST['details']) ? bersihkan_input($_POST['details']) : '';
                 if (!empty($action) && !empty($details)) {
-                    $logged = add_audit_log(
-                        $conn,
-                        $_SESSION['user_id'],
-                        $action,
-                        $details
-                    );
+                    $logged = add_audit_log($conn, $_SESSION['nip'], $action, $details);
                     if ($logged) {
                         send_response(0, 'Audit log berhasil dicatat.');
                     } else {
@@ -118,7 +73,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // =========================
-// 5. Fungsi CRUD untuk Holidays
+// 4. Fungsi CRUD untuk Holidays
 // =========================
 
 function LoadingHolidays($conn) {
@@ -200,7 +155,7 @@ function LoadingHolidays($conn) {
         $jenis = ($row['holiday_type'] == 'wajib') 
                     ? '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Wajib</span>' 
                     : '<span class="badge bg-info"><i class="fas fa-info-circle"></i> Opsional</span>';
-        // Tombol aksi dengan ikon (Edit dan Hapus)
+        // Tombol aksi (Edit dan Hapus)
         $aksi = '
             <button class="btn btn-sm btn-warning btn-edit" data-id="' . htmlspecialchars($row['holiday_id']) . '" title="Edit"><i class="fas fa-edit"></i></button>
             <button class="btn btn-sm btn-danger btn-delete" data-id="' . htmlspecialchars($row['holiday_id']) . '" title="Hapus"><i class="fas fa-trash-alt"></i></button>
@@ -259,10 +214,9 @@ function AddHoliday($conn) {
     }
     $stmt->bind_param("ssss", $nama, $deskripsi, $tanggal, $jenis);
     if ($stmt->execute()) {
-        // Tambahkan audit log jika diinginkan
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+        // Catat audit log
         $details_log = "Menambahkan Hari Libur: Judul='$nama', Tanggal='$tanggal', Jenis='$jenis'.";
-        if (!add_audit_log($conn, $user_id, 'AddHoliday', $details_log)) {
+        if (!add_audit_log($conn, $_SESSION['nip'], 'AddHoliday', $details_log)) {
             log_error("Gagal mencatat audit log untuk AddHoliday ID " . $stmt->insert_id . ".");
         }
         send_response(0, 'Hari libur berhasil ditambahkan.');
@@ -335,12 +289,10 @@ function UpdateHoliday($conn) {
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
     }
-    // Jika tipe data holiday_type adalah string, gunakan "sssii" jika holiday_id adalah integer
-    $stmt->bind_param("sssii", $nama, $deskripsi, $tanggal, $jenis, $id);
+    $stmt->bind_param("ssssi", $nama, $deskripsi, $tanggal, $jenis, $id);
     if ($stmt->execute()) {
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         $details_log = "Mengupdate Hari Libur ID $id: Judul='$nama', Tanggal='$tanggal', Jenis='$jenis'.";
-        if (!add_audit_log($conn, $user_id, 'UpdateHoliday', $details_log)) {
+        if (!add_audit_log($conn, $_SESSION['nip'], 'UpdateHoliday', $details_log)) {
             log_error("Gagal mencatat audit log untuk UpdateHoliday ID $id.");
         }
         send_response(0, 'Hari libur berhasil diupdate.');
@@ -377,9 +329,8 @@ function DeleteHoliday($conn) {
     }
     $stmt->bind_param("i", $id);
     if ($stmt->execute()) {
-        $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
         $details_log = "Menghapus Hari Libur ID $id.";
-        if (!add_audit_log($conn, $user_id, 'DeleteHoliday', $details_log)) {
+        if (!add_audit_log($conn, $_SESSION['nip'], 'DeleteHoliday', $details_log)) {
             log_error("Gagal mencatat audit log untuk DeleteHoliday ID $id.");
         }
         send_response(0, 'Hari libur berhasil dihapus.');
@@ -390,6 +341,7 @@ function DeleteHoliday($conn) {
     exit();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -397,19 +349,18 @@ function DeleteHoliday($conn) {
     <title>Manajemen Hari Libur - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- DataTables CSS -->
-    <!-- Disarankan menggunakan DataTables versi Bootstrap 5 jika tersedia -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <!-- SweetAlert2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <!-- Datepicker CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" nonce="<?php echo $nonce; ?>">
-    <style nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+    <style>
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
@@ -484,7 +435,7 @@ function DeleteHoliday($conn) {
                         </div>
                         <div class="card-body">
                             <form id="filterForm" class="form-inline">
-                                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                                <!-- Sistem CSRF dihapus -->
                                 <button type="button" class="btn btn-primary me-2" id="btnApplyFilter" title="Terapkan Filter">
                                     <i class="fas fa-filter"></i> Filter
                                 </button>
@@ -560,7 +511,7 @@ function DeleteHoliday($conn) {
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="AddHoliday">
-                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                        <!-- CSRF field dihapus -->
                         <div class="form-group">
                             <label for="nama"><i class="fas fa-heading"></i> Judul Hari Libur <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="nama" name="nama" required>
@@ -612,7 +563,7 @@ function DeleteHoliday($conn) {
                     <div class="modal-body">
                         <input type="hidden" name="case" value="UpdateHoliday">
                         <input type="hidden" id="edit_id" name="edit_id">
-                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                        <!-- CSRF field dihapus -->
                         <div class="form-group">
                             <label for="edit_nama"><i class="fas fa-heading"></i> Judul Hari Libur <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="edit_nama" name="edit_nama" required>
@@ -654,21 +605,21 @@ function DeleteHoliday($conn) {
 
     <!-- JS Dependencies -->
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <!-- Bootstrap Bundle (termasuk Popper) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- DataTables JS (Bootstrap 5) -->
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
     <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Bootstrap Datepicker JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
     <!-- SB Admin 2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script nonce="<?php echo $nonce; ?>">
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
+    <script>
     $(document).ready(function() {
-        // Inisialisasi tooltip menggunakan Bootstrap 5 (gunakan data-bs-toggle)
+        // Inisialisasi tooltip menggunakan Bootstrap 5
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function(tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl);
@@ -693,7 +644,8 @@ function DeleteHoliday($conn) {
             });
         }
 
-        var csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
+        // Catatan: variabel csrfToken dihapus karena CSRF tidak digunakan
+        // var csrfToken = '';
 
         // Inisialisasi DataTable untuk Holidays
         var holidaysTable = $('#holidaysTable').DataTable({
@@ -704,7 +656,7 @@ function DeleteHoliday($conn) {
                 type: "POST",
                 data: function(d) {
                     d.case = 'LoadingHolidays';
-                    d.csrf_token = csrfToken;
+                    // d.csrf_token tidak dikirim
                 },
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -738,7 +690,6 @@ function DeleteHoliday($conn) {
                 type: 'POST',
                 data: {
                     case: 'AddAuditLog',
-                    csrf_token: csrfToken,
                     action: 'ApplyFilter',
                     details: 'Pengguna menerapkan filter pada Hari Libur.'
                 },
@@ -760,7 +711,6 @@ function DeleteHoliday($conn) {
                 type: 'POST',
                 data: {
                     case: 'AddAuditLog',
-                    csrf_token: csrfToken,
                     action: 'ResetFilter',
                     details: 'Pengguna mereset filter hari libur.'
                 },
@@ -844,7 +794,7 @@ function DeleteHoliday($conn) {
             $.ajax({
                 url: "holidays.php?ajax=1",
                 type: "POST",
-                data: { id: id, case: 'GetHolidayDetail', csrf_token: csrfToken },
+                data: { id: id, case: 'GetHolidayDetail' },
                 dataType: "json",
                 success: function(response){
                     if (response.code == 0) {
@@ -919,7 +869,7 @@ function DeleteHoliday($conn) {
                     $.ajax({
                         url: "holidays.php?ajax=1",
                         type: "POST",
-                        data: { id: id, case: 'DeleteHoliday', csrf_token: csrfToken },
+                        data: { id: id, case: 'DeleteHoliday' },
                         dataType: "json",
                         beforeSend: function(){
                             $('#loadingSpinner').show();

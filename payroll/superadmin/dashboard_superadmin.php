@@ -1,26 +1,21 @@
 <?php
 // File: superadmin/dashboard_superadmin.php
 
-// Mulai session dan buat nonce untuk Content Security Policy
-session_start();
+// Mulai session, inisialisasi error handling, dan CSRF token menggunakan helpers.php
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+init_error_handling();
+generate_csrf_token();
+
+// Buat nonce untuk Content-Security-Policy dan simpan di session
 $nonce = base64_encode(random_bytes(16));
 $_SESSION['csp_nonce'] = $nonce;
 
-require_once '../../koneksi.php'; // Sesuaikan path jika diperlukan
+// Koneksi ke database
+require_once __DIR__ . '/../../koneksi.php';
 
-// Periksa apakah pengguna sudah login dan memiliki peran 'superadmin'
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'superadmin') {
-    header("Location: ../../login.php");
-    exit();
-}
-
-// Contoh: Mengambil beberapa data dari database jika diperlukan
-try {
-    $stmt = $conn->query("SELECT role, COUNT(*) as count FROM users GROUP BY role");
-    $role_counts = $stmt->fetch_all(MYSQLI_ASSOC);
-} catch (Exception $e) {
-    die("Query gagal: " . $e->getMessage());
-}
+// Gunakan fungsi authorize() dari helpers.php untuk memastikan hanya superadmin yang bisa akses
+authorize('superadmin', '/payroll_absensi_v2/login.php');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -77,7 +72,7 @@ try {
                                     <p class="card-text">
                                         Lihat rekap gaji final, pemotongan manual, dsb.
                                     </p>
-                                    <a href="../keuangan/dashboard_keuangan.php" class="btn btn-primary">
+                                    <a href="payroll/superadmin/dashboard_superadmin.php" class="btn btn-primary">
                                         Akses Dashboard Keuangan
                                     </a>
                                 </div>

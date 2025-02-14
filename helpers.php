@@ -104,23 +104,21 @@ function log_error($message) {
  * @param string $details Detail tambahan tentang aksi.
  * @return bool True jika berhasil, false jika gagal.
  */
-function add_audit_log($conn, $user_id, $action, $details) {
-    // Jika user_id tidak valid, lewati pencatatan
-    if (empty($user_id) || $user_id <= 0) {
+function add_audit_log($conn, $user_nip, $action, $details) {
+    // Jika NIP kosong, lewati pencatatan
+    if (empty($user_nip)) {
         return true;
     }
     
-    // Dapatkan alamat IP dan User Agent untuk informasi log
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
     
-    // Siapkan statement SQL untuk menyimpan log
-    $stmt = $conn->prepare("INSERT INTO audit_logs (user_id, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+    $stmt = $conn->prepare("INSERT INTO audit_logs (nip, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
     if (!$stmt) {
         log_error("Gagal menyiapkan statement untuk audit log: " . $conn->error);
         return false;
     }
-    $stmt->bind_param("issss", $user_id, $action, $details, $ip_address, $user_agent);
+    $stmt->bind_param("sssss", $user_nip, $action, $details, $ip_address, $user_agent);
     if (!$stmt->execute()) {
         log_error("Gagal menjalankan audit log: " . $stmt->error);
         $stmt->close();
@@ -129,6 +127,7 @@ function add_audit_log($conn, $user_id, $action, $details) {
     $stmt->close();
     return true;
 }
+
 
 /**
  * Menerjemahkan jenis payhead dari bahasa Inggris ke Indonesia.
@@ -227,5 +226,73 @@ function formatNominal($nominal) {
     return 'Rp ' . number_format($nominal, 2, ',', '.');
 }
 
+/** 
+ * Helper functions untuk menampilkan badge berwarna
+ */
+function getBadgeRole($role) {
+    switch ($role) {
+        case 'P':
+            return '<span class="badge bg-primary">Pendidik</span>';
+        case 'TK':
+            return '<span class="badge bg-info text-dark">Tenaga Kependidikan</span>';
+        case 'M':
+            return '<span class="badge bg-danger">Manajerial</span>';
+        default:
+            return '<span class="badge bg-secondary">' . htmlspecialchars($role) . '</span>';
+    }
+}
+
+function getBadgeJenjang($jenjang) {
+    switch ($jenjang) {
+        case 'TK':
+            return '<span class="badge bg-success">TK</span>';
+        case 'SD':
+            return '<span class="badge bg-primary">SD</span>';
+        case 'SMP':
+            return '<span class="badge bg-info text-dark">SMP</span>';
+        case 'SMA':
+            return '<span class="badge bg-warning text-dark">SMA</span>';
+        case 'SMK':
+            return '<span class="badge bg-secondary">SMK</span>';
+        default:
+            return '<span class="badge bg-light text-dark">' . htmlspecialchars($jenjang) . '</span>';
+    }
+}
+
+function getBadgeStatusKerja($status) {
+    if (strtolower($status) === 'tetap') {
+        return '<span class="badge bg-success">Tetap</span>';
+    } else if (strtolower($status) === 'kontrak') {
+        return '<span class="badge bg-warning text-dark">Kontrak</span>';
+    } else {
+        return '<span class="badge bg-secondary">' . htmlspecialchars($status) . '</span>';
+    }
+}
+
+/**
+ * Memeriksa apakah pengguna yang sedang login memiliki hak akses (role) yang diizinkan.
+ *
+ * @param string|array $allowedRoles Role yang diizinkan. Bisa berupa string atau array.
+ * @param string $redirectUrl URL tujuan jika pengguna tidak memiliki akses.
+ * @return void
+ */
+function authorize($allowedRoles, $redirectUrl = '/payroll_absensi_v2/login.php') {
+    // Pastikan session sudah dimulai
+    start_session_safe();
+    
+    // Ambil role dari session (sesuaikan key session jika berbeda)
+    $userRole = $_SESSION['role'] ?? '';
+    
+    // Ubah allowedRoles menjadi array jika bukan array
+    if (!is_array($allowedRoles)) {
+        $allowedRoles = [$allowedRoles];
+    }
+    
+    // Jika role pengguna tidak termasuk dalam allowedRoles, redirect
+    if (!in_array($userRole, $allowedRoles)) {
+        header("Location: " . $redirectUrl);
+        exit();
+    }
+}
 
 ?>

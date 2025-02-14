@@ -2,22 +2,18 @@
 // File: /payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php
 
 // =========================
-// 1. Inisialisasi Session & Pengecekan Role
+// 1. Inisialisasi Session & Pengecekan Hak Akses
 // =========================
-
-// Mulai session tanpa konfigurasi cookie khusus
-session_start();
-
-// Sertakan file helper jika diperlukan
 require_once __DIR__ . '/../../helpers.php';
-
-// Pengecekan akses: hanya pengguna dengan role "keuangan" atau "superadmin" yang diizinkan
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
-    header("Location: /payroll_absensi_v2/login.php");
-    exit();
-}
+start_session_safe();
+init_error_handling();
+authorize(['keuangan', 'superadmin']); // Hanya role "keuangan" dan "superadmin" yang diizinkan
 
 require_once __DIR__ . '/../../koneksi.php';
+
+// Catat audit log ketika dashboard diakses
+$user_nip = $_SESSION['nip'] ?? '';
+add_audit_log($conn, $user_nip, 'ViewDashboardKeuangan', "Dashboard Keuangan diakses oleh user dengan NIP $user_nip.");
 
 // =========================
 // 2. Proses Data Payroll & Filter
@@ -184,6 +180,7 @@ if ($resKaryawanAll) {
     $resKaryawanAll->close();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>

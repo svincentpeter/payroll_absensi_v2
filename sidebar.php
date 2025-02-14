@@ -27,19 +27,14 @@ function isActive($menuUrl) {
     return '';
 }
 
-// Fungsi untuk menghasilkan item collapse menu (update ke Bootstrap 5)
+// Fungsi untuk menghasilkan item collapse menu (digunakan khusus untuk superadmin)
 function renderCollapseMenu($id, $iconClass, $title, $items) {
-    global $role;
-    
     $isAnyActive = false;
     foreach ($items as $label => $url) {
         if (isActive($url)) {
             $isAnyActive = true;
             break;
         }
-    }
-    if ($role === 'keuangan' && $id === 'collapseKeuangan') {
-         $isAnyActive = true;
     }
     $activeClass  = $isAnyActive ? ' active' : '';
     $collapseShow = $isAnyActive ? ' show' : '';
@@ -59,14 +54,25 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     echo '    </div>';
     echo '</li>';
 }
+
+// Fungsi untuk menampilkan menu secara langsung (tanpa collapse)
+function renderMenuItems($items, $iconClass = 'fa-fw') {
+    foreach ($items as $label => $url) {
+        echo '<li class="nav-item ' . isActive($url) . '">';
+        echo '    <a class="nav-link" href="' . BASE_URL . htmlspecialchars($url) . '">';
+        echo '        <i class="fas ' . htmlspecialchars($iconClass) . '"></i>';
+        echo '        <span>' . htmlspecialchars($label) . '</span>';
+        echo '    </a>';
+        echo '</li>';
+    }
+}
 ?>
 <style>
     .sidebar .nav-item.active > .nav-link,
-.sidebar .nav-item.active > .nav-link:hover {
-    background-color: #4e73df; /* Warna primer SB Admin 2 */
-    color: #fff;
-}
-
+    .sidebar .nav-item.active > .nav-link:hover {
+        background-color: #4e73df; /* Warna primer SB Admin 2 */
+        color: #fff;
+    }
 </style>
 <!-- Sidebar -->
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
@@ -82,112 +88,90 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     <hr class="sidebar-divider my-0">
 
     <!-- Panel Informasi Pengguna -->
-    <div class="sidebar-heading mt-3 text-center">
-        <?php if ($role === 'guru' || $role === 'karyawan'): ?>
-            <strong><?= htmlspecialchars($nama) ?></strong><br>
-            <small>NIP: <?= htmlspecialchars($nip) ?></small>
-        <?php elseif ($username): ?>
-            <strong><?= htmlspecialchars($username) ?></strong><br>
-            <small><?= htmlspecialchars(ucfirst($role)) ?></small>
-        <?php else: ?>
-            <strong>Pengguna</strong><br>
-            <small>Unknown</small>
-        <?php endif; ?>
-    </div>
+<div class="sidebar-heading mt-3 text-center">
+    <?php if ($role === 'guru' || $role === 'karyawan' || $role === 'superadmin'): ?>
+        <strong><?= htmlspecialchars($nama) ?></strong><br>
+        <small>NIP: <?= htmlspecialchars($nip) ?></small>
+    <?php elseif ($username): ?>
+        <strong><?= htmlspecialchars($username) ?></strong><br>
+        <small><?= htmlspecialchars(ucfirst($role)) ?></small>
+    <?php else: ?>
+        <strong>Pengguna</strong><br>
+        <small>Unknown</small>
+    <?php endif; ?>
+</div>
+
 
     <hr class="sidebar-divider">
 
-    <!-- Menu berdasarkan Peran -->
-    <?php if ($role === 'superadmin' || $role === 'keuangan'): ?>
-        <?php
-        $keuanganItems = [
-            'Dashboard Keuangan'   => '/payroll/keuangan/dashboard_keuangan.php',
-            'Payroll Anggota'      => '/payroll/keuangan/employees.php',
-            'Payheads'             => '/payroll/keuangan/payheads.php',
-            'Rekap Absensi'        => '/payroll/keuangan/rekap_absensi.php',
-            'List Payroll'         => '/payroll/keuangan/list_payroll.php',
-            'History Payroll'      => '/payroll/keuangan/payroll_history.php',
-            'Rekap Payroll'        => '/payroll/keuangan/rekap_payroll.php',
-            'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php'
-        ];
-        renderCollapseMenu('collapseKeuangan', 'fa-fw fa-wallet', 'Dashboard Keuangan', $keuanganItems);
-        ?>
-    <?php endif; ?>
-
+    <!-- Menu Berdasarkan Peran -->
     <?php if ($role === 'superadmin'): ?>
+        <!-- Menu Kelola Sistem (Hanya Audit Logs) -->
         <?php
-        // Menu Kelola Sistem untuk Superadmin
         $kelolaSistemItems = [
-            'Kelola User' => '/payroll/superadmin/kelola_user.php',
             'Audit Logs'  => '/payroll/superadmin/logs.php'
         ];
         renderCollapseMenu('collapseKelolaSistem', 'fa-fw fa-cogs', 'Kelola Sistem', $kelolaSistemItems);
+        ?>
 
-        // Menu Laporan untuk Superadmin
-        $laporanItems = [
-            'Laporan Gaji' => '/payroll/laporan_gaji.php'
-        ];
-        renderCollapseMenu('collapseLaporan', 'fa-fw fa-file-invoice-dollar', 'Laporan', $laporanItems);
-
-        // Menu Dashboard SDM untuk Superadmin
-        $sdmSuperadminItems = [
+        <!-- Menu Role SDM -->
+        <?php
+        $sdmItems = [
             'Dashboard SDM'           => '/absensi/sdm/dashboard_sdm.php',
             'Upload Absensi'          => '/absensi/sdm/upload_absensi.php',
-            'Review Absensi'         => '/absensi/sdm/koreksi_absensi.php',
-            'Pengaturan Gaji Pokok'   => '/absensi/sdm/manage_salary_indices.php',
+            'Koreksi Absensi'         => '/absensi/sdm/koreksi_absensi.php',
+            'Pengaturan Salary Indeks'=> '/absensi/sdm/manage_salary_indices.php',
             'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
+            'Payroll Anggota'         => '/absensi/sdm/employees.php',
+            'Payheads'                => '/absensi/sdm/payheads.php',
+            'Rekap Absensi'           => '/absensi/sdm/rekap_absensi.php',
             'Hari Libur'              => '/absensi/sdm/holidays.php',
             'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php'
         ];
-        renderCollapseMenu('collapseSDMSuperadmin', 'fa-fw fa-users-cog', 'Dashboard SDM', $sdmSuperadminItems);
+        renderCollapseMenu('collapseSDM', 'fa-fw fa-users-cog', 'Role SDM', $sdmItems);
         ?>
-    <?php endif; ?>
 
-    <?php if ($role === 'sdm'): ?>
-        <!-- Dashboard SDM -->
-        <li class="nav-item <?= isActive('/absensi/sdm/dashboard_sdm.php'); ?>">
-            <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/dashboard_sdm.php">
-                <i class="fas fa-fw fa-tachometer-alt"></i>
-                <span>Dashboard SDM</span>
-            </a>
-        </li>
-        <hr class="sidebar-divider">
-
+        <!-- Menu Role Keuangan -->
         <?php
-        // Kelola Absensi untuk SDM
-        $kelolaAbsensiItems = [
-            'Upload Absensi'      => '/absensi/sdm/upload_absensi.php',
-            'Review Absensi'     => '/absensi/sdm/koreksi_absensi.php',
-            'Tambah Hari Libur'   => '/absensi/sdm/tambah_hari_libur.php',
-            'Tambah Jadwal Piket' => '/absensi/sdm/tambah_jadwal_piket.php'
+        $keuanganItems = [
+            'Dashboard Keuangan'   => '/payroll/keuangan/dashboard_keuangan.php',
+            'List Payroll'         => '/payroll/keuangan/list_payroll.php',
+            'History Payroll'      => '/payroll/keuangan/payroll_history.php',
+            'Rekap Payroll'      => '/payroll/keuangan/rekap_payroll.php',
+            'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php'
         ];
-        renderCollapseMenu('collapseKelolaAbsensiSDM', 'fa-fw fa-users', 'Kelola Absensi', $kelolaAbsensiItems);
-
-        // Kelola Guru untuk SDM
-        $kelolaGuruItems = [
-            'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
-            'Lihat Password Guru'     => '/absensi/sdm/lihat_password_guru.php',
-            'Pengajuan Surat Ijin'    => '/absensi/sdm/laporan_pengajuan_ijin.php'
-        ];
-        renderCollapseMenu('collapseKelolaGuruSDM', 'fa-fw fa-users', 'Kelola Guru', $kelolaGuruItems);
+        renderCollapseMenu('collapseKeuangan', 'fa-fw fa-wallet', 'Role Keuangan', $keuanganItems);
         ?>
-    <?php endif; ?>
 
-    <?php if ($role === 'keuangan'): ?>
-        <!-- Rekap Gaji -->
-        <li class="nav-item <?= isActive('/payroll/rekap_gaji.php'); ?>">
-            <a class="nav-link" href="<?= BASE_URL ?>/payroll/rekap_gaji.php">
-                <i class="fas fa-fw fa-chart-line"></i>
-                <span>Rekap Gaji</span>
-            </a>
-        </li>
-        <!-- Pemotongan Manual -->
-        <li class="nav-item <?= isActive('/payroll/potongan_manual.php'); ?>">
-            <a class="nav-link" href="<?= BASE_URL ?>/payroll/potongan_manual.php">
-                <i class="fas fa-fw fa-minus-circle"></i>
-                <span>Pemotongan Manual</span>
-            </a>
-        </li>
+    <?php elseif ($role === 'sdm'): ?>
+        <!-- Menu SDM (tanpa collapse) -->
+        <?php
+        $sdmItems = [
+            'Dashboard SDM'           => '/absensi/sdm/dashboard_sdm.php',
+            'Upload Absensi'          => '/absensi/sdm/upload_absensi.php',
+            'Koreksi Absensi'         => '/absensi/sdm/koreksi_absensi.php',
+            'Pengaturan Salary Indeks'=> '/absensi/sdm/manage_salary_indices.php',
+            'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
+            'Payroll Anggota'         => '/payroll/keuangan/employees.php',
+            'Payheads'                => '/payroll/keuangan/payheads.php',
+            'Rekap Absensi'           => '/payroll/keuangan/rekap_absensi.php',
+            'Hari Libur'              => '/absensi/sdm/holidays.php',
+            'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php'
+        ];
+        renderMenuItems($sdmItems, 'fa-fw fa-users-cog');
+        ?>
+
+    <?php elseif ($role === 'keuangan'): ?>
+        <!-- Menu Keuangan (tanpa collapse) -->
+        <?php
+        $keuanganItems = [
+            'Dashboard Keuangan'   => '/payroll/keuangan/dashboard_keuangan.php',
+            'List Payroll'         => '/payroll/keuangan/list_payroll.php',
+            'History Payroll'      => '/payroll/keuangan/payroll_history.php',
+            'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php'
+        ];
+        renderMenuItems($keuanganItems, 'fa-fw fa-wallet');
+        ?>
     <?php endif; ?>
 
     <?php if ($role === 'guru'): ?>

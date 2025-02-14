@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 13, 2025 at 02:19 PM
+-- Generation Time: Feb 14, 2025 at 06:13 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -94,7 +94,7 @@ CREATE TABLE `anggota_sekolah` (
   `pendidikan` varchar(50) DEFAULT NULL,
   `status_perkawinan` varchar(20) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
-  `nama_suami` varchar(100) DEFAULT NULL,
+  `nama_pasangan` varchar(100) DEFAULT NULL,
   `jumlah_anak` int(11) DEFAULT 0,
   `nama_anak_1` varchar(100) NOT NULL DEFAULT '',
   `nama_anak_2` varchar(100) NOT NULL DEFAULT '',
@@ -109,8 +109,8 @@ CREATE TABLE `anggota_sekolah` (
 -- Dumping data for table `anggota_sekolah`
 --
 
-INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `job_title`, `status_kerja`, `join_start`, `masa_kerja_tahun`, `masa_kerja_bulan`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_suami`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `gaji_pokok`, `foto_profil`, `role`) VALUES
-(1, 'G-001', '100001', 'e10adc3949ba59abbe56e057f20f883e', 'Ahmad Fauzi', 'SD', 'Guru Matematika', 'Tetap', '2017-09-01', 8, 2, 'Berpengalaman mengajar matematika', 'L', '1980-01-15', 45, 'Islam', 'Jl. Melati No. 1', 'Jl. Melati No. 1', '1234567890', '081234567890', 'S1 Pendidikan', 'Menikah', 'ahmad.fauzi@example.com', '', 2, 'Budi', 'Siti', '', 1, 4500000.00, 'default.jpg', 'P'),
+INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `job_title`, `status_kerja`, `join_start`, `masa_kerja_tahun`, `masa_kerja_bulan`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_pasangan`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `gaji_pokok`, `foto_profil`, `role`) VALUES
+(1, 'G-001', '100001', 'e10adc3949ba59abbe56e057f20f883e', 'Ahmad Fauzi', 'SD', 'Guru Matematika', 'Tetap', '2017-09-01', 8, 2, 'Berpengalaman mengajar matematika', 'L', '1980-01-15', 45, 'Islam', 'Jl. Melati No. 1', 'Jl. Melati No. 1', '1234567890', '081234567890', '', 'Menikah', 'ahmad.fauzi@example.com', 'Santi', 2, 'Buday', 'Siti', '', 1, 4500000.00, 'default.jpg', 'P'),
 (2, 'G-002', '100002', 'e10adc3949ba59abbe56e057f20f883e', 'Siti Rahma', 'SMP', 'Guru Fisika', 'Tetap', '2015-07-01', 10, 0, 'Menyukai eksperimen fisika', 'P', '1985-05-10', 40, 'Islam', 'Jl. Kenanga No. 2', 'Jl. Kenanga No. 2', '098765', '081298765432', 'S1 Pendidikan', 'Menikah', 'siti.rahma@example.com', 'Andi Rahma', 1, 'Ayu', '', '', 1, 4800000.00, 'default.jpg', 'P'),
 (3, 'G-003', '100003', 'e10adc3949ba59abbe56e057f20f883e', 'Budi Santoso', 'SMA', 'Guru Sejarah', 'Tetap', '2010-01-10', 15, 3, 'Ahli sejarah Indonesia', 'L', '1975-12-25', 50, 'Kristen', 'Jl. Mawar No. 3', 'Jl. Mawar No. 3', '112233', '081345678901', 'S2 Pendidikan', 'Menikah', 'budi.santoso@example.com', '', 3, 'Tono', 'Rina', 'Dewi', 2, 5200000.00, 'default.jpg', 'P'),
 (4, 'G-004', '100004', 'e10adc3949ba59abbe56e057f20f883e', 'Rina Sari', 'SMK', 'Guru Bahasa', 'Tetap', '2012-03-15', 13, 0, 'Mengajar dengan metode kreatif', 'P', '1982-07-20', 43, 'Islam', 'Jl. Melati No. 5', 'Jl. Melati No. 5', '445566', '081234000111', 'S1 Sastra', 'Menikah', 'rina.sari@example.com', 'Agus Sari', 1, 'Dewi', '', '', 2, 4700000.00, 'default.jpg', 'P'),
@@ -123,7 +123,7 @@ INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`
 (11, 'M-001', '300001', 'e10adc3949ba59abbe56e057f20f883e', 'Andini Permata', 'SMA', 'Kepala Sekolah', 'Tetap', '2010-05-10', 15, 6, 'Memimpin sekolah dengan visi', 'P', '1978-04-22', 47, 'Islam', 'Jl. Merdeka No. 10', 'Jl. Merdeka No. 10', '990011', '081290990011', 'S2 Manajemen', 'Menikah', 'andini.permata@example.com', 'Budi Permata', 2, 'Tina', 'Rina', '', 3, 7500000.00, 'default.jpg', 'M'),
 (12, 'M-002', '300002', 'e10adc3949ba59abbe56e057f20f883e', 'Joko Widodo', 'SMA', 'Keuangan', 'Tetap', '2008-07-01', 17, 0, 'Mengelola keuangan dengan transparansi', 'L', '1965-06-21', 60, 'Islam', 'Jl. Pendidikan No. 9', 'Jl. Pendidikan No. 9', '112233', '081298112233', 'S2 Administrasi', 'Menikah', 'joko.widodo@example.com', 'Iriana Widodo', 3, 'Gibran', 'Khalifah', 'Puan', 4, 8000000.00, 'default.jpg', 'M'),
 (13, 'M-003', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Sari Utami', 'SMK', 'SDM', 'Tetap', '2012-11-11', 12, 3, 'Mengelola SDM dengan profesionalisme', 'P', '1982-02-28', 43, 'Kristen', 'Jl. Simpang Lima No. 5', 'Jl. Simpang Lima No. 5', '445577', '081298445577', 'S1 Akuntansi', 'Menikah', 'sari.utami@example.com', 'Agus Utomo', 2, 'Dina', 'Rini', '', 3, 7300000.00, 'default.jpg', 'M'),
-(14, 'M-004', '300004', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hartono', 'SMA', 'Superadmin', 'Tetap', '2010-01-01', 15, 0, 'Administrator sistem IT sekolah', 'L', '1970-12-12', 54, 'Islam', 'Jl. Veteran No. 3', 'Jl. Veteran No. 3', '556644', '081298556644', 'S2 Teknologi Informasi', 'Menikah', 'rudi.hartono@example.com', '', 0, '', '', '', 4, 8500000.00, 'default.jpg', 'M');
+(14, 'M-004', '300004', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hartono', 'SMA', 'Superadmin', 'Tetap', '2010-01-01', 15, 0, 'Administrator sistem IT sekolah', 'L', '1970-12-12', 54, 'Islam', 'Jl. Veteran No. 3', 'Jl. Veteran No. 3', '556644', '081298556644', '', 'Menikah', 'rudi.hartono@example.com', '', 0, '', '', '', 4, 8500000.00, 'default.jpg', 'M');
 
 -- --------------------------------------------------------
 
@@ -174,7 +174,27 @@ INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `u
 (26, 1, 'GetAttendanceData', 'Mengambil data absensi untuk anggota ID 2.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:16:43'),
 (27, 1, 'UpdateAbsensi', 'Mengupdate data absensi ID 1. Data: tanggal=2025-01-10, jadwal=Senin-Kamis Guru, jam_kerja=06:00-15:00, valid=1, pin=100001, nip=100001, nama=Ahmad Fauzi, departemen=SD, lembur=0, jam_masuk=06:05, scan_masuk=2025-01-10 06:07:00, terlambat=0, scan_istirahat_1=, scan_istirahat_2=, jam_pulang=15:00, scan_pulang=2025-01-10 15:05:00, jenis_absensi=Normal.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:50:17'),
 (28, 1, 'UpdateAbsensi', 'Mengupdate data absensi ID 1. Data: tanggal=2025-01-10, jadwal=Senin-Kamis Guru, jam_kerja=06:00-15:00, valid=1, pin=100001, nip=100001, nama=Ahmad Fauzi, departemen=SD, lembur=0, jam_masuk=06:05, scan_masuk=2025-01-10 06:07:00, terlambat=0, scan_istirahat_1=, scan_istirahat_2=, jam_pulang=15:00, scan_pulang=2025-01-10 15:05:00, jenis_absensi=Lembur.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:56:20'),
-(29, 1, 'ViewSalaryIndexDetail', 'Melihat detail Indeks Gaji ID 5: Level=\'Level 4\', Min Tahun=\'15\', Max Tahun=\'NULL\', Gaji Pokok=\'7000000.00\', Keterangan=\'Gaji untuk di atas 15 tahun masa kerja\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 12:46:51');
+(29, 1, 'ViewSalaryIndexDetail', 'Melihat detail Indeks Gaji ID 5: Level=\'Level 4\', Min Tahun=\'15\', Max Tahun=\'NULL\', Gaji Pokok=\'7000000.00\', Keterangan=\'Gaji untuk di atas 15 tahun masa kerja\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 12:46:51'),
+(30, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:39'),
+(31, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:42'),
+(32, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=100001, Nama=Ahmad Fauzi.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:50'),
+(33, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:52'),
+(34, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:54'),
+(35, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:59'),
+(36, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=100001, Nama=Ahmad Fauzi.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:26:03'),
+(37, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:26:04'),
+(38, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:26:07'),
+(39, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:26:19'),
+(40, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:34:25'),
+(41, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:34:32'),
+(42, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=100001, Nama=Ahmad Fauzi.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:34:36'),
+(43, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 14: Nama=\'Rudi Hartono\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 14:33:30'),
+(44, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 14: Nama=\'Rudi Hartono\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 14:59:43'),
+(45, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 13: Nama=\'Sari Utami\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 14:59:54'),
+(46, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 14: Nama=\'Rudi Hartono\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 15:12:54'),
+(47, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 14: Nama=\'Rudi Hartono\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 15:12:56'),
+(48, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 14, NIP=300004, Nama=Rudi Hartono.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 15:12:57'),
+(49, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 04:48:15');
 
 -- --------------------------------------------------------
 
@@ -212,16 +232,17 @@ INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amo
 
 CREATE TABLE `gaji_pokok_roles` (
   `role` varchar(20) NOT NULL,
-  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00
+  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `pendidikan` varchar(50) NOT NULL DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `gaji_pokok_roles`
 --
 
-INSERT INTO `gaji_pokok_roles` (`role`, `gaji_pokok`) VALUES
-('guru', 5000000.00),
-('karyawan', 4000000.00);
+INSERT INTO `gaji_pokok_roles` (`role`, `gaji_pokok`, `pendidikan`) VALUES
+('guru', 5000000.00, ''),
+('karyawan', 4000000.00, '');
 
 -- --------------------------------------------------------
 
@@ -594,7 +615,7 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `holidays`

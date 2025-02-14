@@ -2,30 +2,22 @@
 // File: /payroll_absensi_v2/koreksi_absensi.php
 
 // ==============================================================================
-// 1. Pengaturan Awal & Keamanan
+// 1. Pengaturan Awal & Inisialisasi Helper
 // ==============================================================================
-
-session_start();
 require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+init_error_handling();
+authorize(['sdm', 'superadmin']); // Hanya role sdm dan superadmin yang boleh mengakses
 require_once __DIR__ . '/../../koneksi.php';
 
 // Hapus output buffering jika ada
-if (ob_get_length()) ob_end_clean();
-
-// Pastikan hanya role sdm dan superadmin yang boleh mengakses halaman ini
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['sdm', 'superadmin'])) {
-    header("HTTP/1.1 403 Forbidden");
-    echo "Akses ditolak.";
-    exit();
+if (ob_get_length()) {
+    ob_end_clean();
 }
-
-// Generate CSRF token (jika belum ada)
-generate_csrf_token();
 
 // ==============================================================================
 // 2. Fungsi Tambahan Khusus Koreksi Absensi
 // ==============================================================================
-
 function get_nama_karyawan($conn) {
     $sql = "SELECT nama FROM anggota_sekolah GROUP BY nama";
     $result = mysqli_query($conn, $sql);
@@ -56,13 +48,7 @@ function delete_absensi($conn, $id_absensi) {
 // ==============================================================================
 // 3. Proses POST: Update, Delete, dan Server-side DataTables
 // ==============================================================================
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Pastikan CSRF token valid untuk semua proses POST
-    if (!isset($_POST['csrf_token'])) {
-        send_response(403, 'Token CSRF tidak ditemukan.');
-    }
-    verify_csrf_token($_POST['csrf_token']);
 
     // Proses Update dan Delete (dengan adanya parameter action)
     if (isset($_POST['action'])) {
@@ -76,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: koreksi_absensi.php");
                 exit;
             }
-            // Sanitasi dan ambil input
+            // Ambil input (tanpa proses sanitasi CSRF)
             $tanggal          = $_POST['tanggal'] ?? '';
             $jadwal           = $_POST['jadwal'] ?? '';
             $jam_kerja        = $_POST['jam_kerja'] ?? '';
@@ -215,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             if (mysqli_stmt_execute($stmt)) {
                 $audit_details = "Mengupdate data absensi ID $id_absensi. Data: tanggal=$tanggal, jadwal=$jadwal, jam_kerja=$jam_kerja, valid=$valid, pin=$pin, nip=$nip, nama=$nama, departemen=$departemen, lembur=$lembur, jam_masuk=$jam_masuk, scan_masuk=$scan_masuk_datetime, terlambat=$terlambat, scan_istirahat_1=$scan_istirahat_1_datetime, scan_istirahat_2=$scan_istirahat_2_datetime, jam_pulang=$jam_pulang, scan_pulang=$scan_pulang_datetime, jenis_absensi=$jenis_absensi.";
-                add_audit_log($conn, $_SESSION['user_id'], 'UpdateAbsensi', $audit_details);
+                add_audit_log($conn, $_SESSION['nip'], 'UpdateAbsensi', $audit_details);
                 $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dikoreksi.";
                 mysqli_stmt_close($stmt);
             } else {
@@ -233,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $deleteResult = delete_absensi($conn, $id_absensi);
             if ($deleteResult === true) {
-                add_audit_log($conn, $_SESSION['user_id'], 'DeleteAbsensi', "Menghapus data absensi ID $id_absensi.");
+                add_audit_log($conn, $_SESSION['nip'], 'DeleteAbsensi', "Menghapus data absensi ID $id_absensi.");
                 $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dihapus.";
             } else {
                 $_SESSION['notif_error'] = $deleteResult;
@@ -311,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $jamPulang  = !empty($row['jam_pulang']) ? date('H:i', strtotime($row['jam_pulang'])) : '-';
             $scanPulang = !empty($row['scan_pulang']) ? date('H:i', strtotime($row['scan_pulang'])) : '-';
 
-            // Buat dropdown aksi (gunakan tiga titik vertikal)
+            // Buat dropdown aksi (tombol tiga titik vertikal)
             $aksi = '
             <div class="dropdown">
               <button class="btn btn-secondary btn-sm" type="button" id="dropdownMenuButton_'.$row['id'].'" data-bs-toggle="dropdown" aria-expanded="false">
@@ -404,10 +390,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ==============================================================================
 // 4. Tampilan HTML
 // ==============================================================================
-
-// Ambil filter GET untuk tampilan
-$bulan      = $_GET['bulan'] ?? '';
-$departemen = $_GET['departemen'] ?? '';
+$bulan        = $_GET['bulan'] ?? '';
+$departemen   = $_GET['departemen'] ?? '';
 $namaKaryawan = get_nama_karyawan($conn);
 ?>
 <!DOCTYPE html>

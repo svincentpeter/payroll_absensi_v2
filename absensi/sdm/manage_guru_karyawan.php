@@ -1,20 +1,14 @@
 <?php
-// File: /payroll_absensi_v2/kelola/manage_guru_karyawan.php
+// File: /payroll_absensi_v2/absensi/sdm/manage_guru_karyawan.php
 
 // =========================
-// 1. Pengaturan Session dan Role
+// 1. Pengaturan Session, Koneksi, dan Helper
 // =========================
-session_start();
-
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+init_error_handling();
+authorize(['sdm', 'superadmin']); // Hanya role sdm dan superadmin yang boleh mengakses
 require_once __DIR__ . '/../../koneksi.php';
-
-// Fungsi cek role (tetap dipertahankan)
-function authorize($allowed_roles = ['sdm', 'superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        die('Akses ditolak.');
-    }
-}
-authorize();
 
 // =========================
 // 2. Menangani Permintaan AJAX
@@ -45,9 +39,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
         case 'update_gaji_strata_karyawan':
             updateGajiStrataKaryawan($conn);
             break;
-        case 'update_tunjangan':
-            updateTunjangan($conn);
-            break;
         default:
             send_response(400, 'Case tidak valid.');
     }
@@ -57,21 +48,22 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 // =========================
 // 3. Fungsi-Fungsi AJAX CRUD
 // =========================
-
 function LoadingGuru($conn) {
-    $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
-    $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
-    $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
+    $draw          = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
+    $start         = isset($_POST['start']) ? intval($_POST['start']) : 0;
+    $length        = isset($_POST['length']) ? intval($_POST['length']) : 10;
+    $search        = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
     $jenjangFilter = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
+    $roleFilter    = isset($_POST['role']) ? bersihkan_input($_POST['role']) : '';
+    $statusFilter  = isset($_POST['status_kerja']) ? bersihkan_input($_POST['status_kerja']) : '';
 
-    // Hitung total record
+    // Hitung total record tanpa filter
     $sqlTotal = "SELECT COUNT(*) as total FROM anggota_sekolah";
     $resultTotal = mysqli_query($conn, $sqlTotal);
     $rowTotal = mysqli_fetch_assoc($resultTotal);
     $recordsTotal = $rowTotal['total'];
 
-    // Query data dengan filter
+    // Bangun query utama dengan filter pencarian
     $sql = "SELECT * FROM anggota_sekolah WHERE 1=1";
     if (!empty($search)) {
         $sql .= " AND (nip LIKE '%$search%' OR nama LIKE '%$search%')";
@@ -79,38 +71,74 @@ function LoadingGuru($conn) {
     if (!empty($jenjangFilter)) {
         $sql .= " AND jenjang = '$jenjangFilter'";
     }
-    $sql .= " ORDER BY id DESC LIMIT $start, $length";
+    if (!empty($roleFilter)) {
+        $sql .= " AND role = '$roleFilter'";
+    }
+    if (!empty($statusFilter)) {
+        $sql .= " AND status_kerja = '$statusFilter'";
+    }
+
+    // Mapping indeks kolom DataTables ke nama kolom database
+    $columns = [
+        0 => 'id',
+        1 => 'uid',
+        2 => 'nip',
+        3 => 'nama',
+        4 => 'jenjang',
+        5 => 'job_title',
+        6 => 'role',
+        7 => 'status_kerja',
+        // Untuk sorting, gunakan salah satu field terkait masa kerja
+        8 => 'masa_kerja_tahun',
+        9 => 'pendidikan',
+        10 => 'email',
+        11 => 'no_hp'
+    ];
+
+    // Tangkap parameter sorting dari DataTables
+    if (isset($_POST['order']) && count($_POST['order'])) {
+        $orderColIndex = intval($_POST['order'][0]['column']);
+        $orderDir = $_POST['order'][0]['dir'] === 'asc' ? 'ASC' : 'DESC';
+        $orderCol = isset($columns[$orderColIndex]) ? $columns[$orderColIndex] : 'id';
+        $sql .= " ORDER BY $orderCol $orderDir";
+    } else {
+        $sql .= " ORDER BY id DESC";
+    }
+
+    // Batasi jumlah data yang ditampilkan
+    $sql .= " LIMIT $start, $length";
+
     $result = mysqli_query($conn, $sql);
     $data = [];
     while ($row = mysqli_fetch_assoc($result)) {
-        // Buat dropdown aksi dengan tiga titik vertikal (Bootstrap 5)
+        // Buat dropdown aksi dengan tiga titik vertikal (menggunakan Bootstrap 5)
         $aksi = '
-<div class="dropdown">
-  <button class="btn btn-sm" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
-    <i class="bi bi-three-dots-vertical"></i>
-  </button>
-  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
-    <li><a class="dropdown-item btn-view" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
-      <i class="fas fa-eye"></i> View Detail
-    </a></li>
-    <li><a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
-      <i class="fas fa-pencil-alt"></i> Edit
-    </a></li>
-    <li><a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
-      <i class="fas fa-trash-alt"></i> Hapus
-    </a></li>
-  </ul>
-</div>';
+        <div class="dropdown">
+          <button class="btn btn-sm" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-three-dots-vertical"></i>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
+            <li><a class="dropdown-item btn-view" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+              <i class="fas fa-eye"></i> View Detail
+            </a></li>
+            <li><a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+              <i class="fas fa-pencil-alt"></i> Edit
+            </a></li>
+            <li><a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+              <i class="fas fa-trash-alt"></i> Hapus
+            </a></li>
+          </ul>
+        </div>';
 
         $data[] = [
             "id"           => $row['id'],
             "uid"          => htmlspecialchars($row['uid']),
             "nip"          => htmlspecialchars($row['nip']),
             "nama"         => htmlspecialchars($row['nama']),
-            "jenjang"      => htmlspecialchars($row['jenjang']),
+            "jenjang"      => getBadgeJenjang($row['jenjang']),
             "job_title"    => htmlspecialchars($row['job_title']),
-            "role"         => htmlspecialchars($row['role']),
-            "status_kerja" => $row['status_kerja'],
+            "role"         => getBadgeRole($row['role']),
+            "status_kerja" => getBadgeStatusKerja($row['status_kerja']),
             "masa_kerja"   => $row['masa_kerja_tahun'] . " Thn " . $row['masa_kerja_bulan'] . " Bln",
             "pendidikan"   => htmlspecialchars($row['pendidikan']),
             "email"        => htmlspecialchars($row['email']),
@@ -118,11 +146,12 @@ function LoadingGuru($conn) {
             "aksi"         => $aksi
         ];
     }
+
     echo json_encode([
-        "draw" => $draw,
-        "recordsTotal" => $recordsTotal,
-        "recordsFiltered" => $recordsTotal,
-        "data" => $data
+        "draw"            => $draw,
+        "recordsTotal"    => $recordsTotal,
+        "recordsFiltered" => $recordsTotal, // Jika ingin menghitung data yang telah difilter, diperlukan query tambahan
+        "data"            => $data
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
@@ -233,7 +262,8 @@ function CreateGuru($conn) {
     if ($exec) {
         $idBaru = $stmt->insert_id;
         $stmt->close();
-        $user_id = $_SESSION['user_id'] ?? 0;
+        // Gunakan NIP sebagai identifier untuk audit log
+        $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Menambah Guru/Karyawan baru (ID: $idBaru), NIP=$nip, Nama=$nama.";
         add_audit_log($conn, $user_id, 'CreateGuru', $details_log);
         send_response(0, 'Data berhasil disimpan.');
@@ -258,12 +288,11 @@ function GetGuruDetail($conn) {
     if ($result && $result->num_rows == 1) {
         $data = $result->fetch_assoc();
         unset($data['password']);
+        // Sesuaikan field jika perlu
         $data['religion'] = $data['agama'];
         $data['jk'] = $data['jenis_kelamin'];
-        // Pastikan field nama_pasangan dikirim ke frontend
-        $data['nama_pasangan'] = $data['nama_pasangan'];
         $stmt->close();
-        $user_id = $_SESSION['user_id'] ?? 0;
+        $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Melihat detail data guru/karyawan ID $id: Nama='" . $data['nama'] . "'.";
         add_audit_log($conn, $user_id, 'GetGuruDetail', $details_log);
         send_response(0, $data);
@@ -292,7 +321,6 @@ function UpdateGuru($conn) {
     $no_hp           = bersihkan_input($_POST['no_hp'] ?? '');
     $pendidikan      = bersihkan_input($_POST['pendidikan'] ?? '');
     $email           = bersihkan_input($_POST['email'] ?? '');
-    // Ganti nama_suami menjadi nama_pasangan
     $nama_pasangan   = bersihkan_input($_POST['nama_pasangan'] ?? '');
     $jumlah_anak     = (int)($_POST['jumlah_anak'] ?? 0);
     $salary_index_id = (int)($_POST['salary_index_id'] ?? null);
@@ -368,7 +396,7 @@ function UpdateGuru($conn) {
     $exec = $stmt->execute();
     if ($exec) {
         $stmt->close();
-        $user_id = $_SESSION['user_id'] ?? 0;
+        $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Update data Guru/Karyawan ID $id, NIP=$nip, Nama=$nama.";
         add_audit_log($conn, $user_id, 'UpdateGuru', $details_log);
         send_response(0, 'Data berhasil diperbarui.');
@@ -407,7 +435,7 @@ function DeleteGuru($conn) {
     $stmtDel->close();
 
     if ($execDel) {
-        $user_id = $_SESSION['user_id'] ?? 0;
+        $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Menghapus Guru/Karyawan ID $id, NIP=" . $row['nip'] . ", Nama=" . $row['nama'];
         add_audit_log($conn, $user_id, 'DeleteGuru', $details_log);
         send_response(0, 'Data berhasil dihapus.');
@@ -437,7 +465,7 @@ function updateGajiPokok($conn) {
     $stmtKar->close();
 
     if ($execGuru && $execKar) {
-        $user_id = $_SESSION['user_id'] ?? 0;
+        $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Update gaji pokok: Guru=$gaji_guru, Karyawan=$gaji_karyawan.";
         add_audit_log($conn, $user_id, 'update_gaji_pokok', $details_log);
         send_response(0, 'Gaji pokok berhasil diupdate.');
@@ -475,7 +503,7 @@ function updateGajiStrataGuru($conn) {
         }
     }
     if ($allSuccess) {
-        $user_id = $_SESSION['user_id'] ?? 0;
+        $user_id = $_SESSION['nip'] ?? '';
         add_audit_log($conn, $user_id, 'update_gaji_strata_guru', "Gaji pokok berdasarkan strata untuk Guru berhasil diperbarui.");
         send_response(0, 'Gaji pokok strata Guru berhasil diupdate.');
     } else {
@@ -512,33 +540,11 @@ function updateGajiStrataKaryawan($conn) {
         }
     }
     if ($allSuccess) {
-        $user_id = $_SESSION['user_id'] ?? 0;
+        $user_id = $_SESSION['nip'] ?? '';
         add_audit_log($conn, $user_id, 'update_gaji_strata_karyawan', "Gaji pokok berdasarkan strata untuk Karyawan berhasil diperbarui.");
         send_response(0, 'Gaji pokok strata Karyawan berhasil diupdate.');
     } else {
         send_response(1, 'Gagal update gaji pokok strata Karyawan.');
-    }
-}
-
-function updateTunjangan($conn) {
-    $tunjangan_struktural = isset($_POST['tunjangan_struktural']) ? floatval($_POST['tunjangan_struktural']) : 0;
-    $tunjangan_walikelas = isset($_POST['tunjangan_walikelas']) ? floatval($_POST['tunjangan_walikelas']) : 0;
-    $tunjangan_kehadiran = isset($_POST['tunjangan_kehadiran']) ? floatval($_POST['tunjangan_kehadiran']) : 0;
-    
-    // Pastikan tabel "tunjangan" telah ada di database Anda
-    $stmt = $conn->prepare("UPDATE tunjangan SET tunjangan_struktural=?, tunjangan_walikelas=?, tunjangan_kehadiran=? WHERE id=1");
-    if (!$stmt) {
-        send_response(1, 'Query error: ' . $conn->error);
-    }
-    $stmt->bind_param("ddd", $tunjangan_struktural, $tunjangan_walikelas, $tunjangan_kehadiran);
-    $exec = $stmt->execute();
-    $stmt->close();
-    if ($exec) {
-        $user_id = $_SESSION['user_id'] ?? 0;
-        add_audit_log($conn, $user_id, 'update_tunjangan', "Update tunjangan: Struktural=$tunjangan_struktural, Wali Kelas/Strata/Profesi=$tunjangan_walikelas, Kehadiran Fix=$tunjangan_kehadiran.");
-        send_response(0, 'Tunjangan berhasil diupdate.');
-    } else {
-        send_response(1, 'Gagal update tunjangan.');
     }
 }
 
@@ -557,11 +563,7 @@ function generateUID($conn) {
 
 // Fungsi helper untuk mengambil gaji pokok berdasarkan role
 function getGajiPokokByRole($conn, $role) {
-    if ($role === 'P') {
-        $lookup = 'guru';
-    } else {
-        $lookup = 'karyawan';
-    }
+    $lookup = ($role === 'P') ? 'guru' : 'karyawan';
     $stmt = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_roles WHERE role = ?");
     if ($stmt) {
         $stmt->bind_param("s", $lookup);
@@ -576,10 +578,7 @@ function getGajiPokokByRole($conn, $role) {
     return 0.0;
 }
 ?>
-<?php
-// Contoh inisialisasi session (dianggap sudah ada koneksi ke database)
-// session_start();
-?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -637,9 +636,6 @@ function getGajiPokokByRole($conn, $role) {
                         <button class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#modalGajiPokok">
                             <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
                         </button>
-                        <button class="btn btn-info ms-2 mb-2" data-bs-toggle="modal" data-bs-target="#modalTunjangan">
-                            <i class="fas fa-hand-holding-usd"></i> Tunjangan
-                        </button>
                     </div>
 
                     <!-- FILTER -->
@@ -647,6 +643,7 @@ function getGajiPokokByRole($conn, $role) {
                         <div class="card-header">Filter Data Guru/Karyawan</div>
                         <div class="card-body">
                             <form id="filterForm" method="GET" class="form-inline">
+                                <!-- Filter Jenjang -->
                                 <label class="me-2" for="filterJenjang">Jenjang:</label>
                                 <select class="form-control me-2" id="filterJenjang" name="jenjang">
                                     <option value="">Semua Jenjang</option>
@@ -660,6 +657,21 @@ function getGajiPokokByRole($conn, $role) {
                                         }
                                     }
                                     ?>
+                                </select>
+                                <!-- Filter Role -->
+                                <label class="me-2" for="filterRole">Role:</label>
+                                <select class="form-control me-2" id="filterRole" name="role">
+                                    <option value="">Semua Role</option>
+                                    <option value="P" <?php echo (isset($_GET['role']) && $_GET['role'] === 'P') ? 'selected' : ''; ?>>Pendidik</option>
+                                    <option value="TK" <?php echo (isset($_GET['role']) && $_GET['role'] === 'TK') ? 'selected' : ''; ?>>Tenaga Kependidikan</option>
+                                    <option value="M" <?php echo (isset($_GET['role']) && $_GET['role'] === 'M') ? 'selected' : ''; ?>>Manajerial</option>
+                                </select>
+                                <!-- Filter Status Kerja -->
+                                <label class="me-2" for="filterStatus">Status Kerja:</label>
+                                <select class="form-control me-2" id="filterStatus" name="status_kerja">
+                                    <option value="">Semua Status</option>
+                                    <option value="Tetap" <?php echo (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Tetap') ? 'selected' : ''; ?>>Tetap</option>
+                                    <option value="Kontrak" <?php echo (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Kontrak') ? 'selected' : ''; ?>>Kontrak</option>
                                 </select>
                                 <button type="button" id="btnApplyFilter" class="btn btn-primary me-2">
                                     <i class="fas fa-filter"></i> Terapkan
@@ -1135,7 +1147,7 @@ function getGajiPokokByRole($conn, $role) {
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Detail Data Guru/Karyawan</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
           <div class="modal-body" style="color: #000">
             <h6>Data Pekerjaan</h6>
@@ -1191,7 +1203,7 @@ function getGajiPokokByRole($conn, $role) {
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <p>Anda yakin ingin menghapus data berikut?</p>
@@ -1216,7 +1228,7 @@ function getGajiPokokByRole($conn, $role) {
           <input type="hidden" name="case" value="update_gaji_pokok">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiPokokLabel">Atur Gaji Pokok</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
             <hr>
             <div class="form-group text-center">
@@ -1245,7 +1257,7 @@ function getGajiPokokByRole($conn, $role) {
           <input type="hidden" name="case" value="update_gaji_strata_guru">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiStrataGuruLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Guru)</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
           <div class="modal-body">
             <div class="table-responsive">
@@ -1328,7 +1340,7 @@ function getGajiPokokByRole($conn, $role) {
           <input type="hidden" name="case" value="update_gaji_strata_karyawan">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiStrataKaryawanLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Karyawan)</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
           <div class="modal-body">
             <div class="table-responsive">
@@ -1404,40 +1416,6 @@ function getGajiPokokByRole($conn, $role) {
       </div>
     </div>
 
-    <!-- MODAL: Tunjangan -->
-    <div class="modal fade" id="modalTunjangan" tabindex="-1" aria-labelledby="modalTunjanganLabel" aria-hidden="true">
-      <div class="modal-dialog modal-md modal-dialog-scrollable">
-        <form id="tunjangan-form" method="POST" class="modal-content">
-          <input type="hidden" name="case" value="update_tunjangan">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalTunjanganLabel">Atur Tunjangan</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="tunjanganStruktural">Tunjangan Struktural (Rp)</label>
-              <input type="number" step="0.01" name="tunjangan_struktural" id="tunjanganStruktural" class="form-control" value="1000000" required>
-            </div>
-            <div class="form-group">
-              <label for="tunjanganWaliKelas">Tunjangan Wali Kelas / Strata / Profesi / Pindah Jenjang (Rp)</label>
-              <input type="number" step="0.01" name="tunjangan_walikelas" id="tunjanganWaliKelas" class="form-control" value="500000" required>
-            </div>
-            <div class="form-group">
-              <label for="tunjanganKehadiran">Tunjangan Kehadiran Fix (Rp)</label>
-              <input type="number" step="0.01" name="tunjangan_kehadiran" id="tunjanganKehadiran" class="form-control" value="250000" required>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-primary">
-              <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-              Simpan
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <!-- JavaScript Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <!-- Bootstrap 5.3.3 JS Bundle -->
@@ -1488,8 +1466,19 @@ function getGajiPokokByRole($conn, $role) {
         }
     }
 
+    function getStatusBadge(status) {
+        let s = (status || '').toLowerCase();
+        if (s === 'tetap') {
+            return '<span class="badge bg-success">Tetap</span>';
+        } else if (s === 'kontrak') {
+            return '<span class="badge bg-warning text-dark">Kontrak</span>';
+        } else {
+            return '<span class="badge bg-secondary">' + (status || '') + '</span>';
+        }
+    }
+
     $(document).ready(function() {
-        // Inisialisasi DataTable
+        // Inisialisasi DataTable dengan tambahan filter role dan status kerja
         var guruTable = $('#guruTable').DataTable({
             processing: true,
             serverSide: true,
@@ -1499,6 +1488,8 @@ function getGajiPokokByRole($conn, $role) {
                 data: function(d) {
                     d.case = 'LoadingGuru';
                     d.jenjang = $('#filterJenjang').val();
+                    d.role = $('#filterRole').val();
+                    d.status_kerja = $('#filterStatus').val();
                 },
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -1874,43 +1865,6 @@ function getGajiPokokByRole($conn, $role) {
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
                     showToast('Terjadi kesalahan saat mengupdate gaji strata Karyawan.', 'error');
-                }
-            });
-        });
-
-        // Form: Update Tunjangan
-        $('#tunjangan-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalTunjangan').modal('hide');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat mengupdate tunjangan.', 'error');
                 }
             });
         });
