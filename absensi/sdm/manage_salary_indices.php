@@ -1,30 +1,36 @@
 <?php
 // File: /payroll_absensi_v2/pegawai/manage_salary_indices.php
 
-// =========================
+// ==============================================================================
 // 1. Pengaturan Session, Koneksi, dan Helper
-// =========================
+// ==============================================================================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['sdm', 'superadmin']); // Hanya role sdm dan superadmin yang boleh mengakses
+authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
-// Nonaktifkan output buffering (jika ada)
+// Nonaktifkan output buffering jika ada
 if (ob_get_length()) {
     ob_end_clean();
 }
 
-// =========================
+// Hasilkan CSRF token dan simpan ke variabel
+generate_csrf_token();
+$csrf_token = $_SESSION['csrf_token'];
+
+// ==============================================================================
 // 2. Menangani Permintaan AJAX
-// =========================
+// ==============================================================================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        $case = isset($_POST['case']) ? trim($_POST['case']) : '';
+        // Verifikasi CSRF token untuk setiap request POST
+        verify_csrf_token($_POST['csrf_token'] ?? '');
 
+        $case = isset($_POST['case']) ? trim($_POST['case']) : '';
         switch ($case) {
             case 'LoadingSalaryIndices':
                 LoadingSalaryIndices($conn);
@@ -42,11 +48,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 DeleteSalaryIndex($conn);
                 break;
             case 'AddAuditLog':
+                // Contoh pencatatan audit log (opsional)
                 $action = isset($_POST['action']) ? trim($_POST['action']) : '';
                 $details = isset($_POST['details']) ? trim($_POST['details']) : '';
-
                 if (!empty($action) && !empty($details)) {
-                    // Gunakan identifier dari session; misalnya, gunakan 'nip' dari session
                     $user_id = $_SESSION['nip'] ?? '';
                     $logged = add_audit_log($conn, $user_id, $action, $details);
                     if ($logged) {
@@ -67,10 +72,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     exit();
 }
 
-
-// =========================
+// ==============================================================================
 // 3. Fungsi CRUD untuk Salary Indices dengan Audit Log
-// =========================
+// ==============================================================================
 
 function LoadingSalaryIndices($conn) {
     // Parameter DataTables
@@ -79,7 +83,7 @@ function LoadingSalaryIndices($conn) {
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search = isset($_POST['search']['value']) ? trim($_POST['search']['value']) : '';
 
-    // Total records
+    // Hitung total records
     $sqlTotal = "SELECT COUNT(*) as total FROM salary_indices";
     $resultTotal = mysqli_query($conn, $sqlTotal);
     if (!$resultTotal) {
@@ -93,7 +97,6 @@ function LoadingSalaryIndices($conn) {
     $sqlFilterCount = "SELECT COUNT(*) as total FROM salary_indices WHERE 1=1";
     $paramsFilter = [];
     $typesFilter = "";
-
     if (!empty($search)) {
         $sqlFilter      .= " AND (level LIKE ? OR description LIKE ?)";
         $sqlFilterCount .= " AND (level LIKE ? OR description LIKE ?)";
@@ -143,7 +146,6 @@ function LoadingSalaryIndices($conn) {
     }
     $sqlFilter .= $orderBy . $limit;
 
-    // Eksekusi query data
     $stmtData = $conn->prepare($sqlFilter);
     if ($stmtData === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -157,12 +159,11 @@ function LoadingSalaryIndices($conn) {
 
     $data = [];
     $no = $start + 1;
-
     while ($row = $dataQuery->fetch_assoc()) {
         $base_salary = number_format($row['base_salary'], 2, ',', '.');
         $max_years = ($row['max_years'] === null) ? '-' : (int)$row['max_years'];
 
-        // Dropdown aksi menggunakan tiga titik vertikal (Bootstrap 5)
+        // Dropdown aksi (Edit & Hapus)
         $aksi = '
 <div class="dropdown">
   <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
@@ -195,10 +196,10 @@ function LoadingSalaryIndices($conn) {
     $stmtData->close();
 
     echo json_encode([
-        "draw" => $draw,
-        "recordsTotal" => $recordsTotal,
+        "draw"            => $draw,
+        "recordsTotal"    => $recordsTotal,
         "recordsFiltered" => $recordsFiltered,
-        "data" => $data
+        "data"            => $data
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
@@ -222,7 +223,7 @@ function AddSalaryIndex($conn) {
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result && $result->num_rows > 0) {
-        send_response(4, 'Level indeks sudah ada.');
+        send_response(1, 'Level indeks sudah ada.');
     }
     $stmt->close();
 
@@ -249,7 +250,6 @@ function GetSalaryIndexDetail($conn) {
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
     }
-
     $stmt = $conn->prepare("SELECT * FROM salary_indices WHERE id = ? LIMIT 1");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -260,11 +260,9 @@ function GetSalaryIndexDetail($conn) {
     if ($result && $result->num_rows == 1) {
         $row = $result->fetch_assoc();
         $stmt->close();
-
         $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Melihat detail Indeks Gaji ID $id: Level='{$row['level']}', Min Tahun='{$row['min_years']}', Max Tahun='" . ($row['max_years'] ?? 'NULL') . "', Gaji Pokok='{$row['base_salary']}', Keterangan='{$row['description']}'.";
         add_audit_log($conn, $user_id, 'ViewSalaryIndexDetail', $details_log);
-
         send_response(0, [
             'id' => $row['id'],
             'level' => $row['level'],
@@ -292,7 +290,7 @@ function UpdateSalaryIndex($conn) {
         send_response(3, 'Field wajib diisi dan ID harus valid.');
     }
 
-    // Cek duplikasi level untuk indeks lain
+    // Cek duplikasi selain record yang sedang diedit
     $stmt = $conn->prepare("SELECT id FROM salary_indices WHERE level = ? AND id != ? LIMIT 1");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -328,8 +326,6 @@ function DeleteSalaryIndex($conn) {
     if ($id <= 0) {
         send_response(3, 'ID tidak valid.');
     }
-
-    // Hapus data
     $stmt = $conn->prepare("DELETE FROM salary_indices WHERE id = ?");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -338,19 +334,14 @@ function DeleteSalaryIndex($conn) {
     if (!$stmt->execute()) {
         send_response(1, 'Gagal menghapus data: ' . $stmt->error);
     }
-
-    // Audit Log
     $user_id = $_SESSION['nip'] ?? '';
     $details_log = "Menghapus Indeks Gaji ID $id.";
     add_audit_log($conn, $user_id, 'DeleteSalaryIndex', $details_log);
-
     send_response(0, 'Indeks gaji berhasil dihapus.');
     $stmt->close();
     exit();
 }
 ?>
-
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -379,21 +370,12 @@ function DeleteSalaryIndex($conn) {
             margin-right: 5px;
             margin-bottom: 5px;
         }
-        /* Card header menggunakan gradien seperti di payheads.php */
+        /* Card header dengan gradien */
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
         .table-hover tbody tr:hover {
-            background-color: #e2e6ea;
-        }
-        #salaryIndicesTable.table-sm tbody tr:nth-of-type(odd) {
-            background-color: #f9f9f9;
-        }
-        #salaryIndicesTable.table-sm tbody tr:nth-of-type(even) {
-            background-color: #ffffff;
-        }
-        #salaryIndicesTable.table-sm tbody tr:hover {
             background-color: #e2e6ea;
         }
         #salaryIndicesTable.table-sm th, #salaryIndicesTable.table-sm td {
@@ -431,9 +413,8 @@ function DeleteSalaryIndex($conn) {
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
-                <!-- Topbar -->
+                <!-- Navbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- End of Topbar -->
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
@@ -480,11 +461,13 @@ function DeleteSalaryIndex($conn) {
                         </div>
                     </div>
                 </div>
+                <!-- End Page Content -->
             </div>
+            <!-- End Main Content -->
 
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
+                    <div class="text-center my-auto">
                         <span>&copy; <?php echo date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
                     </div>
                 </div>
@@ -492,17 +475,18 @@ function DeleteSalaryIndex($conn) {
         </div>
     </div>
 
-    <!-- Modal Tambah Indeks Gaji -->
+    <!-- MODAL: Tambah Indeks Gaji -->
     <div class="modal fade" id="addSalaryIndexModal" tabindex="-1" aria-labelledby="addSalaryIndexModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form id="add-salary-index-form" class="needs-validation" novalidate>
+                    <input type="hidden" name="case" value="AddSalaryIndex">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                     <div class="modal-header">
                         <h5 class="modal-title" id="addSalaryIndexModalLabel"><i class="fas fa-plus"></i> Tambah Indeks Gaji</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
-                        <input type="hidden" name="case" value="AddSalaryIndex">
                         <div class="mb-3">
                             <label for="level" class="form-label">Level <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="level" name="level" required>
@@ -539,18 +523,19 @@ function DeleteSalaryIndex($conn) {
         </div>
     </div>
 
-    <!-- Modal Edit Indeks Gaji -->
+    <!-- MODAL: Edit Indeks Gaji -->
     <div class="modal fade" id="editSalaryIndexModal" tabindex="-1" aria-labelledby="editSalaryIndexModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form id="edit-salary-index-form" class="needs-validation" novalidate>
+                    <input type="hidden" name="case" value="UpdateSalaryIndex">
+                    <input type="hidden" id="edit_id" name="edit_id">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                     <div class="modal-header">
                         <h5 class="modal-title" id="editSalaryIndexModalLabel"><i class="fas fa-edit"></i> Edit Indeks Gaji</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
-                        <input type="hidden" name="case" value="UpdateSalaryIndex">
-                        <input type="hidden" id="edit_id" name="edit_id">
                         <div class="mb-3">
                             <label for="edit_level" class="form-label">Level <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="edit_level" name="edit_level" required>
@@ -587,17 +572,19 @@ function DeleteSalaryIndex($conn) {
         </div>
     </div>
 
-    <!-- Modal Hapus Indeks Gaji -->
+    <!-- MODAL: Hapus Indeks Gaji -->
     <div class="modal fade" id="deleteSalaryIndexModal" tabindex="-1" aria-labelledby="deleteSalaryIndexModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <form id="delete-salary-index-form">
+          <input type="hidden" name="case" value="DeleteSalaryIndex">
+          <input type="hidden" id="delete_id" name="id">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title"><i class="fas fa-trash-alt"></i> Hapus Indeks Gaji</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
-              <input type="hidden" id="delete_id" name="id">
               <p>Yakin ingin menghapus Indeks Gaji <strong id="delete_level"></strong>?</p>
             </div>
             <div class="modal-footer">
@@ -621,7 +608,7 @@ function DeleteSalaryIndex($conn) {
 
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Bootstrap 5 Bundle (dengan Popper) -->
+    <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
     <!-- DataTables JS (Bootstrap 5) -->
@@ -658,7 +645,7 @@ function DeleteSalaryIndex($conn) {
                 title: message
             });
         }
-        
+
         // Inisialisasi DataTable untuk Salary Indices
         var salaryIndicesTable = $('#salaryIndicesTable').DataTable({
             processing: true,
@@ -715,13 +702,18 @@ function DeleteSalaryIndex($conn) {
                     text: '<i class="fas fa-print"></i> Print',
                     className: 'btn btn-info btn-sm',
                     exportOptions: { columns: [0,1,2,3,4,5] }
+                },
+                {
+                    extend: 'colvis',
+                    text: '<i class="fas fa-columns"></i> Kolom',
+                    className: 'btn btn-warning btn-sm'
                 }
             ],
             responsive: true,
             autoWidth: false
         });
 
-        // Tambah Indeks Gaji via Ajax
+        // Form: Tambah Indeks Gaji
         $('#add-salary-index-form').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -740,7 +732,7 @@ function DeleteSalaryIndex($conn) {
                     form.find('button[type="submit"]').prop('disabled', true);
                     form.find('.spinner-border').removeClass('d-none');
                 },
-                success: function(response){
+                success: function(response) {
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
                     if(response.code == 0) {
@@ -753,7 +745,7 @@ function DeleteSalaryIndex($conn) {
                         showToast(response.result, 'error');
                     }
                 },
-                error: function(){
+                error: function() {
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
                     showToast('Terjadi kesalahan saat menambah data.', 'error');
@@ -761,7 +753,7 @@ function DeleteSalaryIndex($conn) {
             });
         });
 
-        // Buka modal edit dan ambil detail data
+        // Modal Edit: Buka dan ambil detail data
         $(document).on('click', '.btn-edit', function() {
             var id = $(this).data('id');
             var modal = $('#editSalaryIndexModal');
@@ -773,7 +765,7 @@ function DeleteSalaryIndex($conn) {
                 type: "POST",
                 data: { id: id, case: 'GetSalaryIndexDetail' },
                 dataType: "json",
-                success: function(response){
+                success: function(response) {
                     if(response.code == 0) {
                         $('#edit_id').val(response.result.id);
                         $('#edit_level').val(response.result.level);
@@ -786,13 +778,13 @@ function DeleteSalaryIndex($conn) {
                         showToast(response.result, 'error');
                     }
                 },
-                error: function(){
-                    showToast('Terjadi kesalahan mengambil detail data.', 'error');
+                error: function() {
+                    showToast('Terjadi kesalahan saat mengambil detail data.', 'error');
                 }
             });
         });
 
-        // Update Indeks Gaji via Ajax
+        // Form: Update Indeks Gaji
         $('#edit-salary-index-form').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -811,7 +803,7 @@ function DeleteSalaryIndex($conn) {
                     form.find('button[type="submit"]').prop('disabled', true);
                     form.find('.spinner-border').removeClass('d-none');
                 },
-                success: function(response){
+                success: function(response) {
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
                     if(response.code == 0) {
@@ -824,7 +816,7 @@ function DeleteSalaryIndex($conn) {
                         showToast(response.result, 'error');
                     }
                 },
-                error: function(){
+                error: function() {
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
                     showToast('Terjadi kesalahan saat update data.', 'error');
@@ -832,7 +824,7 @@ function DeleteSalaryIndex($conn) {
             });
         });
 
-        // Buka modal hapus
+        // Modal Hapus: Buka modal hapus
         $(document).on('click', '.btn-delete', function() {
             var id = $(this).data('id');
             $('#delete_id').val(id);
@@ -841,7 +833,7 @@ function DeleteSalaryIndex($conn) {
             $('#deleteSalaryIndexModal').modal('show');
         });
 
-        // Hapus data via Ajax
+        // Form: Hapus Indeks Gaji
         $('#delete-salary-index-form').on('submit', function(e) {
             e.preventDefault();
             var id = $('#delete_id').val();
@@ -858,7 +850,7 @@ function DeleteSalaryIndex($conn) {
                     $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', true);
                     $('#delete-salary-index-form').find('.spinner-border').removeClass('d-none');
                 },
-                success: function(response){
+                success: function(response) {
                     $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', false);
                     $('#delete-salary-index-form').find('.spinner-border').addClass('d-none');
                     if(response.code == 0) {
@@ -869,7 +861,7 @@ function DeleteSalaryIndex($conn) {
                         showToast(response.result, 'error');
                     }
                 },
-                error: function(){
+                error: function() {
                     $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', false);
                     $('#delete-salary-index-form').find('.spinner-border').addClass('d-none');
                     showToast('Terjadi kesalahan saat menghapus data.', 'error');

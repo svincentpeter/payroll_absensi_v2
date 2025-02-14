@@ -1,19 +1,26 @@
 <?php
 // File: /payroll_absensi_v2/absensi/sdm/manage_guru_karyawan.php
 
-// =========================
+// ==============================================================================
 // 1. Pengaturan Session, Koneksi, dan Helper
-// =========================
+// ==============================================================================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['sdm', 'superadmin']); // Hanya role sdm dan superadmin yang boleh mengakses
+authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 require_once __DIR__ . '/../../koneksi.php';
 
-// =========================
+// Hasilkan CSRF token
+generate_csrf_token();
+$csrf_token = $_SESSION['csrf_token'];
+
+// ==============================================================================
 // 2. Menangani Permintaan AJAX
-// =========================
+// ==============================================================================
 if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
+    // Pastikan setiap request POST juga memverifikasi CSRF token
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    
     switch ($_POST['case']) {
         case 'LoadingGuru':
             LoadingGuru($conn);
@@ -45,9 +52,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     exit();
 }
 
-// =========================
+// ==============================================================================
 // 3. Fungsi-Fungsi AJAX CRUD
-// =========================
+// ==============================================================================
+
 function LoadingGuru($conn) {
     $draw          = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start         = isset($_POST['start']) ? intval($_POST['start']) : 0;
@@ -88,7 +96,6 @@ function LoadingGuru($conn) {
         5 => 'job_title',
         6 => 'role',
         7 => 'status_kerja',
-        // Untuk sorting, gunakan salah satu field terkait masa kerja
         8 => 'masa_kerja_tahun',
         9 => 'pendidikan',
         10 => 'email',
@@ -111,7 +118,7 @@ function LoadingGuru($conn) {
     $result = mysqli_query($conn, $sql);
     $data = [];
     while ($row = mysqli_fetch_assoc($result)) {
-        // Buat dropdown aksi dengan tiga titik vertikal (menggunakan Bootstrap 5)
+        // Buat dropdown aksi dengan tiga titik vertikal
         $aksi = '
         <div class="dropdown">
           <button class="btn btn-sm" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
@@ -150,7 +157,7 @@ function LoadingGuru($conn) {
     echo json_encode([
         "draw"            => $draw,
         "recordsTotal"    => $recordsTotal,
-        "recordsFiltered" => $recordsTotal, // Jika ingin menghitung data yang telah difilter, diperlukan query tambahan
+        "recordsFiltered" => $recordsTotal, // Untuk filter lebih akurat, Anda dapat menjalankan query COUNT tambahan
         "data"            => $data
     ], JSON_UNESCAPED_UNICODE);
     exit();
@@ -173,7 +180,6 @@ function CreateGuru($conn) {
     $no_rekening     = bersihkan_input($_POST['no_rekening'] ?? '');
     $no_hp           = bersihkan_input($_POST['no_hp'] ?? '');
     $email           = bersihkan_input($_POST['email'] ?? '');
-    // Ganti nama_suami menjadi nama_pasangan
     $nama_pasangan   = bersihkan_input($_POST['nama_pasangan'] ?? '');
     $jumlah_anak     = (int)($_POST['jumlah_anak'] ?? 0);
     $salary_index_id = (int)($_POST['salary_index_id'] ?? null);
@@ -199,7 +205,7 @@ function CreateGuru($conn) {
     $uid = generateUID($conn);
     $status_kerja = 'Tetap';
 
-    // Auto-generate gaji pokok (misal berdasarkan role dan pendidikan)
+    // Auto-generate gaji pokok berdasarkan role dan pendidikan
     if ($role === 'P' && !empty($pendidikan)) {
         $query = "SELECT gaji_pokok FROM gaji_pokok_strata_guru WHERE jenjang = ? AND strata = ? LIMIT 1";
         $stmt = $conn->prepare($query);
@@ -258,11 +264,9 @@ function CreateGuru($conn) {
         $gaji_pokok,
         $role
     );
-    $exec = $stmt->execute();
-    if ($exec) {
+    if ($stmt->execute()) {
         $idBaru = $stmt->insert_id;
         $stmt->close();
-        // Gunakan NIP sebagai identifier untuk audit log
         $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Menambah Guru/Karyawan baru (ID: $idBaru), NIP=$nip, Nama=$nama.";
         add_audit_log($conn, $user_id, 'CreateGuru', $details_log);
@@ -333,6 +337,7 @@ function UpdateGuru($conn) {
         send_response(1, 'NIP, Nama, Jenjang, dan Role wajib diisi.');
     }
 
+    // Cek duplikasi NIP selain record yang sedang diedit
     $sqlCek = "SELECT id FROM anggota_sekolah WHERE nip = ? AND id <> ?";
     $stmtCek = $conn->prepare($sqlCek);
     if (!$stmtCek) {
@@ -376,14 +381,13 @@ function UpdateGuru($conn) {
     $values  = [];
     foreach ($fields as $col => $val) {
         $updates[] = "$col = ?";
-        if (in_array($col, ['salary_index_id','jumlah_anak','usia'])) {
+        if (in_array($col, ['salary_index_id', 'jumlah_anak', 'usia'])) {
             $types .= 'i';
         } else {
             $types .= 's';
         }
         $values[] = $val;
     }
-
     $sqlUpdate = "UPDATE anggota_sekolah SET " . implode(", ", $updates) . " WHERE id = ?";
     $types .= 'i';
     $values[] = $id;
@@ -393,8 +397,7 @@ function UpdateGuru($conn) {
         send_response(1, 'Terjadi kesalahan query: ' . $conn->error);
     }
     $stmt->bind_param($types, ...$values);
-    $exec = $stmt->execute();
-    if ($exec) {
+    if ($stmt->execute()) {
         $stmt->close();
         $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Update data Guru/Karyawan ID $id, NIP=$nip, Nama=$nama.";
@@ -411,7 +414,6 @@ function DeleteGuru($conn) {
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
     }
-
     $stmtFind = $conn->prepare("SELECT nama, nip FROM anggota_sekolah WHERE id = ?");
     if (!$stmtFind) {
         send_response(1, 'Query error: ' . $conn->error);
@@ -431,15 +433,14 @@ function DeleteGuru($conn) {
         send_response(1, 'Query error: ' . $conn->error);
     }
     $stmtDel->bind_param("i", $id);
-    $execDel = $stmtDel->execute();
-    $stmtDel->close();
-
-    if ($execDel) {
+    if ($stmtDel->execute()) {
+        $stmtDel->close();
         $user_id = $_SESSION['nip'] ?? '';
         $details_log = "Menghapus Guru/Karyawan ID $id, NIP=" . $row['nip'] . ", Nama=" . $row['nama'];
         add_audit_log($conn, $user_id, 'DeleteGuru', $details_log);
         send_response(0, 'Data berhasil dihapus.');
     } else {
+        $stmtDel->close();
         send_response(1, 'Gagal menghapus data: ' . $conn->error);
     }
 }
@@ -561,7 +562,6 @@ function generateUID($conn) {
     return $uid;
 }
 
-// Fungsi helper untuk mengambil gaji pokok berdasarkan role
 function getGajiPokokByRole($conn, $role) {
     $lookup = ($role === 'P') ? 'guru' : 'karyawan';
     $stmt = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_roles WHERE role = ?");
@@ -578,7 +578,6 @@ function getGajiPokokByRole($conn, $role) {
     return 0.0;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -588,10 +587,11 @@ function getGajiPokokByRole($conn, $role) {
     <!-- CSS dari CDN -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
-    <!-- Bootstrap 5.3.3 CSS -->
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- SB Admin 2 CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" rel="stylesheet">
@@ -603,6 +603,7 @@ function getGajiPokokByRole($conn, $role) {
         .card-header { background: linear-gradient(45deg, #0d47a1, #42a5f5); color: white; }
         #loadingSpinner { display: none; position: fixed; z-index: 9999; height: 100px; width: 100px; margin: auto; top: 0; left: 0; bottom: 0; right: 0; }
         .invisible-field { display: none; }
+        /* Styling khusus untuk modal Manage (misalnya, atur gaji) */
         #ManageModal .modal-dialog {
             max-width: 1000px;
             margin: auto;
@@ -616,14 +617,13 @@ function getGajiPokokByRole($conn, $role) {
     <div id="wrapper">
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
-        <!-- End of Sidebar -->
+        <!-- End Sidebar -->
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
                 <!-- Navbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- End of Navbar -->
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
@@ -638,12 +638,11 @@ function getGajiPokokByRole($conn, $role) {
                         </button>
                     </div>
 
-                    <!-- FILTER -->
+                    <!-- Filter -->
                     <div class="card mb-4">
                         <div class="card-header">Filter Data Guru/Karyawan</div>
                         <div class="card-body">
                             <form id="filterForm" method="GET" class="form-inline">
-                                <!-- Filter Jenjang -->
                                 <label class="me-2" for="filterJenjang">Jenjang:</label>
                                 <select class="form-control me-2" id="filterJenjang" name="jenjang">
                                     <option value="">Semua Jenjang</option>
@@ -658,7 +657,6 @@ function getGajiPokokByRole($conn, $role) {
                                     }
                                     ?>
                                 </select>
-                                <!-- Filter Role -->
                                 <label class="me-2" for="filterRole">Role:</label>
                                 <select class="form-control me-2" id="filterRole" name="role">
                                     <option value="">Semua Role</option>
@@ -666,7 +664,6 @@ function getGajiPokokByRole($conn, $role) {
                                     <option value="TK" <?php echo (isset($_GET['role']) && $_GET['role'] === 'TK') ? 'selected' : ''; ?>>Tenaga Kependidikan</option>
                                     <option value="M" <?php echo (isset($_GET['role']) && $_GET['role'] === 'M') ? 'selected' : ''; ?>>Manajerial</option>
                                 </select>
-                                <!-- Filter Status Kerja -->
                                 <label class="me-2" for="filterStatus">Status Kerja:</label>
                                 <select class="form-control me-2" id="filterStatus" name="status_kerja">
                                     <option value="">Semua Status</option>
@@ -683,10 +680,10 @@ function getGajiPokokByRole($conn, $role) {
                         </div>
                     </div>
 
-                    <!-- Tabel Data -->
+                    <!-- Tabel Data Guru/Karyawan -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-white">
+                            <h6 class="m-0 fw-bold text-white">
                                 <i class="fas fa-table"></i> Daftar Guru/Karyawan
                             </h6>
                         </div>
@@ -722,7 +719,9 @@ function getGajiPokokByRole($conn, $role) {
                         </div>
                     </div>
                 </div>
+                <!-- End Page Content -->
             </div>
+            <!-- End Main Content -->
 
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
@@ -739,6 +738,7 @@ function getGajiPokokByRole($conn, $role) {
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="add-guru-form" method="POST" class="needs-validation" novalidate>
           <input type="hidden" name="case" value="CreateGuru">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="modalAddLabel">Tambah Data Guru/Karyawan</h5>
@@ -839,7 +839,7 @@ function getGajiPokokByRole($conn, $role) {
                   <div class="col-md-6">
                       <div class="form-group">
                           <label for="addPendidikan">Pendidikan (misal: S1, S2, dsb.)</label>
-                          <input type="text" name="pendidikan" id="addPendidikan" class="form-control" placeholder="Masukkan strata pendidikan, contoh: S1">
+                          <input type="text" name="pendidikan" id="addPendidikan" class="form-control" placeholder="Contoh: S1">
                       </div>
                   </div>
               </div>
@@ -940,10 +940,11 @@ function getGajiPokokByRole($conn, $role) {
         <form id="edit-guru-form" method="POST" class="needs-validation" novalidate>
           <input type="hidden" name="case" value="UpdateGuru">
           <input type="hidden" name="id" id="editId">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Edit Data Guru/Karyawan</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
               <!-- Data Pekerjaan -->
@@ -982,11 +983,12 @@ function getGajiPokokByRole($conn, $role) {
                               <option value="SMA">SMA</option>
                               <option value="SMK">SMK</option>
                           </select>
+                          <div class="invalid-feedback">Jenjang wajib dipilih.</div>
                       </div>
                   </div>
               </div>
               <div class="row">
-                  <!-- Field Role pada Edit -->
+                  <!-- Field Role -->
                   <div class="col-md-6">
                       <div class="form-group">
                           <label for="editRole">Role <span class="text-danger">*</span></label>
@@ -1123,7 +1125,7 @@ function getGajiPokokByRole($conn, $role) {
                   <div class="col-md-12">
                       <div class="form-group">
                           <label for="editPassword">Password Baru (Opsional)</label>
-                          <input type="password" name="password" id="editPassword" class="form-control" placeholder="Isi jika ingin mengubah password">
+                          <input type="password" name="password" id="editPassword" class="form-control" placeholder="Kosongkan jika tidak ingin mengubah password">
                           <small class="form-text text-muted">Kosongkan jika tidak ingin mengubah password.</small>
                       </div>
                   </div>
@@ -1200,10 +1202,11 @@ function getGajiPokokByRole($conn, $role) {
         <form id="delete-guru-form" class="modal-content">
           <input type="hidden" name="case" value="DeleteGuru">
           <input type="hidden" name="id" id="delId">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
-              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
               <p>Anda yakin ingin menghapus data berikut?</p>
@@ -1226,12 +1229,13 @@ function getGajiPokokByRole($conn, $role) {
       <div class="modal-dialog modal-md">
         <form id="gaji-pokok-form" method="POST" class="modal-content">
           <input type="hidden" name="case" value="update_gaji_pokok">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiPokokLabel">Atur Gaji Pokok</h5>
             <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
           </div>
-            <hr>
-            <div class="form-group text-center">
+          <div class="modal-body">
+            <div class="text-center mb-3">
                 <button type="button" class="btn btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#modalGajiStrataGuru">
                     <i class="fas fa-chart-bar"></i> Atur Gaji Strata Guru
                 </button>
@@ -1239,11 +1243,12 @@ function getGajiPokokByRole($conn, $role) {
                     <i class="fas fa-chart-bar"></i> Atur Gaji Strata Karyawan
                 </button>
             </div>
+          </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
             <button type="submit" class="btn btn-success">
-                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                Simpan
+              <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              Simpan
             </button>
           </div>
         </form>
@@ -1255,6 +1260,7 @@ function getGajiPokokByRole($conn, $role) {
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="gaji-strata-form-guru" method="POST" class="modal-content">
           <input type="hidden" name="case" value="update_gaji_strata_guru">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiStrataGuruLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Guru)</h5>
             <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -1338,6 +1344,7 @@ function getGajiPokokByRole($conn, $role) {
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="gaji-strata-form-karyawan" method="POST" class="modal-content">
           <input type="hidden" name="case" value="update_gaji_strata_karyawan">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
           <div class="modal-header">
             <h5 class="modal-title" id="modalGajiStrataKaryawanLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Karyawan)</h5>
             <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -1418,11 +1425,14 @@ function getGajiPokokByRole($conn, $role) {
 
     <!-- JavaScript Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <!-- Bootstrap 5.3.3 JS Bundle -->
+    <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SB Admin 2 JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
+    <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js"></script>
+    <!-- DataTables Buttons & Responsive Plugins -->
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.bootstrap4.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
@@ -1447,25 +1457,12 @@ function getGajiPokokByRole($conn, $role) {
             toast.addEventListener('mouseleave', Swal.resumeTimer);
         }
     });
-
     function showToast(message, icon = 'success') {
         Toast.fire({
             icon: icon,
             title: message
         });
     }
-
-    function getStatusBadge(status) {
-        let s = (status || '').toLowerCase();
-        if (s === 'tetap') {
-            return '<span class="badge bg-success">Tetap</span>';
-        } else if (s === 'kontrak') {
-            return '<span class="badge bg-secondary">Kontrak</span>';
-        } else {
-            return '<span class="badge bg-secondary">' + (status || '') + '</span>';
-        }
-    }
-
     function getStatusBadge(status) {
         let s = (status || '').toLowerCase();
         if (s === 'tetap') {
@@ -1476,9 +1473,7 @@ function getGajiPokokByRole($conn, $role) {
             return '<span class="badge bg-secondary">' + (status || '') + '</span>';
         }
     }
-
     $(document).ready(function() {
-        // Inisialisasi DataTable dengan tambahan filter role dan status kerja
         var guruTable = $('#guruTable').DataTable({
             processing: true,
             serverSide: true,
@@ -1490,6 +1485,7 @@ function getGajiPokokByRole($conn, $role) {
                     d.jenjang = $('#filterJenjang').val();
                     d.role = $('#filterRole').val();
                     d.status_kerja = $('#filterStatus').val();
+                    d.csrf_token = "<?= htmlspecialchars($csrf_token); ?>";
                 },
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -1565,7 +1561,7 @@ function getGajiPokokByRole($conn, $role) {
             showToast('Filter direset.');
         });
 
-        // Form create
+        // Form Create Guru/Karyawan
         $('#add-guru-form').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -1605,13 +1601,13 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // View detail
+        // View Detail
         $(document).on('click', '.btn-view', function() {
             var id = $(this).data('id');
             $.ajax({
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: { case: 'GetGuruDetail', id: id },
+                data: { case: 'GetGuruDetail', id: id, csrf_token: "<?= htmlspecialchars($csrf_token); ?>" },
                 dataType: "json",
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -1669,7 +1665,7 @@ function getGajiPokokByRole($conn, $role) {
             $.ajax({
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: { case: 'GetGuruDetail', id: id },
+                data: { case: 'GetGuruDetail', id: id, csrf_token: "<?= htmlspecialchars($csrf_token); ?>" },
                 dataType: "json",
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -1695,12 +1691,8 @@ function getGajiPokokByRole($conn, $role) {
                         $('#editEmail').val(response.result.email || '');
                         $('#editNamaPasangan').val(response.result.nama_pasangan || '');
                         $('#editJumlahAnak').val(response.result.jumlah_anak || 0);
-                        $('#editNamaAnak1').val(response.result.nama_anak_1 || '');
-                        $('#editNamaAnak2').val(response.result.nama_anak_2 || '');
-                        $('#editNamaAnak3').val(response.result.nama_anak_3 || '');
                         $('#editSalaryIndex').val(response.result.salary_index_id || 0);
                         $('#editRole').val(response.result.role || '');
-
                         modal.modal('show');
                     } else {
                         showToast(response.result, 'error');
@@ -1732,7 +1724,7 @@ function getGajiPokokByRole($conn, $role) {
             $.ajax({
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: { case: 'DeleteGuru', id: id },
+                data: { case: 'DeleteGuru', id: id, csrf_token: "<?= htmlspecialchars($csrf_token); ?>" },
                 dataType: "json",
                 beforeSend: function(){
                     form.find('button[type="submit"]').prop('disabled', true);

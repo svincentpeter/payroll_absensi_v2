@@ -1,27 +1,29 @@
 <?php
 // File: /payroll_absensi_v2/laporan_pengajuan_ijin.php
 
-// Untuk keperluan debugging (non-produksi)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// ==============================================================================
+// 1. Pengaturan Awal & Inisialisasi Helper
+// ==============================================================================
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+init_error_handling();
+authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+require_once __DIR__ . '/../../koneksi.php';
 
-session_start();
-require_once '../../koneksi.php';
+// Hasilkan CSRF token
+generate_csrf_token();
+$csrf_token = $_SESSION['csrf_token'];
 
-// Pastikan pengguna sudah login dan memiliki peran "sdm"
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'sdm') {
-    header("Location: ../../login.php");
-    exit();
-}
-
-// --------------------------
+// ==============================================================================
 // PROSES UPDATE / DELETE
-// --------------------------
+// ==============================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Pastikan untuk memverifikasi CSRF token di setiap proses POST
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+
     // Proses HAPUS HISTORY PENGAJUAN IZIN (action_type = delete)
     if (isset($_POST['action_type']) && $_POST['action_type'] === 'delete' && isset($_POST['id'])) {
-        $id = $_POST['id'];
+        $id = intval($_POST['id']);
         // Cek status pengajuan (SDM)
         $check_query = "SELECT status FROM pengajuan_ijin WHERE id = ?";
         $stmt = $conn->prepare($check_query);
@@ -47,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Proses UPDATE STATUS PENGAJUAN IZIN (update oleh SDM)
     elseif (!isset($_POST['action_type']) && isset($_POST['id'], $_POST['status'])) {
-        $id = $_POST['id'];
+        $id = intval($_POST['id']);
         $status = $_POST['status'];
 
         if (in_array($status, ['Diterima', 'Ditolak'])) {
@@ -68,11 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['notif_error'] = "Status tidak valid.";
         }
     }
+    header("Location: laporan_pengajuan_ijin.php");
+    exit();
 }
 
-// --------------------------
-// QUERY DATA PENGAJUAN IZIN
-// --------------------------
+// ==============================================================================
+// 2. QUERY DATA PENGAJUAN IZIN
+// ==============================================================================
 // Tabel Pengajuan Izin Aktif (yang sudah disetujui Kepala Sekolah dan masih pending SDM)
 $activeQuery = "SELECT * FROM pengajuan_ijin WHERE status_kepalasekolah = 'Diterima' AND status = 'Pending' ORDER BY id DESC";
 $activeResult = $conn->query($activeQuery);
@@ -91,13 +95,13 @@ if (!$historyResult) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Pengajuan Izin</title>
-    <!-- Bootstrap 5.3.3 CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome 6 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- SB Admin 2 CSS (gunakan versi dari CDN, meskipun aslinya SB Admin 2 dibuat untuk Bootstrap 4) -->
+    <!-- SB Admin 2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/dist/css/sb-admin-2.min.css" rel="stylesheet">
     <!-- DataTables Bootstrap 5 CSS -->
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
@@ -156,7 +160,6 @@ if (!$historyResult) {
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <!-- Tabel dengan kolom: ID, NIP, Nama, Judul Surat, Tanggal, Pesan, Tipe Ijin, Status Kepala Sekolah, Aksi -->
                                 <table id="activeIjinTable" class="table table-bordered">
                                     <thead class="table-dark">
                                         <tr>
@@ -191,10 +194,12 @@ if (!$historyResult) {
                                                         <!-- Form update status oleh SDM -->
                                                         <form action="" method="POST" class="d-inline">
                                                             <input type="hidden" name="id" value="<?= $row['id']; ?>">
+                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                                                             <button type="submit" name="status" value="Diterima" class="btn btn-success btn-sm">Terima</button>
                                                         </form>
                                                         <form action="" method="POST" class="d-inline">
                                                             <input type="hidden" name="id" value="<?= $row['id']; ?>">
+                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                                                             <button type="submit" name="status" value="Ditolak" class="btn btn-danger btn-sm">Tolak</button>
                                                         </form>
                                                     </td>
@@ -215,7 +220,6 @@ if (!$historyResult) {
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <!-- Tabel dengan kolom: ID, NIP, Nama, Judul Surat, Tanggal, Pesan, Tipe Ijin, Status Kepala Sekolah, Status Persetujuan SDM, Aksi -->
                                 <table id="historyIjinTable" class="table table-bordered">
                                     <thead class="table-dark">
                                         <tr>
@@ -248,10 +252,7 @@ if (!$historyResult) {
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <span class="<?=
-                                                            ($row['status'] === 'Diterima') ? 'badge bg-success' : 
-                                                            (($row['status'] === 'Ditolak') ? 'badge bg-danger' : 'badge bg-pending');
-                                                        ?>">
+                                                        <span class="<?= ($row['status'] === 'Diterima') ? 'badge bg-success' : (($row['status'] === 'Ditolak') ? 'badge bg-danger' : 'badge bg-pending'); ?>">
                                                             <?= htmlspecialchars($row['status']); ?>
                                                         </span>
                                                     </td>
@@ -260,6 +261,7 @@ if (!$historyResult) {
                                                             <form method="POST" action="" class="d-inline">
                                                                 <input type="hidden" name="action_type" value="delete">
                                                                 <input type="hidden" name="id" value="<?= $row['id']; ?>">
+                                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                                                                 <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
                                                             </form>
                                                         <?php else: ?>
@@ -281,24 +283,22 @@ if (!$historyResult) {
             </div>
             <!-- End Main Content -->
 
-            <!-- Footer -->
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="text-center my-auto">
-                        <span>&copy; Sistem Nusaputera 2025</span>
+                        <span>&copy; Payroll Management System | Developed By [Nama Anda]</span>
                     </div>
                 </div>
             </footer>
-            <!-- End Footer -->
         </div>
         <!-- End Content Wrapper -->
     </div>
     <!-- End Page Wrapper -->
 
-    <!-- JS Dependencies -->
-    <!-- jQuery (diperlukan oleh DataTables & SB Admin 2) -->
+    <!-- JavaScript Dependencies -->
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Bootstrap 5.3.3 Bundle JS -->
+    <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>

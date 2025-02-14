@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 14, 2025 at 06:13 AM
+-- Generation Time: Feb 14, 2025 at 03:12 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -133,7 +133,7 @@ INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`
 
 CREATE TABLE `audit_logs` (
   `id` int(10) UNSIGNED NOT NULL,
-  `user_id` int(10) UNSIGNED DEFAULT NULL,
+  `nip` varchar(20) NOT NULL,
   `action` varchar(100) NOT NULL,
   `details` text NOT NULL,
   `ip_address` varchar(45) NOT NULL,
@@ -145,56 +145,45 @@ CREATE TABLE `audit_logs` (
 -- Dumping data for table `audit_logs`
 --
 
-INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'Login', 'Superadmin berhasil login.', '::1', 'Mozilla/5.0', '2025-01-18 10:07:40'),
-(2, 11, 'Update', 'Kepala Sekolah memperbarui data rekap absensi.', '192.168.1.10', 'Mozilla/5.0', '2025-01-20 08:30:00'),
-(3, 2, 'ViewPayroll', 'Keuangan melihat data payroll.', '192.168.1.15', 'Mozilla/5.0', '2025-01-25 09:00:00'),
-(4, 1, 'Logout', 'Pengguna \'superadmin\' dengan role \'superadmin\' berhasil logout.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-11 14:12:57'),
-(5, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-11 14:13:03'),
-(6, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-11 16:42:32'),
-(7, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 04:41:04'),
-(8, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 05:44:19'),
-(9, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 06:42:53'),
-(10, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 06:42:54'),
-(11, 1, 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 06:42:54'),
-(12, 1, 'AccessAuditLogs', 'Mengakses halaman Audit Logs Keuangan.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 06:42:54'),
-(13, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 12:36:35'),
-(14, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 14:49:31'),
-(15, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 14:49:42'),
-(16, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 14:49:43'),
-(17, 1, 'AccessAuditLogs', 'Mengakses halaman Audit Logs Keuangan.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-12 14:49:49'),
-(18, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 10:22:43'),
-(19, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 10:23:00'),
-(20, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 10:23:01'),
-(21, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 10:23:03'),
-(22, 1, 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 10:23:03'),
-(23, 1, 'GetAttendanceData', 'Mengambil data absensi untuk anggota ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:16:35'),
-(24, 1, 'GetAttendanceData', 'Mengambil data absensi untuk anggota ID 12.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:16:39'),
-(25, 1, 'GetAttendanceData', 'Mengambil data absensi untuk anggota ID 1.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:16:41'),
-(26, 1, 'GetAttendanceData', 'Mengambil data absensi untuk anggota ID 2.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:16:43'),
-(27, 1, 'UpdateAbsensi', 'Mengupdate data absensi ID 1. Data: tanggal=2025-01-10, jadwal=Senin-Kamis Guru, jam_kerja=06:00-15:00, valid=1, pin=100001, nip=100001, nama=Ahmad Fauzi, departemen=SD, lembur=0, jam_masuk=06:05, scan_masuk=2025-01-10 06:07:00, terlambat=0, scan_istirahat_1=, scan_istirahat_2=, jam_pulang=15:00, scan_pulang=2025-01-10 15:05:00, jenis_absensi=Normal.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:50:17'),
-(28, 1, 'UpdateAbsensi', 'Mengupdate data absensi ID 1. Data: tanggal=2025-01-10, jadwal=Senin-Kamis Guru, jam_kerja=06:00-15:00, valid=1, pin=100001, nip=100001, nama=Ahmad Fauzi, departemen=SD, lembur=0, jam_masuk=06:05, scan_masuk=2025-01-10 06:07:00, terlambat=0, scan_istirahat_1=, scan_istirahat_2=, jam_pulang=15:00, scan_pulang=2025-01-10 15:05:00, jenis_absensi=Lembur.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 11:56:20'),
-(29, 1, 'ViewSalaryIndexDetail', 'Melihat detail Indeks Gaji ID 5: Level=\'Level 4\', Min Tahun=\'15\', Max Tahun=\'NULL\', Gaji Pokok=\'7000000.00\', Keterangan=\'Gaji untuk di atas 15 tahun masa kerja\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 12:46:51'),
-(30, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:39'),
-(31, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:42'),
-(32, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=100001, Nama=Ahmad Fauzi.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:50'),
-(33, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:52'),
-(34, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:54'),
-(35, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:25:59'),
-(36, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=100001, Nama=Ahmad Fauzi.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:26:03'),
-(37, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:26:04'),
-(38, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:26:07'),
-(39, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:26:19'),
-(40, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:34:25'),
-(41, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:34:32'),
-(42, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 1, NIP=100001, Nama=Ahmad Fauzi.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 13:34:36'),
-(43, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 14: Nama=\'Rudi Hartono\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 14:33:30'),
-(44, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 14: Nama=\'Rudi Hartono\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 14:59:43'),
-(45, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 13: Nama=\'Sari Utami\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 14:59:54'),
-(46, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 14: Nama=\'Rudi Hartono\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 15:12:54'),
-(47, 1, 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 14: Nama=\'Rudi Hartono\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 15:12:56'),
-(48, 1, 'UpdateGuru', 'Update data Guru/Karyawan ID 14, NIP=300004, Nama=Rudi Hartono.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-13 15:12:57'),
-(49, 1, 'Login', 'Pengguna \'superadmin\' berhasil login sebagai \'superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 04:48:15');
+INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
+(50, '1', 'ApplyFilter', 'Pengguna menerapkan filter pada Hari Libur.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:01:45'),
+(51, '1', 'ApplyFilter', 'Pengguna menerapkan filter pada Hari Libur.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:01:47'),
+(52, '1', 'ApplyFilter', 'Pengguna menerapkan filter pada Hari Libur.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:01:54'),
+(53, '1', 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:03:01'),
+(54, '1', 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:03:02'),
+(55, '1', 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:03:02'),
+(56, '1', 'Logout', 'Pengguna \'superadmin\' dengan role \'superadmin\' berhasil logout.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:16:27'),
+(57, '12', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login sebagai keuangan.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 07:06:11'),
+(58, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 07:06:55'),
+(59, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 07:55:55'),
+(60, '13', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login sebagai sdm.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 07:56:31'),
+(61, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 08:00:20'),
+(62, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 08:04:06'),
+(63, '300004', 'ViewDashboardKeuangan', 'Dashboard Keuangan diakses oleh user dengan NIP 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 09:18:50'),
+(64, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 6.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 09:44:34'),
+(65, '300004', 'ProcessPayroll', 'Memproses payroll untuk anggota dengan NIP 300004, ID anggota: 6.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 09:44:59'),
+(66, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:24'),
+(67, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:28'),
+(68, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:29'),
+(69, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:30'),
+(70, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:35'),
+(71, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:35'),
+(72, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:36'),
+(73, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:36'),
+(74, '300004', 'ViewDashboardKeuangan', 'Dashboard Keuangan diakses oleh user dengan NIP 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:37'),
+(75, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:37'),
+(76, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:46'),
+(77, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:23:53'),
+(78, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:23:55'),
+(79, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:24:09'),
+(80, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:27:00'),
+(81, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:27:04'),
+(82, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:27:05'),
+(83, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:31:55'),
+(84, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:33:09'),
+(85, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:33:23'),
+(86, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 13:40:48'),
+(87, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 13:56:17');
 
 -- --------------------------------------------------------
 
@@ -222,7 +211,9 @@ INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amo
 (2, 1, 2, 'deductions', 100000.00, 'final', 'Potongan pajak', ''),
 (3, 2, 1, 'earnings', 600000.00, 'final', 'Tunjangan tetap', ''),
 (4, 7, 3, 'earnings', 700000.00, 'draft', 'Bonus kinerja', ''),
-(5, 9, 4, 'deductions', 250000.00, 'final', 'Potongan BPJS', '');
+(5, 9, 4, 'deductions', 250000.00, 'final', 'Potongan BPJS', ''),
+(0, 6, 3, 'earnings', 100000.00, 'final', '', ''),
+(0, 6, 5, 'deductions', 150000.00, 'final', '', '');
 
 -- --------------------------------------------------------
 
@@ -346,7 +337,9 @@ INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`,
 (3, 5, 3, 1, 2025, 4200000.00, 500000.00, 250000.00, 4450000.00, '2025-01-31 10:20:00', '2025-01-31 10:00:00', '334455', 'Gaji Januari', 'final'),
 (4, 7, NULL, 2, 2025, 7500000.00, 1100000.00, 100000.00, 8500000.00, '2025-02-05 09:00:00', '2025-02-05 09:30:00', '556677', 'Gaji Februari', 'draft'),
 (5, 8, NULL, 2, 2025, 8000000.00, 900000.00, 400000.00, 8400000.00, '2025-02-05 09:10:00', '2025-02-05 09:35:00', '667788', 'Gaji Februari', 'draft'),
-(6, 9, NULL, 2, 2025, 7300000.00, 800000.00, 350000.00, 7450000.00, '2025-02-05 09:20:00', '2025-02-05 09:40:00', '778899', 'Gaji Februari', 'final');
+(6, 9, NULL, 2, 2025, 7300000.00, 800000.00, 350000.00, 7450000.00, '2025-02-05 09:20:00', '2025-02-05 09:40:00', '778899', 'Gaji Februari', 'final'),
+(7, 6, NULL, 2, 2025, 7600000.00, 100000.00, 150000.00, 7550000.00, '2025-02-14 09:44:59', '2025-02-14 16:44:59', '223344', '', 'draft'),
+(8, 6, 6, 2, 2025, 7600000.00, 100000.00, 150000.00, 7550000.00, '2025-02-14 09:45:21', '2025-02-14 16:45:00', '223344', 'Tercatat', 'final');
 
 -- --------------------------------------------------------
 
@@ -372,7 +365,9 @@ INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_payhead`, `jenis`, `amount
 (3, 1, 3, 'earnings', 600000.00),
 (4, 4, 1, 'earnings', 750000.00),
 (5, 4, 2, 'deductions', 150000.00),
-(6, 4, 3, 'earnings', 800000.00);
+(6, 4, 3, 'earnings', 800000.00),
+(7, 8, 3, 'earnings', 100000.00),
+(8, 8, 5, 'deductions', 150000.00);
 
 -- --------------------------------------------------------
 
@@ -402,7 +397,8 @@ CREATE TABLE `payroll_final` (
 
 INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`) VALUES
 (1, 1, 1, 1, 2025, 4500000.00, 600000.00, 300000.00, 4800000.00, '2025-01-31 09:50:00', '1234567890', 'Gaji Januari Final', '2025-02-11 14:12:22'),
-(2, 2, 2, 1, 2025, 4800000.00, 700000.00, 350000.00, 5150000.00, '2025-01-31 09:55:00', '098765', 'Gaji Januari Final', '2025-02-11 14:12:22');
+(2, 2, 2, 1, 2025, 4800000.00, 700000.00, 350000.00, 5150000.00, '2025-01-31 09:55:00', '098765', 'Gaji Januari Final', '2025-02-11 14:12:22'),
+(3, 6, 6, 2, 2025, 7600000.00, 100000.00, 150000.00, 7550000.00, '2025-02-14 16:45:00', '223344', '0', '2025-02-14 09:45:21');
 
 -- --------------------------------------------------------
 
@@ -456,7 +452,8 @@ INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`
 (2, 2, 1, 2025, 18, 1, 2, 0, 0),
 (3, 5, 1, 2025, 19, 0, 1, 0, 0),
 (4, 7, 2, 2025, 22, 1, 0, 0, 0),
-(5, 8, 2, 2025, 21, 0, 1, 1, 0);
+(5, 8, 2, 2025, 21, 0, 1, 1, 0),
+(6, 6, 2, 2025, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -484,29 +481,6 @@ INSERT INTO `salary_indices` (`id`, `level`, `min_years`, `max_years`, `base_sal
 (4, 'Level 3', 11, NULL, 6000000.00, 'Gaji untuk di atas 10 tahun masa kerja'),
 (5, 'Level 4', 15, NULL, 7000000.00, 'Gaji untuk di atas 15 tahun masa kerja');
 
--- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
-
-CREATE TABLE `users` (
-  `id_user` int(10) UNSIGNED NOT NULL,
-  `username` varchar(100) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `role` enum('superadmin','sdm','keuangan') NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`id_user`, `username`, `password`, `role`, `created_at`) VALUES
-(1, 'superadmin', 'e10adc3949ba59abbe56e057f20f883e', 'superadmin', '2025-01-18 10:07:40'),
-(2, 'vincent', 'e10adc3949ba59abbe56e057f20f883e', 'keuangan', '2025-02-02 14:45:52'),
-(3, 'sdm', 'e10adc3949ba59abbe56e057f20f883e', 'sdm', '2025-02-02 14:46:24');
-
 --
 -- Indexes for dumped tables
 --
@@ -524,7 +498,7 @@ ALTER TABLE `anggota_sekolah`
 --
 ALTER TABLE `audit_logs`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_user_id` (`user_id`);
+  ADD KEY `idx_user_id` (`nip`);
 
 --
 -- Indexes for table `employee_payheads`
@@ -596,12 +570,6 @@ ALTER TABLE `salary_indices`
   ADD UNIQUE KEY `level` (`level`);
 
 --
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id_user`);
-
---
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -615,7 +583,7 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -639,25 +607,25 @@ ALTER TABLE `payheads`
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

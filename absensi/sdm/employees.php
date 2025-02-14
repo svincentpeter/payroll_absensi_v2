@@ -1,24 +1,28 @@
 <?php
 // File: /payroll_absensi_v2/absensi/sdm/employees.php
 
-// Sertakan file helpers dan inisialisasi session serta CSRF token
+// =========================
+// 1. Pengaturan Awal
+// =========================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
+init_error_handling();
+
+// Hasilkan CSRF token dan simpan ke variabel
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 // Sertakan koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
-// Gunakan fungsi authorize() dari helpers.php
-// Hanya role 'sdm' dan 'superadmin' yang diperbolehkan
+// Otorisasi pengguna (hanya role sdm dan superadmin)
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
 /**
  * Fungsi ProcessPayroll untuk memproses data payroll dan mengirimkannya ke list payroll.
  */
 function ProcessPayroll($conn) {
-    // Pastikan token CSRF valid menggunakan helper
+    // Verifikasi token CSRF
     verify_csrf_token($_POST['csrf_token'] ?? '');
     
     // Ambil parameter dari POST
@@ -38,7 +42,7 @@ function ProcessPayroll($conn) {
     }
     $stmtFinal->close();
 
-    // Hitung total pendapatan (earnings) dan potongan (deductions) untuk bulan yang dipilih
+    // Hitung total pendapatan (earnings) dan potongan (deductions)
     $sqlSum = "SELECT jenis, SUM(amount) as total FROM employee_payheads WHERE id_anggota = ? AND status = 'final' GROUP BY jenis";
     $stmtSum = $conn->prepare($sqlSum);
     $stmtSum->bind_param("i", $id_anggota);
@@ -70,7 +74,7 @@ function ProcessPayroll($conn) {
     $resultEmp = $stmtEmp->get_result();
     if($resultEmp->num_rows == 0){
         $stmtEmp->close();
-        send_response(1, 'anggota tidak ditemukan.');
+        send_response(1, 'Anggota tidak ditemukan.');
     }
     $empData = $resultEmp->fetch_assoc();
     $stmtEmp->close();
@@ -105,7 +109,7 @@ function ProcessPayroll($conn) {
     }
     $stmtPayroll->close();
 
-    // Gunakan NIP untuk audit log
+    // Catat audit log
     $user_nip = $_SESSION['nip'] ?? '';
     $details_log = "Memproses payroll untuk anggota dengan NIP $user_nip, ID anggota: $id_anggota.";
     add_audit_log($conn, $user_nip, 'ProcessPayroll', $details_log);
@@ -114,7 +118,7 @@ function ProcessPayroll($conn) {
 }
 
 /**
- * Fungsi CheckPayrollCompletion: Menghitung jumlah anggota yang belum memiliki payroll final untuk bulan dan tahun tertentu.
+ * Fungsi CheckPayrollCompletion: Mengecek jumlah anggota yang belum memiliki payroll final.
  */
 function CheckPayrollCompletion($conn) {
     $bulan = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : 0;
@@ -122,7 +126,6 @@ function CheckPayrollCompletion($conn) {
     if ($bulan <= 0 || $tahun <= 0) {
         send_response(1, 'Parameter bulan/tahun tidak valid.');
     }
-    // Hitung jumlah anggota yang belum memiliki payroll final untuk periode tersebut
     $query = "SELECT jenjang, COUNT(*) as pending FROM anggota_sekolah 
             WHERE id NOT IN (
                 SELECT id_anggota FROM payroll WHERE bulan = ? AND tahun = ? AND status = 'final'
@@ -151,9 +154,9 @@ function CheckPayrollCompletion($conn) {
  * === HANDLER UNTUK REQUEST AJAX ===
  */
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
-    error_log("DEBUG: AJAX request received");
+    error_log("DEBUG: AJAX request received in employees.php");
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Verifikasi token CSRF menggunakan helper
+        // Verifikasi CSRF token
         verify_csrf_token($_POST['csrf_token'] ?? '');
         
         $case = isset($_POST['case']) ? trim($_POST['case']) : '';
@@ -196,7 +199,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 /**
- * Mengambil seluruh data payheads beserta nominal default.
+ * Fungsi GetAllPayheads: Mengambil seluruh data payheads.
  */
 function GetAllPayheads($conn) {
     error_log("DEBUG: Entering GetAllPayheads");
@@ -221,7 +224,7 @@ function GetAllPayheads($conn) {
 }
 
 /**
- * Mengambil data anggota untuk DataTables dengan filter pencarian dan pagination.
+ * Fungsi LoadingEmployees: Mengambil data anggota untuk DataTables.
  */
 function LoadingEmployees($conn) {
     error_log("DEBUG: Entering LoadingEmployees");
@@ -230,9 +233,7 @@ function LoadingEmployees($conn) {
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search = isset($_POST['search']['value']) ? sanitize_input($_POST['search']['value']) : '';
     $jenjangFilter = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
-    // Tambahan filter Role
     $roleFilter = isset($_POST['role']) ? sanitize_input($_POST['role']) : '';
-    // Dapatkan periode dari POST (dari localStorage)
     $selectedMonth = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : date('n');
     $selectedYear = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : date('Y');
     error_log("DEBUG: LoadingEmployees parameters: draw=$draw, start=$start, length=$length, search=$search, jenjangFilter=$jenjangFilter, roleFilter=$roleFilter, selectedMonth=$selectedMonth, selectedYear=$selectedYear");
@@ -270,7 +271,6 @@ function LoadingEmployees($conn) {
             $types .= "s";
         }
     }
-    // Penentuan order
     $orderBy = " ORDER BY a.id DESC";
     if (isset($_POST['order'][0]['column'], $_POST['columns'])) {
         $columnIndex = intval($_POST['order'][0]['column']);
@@ -284,7 +284,6 @@ function LoadingEmployees($conn) {
             }
         }
     }
-    // Pagination
     $sql .= $orderBy . " LIMIT ?, ?";
     $params[] = $start;
     $params[] = $length;
@@ -304,21 +303,18 @@ function LoadingEmployees($conn) {
         send_response(1, 'Execute failed: ' . $stmt->error);
     }
     $resData = $stmt->get_result();
-    // Hitung jumlah data sesuai filter
     $resultFiltered = $conn->query("SELECT FOUND_ROWS() AS total");
     $totalFiltered = ($resultFiltered) ? $resultFiltered->fetch_assoc()['total'] : 0;
-    // Hitung total data tanpa filter
     $resultTotal = $conn->query("SELECT COUNT(*) AS total FROM anggota_sekolah");
     $totalData = ($resultTotal) ? $resultTotal->fetch_assoc()['total'] : 0;
 
     $data = [];
     while ($row = $resData->fetch_assoc()){
         $masaKerja = ($row['masa_kerja_tahun'] > 0 ? $row['masa_kerja_tahun'] . ' Thn ' : '') .
-                    ($row['masa_kerja_bulan'] > 0 ? $row['masa_kerja_bulan'] . ' Bln' : '');
+                     ($row['masa_kerja_bulan'] > 0 ? $row['masa_kerja_bulan'] . ' Bln' : '');
         $masaKerja = trim($masaKerja) ?: '-';
         $gajiPokok = number_format($row['gaji_pokok'], 2, ',', '.');
         
-        // Status payroll
         if (!empty($row['payroll_status'])) {
             if ($row['payroll_status'] === 'final') {
                 $statusPayroll = '<span class="badge bg-success text-white">Final</span>';
@@ -333,7 +329,6 @@ function LoadingEmployees($conn) {
             $statusPayroll = '<span class="badge bg-secondary text-white">Belum Diproses</span>';
         }
         
-        // Tombol aksi dalam dropdown; nonaktifkan opsi "Assign Payheads" jika status payroll sudah final
         if ($row['payroll_status'] === 'final') {
             $assignButton = '<span class="dropdown-item disabled" title="Payroll Final">Assign Payheads</span>';
         } else {
@@ -385,7 +380,7 @@ function LoadingEmployees($conn) {
 }
 
 /**
- * Memperbarui data no rekening anggota.
+ * Fungsi EditEmployee: Memperbarui data no rekening anggota.
  */
 function EditEmployee($conn) {
     error_log("DEBUG: Entering EditEmployee");
@@ -422,7 +417,7 @@ function EditEmployee($conn) {
 }
 
 /**
- * Menetapkan payheads kepada anggota, beserta input nominal, unggahan dokumen, dan keterangan.
+ * Fungsi AssignPayheadsToEmployee: Menetapkan payheads kepada anggota.
  */
 function AssignPayheadsToEmployee($conn) {
     error_log("DEBUG: Entering AssignPayheadsToEmployee");
@@ -488,7 +483,7 @@ function AssignPayheadsToEmployee($conn) {
 }
 
 /**
- * Menampilkan detail anggota beserta payheads dan perhitungan gaji bersih.
+ * Fungsi ViewEmployeeDetail: Menampilkan detail anggota beserta payheads dan perhitungan gaji bersih.
  */
 function ViewEmployeeDetail($conn) {
     error_log("DEBUG: Entering ViewEmployeeDetail");
@@ -512,7 +507,7 @@ function ViewEmployeeDetail($conn) {
         $emp = $res->fetch_assoc();
         $stmt->close();
         $masaKerja = ($emp['masa_kerja_tahun'] > 0 ? $emp['masa_kerja_tahun'] . ' Tahun ' : '') .
-                    ($emp['masa_kerja_bulan'] > 0 ? $emp['masa_kerja_bulan'] . ' Bulan' : '');
+                     ($emp['masa_kerja_bulan'] > 0 ? $emp['masa_kerja_bulan'] . ' Bulan' : '');
         $masaKerja = trim($masaKerja) ?: '-';
         $gajiPokokVal = floatval($emp['gaji_pokok']);
         $levelIndexVal = floatval($emp['salary_index_base']);
@@ -548,7 +543,7 @@ function ViewEmployeeDetail($conn) {
         $stmtPH->close();
         $gajiBersihVal = $gajiPokokVal + $levelIndexVal + $totalPendapatan - $totalPotongan;
         error_log("DEBUG: ViewEmployeeDetail: Employee $id: gajiBersih = $gajiBersihVal");
-        // Gunakan NIP dari session untuk audit log
+        // Catat audit log
         $user_nip = $_SESSION['nip'] ?? '';
         $details_log = "Melihat detail anggota dengan NIP $user_nip, ID: $id.";
         add_audit_log($conn, $user_nip, 'ViewEmployeeDetail', $details_log);
@@ -580,12 +575,12 @@ function ViewEmployeeDetail($conn) {
     } else {
         $stmt->close();
         error_log("DEBUG: ViewEmployeeDetail: Employee not found for ID $id");
-        send_response(1, 'anggota tidak ditemukan.');
+        send_response(1, 'Anggota tidak ditemukan.');
     }
 }
 
 /**
- * Mengambil detail payhead berdasarkan ID.
+ * Fungsi GetPayheadById: Mengambil detail payhead berdasarkan ID.
  */
 function GetPayheadById($conn) {
     error_log("DEBUG: Entering GetPayheadById");
@@ -617,9 +612,9 @@ function GetPayheadById($conn) {
     $stmt->close();
 }
 
-// --- Bagian untuk modal Select Month (global payroll) ---
+// --- Modal Select Month (global payroll) ---
+// Ambil data processedMonths
 $processedMonths = [];
-// Dapatkan total anggota
 $resultTotal = $conn->query("SELECT COUNT(*) as total FROM anggota_sekolah");
 $totalAnggota = ($resultTotal) ? intval($resultTotal->fetch_assoc()['total']) : 0;
 $sql = "SELECT bulan, tahun, COUNT(DISTINCT id_anggota) as completed FROM payroll WHERE status = 'final' GROUP BY bulan, tahun";
@@ -643,7 +638,7 @@ if ($result) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <!-- DataTables CSS untuk Bootstrap 5 -->
+    <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
@@ -670,7 +665,7 @@ if ($result) {
         .modal-body > div {
             flex: 1; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; padding: 10px;
         }
-        /* Modifikasi ukuran dan posisi modal Assign Payheads */
+        /* Modal Assign Payheads */
         #ManageModal .modal-dialog {
             max-width: 1500px;
             margin: auto;
@@ -682,14 +677,12 @@ if ($result) {
             min-height: 250px;
             overflow-y: auto;
         }
-        /* Styling untuk bulan yang sudah diproses (modal Select Month) */
         .processed-month {
             background: #343a40 !important;
             color: #fff !important;
             pointer-events: none;
             border: 1px solid #343a40;
         }
-        /* Ubah margin kelas Bootstrap 4 ke Bootstrap 5 (mr- -> me-, ml- -> ms-) */
         .mr-3 { margin-right: 1rem !important; }
         .mr-2 { margin-right: 0.5rem !important; }
         .ml-auto { margin-left: auto !important; }
@@ -708,7 +701,7 @@ if ($result) {
                             <li class="breadcrumb-item active" aria-current="page">Payroll Anggota</li>
                         </ol>
                     </nav>
-                    <!-- Header untuk menampilkan bulan yang dipilih; selalu tampil dengan tombol Ganti Kalender -->
+                    <!-- Header untuk bulan yang dipilih -->
                     <div id="selectedMonthDisplay" class="mb-3" style="cursor: pointer;"></div>
                     <h1 class="h3 mb-4 text-gray-800"><i class="bi bi-people-fill"></i> Payroll Anggota</h1>
                     <div id="alert-placeholder"></div>
@@ -767,7 +760,7 @@ if ($result) {
                             </form>
                         </div>
                     </div>
-                    <!-- Container untuk DataTable; disembunyikan dulu jika belum ada bulan terpilih -->
+                    <!-- Container DataTable -->
                     <div id="employeeContainer" style="display: none;">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3">
@@ -799,9 +792,9 @@ if ($result) {
                                 </div>
                             </div>
                         </div>
-                    </div> <!-- End of employeeContainer -->
+                    </div> <!-- End employeeContainer -->
                 </div> <!-- /.container-fluid -->
-            </div> <!-- End of #content -->
+            </div> <!-- End #content -->
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
@@ -809,8 +802,8 @@ if ($result) {
                     </div>
                 </div>
             </footer>
-        </div> <!-- End of content-wrapper -->
-    </div> <!-- End of wrapper -->
+        </div> <!-- End content-wrapper -->
+    </div> <!-- End wrapper -->
 
     <!-- MODAL: Edit anggota -->
     <div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel" aria-hidden="true">
@@ -912,8 +905,7 @@ if ($result) {
         </div>
     </div>
 
-    <!-- MODAL: Assign Payheads (Improved) -->
-    <!-- Modifikasi: Dropdown pilihan bulan & tahun dihapus; ukuran dan posisi modal diubah -->
+    <!-- MODAL: Assign Payheads -->
     <div class="modal fade" id="ManageModal" tabindex="-1" aria-labelledby="manageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -953,8 +945,7 @@ if ($result) {
                                                     <i class="fa fa-arrow-circle-right"></i> Tambah ke Pilihan
                                                 </button>
                                             </div>
-                                            <select id="all_payheads" class="form-control" multiple style="height: 250px;">
-                                            </select>
+                                            <select id="all_payheads" class="form-control" multiple style="height: 250px;"></select>
                                         </div>
                                     </div>
                                 </div>
@@ -970,8 +961,7 @@ if ($result) {
                                                     <i class="fa fa-arrow-circle-left"></i> Hapus dari Pilihan
                                                 </button>
                                             </div>
-                                            <select id="selected_payheads" class="form-control" multiple style="height: 250px;">
-                                            </select>
+                                            <select id="selected_payheads" class="form-control" multiple style="height: 250px;"></select>
                                         </div>
                                     </div>
                                 </div>
@@ -987,8 +977,7 @@ if ($result) {
                                                         <th style="width: 40%;">Nominal</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody>
-                                                </tbody>
+                                                <tbody></tbody>
                                             </table>
                                         </div>
                                     </div>
@@ -1000,7 +989,6 @@ if ($result) {
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                     </div>
                     <div class="modal-footer">
-                        <!-- Button Proses Payroll tetap ada -->
                         <button type="button" class="btn btn-success" id="btnProcessPayroll">
                             <i class="bi bi-check-circle"></i> Proses Payroll
                         </button>
@@ -1066,7 +1054,6 @@ if ($result) {
                 <div class="modal-body">
                     <div class="row text-center">
                         <?php
-                        // Membuat grid bulan: 2 bulan sebelum - 14 bulan ke depan
                         $currentYear  = date('Y');
                         $currentMonth = date('n');
                         $before2Month = $currentMonth - 2;
@@ -1081,7 +1068,6 @@ if ($result) {
                                 $month -= 12;
                                 $year  += 1;
                             }
-                            // Cek apakah kombinasi bulan dan tahun sudah sepenuhnya diproses (seluruh anggota sudah final)
                             $processed = false;
                             foreach ($processedMonths as $pm) {
                                 if ($pm['bulan'] == $month && $pm['tahun'] == $year) {
@@ -1089,7 +1075,6 @@ if ($result) {
                                     break;
                                 }
                             }
-                            // Jika bulan yang sedang dipilih sama dengan bulan berjalan, beri highlight tambahan
                             $highlightClass = ($month == $currentMonth && $year == $currentYear) ? 'bg-warning fw-bold' : '';
                             if ($processed) {
                                 $highlightClass .= ' processed-month';
@@ -1112,7 +1097,7 @@ if ($result) {
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables JS untuk Bootstrap 5 -->
+    <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
@@ -1130,10 +1115,9 @@ if ($result) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(function() {
-        // Inisialisasi tooltip (gunakan data-bs-toggle di Bootstrap 5)
         $('[data-bs-toggle="tooltip"]').tooltip();
 
-        // Inisialisasi DataTable setelah bulan dipilih
+        // Inisialisasi DataTable untuk employeeContainer
         function initEmployeesTable() {
             $('#employeeContainer').show();
             if (!$.fn.DataTable.isDataTable('#employees')) {
@@ -1220,27 +1204,25 @@ if ($result) {
 
         // Inisialisasi header selectedMonthDisplay
         function initSelectedMonthDisplay() {
-    if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
-        var selMonth = localStorage.getItem('selectedMonthPayroll');
-        var selYear = localStorage.getItem('selectedYearPayroll');
-        // Tampilkan header dalam card dengan icon kalender dan tombol ganti kalender
-        $('#selectedMonthDisplay').html(
-            '<div class="card mb-3">' +
-                '<div class="card-body d-flex align-items-center">' +
-                    '<i class="bi bi-calendar3 me-2"></i>' +
-                    '<span class="fw-bold">Payroll Bulan: ' + selMonth + ' ' + selYear + '</span>' +
-                    '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
-                        '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
-                    '</button>' +
-                '</div>' +
-            '</div>'
-        );
-    } else {
-        $('#selectedMonthDisplay').html('<h4>Klik di sini untuk memilih bulan payroll</h4>');
-        $('#SalaryMonthModal').modal('show');
-    }
-}
-
+            if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
+                var selMonth = localStorage.getItem('selectedMonthPayroll');
+                var selYear = localStorage.getItem('selectedYearPayroll');
+                $('#selectedMonthDisplay').html(
+                    '<div class="card mb-3">' +
+                        '<div class="card-body d-flex align-items-center">' +
+                            '<i class="bi bi-calendar3 me-2"></i>' +
+                            '<span class="fw-bold">Payroll Bulan: ' + selMonth + ' ' + selYear + '</span>' +
+                            '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
+                                '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>'
+                );
+            } else {
+                $('#selectedMonthDisplay').html('<h4>Klik di sini untuk memilih bulan payroll</h4>');
+                $('#SalaryMonthModal').modal('show');
+            }
+        }
         initSelectedMonthDisplay();
         initEmployeesTable();
 
@@ -1415,7 +1397,6 @@ if ($result) {
                                             .addClass(ph.jenis_payhead === 'earnings' ? 'text-success' : 'text-danger');
                                         $('#all_payheads').append(option);
                                     });
-
                                     assignedPayheads.forEach(function(ap){
                                         var payheadId = ap.id_payhead;
                                         var payheadName = ap.nama_payhead + ' (' + ap.jenis_payhead_idn + ')';
@@ -1473,7 +1454,6 @@ if ($result) {
             var isValid = true;
             payHeads.forEach(function(payheadId){
                 var amount = payAmounts[payheadId];
-                // Hapus separator ribuan (.) dan ganti koma (,) dengan titik (.)
                 var numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
                 if(amount === '' || isNaN(numericAmount) || numericAmount <= 0){
                     $('input[name="pay_amounts[' + payheadId + ']"]').addClass('is-invalid');
@@ -1482,12 +1462,11 @@ if ($result) {
                     $('input[name="pay_amounts[' + payheadId + ']"]').removeClass('is-invalid');
                 }
             });
-
             if(!isValid){
                 showToast('Pastikan semua jumlah payhead valid (angka dan > 0)!', 'error');
                 return;
             }
-            var formData = new FormData(this);
+            var formData = new FormData(form[0]);
             formData.append('payheads', JSON.stringify(payHeads));
             formData.append('pay_amounts', JSON.stringify(payAmounts));
             $.ajax({
@@ -1581,7 +1560,6 @@ if ($result) {
             initAutoNumeric();
         });
         // Button Proses Payroll pada modal Assign Payheads
-        // Fungsi untuk menyimpan payheads melalui AJAX
         function savePayheads(callback) {
             var form = $('#assign-payhead-form');
             var payHeads = [];
@@ -1596,7 +1574,6 @@ if ($result) {
             var isValid = true;
             payHeads.forEach(function(payheadId) {
                 var amount = payAmounts[payheadId];
-                // Ubah format currency: misal "1.000,00" menjadi "1000.00"
                 var numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
                 if(amount === '' || isNaN(numericAmount) || numericAmount <= 0){
                     $('input[name="pay_amounts[' + payheadId + ']"]').addClass('is-invalid');
@@ -1628,8 +1605,16 @@ if ($result) {
                     form.find('.spinner-border').addClass('d-none');
                     if(resp.code === 0){
                         showToast(resp.result, 'success');
+                        $('#employees').DataTable().ajax.reload(null, false);
+                        setTimeout(function(){
+                            $('#ManageModal').modal('hide');
+                            form[0].reset();
+                            $('#all_payheads').empty();
+                            $('#selected_payheads').empty();
+                            $("#selected_payamount_table tbody").empty();
+                        }, 200);
                         if (typeof callback === 'function') {
-                            callback(); // Lanjutkan ke proses payroll jika penyimpanan berhasil
+                            callback();
                         }
                     } else {
                         showToast(resp.result, 'error');
@@ -1642,8 +1627,6 @@ if ($result) {
                 }
             });
         }
-
-        // Fungsi untuk memproses payroll melalui AJAX
         function callProcessPayroll(empcode, selectedMonth, selectedYear) {
             $.ajax({
                 url: 'employees.php?ajax=1',
@@ -1671,8 +1654,6 @@ if ($result) {
                 }
             });
         }
-
-        // Event handler untuk tombol "Proses Payroll" pada modal Assign Payheads
         $('#btnProcessPayroll').on('click', function(){
             var selectedMonth = localStorage.getItem('selectedMonthNumber') || 0;
             var selectedYear = localStorage.getItem('selectedYearPayroll') || 0;
@@ -1690,28 +1671,21 @@ if ($result) {
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Jika terdapat payheads terpilih, simpan dahulu perubahan payheads
                     if ($('#selected_payheads option').length > 0) {
                         savePayheads(function(){
-                            // Setelah penyimpanan berhasil, lanjutkan proses payroll
                             callProcessPayroll(empcode, selectedMonth, selectedYear);
                         });
                     } else {
-                        // Jika tidak ada payheads terpilih (misalnya tidak ada perubahan),
-                        // langsung proses payroll
                         callProcessPayroll(empcode, selectedMonth, selectedYear);
                     }
                 }
             });
         });
-
-        // Gabungkan event handler untuk .month-link
         $(document).on('click', '.month-link', function(e) {
             e.preventDefault();
             var monthNumber = $(this).data('month-number');
             var monthName = $(this).data('month');
             var year = $(this).data('year');
-            // Jika ada konteks anggota (Assign Payheads dari baris employee)
             if (window.currentEmpId) {
                 var employeeId = window.currentEmpId;
                 var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
@@ -1720,7 +1694,6 @@ if ($result) {
                 targetUrl += "&tahun=" + encodeURIComponent(year);
                 window.location.href = targetUrl;
             } else {
-                // Global payroll: cek payroll completion terlebih dahulu
                 $.ajax({
                     url: 'employees.php?ajax=1',
                     type: 'POST',
@@ -1761,8 +1734,6 @@ if ($result) {
                 });
             }
         });
-
-        // Fungsi untuk menyimpan pilihan bulan ke localStorage dan mengupdate header
         function simpanPilihanBulan(monthNumber, monthName, year) {
             localStorage.setItem('selectedMonthPayroll', monthName);
             localStorage.setItem('selectedMonthNumber', monthNumber);

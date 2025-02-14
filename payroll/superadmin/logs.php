@@ -38,14 +38,9 @@ header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload"
 // Proteksi CSRF
 generate_csrf_token();
 
-// Role Checking: hanya superadmin yang boleh akses halaman ini
-function authorize($allowed_roles = ['superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        header("Location: /payroll_absensi_v2/login.php");
-        exit();
-    }
-}
-authorize();
+// Pastikan hanya superadmin yang dapat mengakses halaman ini
+authorize('superadmin', '/payroll_absensi_v2/login.php');
+
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
@@ -152,9 +147,13 @@ if (!empty($conditions)) {
     $whereClause = "WHERE " . implode(" AND ", $conditions);
 }
 
-// Query dengan filter, urutkan DESC, limit 30
-$sqlFiltered = "SELECT a.*, u.username, u.role FROM audit_logs a 
-                LEFT JOIN users u ON a.user_id = u.id_user 
+// Perbaikan query:
+// - Mengganti tabel "users" dengan "anggota_sekolah"
+// - Menghubungkan kedua tabel berdasarkan kolom "nip"
+// - Mengambil nama dari kolom "nama" sebagai username
+$sqlFiltered = "SELECT a.*, u.nama AS username, u.role 
+                FROM audit_logs a 
+                LEFT JOIN anggota_sekolah u ON a.nip = u.nip 
                 $whereClause
                 ORDER BY a.created_at DESC
                 LIMIT 30";
@@ -173,7 +172,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
     <meta charset="UTF-8">
     <title>Audit Logs - Superadmin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 4 CSS & SB Admin 2 CSS -->
+    <!-- Bootstrap 5.3.3 CSS & SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Font Awesome -->
@@ -282,8 +281,8 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">

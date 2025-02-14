@@ -17,6 +17,19 @@ $username = $_SESSION['username'] ?? '';
 $nama     = $_SESSION['nama'] ?? '';
 $nip      = $_SESSION['nip'] ?? '';
 
+// Jika job_title belum ada di session dan nip tersedia, ambil dari database
+if (empty($_SESSION['job_title']) && !empty($nip)) {
+    require_once __DIR__ . '/koneksi.php'; // pastikan path nya benar
+    $stmt = $conn->prepare("SELECT job_title FROM anggota_sekolah WHERE nip = ?");
+    $stmt->bind_param("s", $nip);
+    $stmt->execute();
+    $stmt->bind_result($job_title);
+    $stmt->fetch();
+    $stmt->close();
+    $_SESSION['job_title'] = $job_title;
+}
+$job_title = $_SESSION['job_title'] ?? '';
+
 // Fungsi helper untuk menentukan apakah link aktif atau tidak.
 function isActive($menuUrl) {
     $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -88,19 +101,19 @@ function renderMenuItems($items, $iconClass = 'fa-fw') {
     <hr class="sidebar-divider my-0">
 
     <!-- Panel Informasi Pengguna -->
-<div class="sidebar-heading mt-3 text-center">
-    <?php if ($role === 'guru' || $role === 'karyawan' || $role === 'superadmin'): ?>
-        <strong><?= htmlspecialchars($nama) ?></strong><br>
-        <small>NIP: <?= htmlspecialchars($nip) ?></small>
-    <?php elseif ($username): ?>
-        <strong><?= htmlspecialchars($username) ?></strong><br>
-        <small><?= htmlspecialchars(ucfirst($role)) ?></small>
-    <?php else: ?>
-        <strong>Pengguna</strong><br>
-        <small>Unknown</small>
-    <?php endif; ?>
-</div>
-
+    <div class="sidebar-heading mt-3 text-center">
+        <?php if ($role === 'guru' || $role === 'karyawan' || $role === 'superadmin'): ?>
+            <strong><?= htmlspecialchars($nama) ?></strong><br>
+            <small><?= htmlspecialchars($job_title) ?></small><br>
+            <small>NIP: <?= htmlspecialchars($nip) ?></small>
+        <?php elseif ($username): ?>
+            <strong><?= htmlspecialchars($username) ?></strong><br>
+            <small><?= htmlspecialchars(ucfirst($role)) ?></small>
+        <?php else: ?>
+            <strong>Pengguna</strong><br>
+            <small>Unknown</small>
+        <?php endif; ?>
+    </div>
 
     <hr class="sidebar-divider">
 
@@ -137,7 +150,7 @@ function renderMenuItems($items, $iconClass = 'fa-fw') {
             'Dashboard Keuangan'   => '/payroll/keuangan/dashboard_keuangan.php',
             'List Payroll'         => '/payroll/keuangan/list_payroll.php',
             'History Payroll'      => '/payroll/keuangan/payroll_history.php',
-            'Rekap Payroll'      => '/payroll/keuangan/rekap_payroll.php',
+            'Rekap Payroll'        => '/payroll/keuangan/rekap_payroll.php',
             'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php'
         ];
         renderCollapseMenu('collapseKeuangan', 'fa-fw fa-wallet', 'Role Keuangan', $keuanganItems);

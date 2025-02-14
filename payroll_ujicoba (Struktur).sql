@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 14, 2025 at 06:13 AM
+-- Generation Time: Feb 14, 2025 at 03:12 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -99,7 +99,7 @@ CREATE TABLE `anggota_sekolah` (
 
 CREATE TABLE `audit_logs` (
   `id` int(10) UNSIGNED NOT NULL,
-  `user_id` int(10) UNSIGNED DEFAULT NULL,
+  `nip` varchar(20) NOT NULL,
   `action` varchar(100) NOT NULL,
   `details` text NOT NULL,
   `ip_address` varchar(45) NOT NULL,
@@ -287,20 +287,6 @@ CREATE TABLE `salary_indices` (
   `description` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
-
-CREATE TABLE `users` (
-  `id_user` int(10) UNSIGNED NOT NULL,
-  `username` varchar(100) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `role` enum('superadmin','sdm','keuangan') NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 --
 -- Indexes for dumped tables
 --
@@ -318,7 +304,7 @@ ALTER TABLE `anggota_sekolah`
 --
 ALTER TABLE `audit_logs`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_user_id` (`user_id`);
+  ADD KEY `idx_user_id` (`nip`);
 
 --
 -- Indexes for table `employee_payheads`
@@ -388,12 +374,6 @@ ALTER TABLE `rekap_absensi`
 ALTER TABLE `salary_indices`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `level` (`level`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id_user`);
 
 --
 -- AUTO_INCREMENT for dumped tables

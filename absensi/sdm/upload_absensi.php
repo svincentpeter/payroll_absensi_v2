@@ -13,11 +13,8 @@ require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
 // Pastikan hanya role sdm dan superadmin yang boleh mengakses halaman ini
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['sdm', 'superadmin'])) {
-    header("HTTP/1.1 403 Forbidden");
-    echo "Akses ditolak.";
-    exit();
-}
+authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+
 
 // Generate CSRF token (jika belum ada)
 generate_csrf_token();

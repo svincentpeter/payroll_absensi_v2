@@ -1,16 +1,17 @@
 <?php
 // File: /payroll_absensi_v2/payroll/keuangan/rekap_absensi.php
 
-// =========================
-// 1. Inisialisasi Session & Pengecekan Role
-// =========================
+// ==============================================================================
+// 1. Inisialisasi Session, Helper, dan Pengecekan Role
+// ==============================================================================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
 
-// Gunakan fungsi authorize() untuk memastikan hanya role "keuangan" dan "superadmin" yang boleh mengakses
-authorize(['keuangan', 'superadmin']);
+// Pastikan hanya role "keuangan" dan "superadmin" yang boleh mengakses
+authorize(['keuangan', 'superadmin'], '/payroll_absensi_v2/login.php');
 
+// Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
 // Hapus output buffering jika ada
@@ -18,14 +19,20 @@ if (ob_get_length()) {
     ob_end_clean();
 }
 
-// =========================
-// 2. Menangani Permintaan AJAX
-// =========================
+// Hasilkan CSRF token (meskipun di sini awalnya sistem CSRF tidak digunakan, 
+// kami menyisipkannya agar konsisten dengan halaman lain)
+generate_csrf_token();
+$csrf_token = $_SESSION['csrf_token'];
+
+// ==============================================================================
+// 2. Menangani Permintaan AJAX (Server-side Processing)
+// ==============================================================================
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Tidak ada verifikasi CSRF token (sistem keamanan tambahan dihapus)
-        $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
+        // Jika diperlukan, verifikasi CSRF token (opsional; di sini Anda bisa menonaktifkan jika memang tidak ingin)
+        // verify_csrf_token($_POST['csrf_token'] ?? '');
 
+        $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
         switch ($case) {
             case 'LoadingRekap':
                 LoadingRekap($conn);
@@ -49,13 +56,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     exit();
 }
 
-// =========================
+// ==============================================================================
 // 3. Fungsi-Fungsi CRUD (AJAX)
-// =========================
+// ==============================================================================
 
-/**
- * Fungsi memuat data rekap_absensi untuk DataTables (server-side)
- */
 function LoadingRekap($conn) {
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
@@ -66,13 +70,12 @@ function LoadingRekap($conn) {
     $sqlBase = "FROM rekap_absensi WHERE 1=1";
     $params = [];
     $types  = "";
-
     if (!empty($search)) {
         $sqlBase .= " AND (id LIKE ? OR id_anggota LIKE ? OR bulan LIKE ? OR tahun LIKE ? OR total_hadir LIKE ? OR total_izin LIKE ? OR total_cuti LIKE ? OR total_tanpa_keterangan LIKE ? OR total_sakit LIKE ?)";
         $searchParam = "%" . $search . "%";
         for ($i = 0; $i < 9; $i++) {
             $params[] = $searchParam;
-            $types  .= "s";
+            $types .= "s";
         }
     }
 
@@ -103,7 +106,7 @@ function LoadingRekap($conn) {
     // Data query
     $sqlData = "SELECT id, id_anggota, bulan, tahun, total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit " . $sqlBase;
 
-    // Sorting
+    // Sorting (default: id DESC)
     $orderBy = " ORDER BY id DESC";
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $colIndex = intval($_POST['order'][0]['column']);
@@ -127,36 +130,33 @@ function LoadingRekap($conn) {
     if ($stmtData === false) {
         send_response(1, 'Prepare failed: ' . $conn->error);
     }
-    if (!empty($paramsData)) {
-        $stmtData->bind_param($typesData, ...$paramsData);
-    }
+    $stmtData->bind_param($typesData, ...$paramsData);
     if (!$stmtData->execute()) {
         send_response(1, 'Execute failed: ' . $stmtData->error);
     }
     $resData = $stmtData->get_result();
 
     $data = [];
-    while ($row = $resData->fetch_assoc()) {
-        // Konversi integer bulan ke nama bulan (Indonesia)
-        $bulanText = function($m) {
-            $namaBulan = [
-                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-            ];
-            return isset($namaBulan[$m]) ? $namaBulan[$m] : 'Tidak Diketahui';
-        };
+    // Fungsi untuk mengonversi integer bulan ke nama bulan (Indonesia)
+    $bulanText = function($m) {
+        $namaBulan = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        return isset($namaBulan[$m]) ? $namaBulan[$m] : 'Tidak Diketahui';
+    };
 
-        // Tombol aksi (Edit & Delete)
+    while ($row = $resData->fetch_assoc()) {
+        // Tombol aksi (Edit & Delete) menggunakan Bootstrap 5
         $aksi = '
         <button class="btn btn-primary btn-sm btnEdit" data-id="' . $row['id'] . '">
           <i class="bi bi-pencil-square"></i> Edit
         </button>
         <button class="btn btn-danger btn-sm btnDelete" data-id="' . $row['id'] . '">
           <i class="bi bi-trash-fill"></i> Delete
-        </button>
-        ';
-
+        </button>';
+        
         $data[] = [
             "id" => $row['id'],
             "id_anggota" => $row['id_anggota'],
@@ -181,9 +181,6 @@ function LoadingRekap($conn) {
     exit();
 }
 
-/**
- * Fungsi untuk menambahkan data rekap_absensi.
- */
 function AddRekap($conn) {
     $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
     $bulan      = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
@@ -230,9 +227,6 @@ function AddRekap($conn) {
     exit();
 }
 
-/**
- * Fungsi untuk mengedit data rekap_absensi.
- */
 function EditRekap($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
@@ -280,9 +274,6 @@ function EditRekap($conn) {
     exit();
 }
 
-/**
- * Fungsi untuk menghapus data rekap_absensi.
- */
 function DeleteRekap($conn) {
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
@@ -324,13 +315,13 @@ function DeleteRekap($conn) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Manajemen Rekap Absensi</title>
+    <title>Manajemen Rekap Absensi - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
-    <!-- DataTables CSS untuk Bootstrap 5 -->
+    <!-- DataTables CSS (Bootstrap 5) -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
@@ -338,7 +329,7 @@ function DeleteRekap($conn) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        /* Penyesuaian ukuran font, padding, dan warna tabel */
+        /* Penyesuaian tampilan tabel */
         #rekapTable.table-sm th,
         #rekapTable.table-sm td {
             font-size: 13px;
@@ -350,64 +341,25 @@ function DeleteRekap($conn) {
             background-color: #343a40;
             color: #fff;
         }
-        .card-header {
-            background: linear-gradient(45deg, #0d47a1, #42a5f5);
-            color: white;
-        }
-        .table-hover tbody tr:hover {
-            background-color: #e2e6ea;
-        }
-        thead th {
-            background-color: #343a40;
-            color: white;
-            text-align: left;
-            font-size: 14px;
-            vertical-align: middle;
-            white-space: nowrap;
-        }
-        tbody tr:nth-of-type(odd) {
+        tbody tr:nth-child(odd) {
             background-color: #f9f9f9;
         }
-        tbody tr:nth-of-type(even) {
+        tbody tr:nth-child(even) {
             background-color: #ffffff;
         }
         tbody tr:hover {
             background-color: #e2e6ea;
         }
-        .btn-info {
-            background-color: #17a2b8;
-            border-color: #17a2b8;
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
         }
-        .btn-info:hover {
-            background-color: #138496;
-            border-color: #117a8b;
-        }
-        .badge-success {
-            background-color: #28a745;
-            color: #fff;
-        }
-        .badge-danger {
-            background-color: #dc3545;
-            color: #fff;
-        }
-        .badge {
-            font-size: 0.9em;
-        }
-        table.dataTable th, table.dataTable td {
-            text-align: center;
-            vertical-align: middle;
-        }
-        .filter-container {
-            margin-bottom: 20px;
-        }
-        /* Spinner loading */
         #loadingSpinner {
             display: none;
             position: fixed;
             z-index: 9999;
             height: 100px;
             width: 100px;
-            overflow: visible;
             margin: auto;
             top: 0; left: 0; bottom: 0; right: 0;
         }
@@ -416,7 +368,6 @@ function DeleteRekap($conn) {
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
@@ -427,23 +378,17 @@ function DeleteRekap($conn) {
             <div id="content">
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- End of Topbar -->
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">
-                        <i class="fas fa-chart-bar"></i> Manajemen Rekap Absensi
-                    </h1>
+                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-chart-bar"></i> Manajemen Rekap Absensi</h1>
 
                     <!-- Tabel Rekap Absensi -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 fw-bold text-white">
-                                <i class="fas fa-clipboard-list"></i> Daftar Rekap Absensi
-                            </h6>
+                            <h6 class="m-0 fw-bold text-white"><i class="fas fa-clipboard-list"></i> Daftar Rekap Absensi</h6>
                             <button class="btn btn-success btn-sm" id="btnAddRekap">
                                 <i class="bi bi-plus-circle"></i> Tambah Rekap
                             </button>
@@ -451,7 +396,7 @@ function DeleteRekap($conn) {
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table id="rekapTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
-                                    <thead class="thead">
+                                    <thead>
                                         <tr>
                                             <th>ID</th>
                                             <th>ID Anggota</th>
@@ -477,15 +422,20 @@ function DeleteRekap($conn) {
 
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
+                    <div class="text-center my-auto">
                         <span>&copy; <?php echo date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
                     </div>
                 </div>
             </footer>
         </div>
-        <!-- End Content Wrapper -->
     </div>
-    <!-- End Page Wrapper -->
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
 
     <!-- Modal Add/Edit Rekap Absensi -->
     <div class="modal fade" id="rekapModal" tabindex="-1" aria-labelledby="rekapModalLabel" aria-hidden="true">
@@ -494,12 +444,11 @@ function DeleteRekap($conn) {
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="rekapModalLabel">Tambah Rekap Absensi</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
-                        <!-- Tidak ada input hidden untuk CSRF token -->
                         <input type="hidden" id="rekap_id" name="id">
-
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                         <div class="form-group">
                             <label for="id_anggota">ID Anggota</label>
                             <input type="number" class="form-control" id="id_anggota" name="id_anggota" min="1" required>
@@ -509,6 +458,7 @@ function DeleteRekap($conn) {
                             <select class="form-control" id="bulan" name="bulan" required>
                                 <option value="">Pilih Bulan</option>
                                 <?php
+                                // Fungsi sederhana untuk mengonversi integer ke nama bulan
                                 function bulanIntToNameSimple($bulan) {
                                     $namaBulan = [
                                         1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
@@ -558,36 +508,28 @@ function DeleteRekap($conn) {
     </div>
     <!-- End Modal Add/Edit -->
 
-    <!-- Modal Delete Confirmation -->
+    <!-- Modal Delete Rekap Absensi -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <form id="deleteForm">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Hapus Rekap Absensi</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
-              <div class="modal-body">
-                  <!-- Tidak ada input hidden untuk CSRF token -->
-                  <input type="hidden" id="delete_id" name="id">
-                  <p>Apakah Anda yakin ingin menghapus rekap absensi ini?</p>
-              </div>
-              <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tidak</button>
-                  <button type="submit" class="btn btn-danger">Ya, Hapus</button>
-              </div>
+            <div class="modal-body">
+              <input type="hidden" id="delete_id" name="id">
+              <p>Apakah Anda yakin ingin menghapus rekap absensi ini?</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tidak</button>
+              <button type="submit" class="btn btn-danger">Ya, Hapus</button>
+            </div>
           </div>
         </form>
       </div>
     </div>
-    <!-- End Modal Delete Confirmation -->
-
-    <!-- Loading Spinner -->
-    <div id="loadingSpinner">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
+    <!-- End Modal Delete -->
 
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -607,7 +549,26 @@ function DeleteRekap($conn) {
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
     <script>
     $(document).ready(function() {
-        // CSRF token tidak lagi digunakan
+        // Inisialisasi SweetAlert2 Toast
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+        function showToast(message, icon = 'success') {
+            Toast.fire({
+                icon: icon,
+                title: message
+            });
+        }
+
+        // Inisialisasi DataTable untuk Rekap Absensi
         var rekapTable = $('#rekapTable').DataTable({
             processing: true,
             serverSide: true,
@@ -616,6 +577,7 @@ function DeleteRekap($conn) {
                 type: 'POST',
                 data: function(d){
                     d.case = 'LoadingRekap';
+                    // Jika ingin menambahkan parameter filter tambahan, bisa disisipkan di sini
                 },
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -645,7 +607,7 @@ function DeleteRekap($conn) {
             }
         });
 
-        // EVENT: Tambah Rekap
+        // EVENT: Tombol Tambah Rekap
         $('#btnAddRekap').on('click', function(){
             $('#rekapForm')[0].reset();
             $('#rekap_id').val('');
@@ -658,7 +620,6 @@ function DeleteRekap($conn) {
         $('#rekapForm').on('submit', function(e){
             e.preventDefault();
             var caseType = $('#rekap_id').val() ? 'EditRekap' : 'AddRekap';
-
             $.ajax({
                 url: 'rekap_absensi.php?ajax=1',
                 type: 'POST',
@@ -672,7 +633,8 @@ function DeleteRekap($conn) {
                     total_izin: $('#total_izin').val(),
                     total_cuti: $('#total_cuti').val(),
                     total_tanpa_keterangan: $('#total_tanpa_keterangan').val(),
-                    total_sakit: $('#total_sakit').val()
+                    total_sakit: $('#total_sakit').val(),
+                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                 },
                 dataType: 'json',
                 success: function(resp){
@@ -702,7 +664,8 @@ function DeleteRekap($conn) {
                     case: 'LoadingRekap', 
                     start: 0,
                     length: 1,
-                    search: { value: id }
+                    search: { value: id },
+                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                 },
                 dataType: 'json',
                 success: function(resp){
@@ -711,6 +674,16 @@ function DeleteRekap($conn) {
                         if(data){
                             $('#rekap_id').val(data.id);
                             $('#id_anggota').val(data.id_anggota);
+                            // Karena kolom bulan dikonversi ke teks, kita perlu mengonversinya kembali ke integer
+                            // Fungsi konversi sederhana:
+                            function getBulanInt(bulanName) {
+                                var map = {
+                                    'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4,
+                                    'Mei': 5, 'Juni': 6, 'Juli': 7, 'Agustus': 8,
+                                    'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
+                                };
+                                return map[bulanName] || '';
+                            }
                             $('#bulan').val(getBulanInt(data.bulan));
                             $('#tahun').val(data.tahun);
                             $('#total_hadir').val(data.total_hadir);
@@ -742,7 +715,7 @@ function DeleteRekap($conn) {
             deleteModal.show();
         });
 
-        // EVENT: Submit Form Hapus
+        // EVENT: Submit Form Hapus Rekap
         $('#deleteForm').on('submit', function(e){
             e.preventDefault();
             var id = $('#delete_id').val();
@@ -755,7 +728,8 @@ function DeleteRekap($conn) {
                 type: 'POST',
                 data: { 
                     case: 'DeleteRekap', 
-                    id: id 
+                    id: id,
+                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                 },
                 dataType: 'json',
                 success: function(resp){
@@ -774,16 +748,6 @@ function DeleteRekap($conn) {
                 }
             });
         });
-
-        // Fungsi untuk mengonversi nama bulan (Indonesia) ke integer
-        function getBulanInt(bulanName){
-            var map = {
-                'Januari':1, 'Februari':2, 'Maret':3, 'April':4,
-                'Mei':5, 'Juni':6, 'Juli':7, 'Agustus':8,
-                'September':9, 'Oktober':10, 'November':11, 'Desember':12
-            };
-            return map[bulanName] || '';
-        }
     });
     </script>
 </body>

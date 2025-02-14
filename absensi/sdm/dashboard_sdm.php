@@ -1,20 +1,30 @@
 <?php
 // File: /payroll_absensi_v2/sdm/dashboard_sdm.php
 
-// Mulai session, inisialisasi error handling, dan koneksi ke database
+// =========================
+// 1. Pengaturan Awal
+// =========================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-
-// Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 
-// Gunakan fungsi authorize() dari helpers.php
-// Hanya role 'sdm' dan 'superadmin' yang diperbolehkan
+// Otorisasi pengguna (hanya role sdm & superadmin yang boleh)
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
-// 1. Menangani Permintaan AJAX (metode POST)
+// Pastikan CSRF token telah di-generate
+generate_csrf_token();
+
+// =========================
+// 2. Tangani Permintaan AJAX
+// =========================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+
+    // Verifikasi CSRF Token (jika dikirim)
+    if (!isset($_POST['csrf_token'])) {
+        send_response(403, 'Token CSRF tidak ditemukan.');
+    }
+    verify_csrf_token($_POST['csrf_token']);
 
     // (Opsional) Cek ulang otorisasi jika diperlukan
     authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
@@ -67,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
 
-        // Menyiapkan data untuk Chart.js
+        // Siapkan data untuk Chart.js
         $labels = [];
         $data_hadir = [];
         $data_terlambat = [];
@@ -87,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $data_tanpa_keterangan[] = $data['tanpa_keterangan'];
             $data_libur[] = $data['libur'];
         }
-        // Total untuk grafik pie
+        // Data untuk grafik pie
         $total_hadir = array_sum($data_hadir);
         $total_terlambat = array_sum($data_terlambat);
         $total_izin = array_sum($data_izin);
@@ -105,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             'libur' => $total_libur
         ];
 
-        // Catat Audit Log dengan menggunakan NIP (dari session)
+        // Catat audit log
         $user_nip = $_SESSION['nip'] ?? '';
         $details_log = "Mengambil data absensi untuk anggota dengan NIP: $user_nip, ID anggota: $id_anggota.";
         add_audit_log($conn, $user_nip, 'GetAttendanceData', $details_log);
@@ -123,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         ]);
 
     } elseif ($action === 'get_performance') {
-        // Mengambil Data Performa untuk Semua Anggota
+        // Mengambil data performa untuk semua anggota
         $query = "SELECT id, nama, nip FROM anggota_sekolah ORDER BY nama ASC";
         $result = $conn->query($query);
         $anggota = [];
@@ -179,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $labels[] = $p['nama'] . " (" . $p['nip'] . ")";
             $scores[] = $p['score'];
         }
-        // Catat Audit Log dengan menggunakan NIP
+        // Catat audit log
         $user_nip = $_SESSION['nip'] ?? '';
         $details_log = "Mengambil data performa untuk semua anggota oleh pengguna dengan NIP $user_nip.";
         add_audit_log($conn, $user_nip, 'GetPerformanceData', $details_log);
@@ -193,7 +203,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit();
 }
 
-// 2. Jika bukan permintaan AJAX, render halaman HTML dashboard
+// =========================
+// 3. Render Halaman HTML (bukan AJAX)
+// =========================
 
 // Ambil data anggota (guru/karyawan) untuk dropdown filter
 $query = "SELECT id, nama, nip, job_title FROM anggota_sekolah ORDER BY nama ASC";
@@ -204,8 +216,10 @@ if ($result && $result->num_rows > 0) {
         $anggota[] = $row;
     }
 }
-?>
 
+// Jika menggunakan nonce untuk CSP, pastikan variabel $nonce sudah didefinisikan, misalnya:
+$nonce = bin2hex(random_bytes(8));
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -238,20 +252,22 @@ if ($result && $result->num_rows > 0) {
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-        <!-- Sidebar (gunakan include sesuai struktur folder) -->
+        <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
-        <!-- End of Sidebar -->
+        <!-- End Sidebar -->
+
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- End of Topbar -->
+                <!-- End Topbar -->
+
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
-                <!-- Main Content -->
+                <!-- Main Container -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-users me-2"></i>Dashboard SDM</h1>
 
@@ -263,7 +279,9 @@ if ($result && $result->num_rows > 0) {
                         <div class="card-body">
                             <form id="filterForm" class="row align-items-end">
                                 <div class="col-md-6 mb-2">
-                                    <label for="anggotaSelect" class="form-label"><i class="fas fa-user me-1"></i>Pilih Guru/Karyawan</label>
+                                    <label for="anggotaSelect" class="form-label">
+                                        <i class="fas fa-user me-1"></i>Pilih Guru/Karyawan
+                                    </label>
                                     <select id="anggotaSelect" class="form-select" required>
                                         <option value="" disabled selected>-- Pilih Guru/Karyawan --</option>
                                         <?php foreach ($anggota as $a): ?>
@@ -339,7 +357,7 @@ if ($result && $result->num_rows > 0) {
                             <div class="card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <strong><i class="fas fa-trophy me-1"></i>Grafik Performa Terbaik & Terburuk</strong>
-                                    <!-- Dropdown aksi dengan 3 titik vertikal -->
+                                    <!-- Dropdown aksi -->
                                     <div class="dropdown">
                                         <button class="btn btn-sm" type="button" id="performanceActions" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fas fa-ellipsis-v"></i>
@@ -362,10 +380,8 @@ if ($result && $result->num_rows > 0) {
                         </div>
                     </div>
 
-                </div>
-                <!-- end .container-fluid -->
-            </div>
-            <!-- end #content -->
+                </div> <!-- end .container-fluid -->
+            </div> <!-- end #content -->
 
             <!-- Footer -->
             <footer class="sticky-footer bg-white">

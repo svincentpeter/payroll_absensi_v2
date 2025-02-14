@@ -4,9 +4,13 @@
 // =========================
 // 1. Session, Error Handling, dan Role Checking
 // =========================
-require_once __DIR__ . '/../../helpers.php'; 
+require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
+
+// Hasilkan CSRF token dan simpan ke variabel
+generate_csrf_token();
+$csrf_token = $_SESSION['csrf_token'];
 
 // Pengecekan role (hanya untuk sdm dan superadmin)
 authorize(['sdm', 'superadmin']);
@@ -27,7 +31,8 @@ if (ob_get_length()) {
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        // Catatan: Sistem CSRF dihapus
+        // VERIFIKASI CSRF Token
+        verify_csrf_token($_POST['csrf_token'] ?? '');
 
         // Ambil parameter 'case' untuk menentukan aksi
         $case = isset($_POST['case']) ? bersihkan_input($_POST['case']) : '';
@@ -216,9 +221,7 @@ function AddHoliday($conn) {
     if ($stmt->execute()) {
         // Catat audit log
         $details_log = "Menambahkan Hari Libur: Judul='$nama', Tanggal='$tanggal', Jenis='$jenis'.";
-        if (!add_audit_log($conn, $_SESSION['nip'], 'AddHoliday', $details_log)) {
-            log_error("Gagal mencatat audit log untuk AddHoliday ID " . $stmt->insert_id . ".");
-        }
+        add_audit_log($conn, $_SESSION['nip'], 'AddHoliday', $details_log);
         send_response(0, 'Hari libur berhasil ditambahkan.');
     } else {
         send_response(1, 'Gagal menambahkan hari libur: ' . $stmt->error);
@@ -292,9 +295,7 @@ function UpdateHoliday($conn) {
     $stmt->bind_param("ssssi", $nama, $deskripsi, $tanggal, $jenis, $id);
     if ($stmt->execute()) {
         $details_log = "Mengupdate Hari Libur ID $id: Judul='$nama', Tanggal='$tanggal', Jenis='$jenis'.";
-        if (!add_audit_log($conn, $_SESSION['nip'], 'UpdateHoliday', $details_log)) {
-            log_error("Gagal mencatat audit log untuk UpdateHoliday ID $id.");
-        }
+        add_audit_log($conn, $_SESSION['nip'], 'UpdateHoliday', $details_log);
         send_response(0, 'Hari libur berhasil diupdate.');
     } else {
         send_response(1, 'Gagal mengupdate hari libur: ' . $stmt->error);
@@ -309,7 +310,7 @@ function DeleteHoliday($conn) {
         send_response(3, 'ID Hari Libur tidak valid.');
     }
 
-    // Contoh: Cek jika holiday digunakan di tabel lain (misalnya payroll)
+    // Contoh: Cek jika holiday digunakan di tabel lain (misalnya payroll_payheads)
     $stmt = $conn->prepare("SELECT id FROM payroll_payheads WHERE id_payhead = ? LIMIT 1");
     if ($stmt === false) {
         send_response(1, 'Query Error: ' . $conn->error);
@@ -330,9 +331,7 @@ function DeleteHoliday($conn) {
     $stmt->bind_param("i", $id);
     if ($stmt->execute()) {
         $details_log = "Menghapus Hari Libur ID $id.";
-        if (!add_audit_log($conn, $_SESSION['nip'], 'DeleteHoliday', $details_log)) {
-            log_error("Gagal mencatat audit log untuk DeleteHoliday ID $id.");
-        }
+        add_audit_log($conn, $_SESSION['nip'], 'DeleteHoliday', $details_log);
         send_response(0, 'Hari libur berhasil dihapus.');
     } else {
         send_response(1, 'Gagal menghapus hari libur: ' . $stmt->error);
@@ -435,7 +434,7 @@ function DeleteHoliday($conn) {
                         </div>
                         <div class="card-body">
                             <form id="filterForm" class="form-inline">
-                                <!-- Sistem CSRF dihapus -->
+                                <!-- CSRF tidak diperlukan di form filter karena menggunakan AJAX tanpa input form -->
                                 <button type="button" class="btn btn-primary me-2" id="btnApplyFilter" title="Terapkan Filter">
                                     <i class="fas fa-filter"></i> Filter
                                 </button>
@@ -511,7 +510,7 @@ function DeleteHoliday($conn) {
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="AddHoliday">
-                        <!-- CSRF field dihapus -->
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                         <div class="form-group">
                             <label for="nama"><i class="fas fa-heading"></i> Judul Hari Libur <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="nama" name="nama" required>
@@ -563,7 +562,7 @@ function DeleteHoliday($conn) {
                     <div class="modal-body">
                         <input type="hidden" name="case" value="UpdateHoliday">
                         <input type="hidden" id="edit_id" name="edit_id">
-                        <!-- CSRF field dihapus -->
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                         <div class="form-group">
                             <label for="edit_nama"><i class="fas fa-heading"></i> Judul Hari Libur <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="edit_nama" name="edit_nama" required>
@@ -619,7 +618,7 @@ function DeleteHoliday($conn) {
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Inisialisasi tooltip menggunakan Bootstrap 5
+        // Inisialisasi tooltip Bootstrap 5
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function(tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl);
@@ -644,9 +643,6 @@ function DeleteHoliday($conn) {
             });
         }
 
-        // Catatan: variabel csrfToken dihapus karena CSRF tidak digunakan
-        // var csrfToken = '';
-
         // Inisialisasi DataTable untuk Holidays
         var holidaysTable = $('#holidaysTable').DataTable({
             processing: true,
@@ -656,7 +652,7 @@ function DeleteHoliday($conn) {
                 type: "POST",
                 data: function(d) {
                     d.case = 'LoadingHolidays';
-                    // d.csrf_token tidak dikirim
+                    d.csrf_token = '<?= htmlspecialchars($csrf_token); ?>';
                 },
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -685,13 +681,15 @@ function DeleteHoliday($conn) {
 
         // Filter
         $('#btnApplyFilter').on('click', function(){
+            // Contoh pencatatan audit log filter (jika diperlukan)
             $.ajax({
                 url: 'holidays.php?ajax=1',
                 type: 'POST',
                 data: {
                     case: 'AddAuditLog',
                     action: 'ApplyFilter',
-                    details: 'Pengguna menerapkan filter pada Hari Libur.'
+                    details: 'Pengguna menerapkan filter pada Hari Libur.',
+                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                 },
                 success: function(response){
                     if(response.code === 0){
@@ -712,7 +710,8 @@ function DeleteHoliday($conn) {
                 data: {
                     case: 'AddAuditLog',
                     action: 'ResetFilter',
-                    details: 'Pengguna mereset filter hari libur.'
+                    details: 'Pengguna mereset filter hari libur.',
+                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                 },
                 success: function(response){
                     if(response.code === 0){
@@ -794,7 +793,7 @@ function DeleteHoliday($conn) {
             $.ajax({
                 url: "holidays.php?ajax=1",
                 type: "POST",
-                data: { id: id, case: 'GetHolidayDetail' },
+                data: { id: id, case: 'GetHolidayDetail', csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
                 dataType: "json",
                 success: function(response){
                     if (response.code == 0) {
@@ -869,7 +868,7 @@ function DeleteHoliday($conn) {
                     $.ajax({
                         url: "holidays.php?ajax=1",
                         type: "POST",
-                        data: { id: id, case: 'DeleteHoliday' },
+                        data: { id: id, case: 'DeleteHoliday', csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
                         dataType: "json",
                         beforeSend: function(){
                             $('#loadingSpinner').show();
@@ -897,12 +896,6 @@ function DeleteHoliday($conn) {
             format: 'yyyy-mm-dd',
             autoclose: true,
             todayHighlight: true
-        });
-
-        // Reset form saat modal ditutup
-        $('#addHolidayModal, #editHolidayModal').on('hidden.bs.modal', function () {
-            $(this).find('form')[0].reset();
-            $(this).find('form').removeClass('was-validated');
         });
     });
     </script>

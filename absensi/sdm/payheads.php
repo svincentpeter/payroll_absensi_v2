@@ -125,13 +125,20 @@ function LoadingPayheads($conn) {
     $stmtFiltered->close();
 
     // Sorting (order by)
-    $orderBy = " ORDER BY id DESC";
-    if (isset($_POST['order'], $_POST['columns'])) {
+    // Mapping kolom DataTables ke kolom database
+    $sortableColumns = [
+        "nama_payhead"   => "nama_payhead",
+        "jenis"          => "jenis",
+        "deskripsi"      => "deskripsi",
+        "nominal_tetap"  => "nominal"
+    ];
+    $orderBy = " ORDER BY id DESC"; // default
+    if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $columnIndex = intval($_POST['order'][0]['column']);
-        $allowedColumns = ['nama_payhead', 'jenis', 'deskripsi'];
-        if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedColumns)) {
-            $colName = $_POST['columns'][$columnIndex]['data'];
-            $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
+        $colData = isset($_POST['columns'][$columnIndex]['data']) ? $_POST['columns'][$columnIndex]['data'] : '';
+        $colSortOrder = (isset($_POST['order'][0]['dir']) && $_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
+        if (array_key_exists($colData, $sortableColumns)) {
+            $colName = $sortableColumns[$colData];
             $orderBy = " ORDER BY $colName $colSortOrder";
         }
     }
@@ -191,21 +198,21 @@ function LoadingPayheads($conn) {
 </div>';
 
         $data[] = [
-            "no" => $no++,
-            "nama_payhead" => trim($row['nama_payhead']),
-            "jenis" => $jenis,
-            "deskripsi" => trim($row['deskripsi']),
-            "nominal_tetap" => $nominal_tetap,
-            "aksi" => $aksi
+            "no"             => $no++,
+            "nama_payhead"   => trim($row['nama_payhead']),
+            "jenis"          => $jenis,
+            "deskripsi"      => trim($row['deskripsi']),
+            "nominal_tetap"  => $nominal_tetap,
+            "aksi"           => $aksi
         ];
     }
     $stmtData->close();
 
     echo json_encode([
-        "draw" => $draw,
-        "recordsTotal" => $recordsTotal,
+        "draw"            => $draw,
+        "recordsTotal"    => $recordsTotal,
         "recordsFiltered" => $recordsFiltered,
-        "data" => $data
+        "data"            => $data
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
@@ -410,7 +417,6 @@ function DeletePayhead($conn) {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -585,8 +591,9 @@ function DeletePayhead($conn) {
                             <label for="nama_payhead" class="form-label">
                                 <i class="fas fa-tag me-1"></i>Nama Payhead <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="form-control" id="nama_payhead" name="nama_payhead" required>
+                            <input type="text" class="form-control" id="nama_payhead" name="nama_payhead" placeholder="Contoh: Tunjangan Kesehatan" required>
                             <div class="invalid-feedback">Nama payhead belum diisi.</div>
+                            <div class="form-text">Masukkan nama payhead, misalnya <em>Tunjangan Kesehatan</em>.</div>
                         </div>
                         <!-- Jenis Payhead -->
                         <div class="mb-3">
@@ -599,22 +606,25 @@ function DeletePayhead($conn) {
                                 <option value="deductions">Deductions (Potongan)</option>
                             </select>
                             <div class="invalid-feedback">Pilih jenis payhead.</div>
+                            <div class="form-text">Pilih jenis payhead, misalnya <em>Earnings</em> untuk pendapatan atau <em>Deductions</em> untuk potongan.</div>
                         </div>
                         <!-- Deskripsi -->
                         <div class="mb-3">
                             <label for="deskripsi" class="form-label">
                                 <i class="fas fa-info-circle me-1"></i>Deskripsi <span class="text-danger">*</span>
                             </label>
-                            <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3" required></textarea>
+                            <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3" placeholder="Contoh: Tunjangan kesehatan bulanan untuk karyawan" required></textarea>
                             <div class="invalid-feedback">Masukkan deskripsi payhead.</div>
+                            <div class="form-text">Jelaskan detail payhead, misalnya <em>Tunjangan kesehatan bulanan untuk karyawan</em>.</div>
                         </div>
                         <!-- Nominal -->
                         <div class="mb-3">
                             <label for="nominal" class="form-label">
                                 <i class="fas fa-money-bill-wave me-1"></i>Nominal Tetap <span class="text-danger">*</span>
                             </label>
-                            <input type="text" step="0.01" class="form-control" id="nominal" name="nominal" required>
+                            <input type="text" step="0.01" class="form-control" id="nominal" name="nominal" placeholder="Contoh: 1500000" required>
                             <div class="invalid-feedback">Masukkan nominal payhead.</div>
+                            <div class="form-text">Masukkan nilai nominal, misalnya <em>1500000</em> (gunakan format angka tanpa simbol).</div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -647,14 +657,14 @@ function DeletePayhead($conn) {
                         <!-- Field "case" untuk AJAX di server -->
                         <input type="hidden" name="case" value="UpdatePayhead">
                         <input type="hidden" id="edit_payhead_id" name="edit_payhead_id">
-
                         <!-- Nama Payhead -->
                         <div class="mb-3">
                             <label for="edit_nama_payhead" class="form-label">
                                 <i class="fas fa-tag me-1"></i>Nama Payhead <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="form-control" id="edit_nama_payhead" name="edit_nama_payhead" required>
+                            <input type="text" class="form-control" id="edit_nama_payhead" name="edit_nama_payhead" placeholder="Contoh: Tunjangan Kesehatan" required>
                             <div class="invalid-feedback">Nama payhead belum diisi.</div>
+                            <div class="form-text">Masukkan nama payhead, misalnya <em>Tunjangan Kesehatan</em>.</div>
                         </div>
                         <!-- Jenis Payhead -->
                         <div class="mb-3">
@@ -667,22 +677,25 @@ function DeletePayhead($conn) {
                                 <option value="deductions">Deductions (Potongan)</option>
                             </select>
                             <div class="invalid-feedback">Pilih jenis payhead.</div>
+                            <div class="form-text">Pilih jenis payhead, misalnya <em>Earnings</em> atau <em>Deductions</em>.</div>
                         </div>
                         <!-- Deskripsi -->
                         <div class="mb-3">
                             <label for="edit_deskripsi" class="form-label">
                                 <i class="fas fa-info-circle me-1"></i>Deskripsi <span class="text-danger">*</span>
                             </label>
-                            <textarea class="form-control" id="edit_deskripsi" name="edit_deskripsi" rows="3" required></textarea>
+                            <textarea class="form-control" id="edit_deskripsi" name="edit_deskripsi" rows="3" placeholder="Contoh: Tunjangan kesehatan bulanan untuk karyawan" required></textarea>
                             <div class="invalid-feedback">Masukkan deskripsi payhead.</div>
+                            <div class="form-text">Jelaskan detail payhead, misalnya <em>Tunjangan kesehatan bulanan untuk karyawan</em>.</div>
                         </div>
                         <!-- Nominal -->
                         <div class="mb-3">
                             <label for="edit_nominal" class="form-label">
                                 <i class="fas fa-money-bill-wave me-1"></i>Nominal Tetap <span class="text-danger">*</span>
                             </label>
-                            <input type="text" step="0.01" class="form-control" id="edit_nominal" name="nominal" required>
+                            <input type="text" step="0.01" class="form-control" id="edit_nominal" name="nominal" placeholder="Contoh: 1500000" required>
                             <div class="invalid-feedback">Masukkan nominal payhead.</div>
+                            <div class="form-text">Masukkan nilai nominal, misalnya <em>1500000</em>.</div>
                         </div>
                     </div>
                     <div class="modal-footer">

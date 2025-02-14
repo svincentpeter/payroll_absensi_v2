@@ -1,10 +1,24 @@
 <?php
-session_start();
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+// File: /payroll_absensi_v2/laporan_jadwal_piket.php
+
+// ==============================================================================
+// 1. Pengaturan Awal & Inisialisasi
+// ==============================================================================
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+init_error_handling();
+authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 require_once __DIR__ . '/../../koneksi.php';
+
+// Hasilkan CSRF token
+generate_csrf_token();
+$csrf_token = $_SESSION['csrf_token'];
 
 // ---------- PROSES DELETE ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+    // Verifikasi CSRF token
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    
     $id_jadwal = intval($_POST['id_jadwal'] ?? 0);
     if ($id_jadwal > 0) {
         $sql = "DELETE FROM jadwal_piket WHERE id_jadwal = ?";
@@ -25,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
 
 // ---------- PROSES FILTER LAPORAN ----------
 $jadwal_type = $_GET['jadwal_type'] ?? '1'; // Default ke Jadwal 1
-$start_year = $_GET['start_year'] ?? date("Y");
-$end_year = $_GET['end_year'] ?? date("Y");
+$start_year  = $_GET['start_year'] ?? date("Y");
+$end_year    = $_GET['end_year'] ?? date("Y");
 
 // Validasi input
 $valid_jadwal_types = ['1', '2'];
@@ -34,9 +48,8 @@ if (!in_array($jadwal_type, $valid_jadwal_types)) {
     $jadwal_type = '1';
 }
 
-// Validasi tahun
 $start_year = intval($start_year);
-$end_year = intval($end_year);
+$end_year   = intval($end_year);
 if ($start_year > $end_year) {
     $_SESSION['laporan_error'] = "Tahun akhir tidak boleh lebih kecil dari tahun awal.";
     header("Location: laporan_jadwal_piket.php");
@@ -59,7 +72,7 @@ if ($jadwal_type === '1') {
     }
 }
 
-// Buat query SQL dinamis dengan multiple OR conditions untuk mendapatkan tanggal yang ada di database
+// Buat query SQL dinamis
 if (empty($date_ranges)) {
     // Jika tidak ada rentang tanggal, tampilkan semua data
     $sql = "SELECT id_jadwal, nip, nama_guru, waktu_piket, tanggal, tahun, status 
@@ -82,10 +95,8 @@ if (empty($date_ranges)) {
             WHERE $where_clause 
             ORDER BY tanggal ASC";
     $stmt = $conn->prepare($sql);
-    // Bind parameters
     $stmt->bind_param($types, ...$params);
 }
-
 $stmt->execute();
 $result = $stmt->get_result();
 $laporan = [];
@@ -94,13 +105,13 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Ambil daftar tahun untuk dropdown (2020 hingga 2050)
+// Ambil daftar tahun untuk dropdown (misal, 2020 hingga 2050)
 $years_display = [];
 for ($y = 2020; $y <= 2050; $y++) {
     $years_display[] = $y;
 }
 
-// Proses data menjadi format yang sesuai untuk tabel
+// Proses data menjadi format untuk tabel laporan
 $formattedJadwal = []; // [nama_guru]['waktu_piket'] dan [nama_guru][tanggal] = status
 
 foreach ($laporan as $lap) {
@@ -117,18 +128,18 @@ foreach ($laporan as $lap) {
 // Fungsi untuk menerjemahkan nama bulan dari Inggris ke Indonesia
 function translate_month($month_eng) {
     $months = [
-        'January' => 'Januari',
-        'February' => 'Februari',
-        'March' => 'Maret',
-        'April' => 'April',
-        'May' => 'Mei',
-        'June' => 'Juni',
-        'July' => 'Juli',
-        'August' => 'Agustus',
+        'January'   => 'Januari',
+        'February'  => 'Februari',
+        'March'     => 'Maret',
+        'April'     => 'April',
+        'May'       => 'Mei',
+        'June'      => 'Juni',
+        'July'      => 'Juli',
+        'August'    => 'Agustus',
         'September' => 'September',
-        'October' => 'Oktober',
-        'November' => 'November',
-        'December' => 'Desember'
+        'October'   => 'Oktober',
+        'November'  => 'November',
+        'December'  => 'Desember'
     ];
     return $months[$month_eng] ?? $month_eng;
 }
@@ -147,23 +158,19 @@ function translate_day($day_eng) {
     return $days[$day_eng] ?? $day_eng;
 }
 
-// Buat daftar bulan dan tanggal berdasarkan tanggal yang ada di database
-$months = []; // ['Juni 2025' => [ ['formatted_date' => '2025-06-01', 'day' => 'Senin'], ... ], ...]
-
+// Buat daftar bulan dan tanggal berdasarkan data
+$months = []; // Format: ['Juni 2025' => [ ['formatted_date'=>'2025-06-01', 'day'=>'Senin'], ... ], ...]
 foreach ($laporan as $lap) {
     $tanggal = $lap['tanggal'];
     $dateObj = new DateTime($tanggal);
     $month_name_eng = $dateObj->format('F');
     $year = $dateObj->format('Y');
     $full_month = translate_month($month_name_eng) . " $year";
-    $day_short_eng = $dateObj->format('D'); // Mon, Tue, etc.
-    $day_full = translate_day($day_short_eng); // Senin, Selasa, etc.
-
+    $day_short_eng = $dateObj->format('D');
+    $day_full = translate_day($day_short_eng);
     if (!isset($months[$full_month])) {
         $months[$full_month] = [];
     }
-
-    // Tambahkan tanggal jika belum ada
     $existing_dates = array_column($months[$full_month], 'formatted_date');
     if (!in_array($tanggal, $existing_dates)) {
         $months[$full_month][] = [
@@ -172,10 +179,8 @@ foreach ($laporan as $lap) {
         ];
     }
 }
-
-// Urutkan bulan berdasarkan tanggal
+// Urutkan bulan dan tanggal
 uksort($months, function($a, $b) {
-    // Karena bulan sudah dalam Bahasa Indonesia, kita perlu menerjemahkan kembali ke Bahasa Inggris untuk pengurutan
     $translate_reverse = [
         'Januari' => 'January',
         'Februari' => 'February',
@@ -190,20 +195,14 @@ uksort($months, function($a, $b) {
         'November' => 'November',
         'Desember' => 'December'
     ];
-
     list($month_a, $year_a) = explode(' ', $a);
     list($month_b, $year_b) = explode(' ', $b);
-
     $month_a_eng = $translate_reverse[$month_a] ?? $month_a;
     $month_b_eng = $translate_reverse[$month_b] ?? $month_b;
-
     $date_a = DateTime::createFromFormat('F Y', "$month_a_eng $year_a");
     $date_b = DateTime::createFromFormat('F Y', "$month_b_eng $year_b");
-
     return $date_a <=> $date_b;
 });
-
-// Urutkan tanggal dalam setiap bulan
 foreach ($months as $month => &$days) {
     usort($days, function($a, $b) {
         return strtotime($a['formatted_date']) - strtotime($b['formatted_date']);
@@ -216,47 +215,22 @@ unset($days);
 <head>
     <meta charset="UTF-8">
     <title>Laporan Jadwal Piket Guru</title>
-    <!-- Custom fonts for this template-->
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet">
-    <!-- Bootstrap CSS (optional, since sb-admin-2 includes Bootstrap) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- SB Admin 2 CSS & Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="../../assets/vendor/fontawesome-free/css/all.min.css">
     <style>
-        /* Styling untuk badge status */
-        .badge-pending {
-            background-color: #ffc107; /* Kuning */
-            color: #212529;
-        }
-        .badge-tidak-hadir {
-            background-color: #dc3545; /* Merah */
-            color: #fff;
-        }
-        .badge-hadir {
-            background-color: #28a745; /* Hijau */
-            color: #fff;
-        }
-        /* Styling untuk tabel */
         th, td {
             vertical-align: middle !important;
             white-space: nowrap;
-        }
-        /* Tambahan styling sesuai dashboard_guru.php */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .table thead th {
-            background-color: #f8f9fc;
-            color: #5a5c69;
-            border-bottom: 2px solid #e3e6f0;
-        }
-        .table tbody tr:nth-child(even) {
-            background-color: #f8f9fc;
         }
     </style>
 </head>
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
@@ -268,45 +242,40 @@ unset($days);
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
-<!-- Breadcrumb -->
-<?php include __DIR__ . '/../../breadcrumb.php'; ?>
+                <!-- Breadcrumb -->
+                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">Laporan Jadwal Piket Guru</h1>
                     
-                    <!-- Menampilkan Notifikasi -->
-                    <?php if (isset($_SESSION['laporan_success'])): ?>
+                    <!-- Tampilkan notifikasi -->
+                    <?php if(isset($_SESSION['laporan_success'])): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <?= htmlspecialchars($_SESSION['laporan_success']); ?>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         <?php unset($_SESSION['laporan_success']); ?>
                     <?php endif; ?>
-                    
-                    <?php if (isset($_SESSION['laporan_error'])): ?>
+                    <?php if(isset($_SESSION['laporan_error'])): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <?= htmlspecialchars($_SESSION['laporan_error']); ?>
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         <?php unset($_SESSION['laporan_error']); ?>
                     <?php endif; ?>
 
-                    <!-- Form Filter Berdasarkan Jenis Jadwal dan Rentang Tahun -->
-                    <form method="GET" action="laporan_jadwal_piket.php" class="form-inline mb-4">
-                        <div class="form-group mr-3">
-                            <label for="jadwal_type" class="mr-2">Jenis Jadwal:</label>
+                    <!-- Form Filter -->
+                    <form method="GET" class="row mb-4">
+                        <div class="col-md-4">
+                            <label for="jadwal_type" class="form-label">Jenis Jadwal:</label>
                             <select name="jadwal_type" id="jadwal_type" class="form-control" required>
                                 <option value="1" <?= ($jadwal_type === '1') ? 'selected' : ''; ?>>Jadwal 1 (1 Juni - 30 Juli)</option>
                                 <option value="2" <?= ($jadwal_type === '2') ? 'selected' : ''; ?>>Jadwal 2 (1 Desember - 31 Januari)</option>
                             </select>
                         </div>
-                        <div class="form-group mr-3">
-                            <label for="start_year" class="mr-2">Dari Tahun:</label>
+                        <div class="col-md-4">
+                            <label for="start_year" class="form-label">Dari Tahun:</label>
                             <select name="start_year" id="start_year" class="form-control" required>
                                 <option value="">-- Pilih Tahun Awal --</option>
                                 <?php foreach ($years_display as $y): ?>
@@ -314,8 +283,8 @@ unset($days);
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group mr-3">
-                            <label for="end_year" class="mr-2">Sampai Tahun:</label>
+                        <div class="col-md-4">
+                            <label for="end_year" class="form-label">Sampai Tahun:</label>
                             <select name="end_year" id="end_year" class="form-control" required>
                                 <option value="">-- Pilih Tahun Akhir --</option>
                                 <?php foreach ($years_display as $y): ?>
@@ -323,30 +292,22 @@ unset($days);
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <div class="col-md-12 mt-3">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button>
+                        </div>
                     </form>
 
-                    <!-- Validasi Rentang Tahun di Server-side -->
-                    <?php
-                    if ($start_year > $end_year) {
-                        echo "<div class='alert alert-danger'>Tahun akhir tidak boleh lebih kecil dari tahun awal.</div>";
-                    }
-                    ?>
-
-                    <!-- Tampilan Laporan -->
                     <?php if (empty($laporan)): ?>
                         <div class="alert alert-info">Tidak ada data laporan sesuai filter.</div>
                     <?php else: ?>
                         <?php
-                            // Kumpulkan semua tanggal unik untuk menghindari duplikasi
+                            // Kumpulkan semua tanggal unik
                             $all_dates = [];
                             foreach ($months as $month => $days) {
                                 foreach ($days as $day) {
                                     $all_dates[$day['formatted_date']] = $day;
                                 }
                             }
-
-                            // Urutkan tanggal
                             ksort($all_dates);
                         ?>
                         <div class="table-responsive">
@@ -404,18 +365,45 @@ unset($days);
                         </div>
                     <?php endif; ?>
                 </div>
-                <!-- /.container-fluid -->
+                <!-- End Page Content -->
             </div>
-            <!-- End of Main Content -->
-        </div>
-        <!-- End of Content Wrapper -->
-    </div>
-    <!-- End of Page Wrapper -->
+            <!-- End Main Content -->
 
-    <!-- jQuery, Bootstrap JS -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>&copy; <?php echo date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
+                    </div>
+                </div>
+            </footer>
+        </div>
+        <!-- End Content Wrapper -->
+    </div>
+    <!-- End Page Wrapper -->
+
+    <!-- JavaScript Dependencies -->
+    <!-- jQuery & jQuery UI -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-    <!-- FontAwesome JS -->
-    <script src="../../assets/vendor/fontawesome-free/js/all.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <!-- Bootstrap Bundle (termasuk Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables & Plugins -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
+    <!-- FullCalendar & Moment.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
+    <!-- SB Admin 2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
 </body>
 </html>

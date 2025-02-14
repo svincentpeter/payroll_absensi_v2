@@ -10,14 +10,9 @@ session_start();
 // Sertakan file helper (jika diperlukan fungsi-fungsi tambahan)
 require_once __DIR__ . '/../../helpers.php';
 
-// Role Checking: hanya role "keuangan" (atau "superadmin") yang boleh akses halaman ini
-function authorize($allowed_roles = ['keuangan', 'superadmin']) {
-    if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-        header("Location: /payroll_absensi_v2/login.php");
-        exit();
-    }
-}
-authorize();
+// Pastikan hanya superadmin yang dapat mengakses halaman ini
+authorize('keuangan', '/payroll_absensi_v2/login.php');
+
 
 // Sertakan koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';

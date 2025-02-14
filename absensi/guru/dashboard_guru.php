@@ -1,10 +1,9 @@
 <?php
 // File: /payroll_absensi_v2/absensi/guru/dashboard_guru.php
 
-// =========================
-// 1. Pengaturan Keamanan & Session
-// =========================
-
+// =============================================================================
+// 1. Pengaturan Keamanan, Session, dan CSP
+// =============================================================================
 // Atur parameter cookie session sebelum session_start()
 session_set_cookie_params([
     'lifetime' => 0,
@@ -35,32 +34,30 @@ if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
 // HSTS header
 header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
 
-// Proteksi CSRF
-generate_csrf_token();
+// Terapkan Content-Security-Policy (CSP) dengan nonce
+header("Content-Security-Policy: default-src 'self'; 
+    script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://code.jquery.com 'nonce-$nonce'; 
+    style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'nonce-$nonce'; 
+    img-src 'self'; 
+    font-src 'self' https://cdnjs.cloudflare.com; 
+    connect-src 'self'");
 
-// Role Checking: hanya 'guru' dan 'karyawan' yang boleh mengakses dashboard
+// =============================================================================
+// 2. Otorisasi Akses
+// =============================================================================
+// Hanya pengguna dengan role 'guru' atau 'karyawan' yang boleh mengakses dashboard ini
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['guru', 'karyawan'])) {
     header("Location: ../../login.php");
     exit();
 }
 
-// Koneksi ke database
+// =============================================================================
+// 3. Koneksi Database & Inisialisasi
+// =============================================================================
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
-// Terapkan Content-Security-Policy (CSP) dengan nonce
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
-
-// =========================
-// 2. LOGGING & PENGAMBILAN DATA PENGGUNA DAN ABSENSI
-// =========================
-
-// Ambil peran dan NIP pengguna dari session
+// Ambil data pengguna dari session
 $role = $_SESSION['role'];
 $nip = $_SESSION['nip'] ?? '';
 
@@ -73,7 +70,7 @@ if (empty($nip)) {
 $user_id = $_SESSION['user_id'] ?? 0;
 add_audit_log($conn, $user_id, 'AccessDashboardGuru', 'Mengakses dashboard guru.');
 
-// Query untuk mendapatkan nama pengguna dari tabel `anggota_sekolah` berdasarkan NIP
+// Query untuk mendapatkan nama pengguna dari tabel `anggota_sekolah`
 $name_query = "SELECT nama FROM anggota_sekolah WHERE nip = ?";
 $stmt_name = $conn->prepare($name_query);
 $stmt_name->bind_param("s", $nip);
@@ -82,11 +79,10 @@ $result_name = $stmt_name->get_result();
 $nama_pengguna = $result_name->fetch_assoc()['nama'] ?? 'Nama Tidak Diketahui';
 $stmt_name->close();
 
-// Tentukan jam masuk standar (misal: 08:00:00)
+// Tentukan jam masuk standar (misalnya: 08:00:00)
 $jam_masuk_standar = '08:00:00';
 
 // Query untuk mendapatkan data absensi pengguna
-// Perbaikan: mengganti kondisi pada "jam_masuk" dengan kondisi pada "scan_masuk" agar konsisten.
 $query = "
     SELECT 
         COUNT(*) AS total_records,
@@ -133,12 +129,11 @@ $attendance_data = $result->fetch_assoc();
 $stmt->close();
 
 // Pastikan data absensi tidak null
-$total_alpha      = (int)($attendance_data['total_alpha'] ?? 0);
-$total_terlambat  = (int)($attendance_data['total_terlambat'] ?? 0);
-$total_izin       = (int)($attendance_data['total_izin'] ?? 0);
-$total_hadir      = (int)($attendance_data['total_hadir'] ?? 0);
+$total_alpha     = (int)($attendance_data['total_alpha'] ?? 0);
+$total_terlambat = (int)($attendance_data['total_terlambat'] ?? 0);
+$total_izin      = (int)($attendance_data['total_izin'] ?? 0);
+$total_hadir     = (int)($attendance_data['total_hadir'] ?? 0);
 
-// Konversi data absensi ke format JSON untuk JavaScript
 $attendance_json = json_encode([
     'alpha'     => $total_alpha,
     'terlambat' => $total_terlambat,
@@ -155,18 +150,17 @@ $dashboard_title = ($role === 'guru') ? 'Dashboard Guru' : 'Dashboard Karyawan';
     <meta charset="UTF-8">
     <title><?= htmlspecialchars($dashboard_title) ?></title>
     <!-- Font Awesome & SB Admin 2 CSS -->
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?= htmlspecialchars($nonce); ?>">
+    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?= htmlspecialchars($nonce); ?>">
     <!-- Chart.js & Plugin Data Labels -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?php echo $nonce; ?>"></script>
-    <style nonce="<?php echo $nonce; ?>">
-        /* Styling untuk memperbesar grafik */
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?= htmlspecialchars($nonce); ?>"></script>
+    <style nonce="<?= htmlspecialchars($nonce); ?>">
+        /* Perbesar area grafik */
         #attendanceChart {
             width: 100% !important;
             height: 600px !important;
         }
-        /* Styling tambahan */
         .welcome-message {
             margin-bottom: 20px;
         }
@@ -197,38 +191,33 @@ $dashboard_title = ($role === 'guru') ? 'Dashboard Guru' : 'Dashboard Karyawan';
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Menampilkan nama pengguna yang login dan judul dashboard -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h1 class="h3 text-gray-800"><?= htmlspecialchars($dashboard_title) ?></h1>
                             <p class="mb-0">Selamat datang, <strong><?= htmlspecialchars($nama_pengguna) ?></strong></p>
                         </div>
                     </div>
-                    
-                    <!-- Notifikasi Sukses (jika ada) -->
+
+                    <!-- Tempatkan notifikasi jika ada -->
                     <?php
                     if (isset($_SESSION['success_message'])) {
-                        echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>";
-                        echo htmlspecialchars($_SESSION['success_message']);
-                        echo "<button type='button' class='close' data-dismiss='alert' aria-label='Close'>";
-                        echo "<span aria-hidden='true'>&times;</span>";
-                        echo "</button></div>";
+                        echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>"
+                             . htmlspecialchars($_SESSION['success_message']) .
+                             "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button></div>";
                         unset($_SESSION['success_message']);
                     }
                     ?>
 
-                    <p>Laporan Absensi dan Pengajuan Surat Ijin</p>
-                    
-                    <!-- Elemen untuk grafik -->
+                    <!-- Area Grafik Absensi -->
                     <div class="row justify-content-center">
                         <div class="col-lg-12">
                             <canvas id="attendanceChart"></canvas>
                         </div>
                     </div>
                 </div>
-                <!-- End of Page Content -->
+                <!-- End Page Content -->
             </div>
-            <!-- End of Main Content -->
+            <!-- End Main Content -->
 
             <!-- Footer -->
             <footer class="sticky-footer bg-white">
@@ -239,24 +228,24 @@ $dashboard_title = ($role === 'guru') ? 'Dashboard Guru' : 'Dashboard Karyawan';
                 </div>
             </footer>
         </div>
-        <!-- End of Content Wrapper -->
+        <!-- End Content Wrapper -->
     </div>
-    <!-- End of Page Wrapper -->
+    <!-- End Page Wrapper -->
 
-    <!-- JavaScript Bootstrap dan dependencies -->
-    <script src="../../assets/vendor/jquery/jquery.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="../../assets/vendor/bootstrap/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="../../assets/vendor/jquery-easing/jquery.easing.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="../../assets/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- JavaScript Dependencies -->
+    <script src="../../assets/vendor/jquery/jquery.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
+    <script src="../../assets/vendor/bootstrap/js/bootstrap.bundle.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
+    <script src="../../assets/vendor/jquery-easing/jquery.easing.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
+    <script src="../../assets/js/sb-admin-2.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
     
-    <!-- Script untuk Chart.js dengan Data Labels -->
-    <script nonce="<?php echo $nonce; ?>">
-        // Ambil data absensi dari PHP
+    <!-- Script untuk Chart.js -->
+    <script nonce="<?= htmlspecialchars($nonce); ?>">
+        // Data absensi dari PHP
         const attendanceData = <?= $attendance_json; ?>;
         
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         const attendanceChart = new Chart(ctx, {
-            type: 'bar', // Tipe grafik (bar, pie, line, dll.)
+            type: 'bar',
             data: {
                 labels: ['Hadir', 'Terlambat', 'Izin', 'Alpha'],
                 datasets: [{
@@ -268,10 +257,10 @@ $dashboard_title = ($role === 'guru') ? 'Dashboard Guru' : 'Dashboard Karyawan';
                         attendanceData.alpha
                     ],
                     backgroundColor: [
-                        'rgba(75, 192, 192, 0.6)',   // Hadir
-                        'rgba(255, 206, 86, 0.6)',    // Terlambat
-                        'rgba(54, 162, 235, 0.6)',    // Izin
-                        'rgba(255, 99, 132, 0.6)'     // Alpha
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 99, 132, 0.6)'
                     ],
                     borderColor: [
                         'rgba(75, 192, 192, 1)',
