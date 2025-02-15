@@ -2,17 +2,20 @@
 // File: /payroll_absensi_v2/payroll/keuangan/payroll-details.php
 
 // =========================
-// 1. Inisialisasi Session & Pengecekan Role
+// 1. Pengaturan Awal & Keamanan
 // =========================
-session_start();
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+init_error_handling();
+authorize(['keuangan', 'superadmin']);
 
-// Cek Role: hanya untuk role "keuangan" dan "superadmin"
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin'])) {
-    header("Location: /payroll_absensi_v2/login.php");
-    exit();
-}
+generate_csrf_token();
+$csrf_token = $_SESSION['csrf_token'];
 
 require_once __DIR__ . '/../../koneksi.php';
+if (ob_get_length()) {
+    ob_end_clean();
+}
 
 // =========================
 // 2. Ambil Parameter & Data Payroll
@@ -24,7 +27,7 @@ if ($id_payroll <= 0) {
 }
 
 try {
-    // Ambil data payroll
+    // Ambil data payroll dari tabel payroll (atau payroll_final jika sudah final)
     $stmtPayroll = $conn->prepare("SELECT * FROM payroll WHERE id = ? LIMIT 1");
     if ($stmtPayroll === false) {
         throw new Exception("Prepare payroll gagal: " . $conn->error);
@@ -38,7 +41,12 @@ try {
     $payroll = $resPayroll->fetch_assoc();
     $stmtPayroll->close();
 
-    // Ambil data karyawan
+    // Jika status payroll belum final, arahkan user ke halaman lain
+    if ($payroll['status'] !== 'final') {
+        die("Slip gaji hanya tersedia untuk payroll yang sudah final.");
+    }
+
+    // Ambil data karyawan berdasarkan id_anggota pada payroll
     $id_anggota = $payroll['id_anggota'];
     $stmtKar = $conn->prepare("SELECT * FROM anggota_sekolah WHERE id = ? LIMIT 1");
     if ($stmtKar === false) {
@@ -53,13 +61,8 @@ try {
     $karyawan = $resKar->fetch_assoc();
     $stmtKar->close();
 
-    // Ambil detail payroll
-    $stmtDetail = $conn->prepare("
-        SELECT pd.*, ph.nama_payhead, ph.jenis 
-        FROM payroll_detail pd
-        JOIN payheads ph ON pd.id_payhead = ph.id
-        WHERE pd.id_payroll = ?
-    ");
+    // Ambil detail payroll dari payroll_detail beserta data payheads
+    $stmtDetail = $conn->prepare("SELECT pd.*, ph.nama_payhead, ph.jenis FROM payroll_detail pd JOIN payheads ph ON pd.id_payhead = ph.id WHERE pd.id_payroll = ?");
     if ($stmtDetail === false) {
         throw new Exception("Prepare detail gagal: " . $conn->error);
     }
@@ -72,10 +75,9 @@ try {
     }
     $stmtDetail->close();
 
-    // Hitung total pendapatan & potongan
-    $gaji_pokok = isset($payroll['gaji_pokok']) ? (float)$payroll['gaji_pokok'] : 0;
+    // Hitung total pendapatan dan potongan (berdasarkan detail payheads)
     $total_pendapatan = 0;
-    $total_potongan = 0;
+    $total_potongan   = 0;
     foreach ($details as $detail) {
         if (strtolower($detail['jenis']) === 'earnings') {
             $total_pendapatan += (float)$detail['amount'];
@@ -83,11 +85,11 @@ try {
             $total_potongan += (float)$detail['amount'];
         }
     }
-    $gaji_bersih = $gaji_pokok + $total_pendapatan - $total_potongan;
 
-    // Ambil data Level Indeks (jika ada)
-    $salary_index_level = '';
+    // Hitung gaji pokok; jika ada salary index, tambahkan nilainya
+    $gaji_pokok_employee = isset($karyawan['gaji_pokok']) ? (float)$karyawan['gaji_pokok'] : 0;
     $salary_index_amount = 0;
+    $salary_index_level  = '';
     if (!empty($karyawan['salary_index_id'])) {
         $stmtIndex = $conn->prepare("SELECT level, base_salary FROM salary_indices WHERE id = ?");
         if ($stmtIndex) {
@@ -102,42 +104,35 @@ try {
             $stmtIndex->close();
         }
     }
-    // Gaji pokok yang ditampilkan adalah gaji pokok employee + level indeks
-    $gaji_pokok_employee = isset($karyawan['gaji_pokok']) ? (float)$karyawan['gaji_pokok'] : 0;
     $gaji_pokok = $gaji_pokok_employee + $salary_index_amount;
 
-    // Format tanggal payroll menggunakan fungsi getIndonesianMonthName() dari helpers.php
-    // Pastikan fungsi tersebut sudah didefinisikan di file helpers.php
+    // Gaji bersih = gaji pokok + total pendapatan - total potongan
+    $gaji_bersih = $gaji_pokok + $total_pendapatan - $total_potongan;
+
+    // Format tanggal payroll
     $tglPayrollRaw = $payroll['tgl_payroll'];
     $timestamp = strtotime($tglPayrollRaw);
     $tanggalCetak = date('d', $timestamp) . ' ' . getIndonesianMonthName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
 
-    // Format periode
+    // Format periode gaji
     $periode = getIndonesianMonthName((int)$payroll['bulan']) . ' ' . $payroll['tahun'];
 
-    // Masa kerja karyawan
-    $thn = isset($karyawan['masa_kerja_tahun']) ? (int)$karyawan['masa_kerja_tahun'] : 0;
-    $bln = isset($karyawan['masa_kerja_bulan']) ? (int)$karyawan['masa_kerja_bulan'] : 0;
-    $masaKerja = ($thn > 0 || $bln > 0) ? $thn . " Tahun" . ($bln > 0 ? " " . $bln . " Bulan" : "") : "";
-
-    // Nomor rekening: gunakan dari karyawan atau payroll
-    $noRek = !empty($karyawan['no_rekening']) 
-             ? $karyawan['no_rekening'] 
-             : (isset($payroll['no_rekening']) && !empty($payroll['no_rekening']) ? $payroll['no_rekening'] : 'Belum ada');
-
-    if ($payroll['status'] !== 'final') {
-        die("Slip gaji hanya tersedia untuk payroll yang sudah final.");
+    // Hitung masa kerja karyawan
+    $masaKerja = "";
+    if (!empty($karyawan['masa_kerja_tahun']) || !empty($karyawan['masa_kerja_bulan'])) {
+        $masaKerja = ((int)$karyawan['masa_kerja_tahun']) . " Tahun, " . ((int)$karyawan['masa_kerja_bulan']) . " Bulan";
     }
-            
+
+    // Nomor rekening: gunakan dari karyawan atau payroll (fallback)
+    $noRek = !empty($karyawan['no_rekening']) ? $karyawan['no_rekening'] : (!empty($payroll['no_rekening']) ? $payroll['no_rekening'] : 'Belum ada');
+
     // Catatan payroll
     $catatan = trim($payroll['catatan']);
 
-    // Audit Log
-    $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
-    $log_details = "Mengakses Payroll ID $id_payroll untuk Karyawan ID $id_anggota pada periode $periode.";
-    if (!add_audit_log($conn, $user_id, 'ViewPayrollDetails', $log_details)) {
-        error_log("Gagal mencatat audit log untuk ViewPayrollDetails ID $id_payroll.");
-    }
+    // Catat audit log untuk akses slip gaji
+    $user_id = $_SESSION['user_id'] ?? '';
+    $log_details = "Mengakses Slip Gaji ID $id_payroll untuk Karyawan ID $id_anggota pada periode $periode.";
+    add_audit_log($conn, $user_id, 'ViewPayrollDetails', $log_details);
 
 } catch (Exception $e) {
     echo "Terjadi kesalahan: " . htmlspecialchars($e->getMessage());
@@ -147,136 +142,125 @@ try {
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Slip Gaji #<?= htmlspecialchars($id_payroll); ?></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Sertakan Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="/payroll_absensi_v2/dist/css/bootstrap.min.css">
-    <style>
-        body { background-color: #f8f9fa; }
-        .invoice-box {
-            max-width: 800px;
-            margin: 30px auto;
-            padding: 30px;
-            background: #fff;
-            border: 1px solid #dee2e6;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            font-size: 16px;
-            line-height: 24px;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #343a40;
-        }
-        .invoice-box table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .invoice-box table td {
-            padding: 8px;
-            vertical-align: top;
-        }
-        .invoice-box table tr.top table td {
-            padding-bottom: 20px;
-        }
-        .invoice-box table tr.top table td.title {
-            font-size: 36px;
-            font-weight: bold;
-            color: #007bff;
-        }
-        .invoice-box table tr.information table td {
-            padding-bottom: 20px;
-            font-size: 14px;
-        }
-        .invoice-box table tr.heading td {
-            background: #e9ecef;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: bold;
-        }
-        .invoice-box table tr.item td {
-            border-bottom: 1px solid #dee2e6;
-        }
-        .invoice-box table tr.item.last td {
-            border-bottom: none;
-        }
-        .invoice-box table tr.total td {
-            font-weight: bold;
-        }
-        .detail-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .detail-table th, .detail-table td {
-            border: 1px solid #dee2e6;
-            padding: 8px;
-            text-align: center;
-        }
-        .detail-table th {
-            background: #e9ecef;
-        }
-        .left-align { text-align: left; }
-        .btn-print {
-            text-align: center;
-            margin-top: 30px;
-        }
-        .btn-print button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background: #28a745;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .btn-print button:hover {
-            background: #218838;
-        }
-        .catatan-box {
-            margin-top: 20px;
-            padding: 15px;
-            border-left: 4px solid #007bff;
-            background: #f1f1f1;
-        }
-        .catatan-box h4 {
-            margin-top: 0;
-            font-size: 18px;
-            color: #007bff;
-        }
-        .btn-back {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            padding: 8px 12px;
-            background: #007bff;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 4px;
-            z-index: 1000;
-        }
-        .btn-back:hover {
-            background: #0056b3;
-        }
-        @media print {
-            @page {
-                margin: 20mm;
-            }
-            body, .invoice-box {
-                margin: 0;
-                padding: 0;
-                border: none;
-                box-shadow: none;
-                width: 100%;
-            }
-            .btn-print,
-            .btn-back {
-                display: none;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Slip Gaji #<?= htmlspecialchars($id_payroll); ?></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- Sertakan Bootstrap 5 & SB Admin 2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
+  <style>
+      body { background-color: #f8f9fa; }
+      .invoice-box {
+          max-width: 800px;
+          margin: 30px auto;
+          padding: 30px;
+          background: #fff;
+          border: 1px solid #dee2e6;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          font-size: 16px;
+          line-height: 24px;
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          color: #343a40;
+      }
+      .invoice-box table {
+          width: 100%;
+          border-collapse: collapse;
+      }
+      .invoice-box table td {
+          padding: 8px;
+          vertical-align: top;
+      }
+      .invoice-box table tr.top table td {
+          padding-bottom: 20px;
+      }
+      .invoice-box table tr.top table td.title {
+          font-size: 36px;
+          font-weight: bold;
+          color: #007bff;
+      }
+      .invoice-box table tr.information table td {
+          padding-bottom: 20px;
+          font-size: 14px;
+      }
+      .invoice-box table tr.heading td {
+          background: #e9ecef;
+          border-bottom: 1px solid #dee2e6;
+          font-weight: bold;
+      }
+      .invoice-box table tr.item td {
+          border-bottom: 1px solid #dee2e6;
+      }
+      .invoice-box table tr.item.last td {
+          border-bottom: none;
+      }
+      .invoice-box table tr.total td {
+          font-weight: bold;
+      }
+      .detail-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+      }
+      .detail-table th, .detail-table td {
+          border: 1px solid #dee2e6;
+          padding: 8px;
+          text-align: center;
+      }
+      .detail-table th {
+          background: #e9ecef;
+      }
+      .left-align { text-align: left; }
+      .btn-print {
+          text-align: center;
+          margin-top: 30px;
+      }
+      .btn-print button {
+          padding: 10px 20px;
+          font-size: 16px;
+          background: #28a745;
+          border: none;
+          color: #fff;
+          cursor: pointer;
+          border-radius: 4px;
+      }
+      .btn-print button:hover {
+          background: #218838;
+      }
+      .catatan-box {
+          margin-top: 20px;
+          padding: 15px;
+          border-left: 4px solid #007bff;
+          background: #f1f1f1;
+      }
+      .catatan-box h4 {
+          margin-top: 0;
+          font-size: 18px;
+          color: #007bff;
+      }
+      .btn-back {
+          position: fixed;
+          top: 10px;
+          left: 10px;
+          padding: 8px 12px;
+          background: #007bff;
+          color: #fff;
+          text-decoration: none;
+          border-radius: 4px;
+          z-index: 1000;
+      }
+      .btn-back:hover {
+          background: #0056b3;
+      }
+      @media print {
+          @page { margin: 20mm; }
+          body, .invoice-box { margin: 0; padding: 0; border: none; box-shadow: none; width: 100%; }
+          .btn-print, .btn-back { display: none; }
+      }
+  </style>
 </head>
 <body>
     <!-- Tombol Kembali -->
     <a href="payroll_history.php" class="btn-back">Kembali</a>
-    
     <div class="invoice-box">
         <!-- Header Invoice -->
         <table>
@@ -296,7 +280,7 @@ try {
                     </table>
                 </td>
             </tr>
-            <!-- Informasi Penerima -->
+            <!-- Informasi Perusahaan & Penerima -->
             <tr class="information">
                 <td colspan="2">
                     <table>
@@ -373,9 +357,7 @@ try {
             <?php
             $no = 1;
             foreach ($details as $detail) {
-                $jenis_tampil = function_exists('translateJenis')
-                    ? translateJenis($detail['jenis'])
-                    : ucfirst($detail['jenis']);
+                $jenis_tampil = function_exists('translateJenis') ? translateJenis($detail['jenis']) : ucfirst($detail['jenis']);
                 echo "<tr>";
                 echo "<td>" . $no . "</td>";
                 echo "<td class='left-align'>" . htmlspecialchars($detail['nama_payhead']) . "</td>";

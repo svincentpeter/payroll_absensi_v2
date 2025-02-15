@@ -2,22 +2,24 @@
 // File: /payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php
 
 // =========================
-// 1. Inisialisasi Session & Pengecekan Hak Akses
+// 1. Inisialisasi Session, Keamanan, & Koneksi Database
 // =========================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['keuangan', 'superadmin']); // Hanya role "keuangan" dan "superadmin" yang diizinkan
-
+authorize(['keuangan', 'superadmin']); // Hanya role keuangan dan superadmin yang diizinkan
 require_once __DIR__ . '/../../koneksi.php';
 
-// Catat audit log ketika dashboard diakses
-$user_nip = $_SESSION['nip'] ?? '';
-add_audit_log($conn, $user_nip, 'ViewDashboardKeuangan', "Dashboard Keuangan diakses oleh user dengan NIP $user_nip.");
+// Hapus output buffering jika ada
+if (ob_get_length()) {
+    ob_end_clean();
+}
 
 // =========================
-// 2. Proses Data Payroll & Filter
+// 2. PROSES PENGAMBILAN DATA PAYROLL DAN FILTER
 // =========================
+
+// Filter: Bulan dan Tahun dari parameter GET dengan nilai default bulan sekarang dan tahun sekarang
 $bulan = isset($_GET['bulan']) ? intval($_GET['bulan']) : date('n');
 $tahun = isset($_GET['tahun']) ? intval($_GET['tahun']) : date('Y');
 
@@ -34,8 +36,8 @@ $namaBulan = [
     9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
 ];
 
-// 2a. Ambil Data Payroll sesuai filter
-$sqlPayroll = "SELECT p.*, a.nama, a.jenjang, si.level
+// Query Data Payroll sesuai filter bulan dan tahun
+$sqlPayroll = "SELECT p.*, a.nama, a.jenjang, si.level 
                FROM payroll p
                LEFT JOIN anggota_sekolah a ON p.id_anggota = a.id
                LEFT JOIN salary_indices si ON a.salary_index_id = si.id
@@ -47,36 +49,29 @@ if (!$stmtPayroll) {
 $stmtPayroll->bind_param("ii", $bulan, $tahun);
 $stmtPayroll->execute();
 $resultPayroll = $stmtPayroll->get_result();
-if (!$resultPayroll) {
-    die("Execute failed: " . $stmtPayroll->error);
-}
 $stmtPayroll->close();
 
-// 2b. Total Gaji Pokok
-$sqlTotalGaji = "SELECT SUM(gaji_pokok) AS total_gaji_pokok
-                 FROM payroll
-                 WHERE bulan = ? AND tahun = ?";
+// Query Total Gaji Pokok
+$sqlTotalGaji = "SELECT SUM(gaji_pokok) AS total_gaji_pokok FROM payroll WHERE bulan = ? AND tahun = ?";
 $stmt = $conn->prepare($sqlTotalGaji);
 $stmt->bind_param("ii", $bulan, $tahun);
 $stmt->execute();
-$res   = $stmt->get_result();
+$res = $stmt->get_result();
 $totalGajiPokok = $res->fetch_assoc()['total_gaji_pokok'] ?? 0;
 $stmt->close();
 
-// 2c. Total Gaji Bersih
-$sqlTotalDiterima = "SELECT SUM(gaji_bersih) AS total_diterima
-                     FROM payroll
-                     WHERE bulan = ? AND tahun = ?";
+// Query Total Gaji Bersih
+$sqlTotalDiterima = "SELECT SUM(gaji_bersih) AS total_diterima FROM payroll WHERE bulan = ? AND tahun = ?";
 $stmt = $conn->prepare($sqlTotalDiterima);
 $stmt->bind_param("ii", $bulan, $tahun);
 $stmt->execute();
-$res          = $stmt->get_result();
+$res = $stmt->get_result();
 $totalDiterima = $res->fetch_assoc()['total_diterima'] ?? 0;
 $stmt->close();
 
-// 2d. Data Grafik Tren Gaji Bulanan
-$sqlGajiBulanan = "SELECT p.bulan,
-                          SUM(p.gaji_pokok) AS total_gaji_pokok,
+// Data Grafik Tren Gaji Bulanan untuk tahun yang dipilih
+$sqlGajiBulanan = "SELECT p.bulan, 
+                          SUM(p.gaji_pokok) AS total_gaji_pokok, 
                           SUM(p.gaji_bersih) AS total_gaji_bersih
                    FROM payroll p
                    WHERE p.tahun = ?
@@ -85,71 +80,59 @@ $sqlGajiBulanan = "SELECT p.bulan,
 $stmt = $conn->prepare($sqlGajiBulanan);
 $stmt->bind_param("i", $tahun);
 $stmt->execute();
-$res            = $stmt->get_result();
-$bulanGrafik    = [];
+$res = $stmt->get_result();
+$bulanGrafik = [];
 $gajiBulananPokok = [];
 $gajiBulananBersih = [];
 while ($row = $res->fetch_assoc()) {
-    $bulanGrafik[]         = $namaBulan[$row['bulan']] ?? $row['bulan'];
-    $gajiBulananPokok[]    = floatval($row['total_gaji_pokok']);
-    $gajiBulananBersih[]   = floatval($row['total_gaji_bersih']);
+    $bulanGrafik[] = $namaBulan[$row['bulan']] ?? $row['bulan'];
+    $gajiBulananPokok[] = floatval($row['total_gaji_pokok']);
+    $gajiBulananBersih[] = floatval($row['total_gaji_bersih']);
 }
 $stmt->close();
 
-// 2e. Perbandingan Guru vs Karyawan
-$jenjang_filter = $_GET['jenjang_filter'] ?? 'all';
-$sqlJenjangOptions = "SELECT DISTINCT jenjang
-                      FROM anggota_sekolah
-                      WHERE jenjang IS NOT NULL
-                      ORDER BY jenjang ASC";
+// Data Perbandingan Guru vs Karyawan (opsional)
+// Filter berdasarkan jenjang, jika diperlukan (default: semua)
+$jenjang_filter = isset($_GET['jenjang_filter']) ? trim($_GET['jenjang_filter']) : 'all';
+$sqlJenjangOptions = "SELECT DISTINCT jenjang FROM anggota_sekolah WHERE jenjang IS NOT NULL ORDER BY jenjang ASC";
 $resJenjangOptions = $conn->query($sqlJenjangOptions);
-$jenjangOptions    = [];
+$jenjangOptions = [];
 if ($resJenjangOptions) {
     while ($rowOpt = $resJenjangOptions->fetch_assoc()) {
         $jenjangOptions[] = $rowOpt['jenjang'];
     }
+    $resJenjangOptions->close();
 }
-$resJenjangOptions->close();
 
 if ($jenjang_filter !== 'all') {
-    $sqlTeacher = "SELECT COUNT(*) AS teacher_count
-                   FROM anggota_sekolah
-                   WHERE LOWER(job_title) LIKE '%guru%'
-                     AND jenjang = ?";
+    $sqlTeacher = "SELECT COUNT(*) AS teacher_count FROM anggota_sekolah WHERE LOWER(job_title) LIKE '%guru%' AND jenjang = ?";
     $stmt = $conn->prepare($sqlTeacher);
     $stmt->bind_param("s", $jenjang_filter);
 } else {
-    $sqlTeacher = "SELECT COUNT(*) AS teacher_count
-                   FROM anggota_sekolah
-                   WHERE LOWER(job_title) LIKE '%guru%'";
+    $sqlTeacher = "SELECT COUNT(*) AS teacher_count FROM anggota_sekolah WHERE LOWER(job_title) LIKE '%guru%'";
     $stmt = $conn->prepare($sqlTeacher);
 }
 $stmt->execute();
-$res          = $stmt->get_result();
+$res = $stmt->get_result();
 $teacher_count = $res->fetch_assoc()['teacher_count'] ?? 0;
 $stmt->close();
 
 if ($jenjang_filter !== 'all') {
-    $sqlEmployee = "SELECT COUNT(*) AS employee_count
-                    FROM anggota_sekolah
-                    WHERE LOWER(job_title) NOT LIKE '%guru%'
-                      AND jenjang = ?";
+    $sqlEmployee = "SELECT COUNT(*) AS employee_count FROM anggota_sekolah WHERE LOWER(job_title) NOT LIKE '%guru%' AND jenjang = ?";
     $stmt = $conn->prepare($sqlEmployee);
     $stmt->bind_param("s", $jenjang_filter);
 } else {
-    $sqlEmployee = "SELECT COUNT(*) AS employee_count
-                    FROM anggota_sekolah
-                    WHERE LOWER(job_title) NOT LIKE '%guru%'";
+    $sqlEmployee = "SELECT COUNT(*) AS employee_count FROM anggota_sekolah WHERE LOWER(job_title) NOT LIKE '%guru%'";
     $stmt = $conn->prepare($sqlEmployee);
 }
 $stmt->execute();
-$res           = $stmt->get_result();
+$res = $stmt->get_result();
 $employee_count = $res->fetch_assoc()['employee_count'] ?? 0;
 $stmt->close();
 
-// 2f. Data Total Anggota Sekolah
+// Data Total Anggota Sekolah
 $sqlTotalAnggota = "SELECT COUNT(*) as total_anggota FROM anggota_sekolah";
-$resTotal  = $conn->query($sqlTotalAnggota);
+$resTotal = $conn->query($sqlTotalAnggota);
 $totalAnggota = 0;
 if ($resTotal) {
     $row = $resTotal->fetch_assoc();
@@ -157,30 +140,14 @@ if ($resTotal) {
     $resTotal->close();
 }
 
-// 2g. Jumlah guru & karyawan keseluruhan
-$sqlGuruAll = "SELECT COUNT(*) as guru_count
-               FROM anggota_sekolah
-               WHERE LOWER(job_title) LIKE '%guru%'";
-$resGuruAll = $conn->query($sqlGuruAll);
-$guruAll = 0;
-if ($resGuruAll) {
-    $row = $resGuruAll->fetch_assoc();
-    $guruAll = $row['guru_count'] ?? 0;
-    $resGuruAll->close();
-}
+// Tutup koneksi setelah semua query (opsional, bisa ditutup di akhir file)
+// $conn->close();
 
-$sqlKaryawanAll = "SELECT COUNT(*) as karyawan_count
-                   FROM anggota_sekolah
-                   WHERE LOWER(job_title) NOT LIKE '%guru%'";
-$resKaryawanAll = $conn->query($sqlKaryawanAll);
-$karyawanAll = 0;
-if ($resKaryawanAll) {
-    $row = $resKaryawanAll->fetch_assoc();
-    $karyawanAll = $row['karyawan_count'] ?? 0;
-    $resKaryawanAll->close();
-}
+// Konversi data grafik ke format JSON agar bisa dipakai di JavaScript
+$bulanGrafik_json = json_encode($bulanGrafik, JSON_UNESCAPED_SLASHES);
+$gajiBulananPokok_json = json_encode($gajiBulananPokok, JSON_UNESCAPED_SLASHES);
+$gajiBulananBersih_json = json_encode($gajiBulananBersih, JSON_UNESCAPED_SLASHES);
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>

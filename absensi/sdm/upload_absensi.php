@@ -4,7 +4,6 @@
 // ==============================================================================
 // 1. Pengaturan Awal & Keamanan
 // ==============================================================================
-
 session_start();
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../koneksi.php';
@@ -15,14 +14,12 @@ if (ob_get_length()) ob_end_clean();
 // Pastikan hanya role sdm dan superadmin yang boleh mengakses halaman ini
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
-
 // Generate CSRF token (jika belum ada)
 generate_csrf_token();
 
 // ==============================================================================
 // 2. Fungsi Tambahan Khusus Koreksi Absensi
 // ==============================================================================
-
 function get_nama_karyawan($conn) {
     $sql = "SELECT nama FROM anggota_sekolah GROUP BY nama";
     $result = mysqli_query($conn, $sql);
@@ -53,7 +50,6 @@ function delete_absensi($conn, $id_absensi) {
 // ==============================================================================
 // 3. Proses POST: Update, Delete, dan Server-side DataTables
 // ==============================================================================
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Pastikan CSRF token valid untuk semua proses POST
     if (!isset($_POST['csrf_token'])) {
@@ -61,10 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     verify_csrf_token($_POST['csrf_token']);
 
-    // Proses Update dan Delete (dengan adanya parameter action)
+    // Proses Update dan Delete (dengan parameter action)
     if (isset($_POST['action'])) {
         $action = $_POST['action'];
         if ($action === 'update') {
+            // --- Proses Update Absensi ---
             $id_absensi      = $_POST['id_absensi'] ?? '';
             $departemen_post = $_POST['departemen'] ?? '';
             $bulan_post      = $_POST['bulan'] ?? '';
@@ -212,7 +209,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             if (mysqli_stmt_execute($stmt)) {
                 $audit_details = "Mengupdate data absensi ID $id_absensi. Data: tanggal=$tanggal, jadwal=$jadwal, jam_kerja=$jam_kerja, valid=$valid, pin=$pin, nip=$nip, nama=$nama, departemen=$departemen, lembur=$lembur, jam_masuk=$jam_masuk, scan_masuk=$scan_masuk_datetime, terlambat=$terlambat, scan_istirahat_1=$scan_istirahat_1_datetime, scan_istirahat_2=$scan_istirahat_2_datetime, jam_pulang=$jam_pulang, scan_pulang=$scan_pulang_datetime, jenis_absensi=$jenis_absensi.";
-                // MODIFIKASI: Gunakan NIP untuk audit log
                 add_audit_log($conn, $_SESSION['nip'], 'UpdateAbsensi', $audit_details);
                 $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dikoreksi.";
                 mysqli_stmt_close($stmt);
@@ -231,7 +227,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $deleteResult = delete_absensi($conn, $id_absensi);
             if ($deleteResult === true) {
-                // MODIFIKASI: Gunakan NIP untuk audit log
                 add_audit_log($conn, $_SESSION['nip'], 'DeleteAbsensi', "Menghapus data absensi ID $id_absensi.");
                 $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dihapus.";
             } else {
@@ -414,14 +409,22 @@ $namaKaryawan = get_nama_karyawan($conn);
 <head>
     <meta charset="UTF-8">
     <title>Upload Absensi</title>
-    <!-- Custom fonts and styles -->
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="../../assets/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
-    <link href="../../assets/vendor/datatables/buttons.bootstrap4.min.css" rel="stylesheet">
-    <link href="../../assets/vendor/datatables/responsive.bootstrap4.min.css" rel="stylesheet">
+    <!-- SB Admin 2 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css" rel="stylesheet">
+    <!-- FullCalendar CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet">
+    <!-- jQuery UI CSS -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
         /* Custom styles here */
     </style>
@@ -435,18 +438,45 @@ $namaKaryawan = get_nama_karyawan($conn);
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">Upload Absensi</h1>
-                    <?php if ($message): ?>
-                        <div class="alert alert-info alert-dismissible fade show" role="alert">
-                            <i class="fas fa-info-circle"></i> <?= htmlspecialchars($message) ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    <?php endif; ?>
+                    <!-- SweetAlert2 Notifikasi (jika ada) -->
+                    <?php
+                    if (isset($_SESSION['notif_success'])) {
+                        $notif_success = $_SESSION['notif_success'];
+                        unset($_SESSION['notif_success']);
+                        echo "<script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '" . addslashes($notif_success) . "',
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                        });
+                        </script>";
+                    }
+                    if (isset($_SESSION['notif_error'])) {
+                        $notif_error = $_SESSION['notif_error'];
+                        unset($_SESSION['notif_error']);
+                        echo "<script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: '" . addslashes($notif_error) . "',
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                        });
+                        </script>";
+                    }
+                    ?>
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">
                             <h6 class="m-0 font-weight-bold text-primary">Form Upload Absensi</h6>
                         </div>
                         <div class="card-body">
                             <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                                <!-- Sertakan CSRF token -->
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
                                 <div class="mb-3">
                                     <label for="departemen" class="form-label">Pilih Departemen</label>
                                     <select name="departemen" id="departemen" class="form-control" required>
@@ -522,24 +552,35 @@ $namaKaryawan = get_nama_karyawan($conn);
             </footer>
         </div>
     </div>
-    <script src="../../assets/vendor/jquery/jquery.min.js"></script>
+    <!-- JavaScript Dependencies -->
+    <!-- jQuery & jQuery UI -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <!-- Bootstrap Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src="../../assets/js/sb-admin-2.min.js"></script>
-    <script src="../../assets/vendor/datatables/jquery.dataTables.min.js"></script>
-    <script src="../../assets/vendor/datatables/dataTables.bootstrap4.min.js"></script>
-    <script src="../../assets/vendor/datatables/dataTables.buttons.min.js"></script>
-    <script src="../../assets/vendor/datatables/buttons.bootstrap4.min.js"></script>
-    <script src="../../assets/vendor/datatables/jszip.min.js"></script>
-    <script src="../../assets/vendor/datatables/pdfmake.min.js"></script>
-    <script src="../../assets/vendor/datatables/vfs_fonts.js"></script>
-    <script src="../../assets/vendor/datatables/buttons.html5.min.js"></script>
-    <script src="../../assets/vendor/datatables/buttons.print.min.js"></script>
-    <script src="../../assets/vendor/datatables/buttons.colVis.min.js"></script>
-    <script src="../../assets/vendor/datatables/dataTables.responsive.min.js"></script>
-    <script src="../../assets/vendor/datatables/responsive.bootstrap4.min.js"></script>
+    <!-- DataTables & Plugins -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
+    <!-- FullCalendar & Moment.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
+    <!-- SB Admin 2 JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(function() {
+        // Inisialisasi DataTable untuk Log Detail Import
         $('#logTable').DataTable({
             "language": {
                 "url": "https://cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
@@ -576,14 +617,10 @@ $namaKaryawan = get_nama_karyawan($conn);
             "pageLength": 10
         });
 
+        // Tooltip initialization
         $('[data-toggle="tooltip"]').tooltip();
 
-        window.setTimeout(function () {
-            $(".alert").fadeTo(500, 0).slideUp(500, function () {
-                $(this).remove();
-            });
-        }, 3000);
-
+        // Saat form upload dikirim, tampilkan spinner
         $('#uploadForm').on('submit', function(e) {
             var $btn = $(this).find('button[type="submit"]');
             $btn.prop('disabled', true);

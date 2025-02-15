@@ -2,19 +2,15 @@
 // File: /payroll_absensi_v2/payroll/keuangan/rekap_payroll_details.php
 
 // =========================
-// 1. Inisialisasi Session & Pengecekan Role
+// 1. Inisialisasi Session & Pengaturan Awal
 // =========================
-session_start();
-
-require_once __DIR__ . '/../../koneksi.php';
 require_once __DIR__ . '/../../helpers.php';
-
-// Pengecekan role: hanya pengguna dengan role 'keuangan', 'superadmin', atau 'sdm' yang diizinkan
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], ['keuangan', 'superadmin', 'sdm'])) {
-    header("Location: /payroll_absensi_v2/login.php");
-    exit();
-}
-
+start_session_safe();
+init_error_handling();
+authorize(['keuangan', 'superadmin', 'sdm']);
+generate_csrf_token();
+$csrf_token = $_SESSION['csrf_token'];
+require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) {
     ob_end_clean();
 }
@@ -40,7 +36,7 @@ add_audit_log(
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Catatan: verifikasi token CSRF telah dihapus
+        // Catatan: verifikasi token CSRF dapat ditambahkan jika diperlukan
         $case = isset($_POST['case']) ? sanitize_input($_POST['case']) : '';
         switch ($case) {
             case 'LoadingRekapPayrollDetails':
@@ -77,14 +73,9 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     $tahun = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
     // Query dasar: join payroll dan anggota_sekolah
-    $sqlBase = "
-        FROM payroll p
-        JOIN anggota_sekolah a ON p.id_anggota = a.id
-        WHERE a.jenjang = ?
-    ";
+    $sqlBase = "FROM payroll p JOIN anggota_sekolah a ON p.id_anggota = a.id WHERE a.jenjang = ?";
     $params = [$jenjang];
     $types  = "s";
-
     if ($bulan > 0) {
         $sqlBase .= " AND p.bulan = ?";
         $params[] = $bulan;
@@ -130,18 +121,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     $stmtTotal->close();
 
     // Query data: ambil kolom yang diperlukan
-    $sqlData = "
-        SELECT p.id AS id_payroll,
-               a.nama AS nama_karyawan,
-               p.bulan,
-               p.tahun,
-               p.gaji_pokok,
-               p.total_pendapatan,
-               p.total_potongan,
-               p.gaji_bersih
-        " . $sqlBase . "
-    ";
-
+    $sqlData = "SELECT p.id AS id_payroll, a.nama AS nama_karyawan, p.bulan, p.tahun, p.gaji_pokok, p.total_pendapatan, p.total_potongan, p.gaji_bersih " . $sqlBase;
     // ORDER BY: default p.id DESC
     $orderBy = " ORDER BY p.id DESC";
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
@@ -165,15 +145,11 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
             }
         }
     }
-
-    // LIMIT untuk paging
     $limit = " LIMIT ?, ?";
     $paramsData = $params;
-    $typesData  = $types;
+    $typesData = $types . "ii";
     $paramsData[] = $start;
     $paramsData[] = $length;
-    $typesData   .= "ii";
-
     $sqlData .= $orderBy . $limit;
 
     $stmtData = $conn->prepare($sqlData);
@@ -558,7 +534,6 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
 
         // EVENT: Apply Filter
         $('#btnApplyFilter').on('click', function(){
-            // Opsional: Audit log dapat dicatat melalui AJAX (jika diinginkan)
             rekapPayrollDetailsTable.ajax.reload();
         });
 

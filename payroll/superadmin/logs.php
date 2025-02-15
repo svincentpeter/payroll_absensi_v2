@@ -5,7 +5,7 @@
 // 1. Pengaturan Keamanan & Session
 // =========================
 
-// Set parameter cookie session
+// Set parameter cookie session (pastikan menggunakan HTTPS)
 session_set_cookie_params([
     'lifetime' => 0,
     'path'     => '/',
@@ -40,7 +40,6 @@ generate_csrf_token();
 
 // Pastikan hanya superadmin yang dapat mengakses halaman ini
 authorize('superadmin', '/payroll_absensi_v2/login.php');
-
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
@@ -147,10 +146,7 @@ if (!empty($conditions)) {
     $whereClause = "WHERE " . implode(" AND ", $conditions);
 }
 
-// Perbaikan query:
-// - Mengganti tabel "users" dengan "anggota_sekolah"
-// - Menghubungkan kedua tabel berdasarkan kolom "nip"
-// - Mengambil nama dari kolom "nama" sebagai username
+// Query audit logs dengan join ke tabel anggota_sekolah
 $sqlFiltered = "SELECT a.*, u.nama AS username, u.role 
                 FROM audit_logs a 
                 LEFT JOIN anggota_sekolah u ON a.nip = u.nip 
@@ -162,7 +158,7 @@ if (!$resultFiltered) {
     die("Query error: " . $conn->error);
 }
 
-// Tambahkan audit log bahwa halaman logs diakses
+// Catat audit log bahwa halaman logs diakses
 $user_id = $_SESSION['user_id'] ?? 0;
 add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.');
 ?>
@@ -172,7 +168,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
     <meta charset="UTF-8">
     <title>Audit Logs - Superadmin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 5.3.3 CSS & SB Admin 2 CSS -->
+    <!-- Bootstrap 5 CSS & SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
     <!-- Font Awesome -->
@@ -225,7 +221,6 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
             text-align: center;
             line-height: 32px;
             font-size: 18px;
-            /* Warna akan di-set secara inline */
         }
         .vertical-timeline-content {
             background: #ffffff;
@@ -269,7 +264,6 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End of Sidebar -->
@@ -297,17 +291,17 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                             <i class="fas fa-filter"></i> Filter Audit Logs
                         </div>
                         <div class="card-body">
-                            <form method="GET" id="filterForm" class="form-row">
-                                <div class="form-group col-md-3">
-                                    <label for="start_date">Start Date</label>
+                            <form method="GET" id="filterForm" class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="start_date" class="form-label">Start Date</label>
                                     <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
                                 </div>
-                                <div class="form-group col-md-3">
-                                    <label for="end_date">End Date</label>
+                                <div class="col-md-3">
+                                    <label for="end_date" class="form-label">End Date</label>
                                     <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
                                 </div>
-                                <div class="form-group col-md-3">
-                                    <label for="role">Role</label>
+                                <div class="col-md-3">
+                                    <label for="role" class="form-label">Role</label>
                                     <select class="form-control" id="role" name="role">
                                         <option value="">All</option>
                                         <option value="superadmin" <?php echo (isset($_GET['role']) && $_GET['role'] == 'superadmin') ? 'selected' : ''; ?>>Superadmin</option>
@@ -317,13 +311,13 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                                         <option value="karyawan" <?php echo (isset($_GET['role']) && $_GET['role'] == 'karyawan') ? 'selected' : ''; ?>>Karyawan</option>
                                     </select>
                                 </div>
-                                <div class="form-group col-md-3">
-                                    <label for="search">Search</label>
+                                <div class="col-md-3">
+                                    <label for="search" class="form-label">Search</label>
                                     <input type="text" class="form-control" id="search" name="search" placeholder="Action or Details" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
                                 </div>
-                                <div class="form-group col-md-12 text-right">
+                                <div class="col-12 text-end">
                                     <button type="submit" class="btn btn-primary mt-2"><i class="fas fa-search"></i> Filter</button>
-                                    <a href="logs.php" class="btn btn-warning mt-2 ml-2"><i class="fas fa-sync-alt"></i> Reset</a>
+                                    <a href="logs.php" class="btn btn-warning mt-2 ms-2"><i class="fas fa-sync-alt"></i> Reset</a>
                                 </div>
                             </form>
                         </div>
@@ -332,7 +326,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                     <!-- Audit Logs Timeline Card -->
                     <div class="card card-custom">
                         <div class="card-header bg-primary text-white">
-                            <h6 class="m-0 font-weight-bold"><i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)</h6>
+                            <h6 class="m-0 fw-bold"><i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)</h6>
                         </div>
                         <div class="card-body">
                             <div class="vertical-timeline">
@@ -346,8 +340,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                                     $username    = htmlspecialchars($row['username'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
                                     $role        = htmlspecialchars($row['role'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
                                     $dateStr     = date("d M Y, H:i", strtotime($row['created_at']));
-                                    // Dapatkan warna berdasarkan jenis aksi
-                                    $color = getActivityColor($actionText);
+                                    $color       = getActivityColor($actionText);
                                 ?>
                                 <div class="vertical-timeline-item">
                                     <div class="vertical-timeline-icon" style="border-color: <?php echo $color; ?>; color: <?php echo $color; ?>;">
@@ -358,7 +351,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                                         <p><?php echo $detailsText; ?></p>
                                         <p class="timeline-meta">
                                             <?php echo getRoleIcon($role) . ' <strong>' . $username . '</strong> (' . ucfirst($role) . ')'; ?>
-                                            <span class="float-right"><?php echo $dateStr; ?></span>
+                                            <span class="float-end"><?php echo $dateStr; ?></span>
                                         </p>
                                     </div>
                                 </div>
@@ -366,6 +359,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                             </div>
                         </div>
                     </div>
+
                 </div>
                 <!-- End of Page Content -->
             </div>
@@ -385,8 +379,10 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
     <!-- End of Page Wrapper -->
 
     <!-- JS Dependencies -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
 </body>
 </html>
 

@@ -165,9 +165,9 @@ function renderMenuItems($items, $iconClass = 'fa-fw') {
             'Koreksi Absensi'         => '/absensi/sdm/koreksi_absensi.php',
             'Pengaturan Salary Indeks'=> '/absensi/sdm/manage_salary_indices.php',
             'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
-            'Payroll Anggota'         => '/payroll/keuangan/employees.php',
-            'Payheads'                => '/payroll/keuangan/payheads.php',
-            'Rekap Absensi'           => '/payroll/keuangan/rekap_absensi.php',
+            'Payroll Anggota'         => '/absensi/sdm/employees.php',
+            'Payheads'                => '/absensi/sdm/payheads.php',
+            'Rekap Absensi'           => '/absensi/sdm/rekap_absensi.php',
             'Hari Libur'              => '/absensi/sdm/holidays.php',
             'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php'
         ];

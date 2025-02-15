@@ -1,20 +1,20 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/audit_logs_keuangan.php (versi sederhana)
+// File: /payroll_absensi_v2/payroll/keuangan/audit_logs_keuangan.php
+
 // =========================
-// 1. Inisialisasi Session & Pengecekan Role
+// 1. Pengaturan Dasar & Session
 // =========================
 
-// Mulai session (tanpa pengaturan cookie security tambahan)
+// Mulai session (tanpa pengaturan cookie khusus)
 session_start();
 
-// Sertakan file helper (jika diperlukan fungsi-fungsi tambahan)
 require_once __DIR__ . '/../../helpers.php';
+init_error_handling(); // Hanya sistem error log yang dipertahankan
 
 // Pastikan hanya superadmin yang dapat mengakses halaman ini
-authorize('keuangan', '/payroll_absensi_v2/login.php');
+authorize('superadmin', '/payroll_absensi_v2/login.php');
 
-
-// Sertakan koneksi ke database
+// Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) {
     ob_end_clean();
@@ -24,9 +24,6 @@ if (ob_get_length()) {
 // 2. Fungsi Pendukung (Ikon, Warna & Badge)
 // =========================
 
-/**
- * Mengembalikan HTML ikon sesuai jenis aktivitas (action).
- */
 function getActivityIcon($action) {
     $actionLower = strtolower($action);
     if (strpos($actionLower, 'login') !== false) {
@@ -43,9 +40,6 @@ function getActivityIcon($action) {
     return '<i class="fas fa-info-circle"></i>';
 }
 
-/**
- * Mengembalikan HTML ikon sesuai role pengguna.
- */
 function getRoleIcon($role) {
     $role = strtolower($role);
     switch ($role) {
@@ -64,36 +58,29 @@ function getRoleIcon($role) {
     }
 }
 
-/**
- * Mengembalikan warna (hex code) sesuai jenis aktivitas.
- */
 function getActivityColor($action) {
     $actionLower = strtolower($action);
     if (strpos($actionLower, 'login') !== false) {
-        return '#1cc88a'; // hijau
+        return '#1cc88a';
     } elseif (strpos($actionLower, 'failed') !== false) {
-        return '#e74a3b'; // merah
+        return '#e74a3b';
     } elseif (strpos($actionLower, 'edit') !== false) {
-        return '#f6c23e'; // kuning
+        return '#f6c23e';
     } elseif (strpos($actionLower, 'delete') !== false) {
-        return '#e74a3b'; // merah
+        return '#e74a3b';
     } elseif (strpos($actionLower, 'accessauditlogs') !== false) {
-        return '#36b9cc'; // biru muda
+        return '#36b9cc';
     }
-    return '#4e73df'; // biru default
+    return '#4e73df';
 }
 
 // =========================
 // 3. Ambil Data Audit Logs dengan Filter (Max 30)
 // =========================
 
-// Karena file ini khusus untuk role "keuangan", tambahkan kondisi tetap.
+// Periksa parameter GET (start_date, end_date, role, search)
 $conditions = [];
-$conditions[] = "u.role = 'keuangan'";
-
-// Periksa parameter GET untuk filter tanggal dan pencarian
 if (!empty($_GET['start_date'])) {
-    // Asumsikan format YYYY-MM-DD
     $start_date = $conn->real_escape_string($_GET['start_date']);
     $conditions[] = "a.created_at >= '$start_date 00:00:00'";
 }
@@ -101,19 +88,22 @@ if (!empty($_GET['end_date'])) {
     $end_date = $conn->real_escape_string($_GET['end_date']);
     $conditions[] = "a.created_at <= '$end_date 23:59:59'";
 }
+if (!empty($_GET['role'])) {
+    $role_filter = $conn->real_escape_string($_GET['role']);
+    $conditions[] = "u.role = '$role_filter'";
+}
 if (!empty($_GET['search'])) {
     $search = $conn->real_escape_string($_GET['search']);
     $conditions[] = "(a.action LIKE '%$search%' OR a.details LIKE '%$search%')";
 }
-
 $whereClause = '';
 if (!empty($conditions)) {
     $whereClause = "WHERE " . implode(" AND ", $conditions);
 }
 
-// Query dengan filter, urutkan DESC, limit 30
-$sqlFiltered = "SELECT a.*, u.username, u.role FROM audit_logs a 
-                LEFT JOIN users u ON a.user_id = u.id_user 
+$sqlFiltered = "SELECT a.*, u.nama AS username, u.role 
+                FROM audit_logs a 
+                LEFT JOIN anggota_sekolah u ON a.nip = u.nip 
                 $whereClause
                 ORDER BY a.created_at DESC
                 LIMIT 30";
@@ -122,15 +112,15 @@ if (!$resultFiltered) {
     die("Query error: " . $conn->error);
 }
 
-// Tambahkan audit log bahwa halaman logs diakses (log ini juga akan tercatat sebagai log keuangan)
+// Catat audit log bahwa halaman logs diakses
 $user_id = $_SESSION['user_id'] ?? 0;
-add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs Keuangan.');
+add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.');
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Audit Logs Keuangan - Keuangan</title>
+    <title>Audit Logs Keuangan - Superadmin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS & SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -142,14 +132,12 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
         body {
             background-color: #f8f9fc;
         }
-        /* Card custom dengan ukuran maksimal tidak terlalu besar */
         .card-custom {
             max-width: 900px;
             margin: 20px auto;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        /* Timeline Styles */
         .vertical-timeline {
             position: relative;
             padding: 20px 0;
@@ -191,7 +179,6 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             padding: 15px;
             border-radius: 6px;
             border-left: 4px solid #4e73df;
-            position: relative;
             margin-bottom: 10px;
         }
         .vertical-timeline-content h5 {
@@ -211,7 +198,6 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             color: #6e707e;
             margin-top: 5px;
         }
-        /* Responsive adjustments */
         @media (max-width: 768px) {
             .vertical-timeline {
                 padding-left: 10px;
@@ -244,7 +230,6 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class="h3 text-gray-800"><i class="fas fa-list-alt"></i> Audit Logs Keuangan</h1>
                     </div>
@@ -255,22 +240,26 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                             <i class="fas fa-filter"></i> Filter Audit Logs
                         </div>
                         <div class="card-body">
-                            <form method="GET" id="filterForm" class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="start_date">Start Date</label>
+                            <form method="GET" id="filterForm" class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="start_date" class="form-label">Start Date</label>
                                     <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
                                 </div>
-                                <div class="form-group col-md-4">
-                                    <label for="end_date">End Date</label>
+                                <div class="col-md-3">
+                                    <label for="end_date" class="form-label">End Date</label>
                                     <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
                                 </div>
-                                <div class="form-group col-md-4">
-                                    <label for="search">Search</label>
+                                <div class="col-md-3">
+                                    <label for="role" class="form-label">Role</label>
+                                    <input type="text" class="form-control" id="role" name="role" placeholder="Filter by Role" value="<?php echo isset($_GET['role']) ? htmlspecialchars($_GET['role']) : ''; ?>">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="search" class="form-label">Search</label>
                                     <input type="text" class="form-control" id="search" name="search" placeholder="Action or Details" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
                                 </div>
-                                <div class="form-group col-md-12 text-right">
+                                <div class="col-12 text-end">
                                     <button type="submit" class="btn btn-primary mt-2"><i class="fas fa-search"></i> Filter</button>
-                                    <a href="audit_logs_keuangan.php" class="btn btn-warning mt-2 ml-2"><i class="fas fa-sync-alt"></i> Reset</a>
+                                    <a href="audit_logs_keuangan.php" class="btn btn-warning mt-2 ms-2"><i class="fas fa-sync-alt"></i> Reset</a>
                                 </div>
                             </form>
                         </div>
@@ -279,7 +268,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                     <!-- Audit Logs Timeline Card -->
                     <div class="card card-custom">
                         <div class="card-header bg-primary text-white">
-                            <h6 class="m-0 font-weight-bold"><i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)</h6>
+                            <h6 class="m-0 fw-bold"><i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)</h6>
                         </div>
                         <div class="card-body">
                             <div class="vertical-timeline">
@@ -293,8 +282,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                                     $username    = htmlspecialchars($row['username'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
                                     $role        = htmlspecialchars($row['role'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
                                     $dateStr     = date("d M Y, H:i", strtotime($row['created_at']));
-                                    // Dapatkan warna berdasarkan jenis aksi
-                                    $color = getActivityColor($actionText);
+                                    $color       = getActivityColor($actionText);
                                 ?>
                                 <div class="vertical-timeline-item">
                                     <div class="vertical-timeline-icon" style="border-color: <?php echo $color; ?>; color: <?php echo $color; ?>;">
@@ -305,7 +293,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                                         <p><?php echo $detailsText; ?></p>
                                         <p class="timeline-meta">
                                             <?php echo getRoleIcon($role) . ' <strong>' . $username . '</strong> (' . ucfirst($role) . ')'; ?>
-                                            <span class="float-right"><?php echo $dateStr; ?></span>
+                                            <span class="float-end"><?php echo $dateStr; ?></span>
                                         </p>
                                     </div>
                                 </div>
@@ -331,9 +319,13 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
     </div>
     <!-- End of Page Wrapper -->
 
+
     <!-- JS Dependencies -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
+
 </body>
 </html>
 

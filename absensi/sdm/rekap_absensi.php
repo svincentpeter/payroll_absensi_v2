@@ -9,7 +9,7 @@ start_session_safe();
 init_error_handling();
 
 // Pastikan hanya role "keuangan" dan "superadmin" yang boleh mengakses
-authorize(['keuangan', 'superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';

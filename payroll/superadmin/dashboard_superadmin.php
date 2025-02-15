@@ -1,7 +1,7 @@
 <?php
 // File: /payroll_absensi_v2/superadmin/dashboard_superadmin.php
 
-// 1. Pengaturan Session, Error Handling, dan Keamanan
+// 1. Pengaturan Session, Error Handling, Keamanan, dan CSRF
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
@@ -18,7 +18,6 @@ require_once __DIR__ . '/../../koneksi.php';
 authorize('superadmin', '/payroll_absensi_v2/login.php');
 
 // 2. Query Audit Logs untuk Preview (5 data terbaru)
-// Perbaikan query: gunakan tabel anggota_sekolah dan kolom nip untuk join, serta ambil nama dari kolom nama.
 $sqlLogs = "SELECT a.*, u.nama AS username, u.role 
             FROM audit_logs a 
             LEFT JOIN anggota_sekolah u ON a.nip = u.nip 
@@ -26,7 +25,6 @@ $sqlLogs = "SELECT a.*, u.nama AS username, u.role
             LIMIT 5";
 $resultLogs = $conn->query($sqlLogs);
 if (!$resultLogs) {
-    // Tampilkan pesan error MySQL untuk debugging
     die("Query error: " . $conn->error);
 }
 
@@ -88,8 +86,8 @@ function getRoleIcon($role) {
     <title>Dashboard Superadmin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5.3.3 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- SB Admin 2 CSS dari CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <!-- SB Admin 2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <!-- Font Awesome & Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">

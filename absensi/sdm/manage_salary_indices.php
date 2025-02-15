@@ -7,6 +7,7 @@
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
+
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
 // Koneksi ke database
@@ -17,18 +18,13 @@ if (ob_get_length()) {
     ob_end_clean();
 }
 
-// Hasilkan CSRF token dan simpan ke variabel
-generate_csrf_token();
-$csrf_token = $_SESSION['csrf_token'];
-
 // ==============================================================================
 // 2. Menangani Permintaan AJAX
 // ==============================================================================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        // Verifikasi CSRF token untuk setiap request POST
-        verify_csrf_token($_POST['csrf_token'] ?? '');
+        // (CSRF token dihapus)
 
         $case = isset($_POST['case']) ? trim($_POST['case']) : '';
         switch ($case) {
@@ -75,8 +71,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 // ==============================================================================
 // 3. Fungsi CRUD untuk Salary Indices dengan Audit Log
 // ==============================================================================
-
 function LoadingSalaryIndices($conn) {
+    error_log("Memulai LoadingSalaryIndices");
     // Parameter DataTables
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
@@ -481,7 +477,7 @@ function DeleteSalaryIndex($conn) {
             <div class="modal-content">
                 <form id="add-salary-index-form" class="needs-validation" novalidate>
                     <input type="hidden" name="case" value="AddSalaryIndex">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                    <!-- CSRF token dihapus -->
                     <div class="modal-header">
                         <h5 class="modal-title" id="addSalaryIndexModalLabel"><i class="fas fa-plus"></i> Tambah Indeks Gaji</h5>
                         <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -530,7 +526,7 @@ function DeleteSalaryIndex($conn) {
                 <form id="edit-salary-index-form" class="needs-validation" novalidate>
                     <input type="hidden" name="case" value="UpdateSalaryIndex">
                     <input type="hidden" id="edit_id" name="edit_id">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                    <!-- CSRF token dihapus -->
                     <div class="modal-header">
                         <h5 class="modal-title" id="editSalaryIndexModalLabel"><i class="fas fa-edit"></i> Edit Indeks Gaji</h5>
                         <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -578,7 +574,7 @@ function DeleteSalaryIndex($conn) {
         <form id="delete-salary-index-form">
           <input type="hidden" name="case" value="DeleteSalaryIndex">
           <input type="hidden" id="delete_id" name="id">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+          <!-- CSRF token dihapus -->
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title"><i class="fas fa-trash-alt"></i> Hapus Indeks Gaji</h5>
@@ -610,12 +606,15 @@ function DeleteSalaryIndex($conn) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
     <!-- DataTables JS (Bootstrap 5) -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+    <!-- DataTables Buttons JS -->
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
+    <!-- Ekstensi ColVis -->
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.colVis.min.js"></script>
+    <!-- Ekstensi Ekspor & Print -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
@@ -625,6 +624,7 @@ function DeleteSalaryIndex($conn) {
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
     $(document).ready(function() {
         // Inisialisasi SweetAlert2 Toast
