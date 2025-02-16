@@ -346,8 +346,6 @@ function DeleteSalaryIndex($conn) {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <!-- SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
     <!-- DataTables CSS (Bootstrap 5) -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
@@ -356,17 +354,20 @@ function DeleteSalaryIndex($conn) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
+        /* Styling khusus tanpa sidebar dan navbar */
+        body { padding-top: 20px; }
+        #main-content {
+            transition: opacity 0.3s ease;
+        }
+        .back-btn {
+            margin-bottom: 20px;
+        }
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
         .btn:hover {
             transform: scale(1.05);
         }
-        .aksi-column .btn {
-            margin-right: 5px;
-            margin-bottom: 5px;
-        }
-        /* Card header dengan gradien */
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
@@ -398,202 +399,174 @@ function DeleteSalaryIndex($conn) {
         }
     </style>
 </head>
-<body id="page-top">
-    <!-- Page Wrapper -->
-    <div id="wrapper">
-        <!-- Sidebar -->
-        <?php include __DIR__ . '/../../sidebar.php'; ?>
-        <!-- End of Sidebar -->
+<body>
+    <!-- Container Utama Tanpa Sidebar/Navbar -->
+    <div class="container" id="main-content">
+        <!-- Tombol Back -->
+        <button class="btn btn-secondary back-btn" id="btnBack" data-href="/payroll_absensi_v2/absensi/sdm/manage_guru_karyawan.php">
+            <i class="fas fa-arrow-left"></i> Kembali ke Manajemen Guru/Karyawan
+        </button>
 
-        <!-- Content Wrapper -->
-        <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
-            <div id="content">
-                <!-- Navbar -->
-                <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- Breadcrumb -->
-                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
+        <!-- Konten Halaman Manajemen Indeks Gaji -->
+        <h1 class="h3 mb-4 text-dark"><i class="fas fa-chart-line"></i> Manajemen Indeks/Kenaikan Gaji Pokok</h1>
 
-                <!-- Page Content -->
-                <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-chart-line"></i> Manajemen Indeks/Kenaikan Gaji Pokok</h1>
+        <!-- Tombol Tambah -->
+        <div class="d-flex justify-content-end mb-3">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSalaryIndexModal">
+                <i class="fas fa-plus"></i> Tambah Indeks Gaji
+            </button>
+        </div>
 
-                    <!-- Tombol Tambah -->
-                    <div class="d-flex justify-content-end mb-3">
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSalaryIndexModal">
-                            <i class="fas fa-plus"></i> Tambah Indeks Gaji
-                        </button>
-                    </div>
+        <!-- Tabel Indeks Gaji -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-white"><i class="fas fa-clipboard-list"></i> Daftar Indeks Gaji</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="salaryIndicesTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Level</th>
+                                <th>Min. Masa Kerja (Thn)</th>
+                                <th>Max. Masa Kerja (Thn)</th>
+                                <th>Gaji Pokok (Rp)</th>
+                                <th>Keterangan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-                    <!-- Tabel Indeks Gaji -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 fw-bold text-white"><i class="fas fa-clipboard-list"></i> Daftar Indeks Gaji</h6>
+        <!-- MODAL: Tambah Indeks Gaji -->
+        <div class="modal fade" id="addSalaryIndexModal" tabindex="-1" aria-labelledby="addSalaryIndexModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="add-salary-index-form" class="needs-validation" novalidate>
+                        <input type="hidden" name="case" value="AddSalaryIndex">
+                        <!-- CSRF token dihapus -->
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addSalaryIndexModalLabel"><i class="fas fa-plus"></i> Tambah Indeks Gaji</h5>
+                            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                         </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="salaryIndicesTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>No</th>
-                                            <th>Level</th>
-                                            <th>Min. Masa Kerja (Thn)</th>
-                                            <th>Max. Masa Kerja (Thn)</th>
-                                            <th>Gaji Pokok (Rp)</th>
-                                            <th>Keterangan</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="level" class="form-label">Level <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="level" name="level" required>
+                                <div class="invalid-feedback">Level belum diisi.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="min_years" class="form-label">Min. Masa Kerja (Tahun) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="min_years" name="min_years" min="0" required>
+                                <div class="invalid-feedback">Minimal masa kerja belum diisi.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="max_years" class="form-label">Max. Masa Kerja (Tahun)</label>
+                                <input type="number" class="form-control" id="max_years" name="max_years" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <label for="base_salary" class="form-label">Gaji Pokok (Rp) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="base_salary" name="base_salary" min="0" step="0.01" required>
+                                <div class="invalid-feedback">Gaji pokok belum diisi.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Keterangan</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Loading Spinner -->
-                    <div id="loadingSpinner">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tutup</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
-                <!-- End Page Content -->
             </div>
-            <!-- End Main Content -->
-
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="text-center my-auto">
-                        <span>&copy; <?php echo date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
-                    </div>
-                </div>
-            </footer>
         </div>
-    </div>
 
-    <!-- MODAL: Tambah Indeks Gaji -->
-    <div class="modal fade" id="addSalaryIndexModal" tabindex="-1" aria-labelledby="addSalaryIndexModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="add-salary-index-form" class="needs-validation" novalidate>
-                    <input type="hidden" name="case" value="AddSalaryIndex">
+        <!-- MODAL: Edit Indeks Gaji -->
+        <div class="modal fade" id="editSalaryIndexModal" tabindex="-1" aria-labelledby="editSalaryIndexModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="edit-salary-index-form" class="needs-validation" novalidate>
+                        <input type="hidden" name="case" value="UpdateSalaryIndex">
+                        <input type="hidden" id="edit_id" name="edit_id">
+                        <!-- CSRF token dihapus -->
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editSalaryIndexModalLabel"><i class="fas fa-edit"></i> Edit Indeks Gaji</h5>
+                            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="edit_level" class="form-label">Level <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="edit_level" name="edit_level" required>
+                                <div class="invalid-feedback">Level belum diisi.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_min_years" class="form-label">Min. Masa Kerja (Tahun) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="edit_min_years" name="edit_min_years" min="0" required>
+                                <div class="invalid-feedback">Minimal masa kerja belum diisi.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_max_years" class="form-label">Max. Masa Kerja (Tahun)</label>
+                                <input type="number" class="form-control" id="edit_max_years" name="edit_max_years" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_base_salary" class="form-label">Gaji Pokok (Rp) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="edit_base_salary" name="edit_base_salary" min="0" step="0.01" required>
+                                <div class="invalid-feedback">Gaji pokok belum diisi.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_description" class="form-label">Keterangan</label>
+                                <textarea class="form-control" id="edit_description" name="edit_description" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tutup</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Hapus Indeks Gaji -->
+        <div class="modal fade" id="deleteSalaryIndexModal" tabindex="-1" aria-labelledby="deleteSalaryIndexModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <form id="delete-salary-index-form">
+                    <input type="hidden" name="case" value="DeleteSalaryIndex">
+                    <input type="hidden" id="delete_id" name="id">
                     <!-- CSRF token dihapus -->
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addSalaryIndexModalLabel"><i class="fas fa-plus"></i> Tambah Indeks Gaji</h5>
-                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="level" class="form-label">Level <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="level" name="level" required>
-                            <div class="invalid-feedback">Level belum diisi.</div>
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-trash-alt"></i> Hapus Indeks Gaji</h5>
+                            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                         </div>
-                        <div class="mb-3">
-                            <label for="min_years" class="form-label">Min. Masa Kerja (Tahun) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="min_years" name="min_years" min="0" required>
-                            <div class="invalid-feedback">Minimal masa kerja belum diisi.</div>
+                        <div class="modal-body">
+                            <p>Yakin ingin menghapus Indeks Gaji <strong id="delete_level"></strong>?</p>
                         </div>
-                        <div class="mb-3">
-                            <label for="max_years" class="form-label">Max. Masa Kerja (Tahun)</label>
-                            <input type="number" class="form-control" id="max_years" name="max_years" min="0">
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tidak</button>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Ya, Hapus
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            </button>
                         </div>
-                        <div class="mb-3">
-                            <label for="base_salary" class="form-label">Gaji Pokok (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="base_salary" name="base_salary" min="0" step="0.01" required>
-                            <div class="invalid-feedback">Gaji pokok belum diisi.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Keterangan</label>
-                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tutup</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Simpan
-                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
-    <!-- MODAL: Edit Indeks Gaji -->
-    <div class="modal fade" id="editSalaryIndexModal" tabindex="-1" aria-labelledby="editSalaryIndexModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="edit-salary-index-form" class="needs-validation" novalidate>
-                    <input type="hidden" name="case" value="UpdateSalaryIndex">
-                    <input type="hidden" id="edit_id" name="edit_id">
-                    <!-- CSRF token dihapus -->
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editSalaryIndexModalLabel"><i class="fas fa-edit"></i> Edit Indeks Gaji</h5>
-                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="edit_level" class="form-label">Level <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="edit_level" name="edit_level" required>
-                            <div class="invalid-feedback">Level belum diisi.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_min_years" class="form-label">Min. Masa Kerja (Tahun) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="edit_min_years" name="edit_min_years" min="0" required>
-                            <div class="invalid-feedback">Minimal masa kerja belum diisi.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_max_years" class="form-label">Max. Masa Kerja (Tahun)</label>
-                            <input type="number" class="form-control" id="edit_max_years" name="edit_max_years" min="0">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_base_salary" class="form-label">Gaji Pokok (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="edit_base_salary" name="edit_base_salary" min="0" step="0.01" required>
-                            <div class="invalid-feedback">Gaji pokok belum diisi.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_description" class="form-label">Keterangan</label>
-                            <textarea class="form-control" id="edit_description" name="edit_description" rows="3"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tutup</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Update
-                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Hapus Indeks Gaji -->
-    <div class="modal fade" id="deleteSalaryIndexModal" tabindex="-1" aria-labelledby="deleteSalaryIndexModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <form id="delete-salary-index-form">
-          <input type="hidden" name="case" value="DeleteSalaryIndex">
-          <input type="hidden" id="delete_id" name="id">
-          <!-- CSRF token dihapus -->
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title"><i class="fas fa-trash-alt"></i> Hapus Indeks Gaji</h5>
-              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            </div>
-            <div class="modal-body">
-              <p>Yakin ingin menghapus Indeks Gaji <strong id="delete_level"></strong>?</p>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Tidak</button>
-              <button type="submit" class="btn btn-danger">
-                <i class="fas fa-trash"></i> Ya, Hapus
-                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+    <!-- End Container Utama -->
 
     <!-- Loading Spinner -->
     <div id="loadingSpinner">
@@ -711,6 +684,15 @@ function DeleteSalaryIndex($conn) {
             ],
             responsive: true,
             autoWidth: false
+        });
+
+        // Tombol Back dengan transisi smooth
+        $('#btnBack').on('click', function(e) {
+            e.preventDefault();
+            var url = $(this).data('href');
+            $('#main-content').fadeOut(300, function() {
+                window.location.href = url;
+            });
         });
 
         // Form: Tambah Indeks Gaji

@@ -508,6 +508,9 @@ $namaKaryawan = get_nama_karyawan($conn);
                             <input type="text" name="departemen" id="departemen" class="form-control me-3" placeholder="Masukkan departemen" value="<?php echo bersihkan_input($departemen); ?>">
                             <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tampilkan</button>
                         </form>
+                        <a href="upload_absensi.php" id="btnUploadAbsensi" class="btn btn-success smooth-transition">
+        <i class="fas fa-upload"></i> Upload Absensi
+    </a>
                     </div>
 
                     <!-- Kalender (opsional) -->
@@ -865,6 +868,15 @@ $namaKaryawan = get_nama_karyawan($conn);
             });
         }, 3000);
     });
+    $(document).on('click', 'a.smooth-transition', function(e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        $('#wrapper').fadeOut(300, function() {
+            window.location.href = url;
+        });
+    });
+
+    
     </script>
 </body>
 </html>

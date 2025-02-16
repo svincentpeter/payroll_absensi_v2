@@ -131,9 +131,7 @@ function renderMenuItems($items, $iconClass = 'fa-fw') {
         <?php
         $sdmItems = [
             'Dashboard SDM'           => '/absensi/sdm/dashboard_sdm.php',
-            'Upload Absensi'          => '/absensi/sdm/upload_absensi.php',
             'Koreksi Absensi'         => '/absensi/sdm/koreksi_absensi.php',
-            'Pengaturan Salary Indeks'=> '/absensi/sdm/manage_salary_indices.php',
             'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
             'Payroll Anggota'         => '/absensi/sdm/employees.php',
             'Payheads'                => '/absensi/sdm/payheads.php',
@@ -161,9 +159,7 @@ function renderMenuItems($items, $iconClass = 'fa-fw') {
         <?php
         $sdmItems = [
             'Dashboard SDM'           => '/absensi/sdm/dashboard_sdm.php',
-            'Upload Absensi'          => '/absensi/sdm/upload_absensi.php',
             'Koreksi Absensi'         => '/absensi/sdm/koreksi_absensi.php',
-            'Pengaturan Salary Indeks'=> '/absensi/sdm/manage_salary_indices.php',
             'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
             'Payroll Anggota'         => '/absensi/sdm/employees.php',
             'Payheads'                => '/absensi/sdm/payheads.php',

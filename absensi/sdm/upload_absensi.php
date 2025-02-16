@@ -1,632 +1,653 @@
 <?php
-// File: /payroll_absensi_v2/koreksi_absensi.php
+// upload_absensi.php
 
-// ==============================================================================
-// 1. Pengaturan Awal & Keamanan
-// ==============================================================================
 session_start();
-require_once __DIR__ . '/../../helpers.php';
-require_once __DIR__ . '/../../koneksi.php';
+require_once __DIR__ . '/../../vendor/autoload.php'; // Sesuaikan path jika perlu
+require_once __DIR__ . '/../../koneksi.php';         // Koneksi database
 
-// Hapus output buffering jika ada
-if (ob_get_length()) ob_end_clean();
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 
-// Pastikan hanya role sdm dan superadmin yang boleh mengakses halaman ini
-authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
-
-// Generate CSRF token (jika belum ada)
-generate_csrf_token();
-
-// ==============================================================================
-// 2. Fungsi Tambahan Khusus Koreksi Absensi
-// ==============================================================================
-function get_nama_karyawan($conn) {
-    $sql = "SELECT nama FROM anggota_sekolah GROUP BY nama";
-    $result = mysqli_query($conn, $sql);
-    $nama = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $nama[] = $row['nama'];
+/**
+ * Fungsi untuk mengonversi string tanggal Excel "dd-mm-yyyy" ke format MySQL "yyyy-mm-dd".
+ */
+function convertStringTglToMysqlDate($str) {
+    // Misal di Excel tulis "09-12-2024" → "2024-12-09"
+    // Jika formatnya berbeda, sesuaikan DateTime::createFromFormat()
+    $date = DateTime::createFromFormat('d-m-Y', $str);
+    if ($date) {
+        return $date->format('Y-m-d');
     }
-    return $nama;
+    return null;
 }
 
-function delete_absensi($conn, $id_absensi) {
-    $sqlDelete = "DELETE FROM absensi WHERE id = ?";
-    $stmt = mysqli_prepare($conn, $sqlDelete);
-    if (!$stmt) {
-        return "Gagal menyiapkan statement: " . mysqli_error($conn);
+/**
+ * Fungsi untuk parse jam ke format TIME "HH:ii:ss".
+ * Mencoba beberapa pola umum (e.g. "6:28:18", "6:28 AM", "13:05:22" dll.)
+ */
+function parseTimeString($timeStr) {
+    $timeStr = trim($timeStr);
+    if ($timeStr === '') {
+        return '00:00:00';
     }
-    mysqli_stmt_bind_param($stmt, 'i', $id_absensi);
-    if (mysqli_stmt_execute($stmt)) {
-        mysqli_stmt_close($stmt);
-        return true;
-    } else {
-        $error = "Gagal menghapus data absensi ID $id_absensi: " . mysqli_error($conn);
-        mysqli_stmt_close($stmt);
-        return $error;
+    // Coba beberapa format
+    $formats = ['H:i:s', 'H:i', 'g:i A', 'g:i a', 'h:i A', 'h:i a'];
+    foreach ($formats as $f) {
+        $obj = DateTime::createFromFormat($f, $timeStr);
+        if ($obj) {
+            return $obj->format('H:i:s');
+        }
     }
+    // Jika gagal parse, jadikan 00:00:00
+    return '00:00:00';
 }
 
-// ==============================================================================
-// 3. Proses POST: Update, Delete, dan Server-side DataTables
-// ==============================================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Pastikan CSRF token valid untuk semua proses POST
-    if (!isset($_POST['csrf_token'])) {
-        send_response(403, 'Token CSRF tidak ditemukan.');
+/**
+ * Fungsi untuk membuat datetime "YYYY-MM-DD HH:ii:ss" dari (tanggal) + (string jam).
+ */
+function parseDateTimeString($mysqlDate, $timeStr) {
+    // $mysqlDate contohnya "2024-12-09"
+    // $timeStr contohnya "6:28 AM"
+    $timeFormatted = parseTimeString($timeStr); // ex: "06:28:00"
+    if (!$mysqlDate) {
+        // Kalau tanggal invalid, fallback
+        return '0000-00-00 00:00:00';
     }
-    verify_csrf_token($_POST['csrf_token']);
+    return $mysqlDate . ' ' . $timeFormatted; // "2024-12-09 06:28:00"
+}
 
-    // Proses Update dan Delete (dengan parameter action)
-    if (isset($_POST['action'])) {
-        $action = $_POST['action'];
-        if ($action === 'update') {
-            // --- Proses Update Absensi ---
-            $id_absensi      = $_POST['id_absensi'] ?? '';
-            $departemen_post = $_POST['departemen'] ?? '';
-            $bulan_post      = $_POST['bulan'] ?? '';
-            if (empty($id_absensi)) {
-                $_SESSION['notif_error'] = "ID Absensi tidak valid.";
-                header("Location: koreksi_absensi.php");
-                exit;
-            }
-            // Sanitasi dan ambil input
-            $tanggal          = $_POST['tanggal'] ?? '';
-            $jadwal           = $_POST['jadwal'] ?? '';
-            $jam_kerja        = $_POST['jam_kerja'] ?? '';
-            $valid            = isset($_POST['valid']) ? (int) $_POST['valid'] : 0;
-            $pin              = $_POST['pin'] ?? '';
-            $nip              = $_POST['nip'] ?? '';
-            $nama             = $_POST['nama'] ?? '';
-            $departemen       = $departemen_post;
-            $lembur           = isset($_POST['lembur']) ? (int) $_POST['lembur'] : 0;
-            $jam_masuk        = $_POST['jam_masuk'] ?? '';
-            $scan_masuk       = $_POST['scan_masuk'] ?? '';
-            $terlambat        = isset($_POST['terlambat']) ? 1 : 0;
-            $jam_pulang       = $_POST['jam_pulang'] ?? '';
-            $scan_pulang      = $_POST['scan_pulang'] ?? '';
-            $jenis_absensi    = $_POST['jenis_absensi'] ?? 'Normal';
-            $scan_istirahat_1 = $_POST['scan_istirahat_1'] ?? '';
-            $scan_istirahat_2 = $_POST['scan_istirahat_2'] ?? '';
+/**
+ * Fungsi untuk mengimpor data absensi dari file Excel.
+ * Departemen diisi dari form, bukan dari Excel.
+ */
+function impor_absensi($conn, $file, $departemen) {
+    // Validasi departemen yang dipilih dari form
+    $allowed_departemen = ['TK', 'SD', 'SMP', 'SMA', 'SMK'];
+    $departemen_val_upper = strtoupper($departemen);
+    if (!in_array($departemen_val_upper, $allowed_departemen)) {
+        return [
+            'status' => 'error',
+            'message' => "Departemen yang dipilih tidak valid.",
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
 
-            // Validasi format tanggal (Y-m-d)
-            $dtTanggal = DateTime::createFromFormat('Y-m-d', $tanggal);
-            if (!$dtTanggal || $dtTanggal->format('Y-m-d') !== $tanggal) {
-                $_SESSION['notif_error'] = "Format tanggal tidak valid.";
-                header("Location: koreksi_absensi.php");
-                exit;
+    $tabel_absensi = "absensi";
+
+    // Periksa apakah tabel absensi ada
+    $qcheck = "SHOW TABLES LIKE '$tabel_absensi'";
+    $rcheck = mysqli_query($conn, $qcheck);
+    if (mysqli_num_rows($rcheck) == 0) {
+        return [
+            'status' => 'error',
+            'message' => "Tabel absensi tidak ditemukan.",
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+
+    // Periksa file
+    $filePath = $file['tmp_name'] ?? '';
+    if (!file_exists($filePath)) {
+        return [
+            'status' => 'error',
+            'message' => "File tidak ditemukan atau gagal di-upload.",
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+
+    // Baca file Excel
+    try {
+        $reader = IOFactory::createReaderForFile($filePath);
+        $spreadsheet = $reader->load($filePath);
+    } catch (ReaderException $e) {
+        return [
+            'status' => 'error',
+            'message' => "Gagal membaca file Excel: " . $e->getMessage(),
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+
+    $sheet = $spreadsheet->getActiveSheet();
+    $data = $sheet->toArray();
+
+    // Periksa apakah ada data
+    if (empty($data) || count($data) <= 2) {
+        // Minimal 3 baris (Row 1: info, Row 2: header, Row 3+: data)
+        return [
+            'status' => 'error',
+            'message' => "File Excel kosong atau format tidak sesuai.",
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+
+    // Hapus baris pertama (Row 1, misal berisi info)
+    array_shift($data);
+
+    // Hapus header (Row 2)
+    $header = array_shift($data);
+
+    // Normalisasi nama header
+    $normalized_header = array_map(function($col_name) {
+        return strtolower(trim($col_name));
+    }, $header);
+
+    // Definisikan alias kolom untuk setiap field
+    // *Tanpa* departemen, karena diisi dari form
+    $field_aliases = [
+        'tanggal'           => ['tanggal'],
+        'jadwal'            => ['jadwal'],
+        'jam kerja'         => ['jam kerja'],
+        'valid'             => ['valid'],
+        'pin'               => ['pin'],
+        'nip'               => ['nip'],
+        'nama'              => ['nama'],
+        'lembur'            => ['lembur'],
+        'jam masuk'         => ['jam masuk'],
+        'scan masuk'        => ['scan masuk'],
+        'terlambat'         => ['terlambat'],
+        'scan istirahat_1'  => ['scan istirahat 1'],
+        'scan istirahat_2'  => ['scan istirahat 2'],
+        'jam pulang'        => ['jam pulang'],
+        'scan pulang'       => ['scan pulang']
+    ];
+
+    // Kumpulkan indeks kolom
+    $possibleIndexes = [];
+    foreach ($normalized_header as $index => $col_name) {
+        foreach ($field_aliases as $field => $possible_names) {
+            $possible_names_lower = array_map('strtolower', $possible_names);
+            if (in_array($col_name, $possible_names_lower)) {
+                $possibleIndexes[$field][] = $index;
             }
-            // Validasi format waktu (HH:MM) untuk field yang diisi
-            $time_fields = ['jam_masuk','scan_masuk','jam_pulang','scan_pulang','scan_istirahat_1','scan_istirahat_2'];
-            foreach ($time_fields as $field) {
-                if (!empty($_POST[$field])) {
-                    $dt = DateTime::createFromFormat('H:i', $_POST[$field]);
-                    if (!$dt || $dt->format('H:i') !== $_POST[$field]) {
-                        $_SESSION['notif_error'] = "Format waktu untuk $field tidak valid (gunakan format HH:MM).";
-                        header("Location: koreksi_absensi.php");
-                        exit;
-                    }
+        }
+    }
+
+    // Fungsi untuk memilih satu kolom paling sesuai (jika duplikat)
+    function _chooseBestColumn(array $columnIndexes, array $dataRows) {
+        if (count($columnIndexes) === 0) {
+            return null;
+        }
+        if (count($columnIndexes) === 1) {
+            return $columnIndexes[0];
+        }
+
+        // Pilih kolom dengan sel non-kosong terbanyak
+        $bestIndex = null;
+        $bestNonEmptyCount = -1;
+        foreach ($columnIndexes as $col) {
+            $nonEmptyCount = 0;
+            foreach ($dataRows as $row) {
+                $val = isset($row[$col]) ? trim($row[$col]) : '';
+                if ($val !== '') {
+                    $nonEmptyCount++;
                 }
             }
-            // Jika scan_* kosong, ambil nilai lama dari database
-            if (!empty($scan_masuk)) {
-                $scan_masuk_datetime = $tanggal . ' ' . $scan_masuk . ':00';
-            } else {
-                $querySel = "SELECT scan_masuk FROM absensi WHERE id = ?";
-                $stmtSel = mysqli_prepare($conn, $querySel);
-                mysqli_stmt_bind_param($stmtSel, 'i', $id_absensi);
-                mysqli_stmt_execute($stmtSel);
-                mysqli_stmt_bind_result($stmtSel, $old_scan_masuk);
-                mysqli_stmt_fetch($stmtSel);
-                mysqli_stmt_close($stmtSel);
-                $scan_masuk_datetime = $old_scan_masuk;
+            if ($nonEmptyCount > $bestNonEmptyCount) {
+                $bestNonEmptyCount = $nonEmptyCount;
+                $bestIndex = $col;
             }
-            if (!empty($scan_pulang)) {
-                $scan_pulang_datetime = $tanggal . ' ' . $scan_pulang . ':00';
-            } else {
-                $querySel = "SELECT scan_pulang FROM absensi WHERE id = ?";
-                $stmtSel = mysqli_prepare($conn, $querySel);
-                mysqli_stmt_bind_param($stmtSel, 'i', $id_absensi);
-                mysqli_stmt_execute($stmtSel);
-                mysqli_stmt_bind_result($stmtSel, $old_scan_pulang);
-                mysqli_stmt_fetch($stmtSel);
-                mysqli_stmt_close($stmtSel);
-                $scan_pulang_datetime = $old_scan_pulang;
-            }
-            if (!empty($scan_istirahat_1)) {
-                $scan_istirahat_1_datetime = $tanggal . ' ' . $scan_istirahat_1 . ':00';
-            } else {
-                $querySel = "SELECT scan_istirahat_1 FROM absensi WHERE id = ?";
-                $stmtSel = mysqli_prepare($conn, $querySel);
-                mysqli_stmt_bind_param($stmtSel, 'i', $id_absensi);
-                mysqli_stmt_execute($stmtSel);
-                mysqli_stmt_bind_result($stmtSel, $old_ist1);
-                mysqli_stmt_fetch($stmtSel);
-                mysqli_stmt_close($stmtSel);
-                $scan_istirahat_1_datetime = $old_ist1;
-            }
-            if (!empty($scan_istirahat_2)) {
-                $scan_istirahat_2_datetime = $tanggal . ' ' . $scan_istirahat_2 . ':00';
-            } else {
-                $querySel = "SELECT scan_istirahat_2 FROM absensi WHERE id = ?";
-                $stmtSel = mysqli_prepare($conn, $querySel);
-                mysqli_stmt_bind_param($stmtSel, 'i', $id_absensi);
-                mysqli_stmt_execute($stmtSel);
-                mysqli_stmt_bind_result($stmtSel, $old_ist2);
-                mysqli_stmt_fetch($stmtSel);
-                mysqli_stmt_close($stmtSel);
-                $scan_istirahat_2_datetime = $old_ist2;
-            }
+        }
+        return $bestIndex;
+    }
 
-            // Update record absensi
-            $sqlUpdate = "UPDATE absensi
-                          SET 
-                            tanggal=?,
-                            jadwal=?,
-                            jam_kerja=?,
-                            valid=?,
-                            pin=?,
-                            nip=?,
-                            nama=?,
-                            departemen=?,
-                            lembur=?,
-                            jam_masuk=?,
-                            scan_masuk=?,
-                            terlambat=?,
-                            scan_istirahat_1=?,
-                            scan_istirahat_2=?,
-                            jam_pulang=?,
-                            scan_pulang=?,
-                            jenis_absensi=?
-                          WHERE id = ?";
-            $stmt = mysqli_prepare($conn, $sqlUpdate);
-            if (!$stmt) {
-                $_SESSION['notif_error'] = "Gagal menyiapkan statement: " . mysqli_error($conn);
-                header("Location: koreksi_absensi.php");
-                exit;
-            }
-            mysqli_stmt_bind_param(
-                $stmt,
-                'sssissssississsssi',
-                $tanggal,
-                $jadwal,
-                $jam_kerja,
-                $valid,
-                $pin,
-                $nip,
-                $nama,
-                $departemen,
-                $lembur,
-                $jam_masuk,
-                $scan_masuk_datetime,
-                $terlambat,
-                $scan_istirahat_1_datetime,
-                $scan_istirahat_2_datetime,
-                $jam_pulang,
-                $scan_pulang_datetime,
-                $jenis_absensi,
-                $id_absensi
-            );
-            if (mysqli_stmt_execute($stmt)) {
-                $audit_details = "Mengupdate data absensi ID $id_absensi. Data: tanggal=$tanggal, jadwal=$jadwal, jam_kerja=$jam_kerja, valid=$valid, pin=$pin, nip=$nip, nama=$nama, departemen=$departemen, lembur=$lembur, jam_masuk=$jam_masuk, scan_masuk=$scan_masuk_datetime, terlambat=$terlambat, scan_istirahat_1=$scan_istirahat_1_datetime, scan_istirahat_2=$scan_istirahat_2_datetime, jam_pulang=$jam_pulang, scan_pulang=$scan_pulang_datetime, jenis_absensi=$jenis_absensi.";
-                add_audit_log($conn, $_SESSION['nip'], 'UpdateAbsensi', $audit_details);
-                $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dikoreksi.";
-                mysqli_stmt_close($stmt);
-            } else {
-                $_SESSION['notif_error'] = "Gagal mengupdate data absensi ID $id_absensi: " . mysqli_error($conn);
-                mysqli_stmt_close($stmt);
-            }
-            header("Location: koreksi_absensi.php");
-            exit;
-        } elseif ($action === 'delete') {
-            $id_absensi = $_POST['id_absensi'] ?? '';
-            if (empty($id_absensi)) {
-                $_SESSION['notif_error'] = "ID Absensi tidak valid.";
-                header("Location: koreksi_absensi.php");
-                exit;
-            }
-            $deleteResult = delete_absensi($conn, $id_absensi);
-            if ($deleteResult === true) {
-                add_audit_log($conn, $_SESSION['nip'], 'DeleteAbsensi', "Menghapus data absensi ID $id_absensi.");
-                $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dihapus.";
-            } else {
-                $_SESSION['notif_error'] = $deleteResult;
-            }
-            header("Location: koreksi_absensi.php");
-            exit;
+    // Tentukan final $expected_headers
+    $expected_headers = array_fill_keys(array_keys($field_aliases), null);
+    foreach ($expected_headers as $field => $nullVal) {
+        $colCandidates = $possibleIndexes[$field] ?? [];
+        $chosenIndex   = _chooseBestColumn($colCandidates, $data);
+        $expected_headers[$field] = $chosenIndex;
+    }
+
+    // Cek apakah ada field penting yang tidak berhasil ditemukan
+    $missing_headers = [];
+    foreach ($expected_headers as $field => $pos) {
+        if ($pos === null) {
+            $missing_headers[] = ucfirst($field);
         }
     }
-    // Proses Server-side DataTables (Ajax)
-    elseif (isset($_POST['draw'])) {
-        $columns = [
-            'a.id',
-            'a.tanggal',
-            'a.jadwal',
-            'a.jam_kerja',
-            'a.valid',
-            'a.pin',
-            'a.nip',
-            'a.nama',
-            'a.departemen',
-            'a.lembur',
-            'a.jam_masuk',
-            'a.scan_masuk',
-            'a.terlambat',
-            'a.scan_istirahat_1',
-            'a.scan_istirahat_2',
-            'a.jam_pulang',
-            'a.scan_pulang',
-            'a.jenis_absensi'
+
+    if (!empty($missing_headers)) {
+        return [
+            'status' => 'error',
+            'message' => "Header kolom Excel tidak sesuai. Kolom yang hilang: " . implode(', ', $missing_headers),
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
         ];
-
-        $bulan      = isset($_POST['bulan']) ? mysqli_real_escape_string($conn, $_POST['bulan']) : '';
-        $departemen = isset($_POST['departemen']) ? mysqli_real_escape_string($conn, $_POST['departemen']) : '';
-
-        $sql = "FROM absensi a 
-                LEFT JOIN anggota_sekolah g ON a.nip = g.nip
-                LEFT JOIN holidays h ON a.tanggal = h.holiday_date
-                WHERE 1=1 ";
-        if (!empty($bulan)) {
-            $sql .= " AND DATE_FORMAT(a.tanggal, '%Y-%m') = '$bulan' ";
-        }
-        if (!empty($departemen)) {
-            $sql .= " AND UPPER(a.departemen) = UPPER('$departemen') ";
-        }
-
-        $resTotal = mysqli_query($conn, "SELECT COUNT(*) as total $sql");
-        $totalData = mysqli_fetch_assoc($resTotal)['total'];
-
-        $searchValue = $_POST['search']['value'] ?? '';
-        if (!empty($searchValue)) {
-            $searchValue = mysqli_real_escape_string($conn, $searchValue);
-            $sql .= " AND (a.nama LIKE '%$searchValue%' OR a.nip LIKE '%$searchValue%' OR a.departemen LIKE '%$searchValue%') ";
-        }
-        $resTotalFiltered = mysqli_query($conn, "SELECT COUNT(*) as total $sql");
-        $totalFiltered = mysqli_fetch_assoc($resTotalFiltered)['total'];
-
-        $orderColumnIndex = $_POST['order'][0]['column'] ?? 0;
-        $orderColumn = $columns[$orderColumnIndex] ?? $columns[0];
-        $orderDir = in_array($_POST['order'][0]['dir'] ?? 'asc', ['asc', 'desc']) ? $_POST['order'][0]['dir'] : 'asc';
-        $sql .= " ORDER BY $orderColumn $orderDir ";
-
-        $start  = intval($_POST['start'] ?? 0);
-        $length = intval($_POST['length'] ?? 10);
-        $sql .= " LIMIT $start, $length ";
-
-        $query = "SELECT " . implode(", ", $columns) . " $sql";
-        $resData = mysqli_query($conn, $query);
-
-        $data = [];
-        $no = $start + 1;
-        while ($row = mysqli_fetch_assoc($resData)) {
-            // Format waktu untuk kolom yang relevan
-            $jamMasuk   = !empty($row['jam_masuk']) ? date('H:i', strtotime($row['jam_masuk'])) : '-';
-            $scanMasuk  = !empty($row['scan_masuk']) ? date('H:i', strtotime($row['scan_masuk'])) : '-';
-            $jamPulang  = !empty($row['jam_pulang']) ? date('H:i', strtotime($row['jam_pulang'])) : '-';
-            $scanPulang = !empty($row['scan_pulang']) ? date('H:i', strtotime($row['scan_pulang'])) : '-';
-
-            // Buat dropdown aksi (tombol edit dan delete)
-            $aksi = '
-            <div class="dropdown">
-              <button class="btn btn-secondary btn-sm" type="button" id="dropdownMenuButton_'.$row['id'].'" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-ellipsis-v"></i>
-              </button>
-              <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_'.$row['id'].'">
-                <li>
-                  <a class="dropdown-item btn-edit" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modalEdit"
-                     data-id="'.$row['id'].'"
-                     data-tanggal="'.bersihkan_input($row['tanggal']).'"
-                     data-jadwal="'.bersihkan_input($row['jadwal']).'"
-                     data-jam_kerja="'.bersihkan_input($row['jam_kerja']).'"
-                     data-valid="'.$row['valid'].'"
-                     data-pin="'.bersihkan_input($row['pin']).'"
-                     data-nip="'.bersihkan_input($row['nip']).'"
-                     data-nama="'.bersihkan_input($row['nama']).'"
-                     data-departemen="'.htmlspecialchars(strtoupper($row['departemen'])).'"
-                     data-lembur="'.$row['lembur'].'"
-                     data-jam_masuk="'.(($jamMasuk==='-')?'':$jamMasuk).'"
-                     data-scan_masuk="'.(($scanMasuk==='-')?'':$scanMasuk).'"
-                     data-terlambat="'.$row['terlambat'].'"
-                     data-scan_istirahat_1="'.(($row['scan_istirahat_1'])?bersihkan_input($row['scan_istirahat_1']):'').'"
-                     data-scan_istirahat_2="'.(($row['scan_istirahat_2'])?bersihkan_input($row['scan_istirahat_2']):'').'"
-                     data-jam_pulang="'.(($jamPulang==='-')?'':$jamPulang).'"
-                     data-scan_pulang="'.(($scanPulang==='-')?'':$scanPulang).'"
-                     data-jenis_absensi="'.$row['jenis_absensi'].'"
-                     title="Edit Absensi">
-                    <i class="fas fa-edit"></i> Edit Absensi
-                  </a>
-                </li>
-                <li>
-                  <a class="dropdown-item btn-delete" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modalDelete"
-                     data-id="'.$row['id'].'"
-                     data-nama="'.bersihkan_input($row['nama']).'"
-                     data-tanggal="'.bersihkan_input($row['tanggal']).'"
-                     title="Hapus Absensi">
-                    <i class="fas fa-trash-alt"></i> Hapus Absensi
-                  </a>
-                </li>
-              </ul>
-            </div>
-            ';
-
-            $nestedData = [];
-            $nestedData[] = $no++;
-            $nestedData[] = bersihkan_input($row['tanggal']);
-            $nestedData[] = bersihkan_input($row['jadwal']);
-            $nestedData[] = bersihkan_input($row['jam_kerja']);
-            $nestedData[] = ($row['valid'] == 1) ? '1' : '0';
-            $nestedData[] = bersihkan_input($row['pin']);
-            $nestedData[] = bersihkan_input($row['nip']);
-            $nestedData[] = bersihkan_input($row['nama']);
-            $nestedData[] = htmlspecialchars(strtoupper($row['departemen']));
-            $nestedData[] = bersihkan_input($row['lembur']);
-            $nestedData[] = bersihkan_input($jamMasuk);
-            $nestedData[] = bersihkan_input($scanMasuk);
-            $nestedData[] = $row['terlambat'] ? '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Ya</span>' : '<span class="badge bg-success"><i class="fas fa-check"></i> Tidak</span>';
-            $nestedData[] = ($row['scan_istirahat_1']) ? bersihkan_input($row['scan_istirahat_1']) : '-';
-            $nestedData[] = ($row['scan_istirahat_2']) ? bersihkan_input($row['scan_istirahat_2']) : '-';
-            $nestedData[] = bersihkan_input($jamPulang);
-            $nestedData[] = bersihkan_input($scanPulang);
-            $jenis = htmlspecialchars($row['jenis_absensi']);
-            $badge = 'badge-secondary';
-            switch (strtolower($jenis)) {
-                case 'izin':   $badge = 'badge-info'; break;
-                case 'sakit':  $badge = 'badge-warning'; break;
-                case 'cuti':   $badge = 'badge-primary'; break;
-                case 'bolos':  $badge = 'badge-danger'; break;
-                case 'libur':  $badge = 'badge-success'; break;
-                case 'lembur': $badge = 'badge-info'; break;
-            }
-            $nestedData[] = '<span class="badge ' . $badge . '"><i class="fas fa-check-circle"></i> ' . ucfirst($jenis) . '</span>';
-            $nestedData[] = $aksi;
-            $data[] = $nestedData;
-        }
-
-        $json_data = [
-            "draw"            => intval($_POST['draw'] ?? 1),
-            "recordsTotal"    => intval($totalData),
-            "recordsFiltered" => intval($totalFiltered),
-            "data"            => $data
-        ];
-
-        header('Content-Type: application/json');
-        echo json_encode($json_data);
-        exit;
     }
-} // Akhir proses POST
 
-// ==============================================================================
-// 4. Tampilan HTML
-// ==============================================================================
+    // Siapkan statement INSERT
+    $sql_insert = "
+        INSERT INTO $tabel_absensi
+        (tanggal, jadwal, jam_kerja, valid, pin, nip, nama, departemen,
+         lembur, jam_masuk, scan_masuk, terlambat, scan_istirahat_1,
+         scan_istirahat_2, jam_pulang, scan_pulang, id_anggota)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ";
+    $stmt = mysqli_prepare($conn, $sql_insert);
+    if (!$stmt) {
+        return [
+            'status' => 'error',
+            'message' => "Gagal menyiapkan statement SQL: " . mysqli_error($conn),
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
 
-// Ambil filter GET untuk tampilan
-$bulan      = $_GET['bulan'] ?? '';
-$departemen = $_GET['departemen'] ?? '';
-$namaKaryawan = get_nama_karyawan($conn);
+    // Statement untuk cek dan mengambil id_anggota dari anggota_sekolah
+    $sql_get_id = "SELECT id FROM anggota_sekolah WHERE nip = ?";
+    $stmt_get_id = mysqli_prepare($conn, $sql_get_id);
+    if (!$stmt_get_id) {
+        return [
+            'status' => 'error',
+            'message' => "Gagal menyiapkan statement pengambilan ID anggota: " . mysqli_error($conn),
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+
+    // Tipe data bind (17 kolom, dengan id_anggota as integer)
+    $type_string = 'sssissssississssi'; // 's' untuk string, 'i' untuk integer
+
+    $totalRows    = count($data);
+    $successCount = 0;
+    $failCount    = 0;
+    $details      = [];
+    $rowNumber    = 3; // baris data mulai row ke-3
+
+    foreach ($data as $row) {
+        // Ekstrak data
+        $tanggal_str    = isset($row[$expected_headers['tanggal']]) ? $row[$expected_headers['tanggal']] : '';
+        $jadwal         = isset($row[$expected_headers['jadwal']]) ? $row[$expected_headers['jadwal']] : '';
+        $jam_kerja      = isset($row[$expected_headers['jam kerja']]) ? $row[$expected_headers['jam kerja']] : '';
+        $valid          = isset($row[$expected_headers['valid']]) ? $row[$expected_headers['valid']] : '';
+        $pin            = isset($row[$expected_headers['pin']]) ? $row[$expected_headers['pin']] : '';
+        $nip            = isset($row[$expected_headers['nip']]) ? trim($row[$expected_headers['nip']]) : '';
+        $nama           = isset($row[$expected_headers['nama']]) ? $row[$expected_headers['nama']] : '';
+        // departemen → dari form
+        $lembur         = isset($row[$expected_headers['lembur']]) ? $row[$expected_headers['lembur']] : '';
+        $jam_masuk_raw  = isset($row[$expected_headers['jam masuk']]) ? $row[$expected_headers['jam masuk']] : '';
+        $scan_masuk_raw = isset($row[$expected_headers['scan masuk']]) ? $row[$expected_headers['scan masuk']] : '';
+        $terlambat      = isset($row[$expected_headers['terlambat']]) ? $row[$expected_headers['terlambat']] : '';
+        $scan_i1_raw    = isset($row[$expected_headers['scan istirahat_1']]) ? $row[$expected_headers['scan istirahat_1']] : '';
+        $scan_i2_raw    = isset($row[$expected_headers['scan istirahat_2']]) ? $row[$expected_headers['scan istirahat_2']] : '';
+        $jam_pulang_raw = isset($row[$expected_headers['jam pulang']]) ? $row[$expected_headers['jam pulang']] : '';
+        $scan_pulang_raw= isset($row[$expected_headers['scan pulang']]) ? $row[$expected_headers['scan pulang']] : '';
+
+        // (1) Konversi tanggal
+        $tanggal = convertStringTglToMysqlDate($tanggal_str);
+        if (!$tanggal) {
+            $failCount++;
+            $details[] = [
+                'row' => $rowNumber,
+                'status' => 'fail',
+                'reason' => "Format tanggal tidak valid: '$tanggal_str'."
+            ];
+            $rowNumber++;
+            continue;
+        }
+
+        // (2) Konversi jam/time
+        $jam_masuk  = parseTimeString($jam_masuk_raw);            // format hh:mm:ss
+        $jam_pulang = parseTimeString($jam_pulang_raw);
+
+        // (3) Konversi scan/datetime (gabung tanggal + jam)
+        $scan_masuk       = parseDateTimeString($tanggal, $scan_masuk_raw);      // yyyy-mm-dd hh:mm:ss
+        $scan_istirahat_1 = parseDateTimeString($tanggal, $scan_i1_raw);
+        $scan_istirahat_2 = parseDateTimeString($tanggal, $scan_i2_raw);
+        $scan_pulang      = parseDateTimeString($tanggal, $scan_pulang_raw);
+
+        // (4) valid, lembur, terlambat ke integer
+        $valid     = intval($valid) ?: 0;  // 0 atau 1
+        $lembur    = intval($lembur) ?: 0;
+        $terlambat = intval($terlambat) ?: 0;
+
+        // Pastikan valid = (0/1) saja
+        $valid     = ($valid === 1) ? 1 : 0;
+
+        // (5) Cek dan ambil id_anggota dari anggota_sekolah berdasarkan nip
+        mysqli_stmt_bind_param($stmt_get_id, 's', $nip);
+        mysqli_stmt_execute($stmt_get_id);
+        $result_id = mysqli_stmt_get_result($stmt_get_id);
+        $row_id    = mysqli_fetch_assoc($result_id);
+        mysqli_stmt_reset($stmt_get_id);
+
+        if (!$row_id || empty($row_id['id'])) {
+            $failCount++;
+            $details[] = [
+                'row' => $rowNumber,
+                'status' => 'fail',
+                'reason' => "NIP '$nip' tidak ditemukan di tabel anggota_sekolah."
+            ];
+            $rowNumber++;
+            continue;
+        }
+
+        $id_anggota = intval($row_id['id']);
+
+        // Binding param
+        mysqli_stmt_bind_param(
+            $stmt,
+            $type_string,
+            // kolom-kolom:
+            $tanggal,             // DATE
+            $jadwal,              // VARCHAR
+            $jam_kerja,           // VARCHAR
+            $valid,               // TINYINT
+            $pin,                 // VARCHAR
+            $nip,                 // VARCHAR
+            $nama,                // VARCHAR
+            $departemen_val_upper,// VARCHAR (diisi dari form)
+            $lembur,              // TINYINT
+            $jam_masuk,           // TIME
+            $scan_masuk,          // DATETIME
+            $terlambat,           // TINYINT
+            $scan_istirahat_1,    // DATETIME
+            $scan_istirahat_2,    // DATETIME
+            $jam_pulang,          // TIME
+            $scan_pulang,         // DATETIME
+            $id_anggota           // INT (foreign key)
+        );
+
+        // Eksekusi
+        if (mysqli_stmt_execute($stmt)) {
+            $successCount++;
+            $details[] = [
+                'row' => $rowNumber,
+                'status' => 'success',
+                'reason' => ''
+            ];
+        } else {
+            $failCount++;
+            $details[] = [
+                'row' => $rowNumber,
+                'status' => 'fail',
+                'reason' => mysqli_stmt_error($stmt)
+            ];
+            // Tambahkan logging ke file log (opsional)
+            error_log("Gagal mengimpor baris $rowNumber: " . mysqli_stmt_error($stmt));
+        }
+
+        $rowNumber++;
+    }
+
+    mysqli_stmt_close($stmt);
+    mysqli_stmt_close($stmt_get_id);
+
+    return [
+        'status' => 'ok',
+        'message' => "Proses impor selesai.",
+        'total_rows' => $totalRows,
+        'success_count' => $successCount,
+        'fail_count' => $failCount,
+        'details' => $details
+    ];
+}
+
+// ===========================
+// Handle form submission
+// ===========================
+
+$message = '';
+$logDetails = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $departemen = $_POST['departemen'] ?? '';
+    $file = $_FILES['file_absensi'] ?? null;
+
+    if ($file && $departemen) {
+        $hasilImport = impor_absensi($conn, $file, $departemen);
+        if ($hasilImport['status'] === 'ok') {
+            $message = "Proses impor selesai. " .
+                       "Total baris: " . $hasilImport['total_rows'] .
+                       ", Sukses: " . $hasilImport['success_count'] .
+                       ", Gagal: " . $hasilImport['fail_count'];
+
+            if (!empty($hasilImport['details']) && is_array($hasilImport['details'])) {
+                $logDetails = $hasilImport['details'];
+            } else {
+                $logDetails = [];
+                $message .= " Namun, detail impor tidak tersedia.";
+            }
+        } else {
+            $message = $hasilImport['message'];
+        }
+    } else {
+        $message = 'Departemen atau file tidak valid!';
+    }
+}
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <title>Upload Absensi</title>
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <!-- SB Admin 2 CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
-    <!-- DataTables CSS -->
-    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css" rel="stylesheet">
-    <!-- FullCalendar CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" rel="stylesheet">
-    <!-- jQuery UI CSS -->
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom styles (sesuaikan dengan kebutuhan) -->
     <style>
-        /* Custom styles here */
+        body { padding-top: 20px; }
+        #main-content {
+            transition: opacity 0.3s ease;
+        }
+        .back-btn {
+            margin-bottom: 20px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .back-btn:hover {
+            transform: scale(1.05);
+        }
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
+        .table-hover tbody tr:hover {
+            background-color: #e2e6ea;
+        }
+        ::placeholder {
+            color: #6c757d;
+            opacity: 1;
+        }
+        .spinner-border {
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body id="page-top">
-    <div id="wrapper">
-        <?php include __DIR__ . '/../../sidebar.php'; ?>
-        <div id="content-wrapper" class="d-flex flex-column">
-            <div id="content">
-                <?php include __DIR__ . '/../../navbar.php'; ?>
-                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
-                <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">Upload Absensi</h1>
-                    <!-- SweetAlert2 Notifikasi (jika ada) -->
-                    <?php
-                    if (isset($_SESSION['notif_success'])) {
-                        $notif_success = $_SESSION['notif_success'];
-                        unset($_SESSION['notif_success']);
-                        echo "<script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            Swal.fire({
-                                icon: 'success',
-                                title: '" . addslashes($notif_success) . "',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                        });
-                        </script>";
-                    }
-                    if (isset($_SESSION['notif_error'])) {
-                        $notif_error = $_SESSION['notif_error'];
-                        unset($_SESSION['notif_error']);
-                        echo "<script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            Swal.fire({
-                                icon: 'error',
-                                title: '" . addslashes($notif_error) . "',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                        });
-                        </script>";
-                    }
-                    ?>
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Form Upload Absensi</h6>
-                        </div>
-                        <div class="card-body">
-                            <form method="POST" enctype="multipart/form-data" id="uploadForm">
-                                <!-- Sertakan CSRF token -->
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                <div class="mb-3">
-                                    <label for="departemen" class="form-label">Pilih Departemen</label>
-                                    <select name="departemen" id="departemen" class="form-control" required>
-                                        <option value="">--Pilih--</option>
-                                        <option value="TK">TK</option>
-                                        <option value="SD">SD</option>
-                                        <option value="SMP">SMP</option>
-                                        <option value="SMA">SMA</option>
-                                        <option value="SMK">SMK</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="file_absensi" class="form-label">Upload File Absensi (Excel, .xls/.xlsx)</label>
-                                    <input type="file" name="file_absensi" id="file_absensi" class="form-control" accept=".xls,.xlsx" required>
-                                </div>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-upload"></i> Upload & Import
-                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                </button>
-                            </form>
-                        </div>
+    <!-- Container Utama Tanpa Sidebar/Navbar -->
+    <div class="container" id="main-content">
+        <!-- Tombol Back -->
+        <button class="btn btn-secondary back-btn" id="btnBack" data-href="/payroll_absensi_v2/absensi/sdm/koreksi_absensi.php" title="Kembali">
+            <i class="fas fa-arrow-left"></i> Kembali
+        </button>
+
+        <!-- Header Halaman -->
+        <h1 class="h3 mb-4 text-dark"><i class="fas fa-upload"></i> Upload Absensi</h1>
+
+        <!-- Notifikasi -->
+        <?php if (!empty($message)): ?>
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-info-circle"></i> <?= htmlspecialchars($message) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
+        <!-- Form Upload Absensi -->
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h6 class="m-0">Form Upload Absensi</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-3">
+                        <label for="departemen" class="form-label">Pilih Departemen</label>
+                        <select name="departemen" id="departemen" class="form-select" required>
+                            <option value="">--Pilih--</option>
+                            <option value="TK">TK</option>
+                            <option value="SD">SD</option>
+                            <option value="SMP">SMP</option>
+                            <option value="SMA">SMA</option>
+                            <option value="SMK">SMK</option>
+                        </select>
                     </div>
-                    <?php if (!empty($logDetails) && is_iterable($logDetails)): ?>
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-primary">Detail Import</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-hover" id="logTable" width="100%" cellspacing="0">
-                                        <thead>
-                                            <tr>
-                                                <th>Baris</th>
-                                                <th>Status</th>
-                                                <th>Alasan</th>
-                                            </tr>
-                                        </thead>
-                                        <tfoot>
-                                            <tr>
-                                                <th>Baris</th>
-                                                <th>Status</th>
-                                                <th>Alasan</th>
-                                            </tr>
-                                        </tfoot>
-                                        <tbody>
-                                            <?php foreach ($logDetails as $detail): ?>
-                                                <tr>
-                                                    <td><?= htmlspecialchars($detail['row']) ?></td>
-                                                    <td>
-                                                        <?php if ($detail['status'] === 'success'): ?>
-                                                            <span class="badge bg-success">Sukses</span>
-                                                        <?php else: ?>
-                                                            <span class="badge bg-danger">Gagal</span>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                    <td><?= htmlspecialchars($detail['reason']) ?></td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endif; ?>
+                    <div class="mb-3">
+                        <label for="file_absensi" class="form-label">Upload File Absensi (Excel, .xls/.xlsx)</label>
+                        <input type="file" name="file_absensi" id="file_absensi" class="form-control" accept=".xls,.xlsx" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload & Import
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Detail Import (jika ada) -->
+        <?php if (!empty($logDetails) && is_iterable($logDetails)): ?>
+            <div class="card shadow mb-4">
+                <div class="card-header">
+                    <h6 class="m-0">Detail Import</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="logTable" width="100%" cellspacing="0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Baris (tanpa header)</th>
+                                    <th>Status</th>
+                                    <th>Alasan</th>
+                                </tr>
+                            </thead>
+                            <tfoot>
+                                <tr>
+                                    <th>Baris (tanpa header)</th>
+                                    <th>Status</th>
+                                    <th>Alasan</th>
+                                </tr>
+                            </tfoot>
+                            <tbody>
+                                <?php foreach ($logDetails as $detail): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($detail['row']) ?></td>
+                                        <td>
+                                            <?php if ($detail['status'] === 'success'): ?>
+                                                <span class="badge bg-success">Sukses</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-danger">Gagal</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= htmlspecialchars($detail['reason']) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>&copy; Your Website 2024 | <a href="#">Privacy Policy</a> | <a href="#">Contact</a></span>
-                    </div>
-                </div>
-            </footer>
+        <?php endif; ?>
+
+    </div>
+    <!-- End Container Utama -->
+
+    <!-- Loading Spinner (opsional) -->
+    <div id="loadingSpinner" style="display:none; position: fixed; z-index: 9999; top: 0; left: 0; bottom: 0; right: 0; margin: auto;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
-    <!-- JavaScript Dependencies -->
-    <!-- jQuery & jQuery UI -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-    <!-- Bootstrap Bundle -->
+
+    <!-- Bootstrap 5 & Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables & Plugins -->
+    <!-- jQuery (untuk DataTables dan script tambahan) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables JS (opsional jika diperlukan) -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
-    <!-- FullCalendar & Moment.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
-    <!-- SB Admin 2 JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Script custom -->
     <script>
-    $(document).ready(function() {
-        // Inisialisasi DataTable untuk Log Detail Import
-        $('#logTable').DataTable({
-            "language": {
-                "url": "https://cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-            },
-            "dom": 'Bfrtip',
-            "buttons": [
-                {
-                    extend: 'copyHtml5',
-                    text: '<i class="fas fa-copy"></i> Copy',
-                    className: 'btn btn-secondary btn-sm'
-                },
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="fas fa-file-excel"></i> Excel',
-                    className: 'btn btn-success btn-sm'
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="fas fa-file-pdf"></i> PDF',
-                    className: 'btn btn-danger btn-sm'
-                },
-                {
-                    extend: 'print',
-                    text: '<i class="fas fa-print"></i> Print',
-                    className: 'btn btn-info btn-sm'
-                },
-                {
-                    extend: 'colvis',
-                    text: '<i class="fas fa-columns"></i> Kolom',
-                    className: 'btn btn-warning btn-sm'
-                }
-            ],
-            "responsive": true,
-            "pageLength": 10
-        });
+        $(document).ready(function() {
+            // Back button dengan transisi smooth
+            $('#btnBack').on('click', function(e) {
+                e.preventDefault();
+                var url = $(this).data('href');
+                $('#main-content').fadeOut(300, function() {
+                    window.location.href = url;
+                });
+            });
 
-        // Tooltip initialization
-        $('[data-toggle="tooltip"]').tooltip();
+            // Inisialisasi DataTables untuk #logTable (jika tabel import detail ingin interaktif)
+            $('#logTable').DataTable({
+                "language": {
+                    "url": "https://cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
+                },
+                "dom": 'Bfrtip',
+                "buttons": [
+                    {
+                        extend: 'copyHtml5',
+                        text: '<i class="fas fa-copy"></i> Copy',
+                        className: 'btn btn-secondary btn-sm'
+                    },
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="fas fa-file-excel"></i> Excel',
+                        className: 'btn btn-success btn-sm'
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: '<i class="fas fa-file-pdf"></i> PDF',
+                        className: 'btn btn-danger btn-sm'
+                    },
+                    {
+                        extend: 'print',
+                        text: '<i class="fas fa-print"></i> Print',
+                        className: 'btn btn-info btn-sm'
+                    },
+                    {
+                        extend: 'colvis',
+                        text: '<i class="fas fa-columns"></i> Kolom',
+                        className: 'btn btn-warning btn-sm'
+                    }
+                ],
+                "responsive": true,
+                "pageLength": 10
+            });
 
-        // Saat form upload dikirim, tampilkan spinner
-        $('#uploadForm').on('submit', function(e) {
-            var $btn = $(this).find('button[type="submit"]');
-            $btn.prop('disabled', true);
-            $btn.find('.spinner-border').removeClass('d-none');
+            // Tampilkan spinner saat form dikirim
+            $('#uploadForm').on('submit', function(e) {
+                var $btn = $(this).find('button[type="submit"]');
+                $btn.prop('disabled', true);
+                $btn.find('.spinner-border').removeClass('d-none');
+            });
+
+            // Fade out alert setelah 3 detik
+            window.setTimeout(function () {
+                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                    $(this).remove();
+                });
+            }, 3000);
         });
-    });
     </script>
 </body>
 </html>

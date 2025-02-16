@@ -13,7 +13,7 @@ generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 // Pengecekan role (hanya untuk sdm dan superadmin)
-authorize(['sdm', 'superadmin']);
+authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
 // =========================
 // 2. Koneksi ke Database
@@ -340,7 +340,6 @@ function DeleteHoliday($conn) {
     exit();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -349,7 +348,7 @@ function DeleteHoliday($conn) {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <!-- SB Admin 2 CSS -->
+    <!-- SB Admin 2 CSS (optional, untuk styling tambahan) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
@@ -360,6 +359,14 @@ function DeleteHoliday($conn) {
     <!-- Datepicker CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
     <style>
+        /* Styling khusus tanpa sidebar dan navbar */
+        body { padding-top: 20px; }
+        #main-content {
+            transition: opacity 0.3s ease;
+        }
+        .back-btn {
+            margin-bottom: 20px;
+        }
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
@@ -407,90 +414,64 @@ function DeleteHoliday($conn) {
     </style>
 </head>
 <body id="page-top">
-    <!-- Page Wrapper -->
-    <div id="wrapper">
-        <!-- Sidebar -->
-        <?php include __DIR__ . '/../../sidebar.php'; ?>
-        <!-- End of Sidebar -->
+    <!-- Container Utama Tanpa Sidebar/Navbar -->
+    <div class="container" id="main-content">
+        <!-- Tombol Back -->
+        <button class="btn btn-secondary back-btn" id="btnBack" data-href="/payroll_absensi_v2/absensi/sdm/manage_guru_karyawan.php">
+            <i class="fas fa-arrow-left"></i> Kembali ke Manajemen Data Guru/Karyawan
+        </button>
 
-        <!-- Content Wrapper -->
-        <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
-            <div id="content">
-                <!-- Topbar -->
-                <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- End of Topbar -->
-                <!-- Breadcrumb -->
-                <?php include __DIR__ . '/../../breadcrumb.php'; ?>
+        <!-- Konten Halaman Manajemen Hari Libur -->
+        <h1 class="h3 mb-4 text-dark"><i class="fas fa-calendar-alt"></i> Manajemen Hari Libur</h1>
 
-                <!-- Begin Page Content -->
-                <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-calendar-alt"></i> Manajemen Hari Libur</h1>
-
-                    <!-- Filter (opsional) -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <strong><i class="fas fa-filter"></i> Filter Hari Libur</strong>
-                        </div>
-                        <div class="card-body">
-                            <form id="filterForm" class="form-inline">
-                                <!-- CSRF tidak diperlukan di form filter karena menggunakan AJAX tanpa input form -->
-                                <button type="button" class="btn btn-primary me-2" id="btnApplyFilter" title="Terapkan Filter">
-                                    <i class="fas fa-filter"></i> Filter
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="btnResetFilter" title="Reset Filter">
-                                    <i class="fas fa-undo"></i> Reset
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Alert Container -->
-                    <div id="alert-container"></div>
-
-                    <!-- Tabel Data Hari Libur -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold text-white"><i class="fas fa-list"></i> Daftar Hari Libur</h6>
-                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addHolidayModal" title="Tambah Hari Libur">
-                                <i class="fas fa-plus-circle"></i> Tambah Hari Libur
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="holidaysTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th><i class="fas fa-hashtag"></i> No</th>
-                                            <th><i class="fas fa-heading"></i> Judul Hari Libur</th>
-                                            <th><i class="fas fa-align-left"></i> Deskripsi</th>
-                                            <th><i class="fas fa-calendar"></i> Tanggal</th>
-                                            <th><i class="fas fa-tags"></i> Jenis</th>
-                                            <th><i class="fas fa-cogs"></i> Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- End Page Content -->
+        <!-- Filter -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong><i class="fas fa-filter"></i> Filter Hari Libur</strong>
             </div>
-            <!-- End Content -->
+            <div class="card-body">
+                <form id="filterForm" class="form-inline">
+                    <button type="button" class="btn btn-primary me-2" id="btnApplyFilter" title="Terapkan Filter">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnResetFilter" title="Reset Filter">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </form>
+            </div>
+        </div>
 
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>
-                            &copy; <?php echo date("Y"); ?> Payroll Management System 
-                            | Developed By <i class="fas fa-user-cog"></i> [Nama Anda]
-                        </span>
-                    </div>
+        <!-- Alert Container (opsional) -->
+        <div id="alert-container"></div>
+
+        <!-- Tabel Data Hari Libur -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-white"><i class="fas fa-list"></i> Daftar Hari Libur</h6>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addHolidayModal" title="Tambah Hari Libur">
+                    <i class="fas fa-plus-circle"></i> Tambah Hari Libur
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="holidaysTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-hashtag"></i> No</th>
+                                <th><i class="fas fa-heading"></i> Judul Hari Libur</th>
+                                <th><i class="fas fa-align-left"></i> Deskripsi</th>
+                                <th><i class="fas fa-calendar"></i> Tanggal</th>
+                                <th><i class="fas fa-tags"></i> Jenis</th>
+                                <th><i class="fas fa-cogs"></i> Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
-            </footer>
+            </div>
         </div>
     </div>
+    <!-- End Container Utama -->
 
     <!-- Loading Spinner -->
     <div id="loadingSpinner">
@@ -506,7 +487,7 @@ function DeleteHoliday($conn) {
                 <form id="add-holiday-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="addHolidayModalLabel"><i class="fas fa-plus-circle"></i> Tambah Hari Libur</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" title="Tutup Modal"></button>
+                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup" title="Tutup Modal"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="AddHoliday">
@@ -557,7 +538,7 @@ function DeleteHoliday($conn) {
                 <form id="edit-holiday-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="editHolidayModalLabel"><i class="fas fa-edit"></i> Edit Hari Libur</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" title="Tutup Modal"></button>
+                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup" title="Tutup Modal"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="case" value="UpdateHoliday">
@@ -614,11 +595,11 @@ function DeleteHoliday($conn) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Bootstrap Datepicker JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
-    <!-- SB Admin 2 JS -->
+    <!-- SB Admin 2 JS (optional) -->
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Inisialisasi tooltip Bootstrap 5
+        // Inisialisasi tooltip (jika diperlukan)
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function(tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl);
@@ -679,9 +660,17 @@ function DeleteHoliday($conn) {
             autoWidth: false
         });
 
+        // Tombol Back dengan transisi smooth
+        $('#btnBack').on('click', function(e) {
+            e.preventDefault();
+            var url = $(this).data('href');
+            $('#main-content').fadeOut(300, function() {
+                window.location.href = url;
+            });
+        });
+
         // Filter
         $('#btnApplyFilter').on('click', function(){
-            // Contoh pencatatan audit log filter (jika diperlukan)
             $.ajax({
                 url: 'holidays.php?ajax=1',
                 type: 'POST',

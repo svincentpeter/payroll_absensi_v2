@@ -53,9 +53,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 }
 
 // ==============================================================================
-// 3. Fungsi-Fungsi AJAX CRUD
+// 3. Fungsi-Fungsi AJAX CRUD (tidak diubah)
 // ==============================================================================
-
 function LoadingGuru($conn) {
     $draw          = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start         = isset($_POST['start']) ? intval($_POST['start']) : 0;
@@ -635,6 +634,12 @@ function getGajiPokokByRole($conn, $role) {
                         </button>
                         <button class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#modalGajiPokok">
                             <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
+                        </button>
+                        <button class="btn btn-info mb-2 ms-2" id="btnManageSalaryIndices" data-href="/payroll_absensi_v2/absensi/sdm/manage_salary_indices.php">
+        <i class="fas fa-money-bill-wave"></i> Atur Salary Indeks
+    </button>
+    <button class="btn btn-warning mb-2 ms-2" id="btnManageHolidays" data-href="/payroll_absensi_v2/absensi/sdm/holidays.php">
+                            <i class="fas fa-calendar-alt"></i> Atur Hari Libur
                         </button>
                     </div>
 
@@ -1858,6 +1863,24 @@ function getGajiPokokByRole($conn, $role) {
                     form.find('.spinner-border').addClass('d-none');
                     showToast('Terjadi kesalahan saat mengupdate gaji strata Karyawan.', 'error');
                 }
+            });
+        });
+        // Tombol Atur Salary Indeks 
+        $(document).on('click', '#btnManageSalaryIndices', function(e) {
+            e.preventDefault();
+            var url = $(this).data('href');
+            // Efek fadeOut pada kontainer utama. Pastikan #content-wrapper adalah elemen pembungkus konten utama.
+            $('#content-wrapper').fadeOut(300, function() {
+                window.location.href = url;
+            });
+        });
+        // === Tambahan: Tombol Atur Hari Libur ===
+        $(document).on('click', '#btnManageHolidays', function(e) {
+            e.preventDefault();
+            var url = $(this).data('href');
+            // Efek fadeOut pada kontainer utama sebelum redirect
+            $('#content-wrapper').fadeOut(300, function() {
+                window.location.href = url;
             });
         });
     });
