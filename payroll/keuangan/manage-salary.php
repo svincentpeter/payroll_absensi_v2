@@ -56,7 +56,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $id_payhead = isset($_POST['id_payhead']) ? intval($_POST['id_payhead']) : 0;
             $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
             if ($id_anggota <= 0 || $id_payhead <= 0) {
-                send_response(1, 'Parameter invalid.');
+                send_response(1, 'Parameter tidak valid.');
             }
             $stmt = $conn->prepare("UPDATE employee_payheads SET amount = ? WHERE id_anggota = ? AND id_payhead = ?");
             if (!$stmt) {
@@ -65,7 +65,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $stmt->bind_param("dii", $amount, $id_anggota, $id_payhead);
             if ($stmt->execute()) {
                 $stmt->close();
-                // Catat audit log (gunakan NIP atau user_id sesuai session)
                 $user_nip = $_SESSION['nip'] ?? '';
                 $details = "Memperbarui Payhead ID $id_payhead untuk Karyawan ID $id_anggota dengan jumlah " . formatNominal($amount);
                 add_audit_log($conn, $user_nip, 'UpdatePayhead', $details);
@@ -104,7 +103,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
             $id_payhead = isset($_POST['id_payhead']) ? intval($_POST['id_payhead']) : 0;
             if ($id_anggota <= 0 || $id_payhead <= 0) {
-                send_response(1, 'Parameter invalid.');
+                send_response(1, 'Parameter tidak valid.');
             }
             $stmtDel = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota=? AND id_payhead=?");
             if (!$stmtDel) {
@@ -294,6 +293,7 @@ if ($resKar->num_rows == 0) {
 $karyawan = $resKar->fetch_assoc();
 $stmtKar->close();
 
+// Hitung gaji pokok dengan menggabungkan gaji dasar karyawan dan salary indeks (jika ada)
 $salary_index_level = '';
 $salary_index_amount = 0;
 if (!empty($karyawan['salary_index_id'])) {
@@ -342,25 +342,21 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
     <meta charset="UTF-8">
     <title>Review Payroll - <?= htmlspecialchars($namaKaryawan); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Gunakan layout SB Admin 2 dan Bootstrap 5 -->
+    <!-- Bootstrap 5 & SB Admin 2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
-    <!-- DataTables CSS (jika diperlukan) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        /* Sesuaikan styling agar konsisten */
-        .content-wrapper { margin-left: 0; }
-        .breadcrumb { background: transparent; }
         .card-header { background-color: #4e73df; color: #fff; }
         .currency-input { text-align: right; }
-        .clock { font-size: 1.5rem; text-align: center; margin-bottom: 10px; }
-        .calendar { width: 100%; border-collapse: collapse; }
-        .calendar th, .calendar td { border: 1px solid #dee2e6; padding: 5px; text-align: center; }
-        .calendar th { background-color: #f8f9fc; }
-        .today { background-color: #42a5f5; color: #fff; font-weight: bold; }
+        /* Penyesuaian tampilan agar lebih rapi dan responsif */
+        @media (max-width: 576px) {
+            .card { margin-bottom: 1rem; }
+        }
         #loadingSpinner {
             display: none;
             position: fixed;
@@ -373,6 +369,10 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
     </style>
     <script>
         const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
+        const EMPLOYEE_ID = <?= htmlspecialchars($id_anggota); ?>;
+        // Simpan nilai pendapatan & potongan dari PHP (tanpa format)
+        const TOTAL_EARNINGS = <?= $total_earnings; ?>;
+        const TOTAL_DEDUCTIONS = <?= $total_deductions; ?>;
     </script>
 </head>
 <body id="page-top">
@@ -395,11 +395,11 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                     <!-- Header -->
                     <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-file-invoice-dollar me-2"></i>Review Payroll</h1>
                     <div class="row">
-                        <!-- Kolom Kiri: General Info -->
-                        <div class="col-md-6">
-                            <div class="card card-primary mb-4">
+                        <!-- Kolom Kiri: Informasi Umum -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card shadow mb-4">
                                 <div class="card-header">
-                                    <h3 class="card-title">General</h3>
+                                    <h5 class="card-title mb-0">Informasi Umum</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="mb-3">
@@ -413,6 +413,10 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                     <div class="mb-3">
                                         <label>Masa Kerja</label>
                                         <input type="text" class="form-control" value="<?= htmlspecialchars($masa_kerja); ?>" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="inputLevelIndeks">Level Indeks</label>
+                                        <input type="text" id="inputLevelIndeks" class="form-control" value="<?= htmlspecialchars($salary_index_level ? $salary_index_level . ' (Rp ' . number_format($salary_index_amount, 2, ',', '.') . ')' : 'Belum ada'); ?>" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label>No. Rekening</label>
@@ -429,16 +433,17 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                 </div>
                             </div>
                         </div>
-                        <!-- Kolom Kanan: Payroll Calculation & Payheads Detail -->
-                        <div class="col-md-6">
-                            <div class="card card-secondary mb-4">
+                        <!-- Kolom Kanan: Perhitungan Payroll & Detail Payheads -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card shadow mb-4">
                                 <div class="card-header">
-                                    <h3 class="card-title">Payroll Calculation</h3>
+                                    <h5 class="card-title mb-0">Perhitungan Payroll</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="mb-3">
-                                        <label>Gaji Pokok</label>
-                                        <input type="text" id="inputGajiPokok" class="form-control currency-input" value="<?= htmlspecialchars($gaji_pokok); ?>">
+                                        <label for="inputGajiPokok">Gaji Pokok</label>
+                                        <!-- Gaji pokok ditampilkan sebagai readonly agar tidak bisa diubah -->
+                                        <input type="text" id="inputGajiPokok" class="form-control currency-input" value="<?= htmlspecialchars($gaji_pokok); ?>" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label>Total Pendapatan (Payheads)</label>
@@ -454,13 +459,14 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                     </div>
                                 </div>
                             </div>
-                            <div class="card card-info mb-4">
+                            <div class="card shadow mb-4">
                                 <div class="card-header">
-                                    <h3 class="card-title">Payheads</h3>
+                                    <h5 class="card-title mb-0">Detail Payheads</h5>
                                 </div>
                                 <div class="card-body p-0">
+                                    <!-- Tabel payheads dibungkus dengan .table-responsive agar responsive -->
                                     <div class="table-responsive">
-                                        <table class="table table-bordered table-striped">
+                                        <table id="payheadsTable" class="table table-bordered table-striped">
                                             <thead>
                                               <tr>
                                                 <th>Nama Payhead</th>
@@ -492,13 +498,13 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                                         </td>
                                                         <td class="text-end">
                                                             <div class="btn-group btn-group-sm">
-                                                                <button class="btn btn-info btnEditPayhead"
+                                                                <button class="btn btn-info btn-edit-payhead"
                                                                         data-idpayhead="<?= htmlspecialchars($ph['id_payhead']); ?>"
                                                                         data-amount="<?= htmlspecialchars($ph['amount']); ?>"
                                                                         data-jenis="<?= htmlspecialchars($ph['jenis']); ?>">
                                                                     <i class="fas fa-pen"></i>
                                                                 </button>
-                                                                <button class="btn btn-danger btnDeletePayhead"
+                                                                <button class="btn btn-danger btn-delete-payhead"
                                                                         data-idpayhead="<?= htmlspecialchars($ph['id_payhead']); ?>">
                                                                     <i class="fas fa-trash"></i>
                                                                 </button>
@@ -516,9 +522,9 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                     </div>
 
                     <!-- Tombol Aksi: Proses Payroll & Tolak Payroll -->
-                    <div class="row">
+                    <div class="row mb-4">
                         <div class="col-12">
-                            <a href="/payroll_absensi_v2/payroll/keuangan/employees.php" class="btn btn-secondary">
+                            <a href="/payroll_absensi_v2/payroll/keuangan/list_payroll.php" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left"></i> Cancel
                             </a>
                             <form id="formPayroll" action="" method="POST" class="d-inline">
@@ -575,7 +581,7 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
-                        <input type="hidden" id="edit_idpayhead" name="edit_idpayhead">
+                        <input type="hidden" id="edit_idpayhead" name="id_payhead">
                         <div class="mb-3">
                             <label>Jenis</label>
                             <input type="text" id="edit_jenis" class="form-control" name="edit_jenis" readonly>
@@ -623,23 +629,12 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
     </div>
 
     <!-- JS Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap 5 Bundle JS (termasuk Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables JS & Extensions -->
+    <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
-    <!-- SB Admin 2 JS (opsional) -->
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- AutoNumeric -->
@@ -647,262 +642,122 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
 
     <script>
     $(document).ready(function() {
-        console.log("DEBUG: Document ready.");
-
-        // Inisialisasi SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-            }
-        });
-        function showToast(message, icon = 'success') {
-            Toast.fire({
-                icon: icon,
-                title: message
-            });
-        }
-
-        // Inisialisasi AutoNumeric untuk input nominal
-        new AutoNumeric('#nominal', {
-            digitGroupSeparator: '.',
-            decimalCharacter: ',',
-            decimalPlaces: 2,
-            unformatOnSubmit: true
-        });
-        new AutoNumeric('#edit_nominal', {
-            digitGroupSeparator: '.',
-            decimalCharacter: ',',
-            decimalPlaces: 2,
-            unformatOnSubmit: true
-        });
-
-        // Definisikan DataTable (jika diperlukan, misalnya untuk daftar payheads)
-        var payheadsTable = $('#payheadsTable').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: "payheads.php?ajax=1",
-                type: "POST",
-                data: function(d) {
-                    d.case = 'LoadingPayheads';
-                    d.jenis_payhead = $('#filterJenisPayhead').val();
-                },
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                complete: function(){
-                    $('#loadingSpinner').hide();
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat memuat data payheads.', 'error');
-                }
-            },
-            columns: [
-                { data: "no", orderable: false },
-                { data: "nama_payhead" },
-                { data: "jenis" },
-                { data: "deskripsi" },
-                { data: "nominal_tetap" },
-                { data: "aksi", orderable: false }
-            ],
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-            },
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="fas fa-file-excel"></i> Export Excel',
-                    className: 'btn btn-success btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4] }
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="fas fa-file-pdf"></i> Export PDF',
-                    className: 'btn btn-danger btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4] },
-                    customize: function (doc) {
-                        doc.styles.tableHeader.fillColor = '#343a40';
-                        doc.styles.tableHeader.color = 'white';
-                        doc.defaultStyle.fontSize = 10;
-                    }
-                },
-                {
-                    extend: 'print',
-                    text: '<i class="fas fa-print"></i> Print',
-                    className: 'btn btn-info btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4] }
-                }
-            ],
+        // Inisialisasi DataTable pada tabel payheads agar responsif
+        $('#payheadsTable').DataTable({
             responsive: true,
-            autoWidth: false
-        });
-
-        // Tombol Filter
-        $('#btnApplyFilter').on('click', function(){
-            payheadsTable.ajax.reload();
-        });
-        $('#btnResetFilter').on('click', function(){
-            $('#filterForm')[0].reset();
-            payheadsTable.ajax.reload();
-        });
-
-        // Form Tambah Payhead (jika diperlukan)
-        $('#add-payhead-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
+            autoWidth: false,
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.11.3/i18n/Indonesian.json"
             }
-            var formData = form.serialize();
+        });
+
+        // Inisialisasi AutoNumeric untuk input currency di modal edit
+        const anEditAmount = new AutoNumeric('#edit_amount', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+
+        // Karena gaji pokok tidak dapat diubah, kita tidak inisialisasi AutoNumeric untuk input tersebut
+        // Input Gaji Pokok sudah ditandai readonly pada HTML
+
+        // --- Fitur Edit Payhead ---
+        // Tampilkan modal edit saat tombol edit diklik
+        $(document).on('click', '.btn-edit-payhead', function(){
+            const idPayhead = $(this).data('idpayhead');
+            const amount = $(this).data('amount');
+            const jenis = $(this).data('jenis');
+            $('#edit_idpayhead').val(idPayhead);
+            $('#edit_jenis').val(jenis);
+            anEditAmount.set(amount);
+            new bootstrap.Modal(document.getElementById('modalEditPayhead')).show();
+        });
+
+        // Proses update payhead melalui AJAX ketika form edit disubmit
+        $('#formEditPayhead').on('submit', function(e){
+            e.preventDefault();
+            const idPayhead = $('#edit_idpayhead').val();
+            const newAmount = AutoNumeric.getNumber('#edit_amount');
             $.ajax({
-                url: "payheads.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
+                url: '?ajax=1',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    case: 'UpdatePayhead',
+                    id_anggota: EMPLOYEE_ID,
+                    id_payhead: idPayhead,
+                    amount: newAmount,
+                    csrf_token: CSRF_TOKEN
                 },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#addPayheadModal').modal('hide');
-                        payheadsTable.ajax.reload(null, false);
-                        form[0].reset();
-                        form.removeClass('was-validated');
+                beforeSend: function(){
+                    $('#modalEditPayhead button[type="submit"]').prop('disabled', true);
+                },
+                success: function(resp){
+                    $('#modalEditPayhead button[type="submit"]').prop('disabled', false);
+                    if(resp.code === 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: resp.result,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
+                        });
                     } else {
-                        showToast(response.result, 'error');
+                        Swal.fire('Gagal', resp.result, 'error');
                     }
                 },
                 error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menambah payhead.', 'error');
+                    $('#modalEditPayhead button[type="submit"]').prop('disabled', false);
+                    Swal.fire('Error', 'Terjadi kesalahan saat mengupdate payhead.', 'error');
                 }
             });
         });
 
-        // Edit Payhead: ambil detail dari server
-        $(document).on('click', '.btn-edit', function() {
-            var id = $(this).data('id');
-            var modal = $('#editPayheadModal');
-            var form = $('#edit-payhead-form');
-            form[0].reset();
-            form.removeClass('was-validated');
-            $.ajax({
-                url: "payheads.php?ajax=1",
-                type: "POST",
-                data: { id: id, case: 'GetPayheadDetail' },
-                dataType: "json",
-                success: function(response){
-                    if(response.code == 0) {
-                        $('#edit_payhead_id').val(response.result.id);
-                        $('#edit_nama_payhead').val(response.result.nama_payhead);
-                        $('#edit_jenis_payhead').val(response.result.jenis);
-                        $('#edit_deskripsi').val(response.result.deskripsi);
-                        var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
-                        anEdit.set(response.result.nominal);
-                        modal.modal('show');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan mengambil detail payhead.', 'error');
-                }
-            });
+        // --- Fitur Delete Payhead ---
+        $(document).on('click', '.btn-delete-payhead', function(){
+            const idPayhead = $(this).data('idpayhead');
+            $('#del_idpayhead').val(idPayhead);
+            new bootstrap.Modal(document.getElementById('modalDeletePayhead')).show();
         });
-
-        // Form Update Payhead
-        $('#edit-payhead-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            var anEdit = AutoNumeric.getAutoNumericElement('#edit_nominal');
-            $('#edit_nominal').val(anEdit.getNumber());
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "payheads.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#editPayheadModal').modal('hide');
-                        payheadsTable.ajax.reload(null, false);
-                        form[0].reset();
-                        form.removeClass('was-validated');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat update payhead.', 'error');
-                }
-            });
-        });
-
-        // Delete Payhead: tampilkan modal konfirmasi
-        $(document).on('click', '.btn-delete', function() {
-            var id = $(this).data('id');
-            $('#delete_id').val(id);
-            $('#deleteModal').modal('show');
-        });
-        $('#deleteForm').on('submit', function(e){
-            e.preventDefault();
-            var id = $('#delete_id').val();
-            if (!id) {
-                showToast('ID Payhead tidak ditemukan.', 'error');
+        $('#btnConfirmDelete').on('click', function(){
+            const idPayhead = $('#del_idpayhead').val();
+            if(!idPayhead) {
+                Swal.fire('Error', 'ID Payhead tidak ditemukan.', 'error');
                 return;
             }
             $.ajax({
-                url: "payheads.php?ajax=1",
-                type: "POST",
-                data: { id: id, case: 'DeletePayhead' },
-                dataType: "json",
-                beforeSend: function(){
-                    $('#deleteForm').find('button[type="submit"]').prop('disabled', true);
-                    $('#deleteForm').find('.spinner-border').removeClass('d-none');
+                url: '?ajax=1',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    case: 'DeletePayhead',
+                    id_anggota: EMPLOYEE_ID,
+                    id_payhead: idPayhead,
+                    csrf_token: CSRF_TOKEN
                 },
-                success: function(response){
-                    $('#deleteForm').find('button[type="submit"]').prop('disabled', false);
-                    $('#deleteForm').find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#deleteModal').modal('hide');
-                        payheadsTable.ajax.reload(null, false);
+                beforeSend: function(){
+                    $('#btnConfirmDelete').prop('disabled', true);
+                },
+                success: function(resp){
+                    $('#btnConfirmDelete').prop('disabled', false);
+                    if(resp.code === 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: resp.result,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
+                        });
                     } else {
-                        showToast(response.result, 'error');
+                        Swal.fire('Gagal', resp.result, 'error');
                     }
                 },
-                error: function(xhr, status, error){
-                    $('#deleteForm').find('button[type="submit"]').prop('disabled', false);
-                    $('#deleteForm').find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menghapus payhead: ' + error, 'error');
+                error: function(){
+                    $('#btnConfirmDelete').prop('disabled', false);
+                    Swal.fire('Error', 'Terjadi kesalahan saat menghapus payhead.', 'error');
                 }
             });
         });
@@ -923,9 +778,9 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                         dataType: 'json',
                         data: {
                             case: 'RejectPayroll',
-                            id_anggota: '<?= htmlspecialchars($id_anggota); ?>',
-                            bulan: '<?= htmlspecialchars($bulanVal); ?>',
-                            tahun: '<?= htmlspecialchars($tahunVal); ?>',
+                            id_anggota: EMPLOYEE_ID,
+                            bulan: <?= htmlspecialchars($bulanVal); ?>,
+                            tahun: <?= htmlspecialchars($tahunVal); ?>,
                             csrf_token: CSRF_TOKEN
                         },
                         success: function(resp) {
@@ -939,74 +794,16 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                     window.location.href = '/payroll_absensi_v2/payroll/keuangan/list_payroll.php';
                                 });
                             } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Gagal',
-                                    text: resp.result
-                                });
+                                Swal.fire('Gagal', resp.result, 'error');
                             }
                         },
                         error: function() {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'Terjadi kesalahan saat menolak payroll.'
-                            });
+                            Swal.fire('Error', 'Terjadi kesalahan saat menolak payroll.', 'error');
                         }
                     });
                 }
             });
         });
-
-        // Live Clock and Simple Calendar
-        function updateClock() {
-            var now = new Date();
-            var options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' };
-            var timeString = new Intl.DateTimeFormat('id-ID', options).format(now);
-            $('#digitalClock').text(timeString);
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        function buildCalendar() {
-            var today = new Date();
-            var currentYear = today.getFullYear();
-            var currentMonth = today.getMonth();
-            var currentDate = today.getDate();
-            var monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-            var dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
-            var calendarHtml = '<h5 class="text-center mb-2">' + monthNames[currentMonth] + ' ' + currentYear + '</h5>';
-            calendarHtml += '<table class="calendar"><thead><tr>';
-            for (var i = 0; i < dayNames.length; i++) {
-                calendarHtml += '<th>' + dayNames[i] + '</th>';
-            }
-            calendarHtml += '</tr></thead><tbody>';
-            var firstDay = new Date(currentYear, currentMonth, 1).getDay();
-            var daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-            var day = 1;
-            for (var row = 0; row < 6; row++) {
-                calendarHtml += '<tr>';
-                for (var col = 0; col < 7; col++) {
-                    if (row === 0 && col < firstDay) {
-                        calendarHtml += '<td></td>';
-                    } else if (day > daysInMonth) {
-                        calendarHtml += '<td></td>';
-                    } else {
-                        if (day === currentDate) {
-                            calendarHtml += '<td class="today">' + day + '</td>';
-                        } else {
-                            calendarHtml += '<td>' + day + '</td>';
-                        }
-                        day++;
-                    }
-                }
-                calendarHtml += '</tr>';
-                if (day > daysInMonth) break;
-            }
-            calendarHtml += '</tbody></table>';
-            $('#calendarContainer').html(calendarHtml);
-        }
-        buildCalendar();
     });
     </script>
 </body>

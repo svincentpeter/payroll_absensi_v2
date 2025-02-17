@@ -135,9 +135,8 @@ function renderMenuItems($items, $iconClass = 'fa-fw') {
             'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
             'Payroll Anggota'         => '/absensi/sdm/employees.php',
             'Payheads'                => '/absensi/sdm/payheads.php',
-            'Rekap Absensi'           => '/absensi/sdm/rekap_absensi.php',
-            'Hari Libur'              => '/absensi/sdm/holidays.php',
-            'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php'
+            'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php',
+            'Audit Logs SDM'          => '/absensi/sdm/audit_logs_sdm.php'
         ];
         renderCollapseMenu('collapseSDM', 'fa-fw fa-users-cog', 'Role SDM', $sdmItems);
         ?>
@@ -163,9 +162,8 @@ function renderMenuItems($items, $iconClass = 'fa-fw') {
             'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
             'Payroll Anggota'         => '/absensi/sdm/employees.php',
             'Payheads'                => '/absensi/sdm/payheads.php',
-            'Rekap Absensi'           => '/absensi/sdm/rekap_absensi.php',
-            'Hari Libur'              => '/absensi/sdm/holidays.php',
-            'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php'
+            'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php',
+            'Audit Logs SDM'          => '/absensi/sdm/audit_logs_sdm.php'
         ];
         renderMenuItems($sdmItems, 'fa-fw fa-users-cog');
         ?>

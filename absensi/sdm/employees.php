@@ -19,7 +19,16 @@ require_once __DIR__ . '/../../koneksi.php';
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
 /**
+ * Di sini kita baca filterMonth & filterYear dari GET
+ * Jika tidak ada, gunakan default: bulan & tahun sekarang
+ */
+$selectedMonth = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : date('n');
+$selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date('Y');
+
+
+/**
  * Fungsi ProcessPayroll untuk memproses data payroll dan mengirimkannya ke list payroll.
+ * MODIFIKASI: Pastikan perhitungan gaji pokok dan gaji bersih konsisten.
  */
 function ProcessPayroll($conn) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -30,22 +39,24 @@ function ProcessPayroll($conn) {
     if($id_anggota <= 0 || $bulan <= 0 || $tahun <= 0) {
         send_response(1, 'Parameter tidak valid untuk proses payroll.');
     }
+    
+    // Update status payheads menjadi final (jika sebelumnya draft atau revisi)
     $stmtFinal = $conn->prepare("UPDATE employee_payheads SET status = 'final' WHERE id_anggota = ? AND status IN ('draft','revisi')");
     $stmtFinal->bind_param("i", $id_anggota);
     if(!$stmtFinal->execute()){
         $error = $stmtFinal->error;
         $stmtFinal->close();
-        send_response(1, 'Gagal update status payheads: ' . $error);
+        send_response(1, 'Gagal update status payheads.');
     }
     $stmtFinal->close();
 
+    // Hitung total earnings dan deductions dari employee_payheads
     $sqlSum = "SELECT jenis, SUM(amount) as total FROM employee_payheads WHERE id_anggota = ? AND status = 'final' GROUP BY jenis";
     $stmtSum = $conn->prepare($sqlSum);
     $stmtSum->bind_param("i", $id_anggota);
     if(!$stmtSum->execute()){
-        $error = $stmtSum->error;
         $stmtSum->close();
-        send_response(1, 'Gagal menghitung total payheads: ' . $error);
+        send_response(1, 'Gagal menghitung total payheads.');
     }
     $resultSum = $stmtSum->get_result();
     $totalEarnings = 0;
@@ -59,12 +70,12 @@ function ProcessPayroll($conn) {
     }
     $stmtSum->close();
 
+    // Ambil data anggota
     $stmtEmp = $conn->prepare("SELECT gaji_pokok, salary_index_id, no_rekening FROM anggota_sekolah WHERE id = ? LIMIT 1");
     $stmtEmp->bind_param("i", $id_anggota);
     if(!$stmtEmp->execute()){
-        $error = $stmtEmp->error;
         $stmtEmp->close();
-        send_response(1, 'Gagal mengambil data anggota: ' . $error);
+        send_response(1, 'Gagal mengambil data anggota.');
     }
     $resultEmp = $stmtEmp->get_result();
     if($resultEmp->num_rows == 0){
@@ -73,6 +84,7 @@ function ProcessPayroll($conn) {
     }
     $empData = $resultEmp->fetch_assoc();
     $stmtEmp->close();
+    
     $gajiPokokEmployee = floatval($empData['gaji_pokok']);
     $no_rekening = $empData['no_rekening'];
     $salaryIndexBase = 0;
@@ -88,6 +100,7 @@ function ProcessPayroll($conn) {
         }
         $stmtIndex->close();
     }
+    // Konsisten: gaji pokok adalah penjumlahan dari gaji pokok anggota + salary index
     $gajiPokok = $gajiPokokEmployee + $salaryIndexBase;
     $gajiBersih = $gajiPokok + $totalEarnings - $totalDeductions;
     $tglPayroll = date('Y-m-d H:i:s');
@@ -97,9 +110,8 @@ function ProcessPayroll($conn) {
     $stmtPayroll = $conn->prepare("INSERT INTO payroll (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok, total_pendapatan, total_potongan, gaji_bersih, no_rekening, catatan, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmtPayroll->bind_param("iiisddddsss", $id_anggota, $bulan, $tahun, $tglPayroll, $gajiPokok, $totalEarnings, $totalDeductions, $gajiBersih, $no_rekening, $catatan, $statusPayroll);
     if(!$stmtPayroll->execute()){
-        $error = $stmtPayroll->error;
         $stmtPayroll->close();
-        send_response(1, 'Gagal insert payroll: ' . $error);
+        send_response(1, 'Gagal insert payroll.');
     }
     $stmtPayroll->close();
 
@@ -109,6 +121,7 @@ function ProcessPayroll($conn) {
 
     send_response(0, 'Payroll berhasil diproses dan masuk ke list payroll dengan status draft.');
 }
+
 
 /**
  * Fungsi CheckPayrollCompletion: Mengecek jumlah anggota yang belum memiliki payroll final.
@@ -126,7 +139,7 @@ function CheckPayrollCompletion($conn) {
     $stmt = $conn->prepare($query);
     $stmt->bind_param("ii", $bulan, $tahun);
     if(!$stmt->execute()){
-        send_response(1, 'Gagal menghitung anggota yang belum final: ' . $stmt->error);
+        send_response(1, 'Gagal menghitung anggota yang belum final.');
     }
     $result = $stmt->get_result();
     $messages = [];
@@ -143,6 +156,7 @@ function CheckPayrollCompletion($conn) {
     }
 }
 
+
 /**
  * Fungsi ViewRekapAbsensi: Mengambil data rekap absensi untuk anggota, bulan, dan tahun tertentu.
  */
@@ -154,7 +168,7 @@ function ViewRekapAbsensi($conn) {
     $stmt = $conn->prepare("SELECT * FROM rekap_absensi WHERE id_anggota = ? AND bulan = ? AND tahun = ? LIMIT 1");
     $stmt->bind_param("iii", $id_anggota, $bulan, $tahun);
     if(!$stmt->execute()){
-        send_response(1, 'Gagal mengambil rekap absensi: ' . $stmt->error);
+        send_response(1, 'Gagal mengambil rekap absensi.');
     }
     $result = $stmt->get_result();
     if($result->num_rows > 0){
@@ -176,6 +190,7 @@ function ViewRekapAbsensi($conn) {
     $stmt->close();
 }
 
+
 /**
  * Fungsi EditRekapAbsensi: Menyimpan (update atau insert) data rekap absensi untuk anggota.
  */
@@ -192,7 +207,7 @@ function EditRekapAbsensi($conn) {
     $stmtCheck = $conn->prepare("SELECT id FROM rekap_absensi WHERE id_anggota = ? AND bulan = ? AND tahun = ? LIMIT 1");
     $stmtCheck->bind_param("iii", $id_anggota, $bulan, $tahun);
     if(!$stmtCheck->execute()){
-        send_response(1, 'Gagal mengecek rekap absensi: ' . $stmtCheck->error);
+        send_response(1, 'Gagal mengecek rekap absensi.');
     }
     $result = $stmtCheck->get_result();
     if ($result->num_rows > 0) {
@@ -203,7 +218,7 @@ function EditRekapAbsensi($conn) {
         if ($stmtUpdate->execute()){
             send_response(0, 'Rekap absensi berhasil diperbarui.');
         } else {
-            send_response(1, 'Gagal memperbarui rekap absensi: ' . $stmtUpdate->error);
+            send_response(1, 'Gagal memperbarui rekap absensi.');
         }
         $stmtUpdate->close();
     } else {
@@ -212,12 +227,13 @@ function EditRekapAbsensi($conn) {
         if ($stmtInsert->execute()){
             send_response(0, 'Rekap absensi berhasil disimpan.');
         } else {
-            send_response(1, 'Gagal menyimpan rekap absensi: ' . $stmtInsert->error);
+            send_response(1, 'Gagal menyimpan rekap absensi.');
         }
         $stmtInsert->close();
     }
     $stmtCheck->close();
 }
+
 
 /**
  * Fungsi GetAllPayheads: Mengambil seluruh data payheads.
@@ -228,7 +244,7 @@ function GetAllPayheads($conn) {
     $result = $conn->query($sql);
     if (!$result) {
         error_log("DEBUG: Query failed in GetAllPayheads: " . $conn->error);
-        send_response(1, 'Query gagal: ' . $conn->error);
+        send_response(1, 'Query gagal.');
     }
     $payheads = [];
     while ($row = $result->fetch_assoc()){
@@ -244,8 +260,10 @@ function GetAllPayheads($conn) {
     send_response(0, $payheads);
 }
 
+
 /**
  * Fungsi LoadingEmployees: Mengambil data anggota untuk DataTables.
+ * MODIFIKASI: Tambahan komentar untuk peringatan performa subquery bila data sudah besar.
  */
 function LoadingEmployees($conn) {
     error_log("DEBUG: Entering LoadingEmployees");
@@ -259,6 +277,7 @@ function LoadingEmployees($conn) {
     $selectedYear = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : date('Y');
     error_log("DEBUG: LoadingEmployees parameters: draw=$draw, start=$start, length=$length, search=$search, jenjangFilter=$jenjangFilter, roleFilter=$roleFilter, selectedMonth=$selectedMonth, selectedYear=$selectedYear");
 
+    // Catatan: Subquery di sini bisa menimbulkan masalah performa bila data sangat besar.
     $subqueryPayrollStatus = "(SELECT p.status FROM payroll p WHERE p.id_anggota = a.id AND p.bulan = $selectedMonth AND p.tahun = $selectedYear ORDER BY p.tgl_payroll DESC LIMIT 1) AS payroll_status";
 
     $sql = "SELECT SQL_CALC_FOUND_ROWS
@@ -314,14 +333,14 @@ function LoadingEmployees($conn) {
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         error_log("DEBUG: Prepare failed in LoadingEmployees: " . $conn->error);
-        send_response(1, 'Prepare failed: ' . $conn->error);
+        send_response(1, 'Prepare failed.');
     }
     if (!empty($params)) {
         $stmt->bind_param($types, ...$params);
     }
     if (!$stmt->execute()) {
         error_log("DEBUG: Execute failed in LoadingEmployees: " . $stmt->error);
-        send_response(1, 'Execute failed: ' . $stmt->error);
+        send_response(1, 'Execute failed.');
     }
     $resData = $stmt->get_result();
     $resultFiltered = $conn->query("SELECT FOUND_ROWS() AS total");
@@ -403,13 +422,14 @@ function LoadingEmployees($conn) {
     exit();
 }
 
+
 /**
  * Fungsi EditEmployee: Memperbarui data no rekening anggota.
  */
 function EditEmployee($conn) {
     error_log("DEBUG: Entering EditEmployee");
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-    $no_rekening = isset($_POST['no_rekening']) ? sanitize_input($_POST['no_rekening']) : '';
+    $no_rekening = isset($_POST['no_rekening']) ? trim(sanitize_input($_POST['no_rekening'])) : '';
     if ($id <= 0 || empty($no_rekening)) {
         error_log("DEBUG: EditEmployee: Invalid parameters id=$id, no_rekening=$no_rekening");
         send_response(1, 'ID dan No Rekening wajib diisi.');
@@ -422,12 +442,12 @@ function EditEmployee($conn) {
         $stmtBefore->close();
     } else {
         error_log("DEBUG: EditEmployee: Prepare failed: " . $conn->error);
-        send_response(1, 'Prepare failed: ' . $conn->error);
+        send_response(1, 'Prepare failed.');
     }
     $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET no_rekening = ? WHERE id = ?");
     if (!$stmtUpdate) {
         error_log("DEBUG: EditEmployee: Prepare failed (update): " . $conn->error);
-        send_response(1, 'Prepare failed: ' . $conn->error);
+        send_response(1, 'Prepare failed.');
     }
     $stmtUpdate->bind_param("si", $no_rekening, $id);
     if ($stmtUpdate->execute()){
@@ -435,13 +455,15 @@ function EditEmployee($conn) {
         send_response(0, 'No Rekening anggota berhasil diperbarui.');
     } else {
         error_log("DEBUG: EditEmployee: Update failed: " . $stmtUpdate->error);
-        send_response(1, 'Gagal memperbarui No Rekening: ' . $stmtUpdate->error);
+        send_response(1, 'Gagal memperbarui No Rekening.');
     }
     $stmtUpdate->close();
 }
 
+
 /**
  * Fungsi AssignPayheadsToEmployee: Menetapkan payheads kepada anggota.
+ * MODIFIKASI: Tambahan validasi file upload berdasarkan ekstensi dan MIME type.
  */
 function AssignPayheadsToEmployee($conn) {
     error_log("DEBUG: Entering AssignPayheadsToEmployee");
@@ -457,13 +479,34 @@ function AssignPayheadsToEmployee($conn) {
     }
     $supportDocPath = '';
     if (isset($_FILES['support_doc']) && $_FILES['support_doc']['error'] === UPLOAD_ERR_OK) {
+        // Daftar ekstensi yang diizinkan
+        $allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
         $uploadDir = __DIR__ . '/../../uploads/payhead_support/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
         $fileTmpPath = $_FILES['support_doc']['tmp_name'];
         $fileName    = basename($_FILES['support_doc']['name']);
-        $fileExt     = pathinfo($fileName, PATHINFO_EXTENSION);
+        $fileExt     = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        // Validasi ekstensi file
+        if (!in_array($fileExt, $allowedExtensions)) {
+            send_response(1, 'Tipe file tidak diizinkan.');
+        }
+        // Validasi MIME type
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $fileTmpPath);
+        finfo_close($finfo);
+        $allowedMimes = [
+            'pdf'  => 'application/pdf',
+            'doc'  => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png'
+        ];
+        if (!in_array($mimeType, $allowedMimes)) {
+            send_response(1, 'MIME type file tidak diizinkan.');
+        }
         $newFileName = uniqid('doc_', true) . '.' . $fileExt;
         $destPath    = $uploadDir . $newFileName;
         if (!move_uploaded_file($fileTmpPath, $destPath)) {
@@ -473,6 +516,7 @@ function AssignPayheadsToEmployee($conn) {
     }
     $conn->begin_transaction();
     try {
+        // Catatan: Penghapusan seluruh record payheads lama dilakukan di sini; pastikan sesuai dengan logika bisnis
         $stmtDelete = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota = ?");
         $stmtDelete->bind_param("i", $empcode);
         $stmtDelete->execute();
@@ -506,6 +550,7 @@ function AssignPayheadsToEmployee($conn) {
     }
 }
 
+
 /**
  * Fungsi ViewEmployeeDetail: Menampilkan detail anggota beserta payheads dan perhitungan gaji bersih.
  */
@@ -519,12 +564,12 @@ function ViewEmployeeDetail($conn) {
     $stmt = $conn->prepare("SELECT a.*, si.level AS salary_index_level, si.base_salary AS salary_index_base FROM anggota_sekolah a LEFT JOIN salary_indices si ON a.salary_index_id = si.id WHERE a.id = ? LIMIT 1");
     if (!$stmt) {
         error_log("DEBUG: ViewEmployeeDetail: Prepare failed: " . $conn->error);
-        send_response(1, 'Prepare failed: ' . $conn->error);
+        send_response(1, 'Prepare failed.');
     }
     $stmt->bind_param("i", $id);
     if (!$stmt->execute()) {
         error_log("DEBUG: ViewEmployeeDetail: Execute failed: " . $stmt->error);
-        send_response(1, 'Execute failed: ' . $stmt->error);
+        send_response(1, 'Execute failed.');
     }
     $res = $stmt->get_result();
     if ($res->num_rows > 0) {
@@ -539,12 +584,12 @@ function ViewEmployeeDetail($conn) {
         $stmtPH = $conn->prepare("SELECT ep.id_payhead, ph.nama_payhead, ph.jenis AS jenis_payhead, ep.amount FROM employee_payheads ep JOIN payheads ph ON ep.id_payhead = ph.id WHERE ep.id_anggota = ?");
         if (!$stmtPH) {
             error_log("DEBUG: ViewEmployeeDetail: Prepare failed (payheads): " . $conn->error);
-            send_response(1, 'Prepare failed: ' . $conn->error);
+            send_response(1, 'Prepare failed.');
         }
         $stmtPH->bind_param("i", $id);
         if (!$stmtPH->execute()) {
             error_log("DEBUG: ViewEmployeeDetail: Execute failed (payheads): " . $stmtPH->error);
-            send_response(1, 'Execute failed: ' . $stmtPH->error);
+            send_response(1, 'Execute failed.');
         }
         $resPH = $stmtPH->get_result();
         $assigned = [];
@@ -565,6 +610,7 @@ function ViewEmployeeDetail($conn) {
             }
         }
         $stmtPH->close();
+        // Konsisten: gaji bersih dihitung dengan cara yang sama (gaji pokok + salary index + earnings - deductions)
         $gajiBersihVal = $gajiPokokVal + $levelIndexVal + $totalPendapatan - $totalPotongan;
         error_log("DEBUG: ViewEmployeeDetail: Employee $id: gajiBersih = $gajiBersihVal");
         
@@ -608,6 +654,7 @@ function ViewEmployeeDetail($conn) {
     }
 }
 
+
 /**
  * Fungsi GetPayheadById: Mengambil detail payhead berdasarkan ID.
  */
@@ -621,12 +668,12 @@ function GetPayheadById($conn) {
     $stmt = $conn->prepare("SELECT id, nama_payhead, jenis AS jenis_payhead FROM payheads WHERE id = ? LIMIT 1");
     if (!$stmt) {
         error_log("DEBUG: GetPayheadById: Prepare failed: " . $conn->error);
-        send_response(1, 'Prepare failed: ' . $conn->error);
+        send_response(1, 'Prepare failed.');
     }
     $stmt->bind_param("i", $id);
     if (!$stmt->execute()) {
         error_log("DEBUG: GetPayheadById: Execute failed: " . $stmt->error);
-        send_response(1, 'Execute failed: ' . $stmt->error);
+        send_response(1, 'Execute failed.');
     }
     $res = $stmt->get_result();
     if ($res->num_rows > 0) {
@@ -693,15 +740,22 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // --- Modal Select Month (global payroll) ---
+// Ambil data processedMonths (hanya untuk menandai mana yang sudah final semua)
 $processedMonths = [];
 $resultTotal = $conn->query("SELECT COUNT(*) as total FROM anggota_sekolah");
 $totalAnggota = ($resultTotal) ? intval($resultTotal->fetch_assoc()['total']) : 0;
-$sql = "SELECT bulan, tahun, COUNT(DISTINCT id_anggota) as completed FROM payroll WHERE status = 'final' GROUP BY bulan, tahun";
+$sql = "SELECT bulan, tahun, COUNT(DISTINCT id_anggota) as completed 
+        FROM payroll 
+        WHERE status = 'final' 
+        GROUP BY bulan, tahun";
 $result = $conn->query($sql);
 if ($result) {
     while ($row = $result->fetch_assoc()){
         if (intval($row['completed']) === $totalAnggota) {
-            $processedMonths[] = ['bulan' => intval($row['bulan']), 'tahun' => intval($row['tahun'])];
+            $processedMonths[] = [
+                'bulan' => intval($row['bulan']), 
+                'tahun' => intval($row['tahun'])
+            ];
         }
     }
 }
@@ -791,7 +845,21 @@ if ($result) {
                             <li class="breadcrumb-item active" aria-current="page">Payroll Anggota</li>
                         </ol>
                     </nav>
-                    <div id="selectedMonthDisplay" class="mb-3" style="cursor: pointer;"></div>
+                    <!-- Header untuk bulan yang dipilih (versi Query String) -->
+                    <div id="selectedMonthDisplay" class="mb-3">
+                        <div class="card mb-3">
+                            <div class="card-body d-flex align-items-center">
+                                <i class="bi bi-calendar3 me-2"></i>
+                                <span class="fw-bold">
+                                    Payroll Bulan: 
+                                    <?= date('F', mktime(0, 0, 0, $selectedMonth, 1)) . ' ' . $selectedYear; ?>
+                                </span>
+                                <button id="btnChangeCalendar" class="btn btn-link ms-auto">
+                                    <i class="bi bi-pencil-square"></i> Ganti Kalender
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <h1 class="h3 mb-4 text-gray-800"><i class="bi bi-people-fill"></i> Payroll Anggota</h1>
                     <div id="alert-placeholder"></div>
                     <!-- Filter Anggota -->
@@ -1097,56 +1165,54 @@ if ($result) {
                 </div>
                 <!-- Row 3: Pemilihan Payheads -->
                 <div class="row">
-                  <div class="col-md-4">
-                    <div class="card">
-                      <div class="card-header bg-secondary text-white">Payheads Tersedia</div>
-                      <div class="card-body">
-                        <div class="form-group mb-2">
-                          <input type="text" id="searchAllPayheads" class="form-control" placeholder="Cari payheads...">
-                        </div>
-                        <div class="form-group mb-2 text-end">
-                          <button type="button" id="selectHeads" class="btn btn-success btn-sm">
-                            <i class="fa fa-arrow-circle-right"></i> Tambah ke Pilihan
-                          </button>
-                        </div>
-                        <select id="all_payheads" class="form-control" multiple style="height: 250px;"></select>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <div class="card">
-                      <div class="card-header bg-secondary text-white">Payheads Terpilih</div>
-                      <div class="card-body">
-                        <div class="form-group mb-2">
-                          <input type="text" id="searchSelectedPayheads" class="form-control" placeholder="Cari payheads...">
-                        </div>
-                        <div class="form-group mb-2 text-end">
-                          <button type="button" id="removeHeads" class="btn btn-danger btn-sm">
-                            <i class="fa fa-arrow-circle-left"></i> Hapus dari Pilihan
-                          </button>
-                        </div>
-                        <select id="selected_payheads" class="form-control" multiple style="height: 250px;"></select>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <div class="card">
-                      <div class="card-header bg-secondary text-white">Tetapkan Jumlah</div>
-                      <div class="card-body" style="max-height: 250px; overflow-y: auto;">
-                        <table class="table table-bordered mb-0" id="selected_payamount_table">
-                          <thead>
-                            <tr>
-                              <th style="width: 5%;">No.</th>
-                              <th style="width: 55%;">Nama Payhead</th>
-                              <th style="width: 40%;">Nominal</th>
-                            </tr>
-                          </thead>
-                          <tbody></tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+  <!-- Kolom Kiri: Payheads Tersedia -->
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header bg-secondary text-white">Payheads Tersedia</div>
+      <div class="card-body">
+        <div class="form-group mb-2">
+          <input type="text" id="searchAllPayheads" class="form-control" placeholder="Cari payheads...">
+        </div>
+        <!-- Ganti select multiple dengan div -->
+        <div id="all_payheads_list" style="max-height: 250px; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kolom Tengah: Payheads Terpilih -->
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header bg-secondary text-white">Payheads Terpilih</div>
+      <div class="card-body">
+        <div class="form-group mb-2">
+          <input type="text" id="searchSelectedPayheads" class="form-control" placeholder="Cari payheads...">
+        </div>
+        <!-- Ganti select multiple dengan div -->
+        <div id="selected_payheads_list" style="max-height: 250px; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kolom Kanan: Table Nominal -->
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header bg-secondary text-white">Tetapkan Jumlah</div>
+      <div class="card-body" style="max-height: 250px; overflow-y: auto;">
+        <table class="table table-bordered mb-0" id="selected_payamount_table">
+          <thead>
+            <tr>
+              <th style="width: 5%;">No.</th>
+              <th style="width: 55%;">Nama Payhead</th>
+              <th style="width: 40%;">Nominal</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
               </div>
               <input type="hidden" name="case" value="AssignPayheadsToEmployee">
               <input type="hidden" name="empcode" id="empcode">
@@ -1285,6 +1351,63 @@ if ($result) {
         </div>
     </div>
 
+    <!-- MODAL: Select Month (Payroll) -->
+    <div class="modal fade" id="SalaryMonthModal" tabindex="-1" aria-labelledby="salaryMonthModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md" style="max-width: 600px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="salaryMonthModalLabel"><i class="fa fa-calendar"></i> Pilih Bulan untuk Payroll</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row text-center">
+                        <?php
+                        // Buat grid 16 bulan (2 bulan ke belakang + 13 bulan ke depan)
+                        $currentYear  = date('Y');
+                        $currentMonth = date('n');
+                        $startMonth   = $currentMonth - 2;
+                        $startYear    = $currentYear;
+
+                        for ($i = 0; $i < 16; $i++) {
+                            $month = $startMonth + $i;
+                            $year  = $startYear;
+                            if ($month <= 0) {
+                                $month += 12;
+                                $year  -= 1;
+                            } elseif ($month > 12) {
+                                $month -= 12;
+                                $year  += 1;
+                            }
+                            // Cek apakah bulan ini sudah complete (semua final)
+                            $highlightClass = 'bg-light';
+                            foreach ($processedMonths as $pm) {
+                                if ($pm['bulan'] == $month && $pm['tahun'] == $year) {
+                                    $highlightClass = 'processed-month';
+                                    break;
+                                }
+                            }
+                            // Tambah highlight jika sama dengan $selectedMonth/$selectedYear
+                            if ($month == $selectedMonth && $year == $selectedYear) {
+                                $highlightClass = 'bg-warning text-dark fw-bold';
+                            }
+                            echo '<div class="col-3 mb-3">';
+                            echo '  <div class="p-2 ' . $highlightClass . '" style="border: 1px solid #ddd; border-radius: 5px;">';
+                            echo '    <a href="#" class="month-link" data-month-number="' . $month . '" 
+                                                  data-month="' . date("F", mktime(0, 0, 0, $month, 1)) . '" 
+                                                  data-year="' . $year . '" 
+                                                  style="color: inherit; text-decoration: none;">';
+                            echo '      ' . strtoupper(date("F", mktime(0, 0, 0, $month, 1))) . '<br>' . $year;
+                            echo '    </a>';
+                            echo '  </div>';
+                            echo '</div>';
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -1304,770 +1427,908 @@ if ($result) {
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    $(document).ready(function() {
-        $('[data-bs-toggle="tooltip"]').tooltip();
+$(document).ready(function() {
+    $('[data-bs-toggle="tooltip"]').tooltip();
 
-        // Inisialisasi DataTable
-        function initEmployeesTable() {
-            $('#employeeContainer').show();
-            if (!$.fn.DataTable.isDataTable('#employees')) {
-                $('#employees').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    ajax: {
-                        url: 'employees.php?ajax=1',
-                        type: 'POST',
-                        data: function(d) {
-                            d.case = 'LoadingEmployees';
-                            d.jenjang = $('#filterJenjang').val();
-                            d.role = $('#filterRole').val();
-                            d.selectedMonth = localStorage.getItem('selectedMonthNumber');
-                            d.selectedYear = localStorage.getItem('selectedYearPayroll');
-                            d.csrf_token = '<?= htmlspecialchars($csrf_token); ?>';
-                        },
-                        error: function(xhr, error, thrown) {
-                            showToast('Terjadi kesalahan saat memuat data anggota: ' + error, 'error');
-                        }
+    // ================
+    // 1. DataTable
+    // ================
+    function initEmployeesTable() {
+        $('#employeeContainer').show();
+        if (!$.fn.DataTable.isDataTable('#employees')) {
+            $('#employees').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: 'employees.php?ajax=1',
+                    type: 'POST',
+                    data: function(d) {
+                        d.case = 'LoadingEmployees';
+                        d.jenjang = $('#filterJenjang').val();
+                        d.role = $('#filterRole').val();
+                        d.selectedMonth = localStorage.getItem('selectedMonthNumber');
+                        d.selectedYear = localStorage.getItem('selectedYearPayroll');
+                        d.csrf_token = '<?= htmlspecialchars($csrf_token); ?>';
                     },
-                    columns: [
-                        { data: 'id' },
-                        { data: 'uid' },
-                        { data: 'nip' },
-                        { data: 'nama' },
-                        { data: 'jenjang' },
-                        { data: 'role' },
-                        { data: 'job_title' },
-                        { data: 'masa_kerja' },
-                        { data: 'level_indeks' },
-                        { data: 'gaji_pokok' },
-                        { data: 'no_rekening' },
-                        { data: 'email' },
-                        { data: 'payroll_status', orderable: false, searchable: false },
-                        { data: 'aksi', orderable: false, searchable: false }
-                    ],
-                    order: [[0, 'desc']],
-                    dom: 'Bfrtip',
-                    buttons: [
-                        {
-                            extend: 'colvis',
-                            text: '<i class="fas fa-columns"></i> Kolom',
-                            className: 'btn btn-warning btn-sm'
-                        }
-                    ],
-                    responsive: true,
-                    pageLength: 10,
-                    autoWidth: false
-                });
-            }
-        }
-
-        // Inisialisasi AutoNumeric
-        function initAutoNumeric() {
-            AutoNumeric.multiple('.currency-input', {
-                digitGroupSeparator: '.',
-                decimalCharacter: ',',
-                decimalPlaces: 2,
-                unformatOnSubmit: true
+                    error: function(xhr, error, thrown) {
+                        showToast('Terjadi kesalahan saat memuat data anggota: ' + error, 'error');
+                    }
+                },
+                columns: [
+                    { data: 'id' },
+                    { data: 'uid' },
+                    { data: 'nip' },
+                    { data: 'nama' },
+                    { data: 'jenjang' },
+                    { data: 'role' },
+                    { data: 'job_title' },
+                    { data: 'masa_kerja' },
+                    { data: 'level_indeks' },
+                    { data: 'gaji_pokok' },
+                    { data: 'no_rekening' },
+                    { data: 'email' },
+                    { data: 'payroll_status', orderable: false, searchable: false },
+                    { data: 'aksi', orderable: false, searchable: false }
+                ],
+                order: [[0, 'desc']],
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'colvis',
+                        text: '<i class="fas fa-columns"></i> Kolom',
+                        className: 'btn btn-warning btn-sm'
+                    }
+                ],
+                responsive: true,
+                pageLength: 10,
+                autoWidth: false
             });
         }
-        initAutoNumeric();
-
-        // Fungsi untuk memperbarui tabel jumlah payheads berdasarkan opsi terpilih
-        function updateSelectedPayamountTable() {
-    var tbody = $("#selected_payamount_table tbody");
-    tbody.empty();
-
-    $("#selected_payheads option").each(function(index) {
-        var payheadId = $(this).val();
-        var payheadName = $(this).text();
-        var defaultAmount = $(this).attr("data-nominal") || "0";
-        var payType = $(this).attr("data-type") || "";
-
-        var row = `
-            <tr id="payhead-row-${payheadId}" data-type="${payType}">
-              <td>${index + 1}</td>
-              <td>${payheadName}</td>
-              <td>
-                <input type="text" name="pay_amounts[${payheadId}]" class="form-control currency-input" value="${defaultAmount}" required>
-              </td>
-            </tr>
-        `;
-        tbody.append(row);
-    });
-
-    // Re-inisialisasi AutoNumeric untuk format uang
-    AutoNumeric.multiple('.currency-input', {
-        digitGroupSeparator: '.',
-        decimalCharacter: ',',
-        decimalPlaces: 2,
-        unformatOnSubmit: true
-    });
-
-    // Hitung ulang total setelah menambahkan baris
-    recalcPayheadsTotals();
-}
-
-
-        // Fungsi untuk menghitung total pendapatan, potongan, dan estimasi gaji bersih secara realtime
-        function recalcPayheadsTotals() {
-    var totalEarnings = 0;
-    var totalDeductions = 0;
-
-    // Loop setiap baris payhead
-    $("#selected_payamount_table tbody tr").each(function() {
-        var type = ($(this).data("type") || "").toLowerCase();
-        var inputVal = $(this).find("input.currency-input").val();
-        var amount = parseFloat(inputVal.replace(/\./g, '').replace(',', '.')) || 0;
-
-        if (type === "earnings") {
-            totalEarnings += amount;
-        } 
-        else if (type === "deduction" || type === "deductions" || type === "potongan") {
-            totalDeductions += amount;
-        }
-    });
-
-    function formatNumber(num) {
-        return num.toLocaleString('id-ID', { minimumFractionDigits: 2 });
     }
 
-    // Update input total pendapatan dan total potongan
-    $("#inputTotalEarnings").val("Rp " + formatNumber(totalEarnings));
-    $("#inputTotalDeductions").val("Rp " + formatNumber(totalDeductions));
+    // ==================================================
+    // 2. Toast / Notifikasi
+    // ==================================================
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+    function showToast(message, icon = 'success') {
+        Toast.fire({ icon: icon, title: message });
+    }
 
-    // Ambil gaji pokok
-    var gajiPokokText = $("#inputGajiPokok").val().replace(/[Rp\s.]/g, '').replace(',', '.');
-    var gajiPokok = parseFloat(gajiPokokText) || 0;
+    // ==================================================
+    // 3. AutoNumeric untuk format uang
+    // ==================================================
+    function initAutoNumeric() {
+        AutoNumeric.multiple('.currency-input', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+    }
+    initAutoNumeric();
 
-    // BAGIAN BARU: Ambil nominal indeks
-    var indexNominalText = $("#inputIndexNominal").val().replace(/[Rp\s.]/g, '').replace(',', '.');
-    var indexNominal = parseFloat(indexNominalText) || 0;
+    // ==================================================
+    // 4. Bagian Pemilihan Payheads (Tersedia & Terpilih)
+    //    Menggunakan Tombol + / - di SEBELAH KIRI item
+    // ==================================================
 
-    // Hitung gaji bersih (tambah indexNominal)
-    var netSalary = gajiPokok + indexNominal + totalEarnings - totalDeductions;
-    $("#inputNetSalary").val("Rp " + formatNumber(netSalary));
-}
+    // a) Fungsi menampilkan payheads BELUM dipilih
+    function loadAvailablePayheads(availablePayheads) {
+        $('#all_payheads_list').empty();
 
+        availablePayheads.forEach(function(ph) {
+            let labelText = ph.nama_payhead + ' (' + ph.jenis_payhead_idn + ')';
+            // Buat item payhead (dengan tombol + di kiri)
+            let item = $(`
+                <div class="payhead-item d-flex align-items-center mb-1"
+                     data-id="${ph.id}"
+                     data-nominal="${ph.nominal}"
+                     data-type="${ph.jenis_payhead}">
+                  <button type="button" class="btn btn-sm btn-primary btn-success btnAddPayhead me-2 rounded-circle">
+                    <i class="bi bi-plus"></i>
+                  </button>
+                  <span class="payhead-name ${ph.jenis_payhead === 'earnings' ? 'text-success' : 'text-danger'}">
+                    ${labelText}
+                  </span>
+                </div>
+            `);
+            $('#all_payheads_list').append(item);
+        });
+    }
 
-// 3) Pastikan event 'input' atau 'change' pada setiap input nominal
-//    memanggil recalcPayheadsTotals() agar nilainya selalu realtime
-$("#selected_payamount_table").on("input", "input.currency-input", function() {
-    recalcPayheadsTotals();
-});
+    // b) Fungsi menampilkan payheads SUDAH dipilih
+    function loadSelectedPayheads(assignedPayheads) {
+        $('#selected_payheads_list').empty();
 
-        // Event handler untuk "Tambah ke Pilihan"
-        $('#selectHeads').on('click', function(){
-            $("#all_payheads option:selected").each(function(){
-                // Gunakan clone() agar semua atribut (termasuk data-type dan class) ikut tersalin
-                var newOption = $(this).clone();
-                if($("#selected_payheads option[value='" + $(this).val() + "']").length === 0){
-                    $("#selected_payheads").append(newOption);
-                }
-                $(this).remove();
-            });
-            updateSelectedPayamountTable();
+        assignedPayheads.forEach(function(ap) {
+            let labelText = ap.nama_payhead + ' (' + ap.jenis_payhead_idn + ')';
+            let item = $(`
+                <div class="payhead-item d-flex align-items-center mb-1"
+                     data-id="${ap.id_payhead}"
+                     data-nominal="${ap.amount}"
+                     data-type="${ap.jenis_payhead}">
+                  <button type="button" class="btn btn-sm btn-danger btnRemovePayhead me-2 rounded-circle">
+                    <i class="bi bi-dash"></i>
+                  </button>
+                  <span class="payhead-name ${ap.jenis_payhead === 'earnings' ? 'text-success' : 'text-danger'}">
+                    ${labelText}
+                  </span>
+                </div>
+            `);
+            $('#selected_payheads_list').append(item);
         });
 
-        // Event handler untuk "Hapus dari Pilihan"
-        $('#removeHeads').on('click', function(){
-            $("#selected_payheads option:selected").each(function(){
-                var newOption = $(this).clone();
-                if($("#all_payheads option[value='" + $(this).val() + "']").length === 0){
-                    $("#all_payheads").append(newOption);
-                }
-                $(this).remove();
-            });
-            updateSelectedPayamountTable();
+        // Setelah memuat payheads terpilih, perbarui tabel nominal
+        updateSelectedPayamountTable();
+    }
+
+    // c) Event delegasi untuk tombol + (Add)
+    $(document).on('click', '.btnAddPayhead', function() {
+        let item = $(this).closest('.payhead-item');
+        // Pindahkan item ke #selected_payheads_list
+        $(this)
+            .removeClass('btnAddPayhead btn-primary')
+            .addClass('btnRemovePayhead btn-danger')
+            .html('<i class="bi bi-dash"></i>');
+
+        item.remove();
+        $('#selected_payheads_list').append(item);
+        updateSelectedPayamountTable();
+    });
+
+    // d) Event delegasi untuk tombol - (Remove)
+    $(document).on('click', '.btnRemovePayhead', function() {
+        let item = $(this).closest('.payhead-item');
+        // Pindahkan item ke #all_payheads_list
+        $(this)
+            .removeClass('btnRemovePayhead btn-danger')
+            .addClass('btnAddPayhead btn-primary')
+            .html('<i class="bi bi-plus"></i>');
+
+        item.remove();
+        $('#all_payheads_list').append(item);
+        updateSelectedPayamountTable();
+    });
+
+    // e) Update tabel nominal (bagian kanan) berdasarkan #selected_payheads_list
+    function updateSelectedPayamountTable() {
+        let tbody = $("#selected_payamount_table tbody");
+        tbody.empty();
+
+        $("#selected_payheads_list .payhead-item").each(function(index) {
+            let payheadId   = $(this).data('id');
+            let payheadName = $(this).find('.payhead-name').text();
+            let defaultAmt  = $(this).data('nominal') || "0";
+            let payType     = $(this).data('type') || "";
+
+            let row = `
+                <tr id="payhead-row-${payheadId}" data-type="${payType}">
+                  <td>${index + 1}</td>
+                  <td>${payheadName}</td>
+                  <td>
+                    <input type="text" name="pay_amounts[${payheadId}]"
+                           class="form-control currency-input"
+                           value="${defaultAmt}" required>
+                  </td>
+                </tr>
+            `;
+            tbody.append(row);
         });
 
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
+        // Re-init AutoNumeric
+        AutoNumeric.multiple('.currency-input', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+
+        // Kalkulasi total
+        recalcPayheadsTotals();
+    }
+
+    // f) Fungsi menghitung total pendapatan, potongan, dsb
+    function recalcPayheadsTotals() {
+        let totalEarnings = 0;
+        let totalDeductions = 0;
+
+        $("#selected_payamount_table tbody tr").each(function() {
+            let type = ($(this).data("type") || "").toLowerCase();
+            let val  = $(this).find("input.currency-input").val();
+            let amount = parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
+
+            if (type === "earnings") {
+                totalEarnings += amount;
+            } else if (type === "deduction" || type === "deductions" || type === "potongan") {
+                totalDeductions += amount;
             }
         });
-        function showToast(message, icon = 'success') {
-            Toast.fire({ icon: icon, title: message });
+
+        function formatNumber(num) {
+            return num.toLocaleString('id-ID', { minimumFractionDigits: 2 });
         }
 
-        function initSelectedMonthDisplay() {
-            if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
-                var selMonth = localStorage.getItem('selectedMonthPayroll');
-                var selYear = localStorage.getItem('selectedYearPayroll');
-                $('#selectedMonthDisplay').html(
-                    '<div class="card mb-3">' +
-                        '<div class="card-body d-flex align-items-center">' +
-                            '<i class="bi bi-calendar3 me-2"></i>' +
-                            '<span class="fw-bold">Payroll Bulan: ' + selMonth + ' ' + selYear + '</span>' +
-                            '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
-                                '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
-                            '</button>' +
-                        '</div>' +
-                    '</div>'
-                );
-            } else {
-                $('#selectedMonthDisplay').html('<h4>Klik di sini untuk memilih bulan payroll</h4>');
-                $('#SalaryMonthModal').modal('show');
-            }
-        }
-        initSelectedMonthDisplay();
-        initEmployeesTable();
+        $("#inputTotalEarnings").val("Rp " + formatNumber(totalEarnings));
+        $("#inputTotalDeductions").val("Rp " + formatNumber(totalDeductions));
 
-        $('#selectedMonthDisplay').on('click', '#btnChangeCalendar, h4', function(){
+        // Ambil gaji pokok
+        let gajiPokokText = $("#inputGajiPokok").val().replace(/[Rp\s.]/g, '').replace(',', '.');
+        let gajiPokok = parseFloat(gajiPokokText) || 0;
+
+        // Ambil nominal indeks
+        let indexNominalText = $("#inputIndexNominal").val().replace(/[Rp\s.]/g, '').replace(',', '.');
+        let indexNominal = parseFloat(indexNominalText) || 0;
+
+        // Gaji bersih
+        let netSalary = gajiPokok + indexNominal + totalEarnings - totalDeductions;
+        $("#inputNetSalary").val("Rp " + formatNumber(netSalary));
+    }
+
+    // Pastikan jika user input nominal, total di-recalc
+    $("#selected_payamount_table").on("input", "input.currency-input", function() {
+        recalcPayheadsTotals();
+    });
+
+
+    // ==================================================
+    // 5. Inisialisasi tampilan bulan payroll (header)
+    // ==================================================
+    function initSelectedMonthDisplay() {
+        if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
+            var selMonth = localStorage.getItem('selectedMonthPayroll');
+            var selYear = localStorage.getItem('selectedYearPayroll');
+            $('#selectedMonthDisplay').html(
+                '<div class="card mb-3">' +
+                    '<div class="card-body d-flex align-items-center">' +
+                        '<i class="bi bi-calendar3 me-2"></i>' +
+                        '<span class="fw-bold">Payroll Bulan: ' + selMonth + ' ' + selYear + '</span>' +
+                        '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
+                            '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
+                        '</button>' +
+                    '</div>' +
+                '</div>'
+            );
+        } else {
+            $('#selectedMonthDisplay').html('<h4>Klik di sini untuk memilih bulan payroll</h4>');
             $('#SalaryMonthModal').modal('show');
-        });
-
-        $('#btnApplyFilter').on('click', function(){
-            $('#employees').DataTable().ajax.reload();
-        });
-        $('#btnResetFilter').on('click', function(){
-            $('#filterForm')[0].reset();
-            $('#employees').DataTable().ajax.reload();
-        });
-
-        $('#employees tbody').on('click', '.btnEdit', function() {
-            var id = $(this).data('id');
-            $.ajax({
-                url: 'employees.php?ajax=1',
-                type: 'POST',
-                data: { case: 'ViewEmployeeDetail', id: id, csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
-                dataType: 'json',
-                success: function(resp) {
-                    if (resp.code === 0) {
-                        var e = resp.result;
-                        $('#editEmployeeId').val(e.id);
-                        $('#editNip').val(e.nip);
-                        $('#editNama').val(e.nama);
-                        $('#editJenjang').val(e.jenjang);
-                        $('#editJobTitle').val(e.job_title);
-                        $('#editStatusKerja').val(e.status_kerja);
-                        $('#editNoRekening').val(e.no_rekening);
-                        $('#editEmail').val(e.email);
-                        $('#editJenisKelamin').val(e.jenis_kelamin);
-                        $('#editAgama').val(e.agama);
-                        $('#editEmployeeModal').modal('show');
-                    } else {
-                        showToast(resp.result, 'error');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    showToast('Terjadi kesalahan saat memuat data anggota: ' + error, 'error');
-                }
-            });
-        });
-        $('#editEmployeeForm').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            var dataToSend = {
-                case: 'EditEmployee',
-                id: $('#editEmployeeId').val(),
-                no_rekening: $('#editNoRekening').val(),
-                csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
-            };
-            $.ajax({
-                url: 'employees.php?ajax=1',
-                type: 'POST',
-                data: dataToSend,
-                dataType: 'json',
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(resp){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(resp.code === 0){
-                        showToast(resp.result, 'success');
-                        $('#employees').DataTable().ajax.reload(null, false);
-                        $('#editEmployeeModal').modal('hide');
-                    } else {
-                        showToast(resp.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat memperbarui data anggota.', 'error');
-                }
-            });
-        });
-        $('#employees tbody').on('click', '.btnViewDetail', function(){
-            var id = $(this).data('id');
-            $.ajax({
-                url:'employees.php?ajax=1',
-                type:'POST',
-                data:{ case: 'ViewEmployeeDetail', id: id, csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
-                dataType:'json',
-                success:function(resp){
-                    if(resp.code === 0){
-                        var e = resp.result;
-                        $('#detailId').text(e.id);
-                        $('#detailUid').text(e.uid);
-                        $('#detailNip').text(e.nip);
-                        $('#detailNama').text(e.nama);
-                        $('#detailJenjang').text(e.jenjang);
-                        $('#detailRole').text(e.role);
-                        $('#detailJobTitle').text(e.job_title);
-                        $('#detailStatusKerja').text(e.status_kerja);
-                        $('#detailMasaKerja').text(e.masa_kerja);
-                        $('#detailNoRekening').text(e.no_rekening);
-                        $('#detailEmail').text(e.email);
-                        $('#detailJenisKelamin').text(
-                            e.jenis_kelamin === 'L' ? 'Laki-laki' :
-                            e.jenis_kelamin === 'P' ? 'Perempuan'  : '-'
-                        );
-                        $('#detailAgama').text(e.agama);
-                        $('#detailGajiPokok').text(e.gaji_pokok);
-                        let baseSalary = parseFloat(e.salary_index_base) || 0;
-                        $('#detailSalaryIndexNominal').text('Rp ' + baseSalary.toLocaleString('id-ID', {minimumFractionDigits:2}));
-                        if(e.payheads && e.payheads.length > 0){
-                            var s = '<ul>';
-                            e.payheads.forEach(function(ph){
-                                var nominal = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
-                                var jns = (ph.jenis_payhead === 'earnings') ? 'Pendapatan' : 'Potongan';
-                                var clr = (ph.jenis_payhead==='earnings') ? 'green' : 'red';
-                                s += `<li style="color:${clr}">${ph.nama_payhead} (${jns}): Rp ${nominal}</li>`;
-                            });
-                            s += '</ul>';
-                            $('#detailPayheads').html(s);
-                        } else {
-                            $('#detailPayheads').html('<i>Tidak ada payheads</i>');
-                        }
-                        $('#detailTotalPendapatan').text('Rp ' + parseFloat(e.total_pendapatan).toLocaleString('id-ID',{minimumFractionDigits:2}));
-                        $('#detailTotalPotongan').text('Rp ' + parseFloat(e.total_potongan).toLocaleString('id-ID',{minimumFractionDigits:2}));
-                        $('#detailGajiBersih').text('Rp ' + parseFloat(e.gaji_bersih).toLocaleString('id-ID',{minimumFractionDigits:2}));
-                        $('#viewDetailModal').modal('show');
-                    } else {
-                        showToast(resp.result, 'error');
-                    }
-                },
-                error:function(){
-                    showToast('Terjadi kesalahan saat mengambil detail anggota.', 'error');
-                }
-            });
-        });
-        // Event handler untuk menu Rekap Absensi (Review mode)
-        $('#employees tbody').on('click', '.btnRekapAbsensi', function(){
-            var id = $(this).data('id');
-            var selectedMonth = localStorage.getItem('selectedMonthNumber');
-            var selectedYear = localStorage.getItem('selectedYearPayroll');
-            $.ajax({
-                url: 'employees.php?ajax=1',
-                type: 'POST',
-                dataType: 'json',
-                data: { 
-                    case: 'ViewRekapAbsensi', 
-                    id: id, 
-                    selectedMonth: selectedMonth, 
-                    selectedYear: selectedYear, 
-                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>' 
-                },
-                success: function(resp) {
-                    if(resp.code === 0) {
-                        var data = resp.result;
-                        $('#review_id_anggota').text(data.id_anggota);
-                        var bulanNames = {1:'Januari',2:'Februari',3:'Maret',4:'April',5:'Mei',6:'Juni',7:'Juli',8:'Agustus',9:'September',10:'Oktober',11:'November',12:'Desember'};
-                        $('#review_bulan').text(bulanNames[data.bulan] || data.bulan);
-                        $('#review_tahun').text(data.tahun);
-                        $('#review_total_hadir').text(data.total_hadir);
-                        $('#review_total_izin').text(data.total_izin);
-                        $('#review_total_cuti').text(data.total_cuti);
-                        $('#review_total_tk').text(data.total_tanpa_keterangan);
-                        $('#review_total_sakit').text(data.total_sakit);
-                        $('#rekap_id_anggota_edit').val(data.id_anggota);
-                        $('#rekap_bulan_edit').val(data.bulan);
-                        $('#rekap_tahun_edit').val(data.tahun);
-                        $('#total_hadir_edit').val(data.total_hadir);
-                        $('#total_izin_edit').val(data.total_izin);
-                        $('#total_cuti_edit').val(data.total_cuti);
-                        $('#total_tanpa_keterangan_edit').val(data.total_tanpa_keterangan);
-                        $('#total_sakit_edit').val(data.total_sakit);
-                        $('#rekapReviewModal').modal('show');
-                    } else {
-                        showToast(resp.result, 'error');
-                    }
-                },
-                error: function() {
-                    showToast('Terjadi kesalahan saat memuat data rekap absensi.', 'error');
-                }
-            });
-        });
-        $('#btnOpenEditRekap').on('click', function(){
-            $('#rekapReviewModal').modal('hide');
-            $('#rekapAbsensiModal').modal('show');
-        });
-        $('#rekapAbsensiForm').on('submit', function(e){
-            e.preventDefault();
-            var form = $(this);
-            $.ajax({
-                url: 'employees.php?ajax=1',
-                type: 'POST',
-                dataType: 'json',
-                data: form.serialize(),
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(resp){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(resp.code === 0){
-                        showToast(resp.result, 'success');
-                        $('#rekapAbsensiModal').modal('hide');
-                    } else {
-                        showToast(resp.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menyimpan rekap absensi.', 'error');
-                }
-            });
-        });
-        // Event handler Enhanced untuk Assign Payheads
-        $('#employees tbody').on('click', '.btnAssignPayheads', function(){
-            var id = $(this).data('id');
-            $('#empcode').val(id);
-            $('#all_payheads').empty();
-            $('#selected_payheads').empty();
-            $("#selected_payamount_table tbody").empty();
-            // Ambil data detail karyawan (ViewEmployeeDetail)
-            $.ajax({
-                type: "POST",
-                dataType: "json",
-                url: 'employees.php?ajax=1',
-                data: { case: 'ViewEmployeeDetail', id: id, csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
-                success: function(result) {
-                    if(result.code === 0) {
-                        var e = result.result;
-                        // Isi field di modal dengan data karyawan
-                        $('#fieldNamaKaryawan').val(e.nama);
-                        var selMonth = localStorage.getItem('selectedMonthPayroll') || '';
-                        var selYear = localStorage.getItem('selectedYearPayroll') || '';
-                        $('#fieldPeriode').val(selMonth + " " + selYear);
-                        $('#fieldMasaKerja').val(e.masa_kerja);
-                        $('#inputIndexLevel').val(e.salary_index_level);
-                        $('#inputNoRek').val(e.no_rekening);
-                        var now = new Date();
-                        $('#inputTanggalPayroll').val(now.toISOString().slice(0,16));
-                        $('#inputDescription').val('');
-                        $('#inputGajiPokok').val(e.gaji_pokok_val);
-                        var indexBaseFormatted = e.salary_index_base.toLocaleString('id-ID', { minimumFractionDigits: 2 });
-    $('#inputIndexNominal').val(indexBaseFormatted);
-                        $('#inputTotalEarnings').val('Rp 0,00');
-                        $('#inputTotalDeductions').val('Rp 0,00');
-                        $('#inputNetSalary').val('Rp ' + parseFloat(e.gaji_pokok_val).toLocaleString('id-ID',{minimumFractionDigits:2}));
-                        // Ambil data semua payheads
-                        $.ajax({
-                            type: "POST",
-                            dataType: "json",
-                            url: 'employees.php?ajax=1',
-                            data: { case: 'GetAllPayheads', csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
-                            success: function(allPayheadsResult) {
-                                if(allPayheadsResult.code === 0) {
-                                    var allPayheadsList = allPayheadsResult.result;
-                                    var assignedPayheads = e.payheads || [];
-                                    var assignedIds = assignedPayheads.map(function(ph){
-                                        return parseInt(ph.id_payhead, 10);
-                                    });
-                                    var availablePayheads = allPayheadsList.filter(function(ph) {
-                                        return !assignedIds.includes(parseInt(ph.id, 10));
-                                    });
-                                    // Saat menambahkan opsi, gunakan clone() agar atribut data-type, data-nominal, dan kelas ikut tersalin
-                                    availablePayheads.forEach(function(ph){
-                                        var optionText = ph.nama_payhead + ' (' + ph.jenis_payhead_idn + ')';
-                                        var option = $("<option></option>")
-                                            .attr("value", ph.id)
-                                            .attr("data-nominal", ph.nominal)
-                                            .attr("data-type", ph.jenis_payhead)
-                                            .text(optionText)
-                                            .addClass(ph.jenis_payhead === 'earnings' ? 'text-success' : 'text-danger');
-                                        $('#all_payheads').append(option);
-                                    });
-                                    assignedPayheads.forEach(function(ap){
-                                        var payheadId = ap.id_payhead;
-                                        var payheadName = ap.nama_payhead + ' (' + ap.jenis_payhead_idn + ')';
-                                        var option = $("<option></option>")
-                                            .attr("value", payheadId)
-                                            .attr("data-nominal", ap.amount)
-                                            .attr("data-type", ap.jenis_payhead)
-                                            .text(payheadName)
-                                            .addClass(ap.jenis_payhead === 'earnings' ? 'text-success' : 'text-danger');
-                                        $('#selected_payheads').append(option);
-                                    });
-                                    updateSelectedPayamountTable();
-                                    $('#ManageModal').modal('show');
-                                } else {
-                                    showToast(allPayheadsResult.result, 'error');
-                                }
-                            },
-                            error: function(xhr, status, error) {
-                                showToast('Terjadi kesalahan saat memuat semua payheads: ' + error, 'error');
-                            }
-                        });
-                    } else {
-                        showToast(result.result, 'error');
-                    }
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat load payheads.', 'error');
-                }
-            });
-        });
-        $('#assign-payhead-form').on('submit', function(e){
-            e.preventDefault();
-            var form = $(this);
-            var payHeads = [];
-            $('#selected_payheads option').each(function() {
-                payHeads.push($(this).val());
-            });
-            var payAmounts = {};
-            payHeads.forEach(function(payheadId){
-                var amount = $('input[name="pay_amounts[' + payheadId + ']"]').val();
-                payAmounts[payheadId] = amount;
-            });
-            var isValid = true;
-            payHeads.forEach(function(payheadId){
-                var amount = payAmounts[payheadId];
-                var numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
-                if(amount === '' || isNaN(numericAmount) || numericAmount <= 0){
-                    $('input[name="pay_amounts[' + payheadId + ']"]').addClass('is-invalid');
-                    isValid = false;
-                } else {
-                    $('input[name="pay_amounts[' + payheadId + ']"]').removeClass('is-invalid');
-                }
-            });
-            if(!isValid){
-                showToast('Pastikan semua jumlah payhead valid (angka dan > 0)!', 'error');
-                return;
-            }
-            var formData = new FormData(form[0]);
-            formData.append('payheads', JSON.stringify(payHeads));
-            formData.append('pay_amounts', JSON.stringify(payAmounts));
-            $.ajax({
-                url:'employees.php?ajax=1',
-                type:'POST',
-                dataType:'json',
-                data: formData,
-                processData: false,
-                contentType: false,
-                beforeSend:function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success:function(resp){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(resp.code === 0){
-                        showToast(resp.result, 'success');
-                        $('#employees').DataTable().ajax.reload(null, false);
-                        setTimeout(function(){
-                            $('#ManageModal').modal('hide');
-                            form[0].reset();
-                            $('#all_payheads').empty();
-                            $('#selected_payheads').empty();
-                            $("#selected_payamount_table tbody").empty();
-                        }, 200);
-                    } else {
-                        showToast(resp.result, 'error');
-                    }
-                },
-                error:function(xhr, status, error){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menetapkan payheads: ' + error, 'error');
-                }
-            });
-        });
-        function savePayheads(callback) {
-            var form = $('#assign-payhead-form');
-            var payHeads = [];
-            $('#selected_payheads option').each(function() {
-                payHeads.push($(this).val());
-            });
-            var payAmounts = {};
-            payHeads.forEach(function(payheadId) {
-                var amount = $('input[name="pay_amounts[' + payheadId + ']"]').val();
-                payAmounts[payheadId] = amount;
-            });
-            var isValid = true;
-            payHeads.forEach(function(payheadId) {
-                var amount = payAmounts[payheadId];
-                var numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
-                if(amount === '' || isNaN(numericAmount) || numericAmount <= 0){
-                    $('input[name="pay_amounts[' + payheadId + ']"]').addClass('is-invalid');
-                    isValid = false;
-                } else {
-                    $('input[name="pay_amounts[' + payheadId + ']"]').removeClass('is-invalid');
-                }
-            });
-            if(!isValid){
-                showToast('Pastikan semua jumlah payhead valid (angka dan > 0)!', 'error');
-                return;
-            }
-            var formData = new FormData(form[0]);
-            formData.append('payheads', JSON.stringify(payHeads));
-            formData.append('pay_amounts', JSON.stringify(payAmounts));
-            $.ajax({
-                url: 'employees.php?ajax=1',
-                type: 'POST',
-                dataType: 'json',
-                data: formData,
-                processData: false,
-                contentType: false,
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(resp) {
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(resp.code === 0){
-                        showToast(resp.result, 'success');
-                        $('#employees').DataTable().ajax.reload(null, false);
-                        setTimeout(function(){
-                            $('#ManageModal').modal('hide');
-                            form[0].reset();
-                            $('#all_payheads').empty();
-                            $('#selected_payheads').empty();
-                            $("#selected_payamount_table tbody").empty();
-                        }, 200);
-                        if (typeof callback === 'function') {
-                            callback();
-                        }
-                    } else {
-                        showToast(resp.result, 'error');
-                    }
-                },
-                error: function(xhr, status, error){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menetapkan payheads: ' + error, 'error');
-                }
-            });
         }
-        function callProcessPayroll(empcode, selectedMonth, selectedYear) {
+    }
+    initSelectedMonthDisplay();
+    initEmployeesTable();
+
+    // Klik "Ganti Kalender"
+    $('#selectedMonthDisplay').on('click', '#btnChangeCalendar, h4', function(){
+        $('#SalaryMonthModal').modal('show');
+    });
+
+    // Filter
+    $('#btnApplyFilter').on('click', function(){
+        $('#employees').DataTable().ajax.reload();
+    });
+    $('#btnResetFilter').on('click', function(){
+        $('#filterForm')[0].reset();
+        $('#employees').DataTable().ajax.reload();
+    });
+
+    // ==================================================
+    // 6. Edit Employee (No Rekening)
+    // ==================================================
+    $('#employees tbody').on('click', '.btnEdit', function() {
+        var id = $(this).data('id');
+        $.ajax({
+            url: 'employees.php?ajax=1',
+            type: 'POST',
+            data: { case: 'ViewEmployeeDetail', id: id, csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
+            dataType: 'json',
+            success: function(resp) {
+                if (resp.code === 0) {
+                    var e = resp.result;
+                    $('#editEmployeeId').val(e.id);
+                    $('#editNip').val(e.nip);
+                    $('#editNama').val(e.nama);
+                    $('#editJenjang').val(e.jenjang);
+                    $('#editJobTitle').val(e.job_title);
+                    $('#editStatusKerja').val(e.status_kerja);
+                    $('#editNoRekening').val(e.no_rekening);
+                    $('#editEmail').val(e.email);
+                    $('#editJenisKelamin').val(e.jenis_kelamin);
+                    $('#editAgama').val(e.agama);
+                    $('#editEmployeeModal').modal('show');
+                } else {
+                    showToast(resp.result, 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                showToast('Terjadi kesalahan saat memuat data anggota: ' + error, 'error');
+            }
+        });
+    });
+    $('#editEmployeeForm').on('submit', function(e) {
+        e.preventDefault();
+        var form = $(this);
+        var dataToSend = {
+            case: 'EditEmployee',
+            id: $('#editEmployeeId').val(),
+            no_rekening: $('#editNoRekening').val(),
+            csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+        };
+        $.ajax({
+            url: 'employees.php?ajax=1',
+            type: 'POST',
+            data: dataToSend,
+            dataType: 'json',
+            beforeSend: function(){
+                form.find('button[type="submit"]').prop('disabled', true);
+                form.find('.spinner-border').removeClass('d-none');
+            },
+            success: function(resp){
+                form.find('button[type="submit"]').prop('disabled', false);
+                form.find('.spinner-border').addClass('d-none');
+                if(resp.code === 0){
+                    showToast(resp.result, 'success');
+                    $('#employees').DataTable().ajax.reload(null, false);
+                    $('#editEmployeeModal').modal('hide');
+                } else {
+                    showToast(resp.result, 'error');
+                }
+            },
+            error: function(){
+                form.find('button[type="submit"]').prop('disabled', false);
+                form.find('.spinner-border').addClass('d-none');
+                showToast('Terjadi kesalahan saat memperbarui data anggota.', 'error');
+            }
+        });
+    });
+
+    // ==================================================
+    // 7. View Detail Anggota
+    // ==================================================
+    $('#employees tbody').on('click', '.btnViewDetail', function(){
+        var id = $(this).data('id');
+        $.ajax({
+            url:'employees.php?ajax=1',
+            type:'POST',
+            data:{ case: 'ViewEmployeeDetail', id: id, csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
+            dataType:'json',
+            success:function(resp){
+                if(resp.code === 0){
+                    var e = resp.result;
+                    $('#detailId').text(e.id);
+                    $('#detailUid').text(e.uid);
+                    $('#detailNip').text(e.nip);
+                    $('#detailNama').text(e.nama);
+                    $('#detailJenjang').text(e.jenjang);
+                    $('#detailRole').text(e.role);
+                    $('#detailJobTitle').text(e.job_title);
+                    $('#detailStatusKerja').text(e.status_kerja);
+                    $('#detailMasaKerja').text(e.masa_kerja);
+                    $('#detailNoRekening').text(e.no_rekening);
+                    $('#detailEmail').text(e.email);
+                    $('#detailJenisKelamin').text(
+                        e.jenis_kelamin === 'L' ? 'Laki-laki' :
+                        e.jenis_kelamin === 'P' ? 'Perempuan'  : '-'
+                    );
+                    $('#detailAgama').text(e.agama);
+                    $('#detailGajiPokok').text(e.gaji_pokok);
+
+                    let baseSalary = parseFloat(e.salary_index_base) || 0;
+                    $('#detailSalaryIndexNominal').text('Rp ' + baseSalary.toLocaleString('id-ID', {minimumFractionDigits:2}));
+
+                    if(e.payheads && e.payheads.length > 0){
+                        var s = '<ul>';
+                        e.payheads.forEach(function(ph){
+                            var nominal = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
+                            var jns = (ph.jenis_payhead === 'earnings') ? 'Pendapatan' : 'Potongan';
+                            var clr = (ph.jenis_payhead==='earnings') ? 'green' : 'red';
+                            s += `<li style="color:${clr}">${ph.nama_payhead} (${jns}): Rp ${nominal}</li>`;
+                        });
+                        s += '</ul>';
+                        $('#detailPayheads').html(s);
+                    } else {
+                        $('#detailPayheads').html('<i>Tidak ada payheads</i>');
+                    }
+
+                    $('#detailTotalPendapatan').text(
+                        'Rp ' + parseFloat(e.total_pendapatan).toLocaleString('id-ID',{minimumFractionDigits:2})
+                    );
+                    $('#detailTotalPotongan').text(
+                        'Rp ' + parseFloat(e.total_potongan).toLocaleString('id-ID',{minimumFractionDigits:2})
+                    );
+                    $('#detailGajiBersih').text(
+                        'Rp ' + parseFloat(e.gaji_bersih).toLocaleString('id-ID',{minimumFractionDigits:2})
+                    );
+
+                    $('#viewDetailModal').modal('show');
+                } else {
+                    showToast(resp.result, 'error');
+                }
+            },
+            error:function(){
+                showToast('Terjadi kesalahan saat mengambil detail anggota.', 'error');
+            }
+        });
+    });
+
+    // ==================================================
+    // 8. Rekap Absensi
+    // ==================================================
+    $('#employees tbody').on('click', '.btnRekapAbsensi', function(){
+        var id = $(this).data('id');
+        var selectedMonth = localStorage.getItem('selectedMonthNumber');
+        var selectedYear = localStorage.getItem('selectedYearPayroll');
+        $.ajax({
+            url: 'employees.php?ajax=1',
+            type: 'POST',
+            dataType: 'json',
+            data: { 
+                case: 'ViewRekapAbsensi', 
+                id: id, 
+                selectedMonth: selectedMonth, 
+                selectedYear: selectedYear, 
+                csrf_token: '<?= htmlspecialchars($csrf_token); ?>' 
+            },
+            success: function(resp) {
+                if(resp.code === 0) {
+                    var data = resp.result;
+                    $('#review_id_anggota').text(data.id_anggota);
+                    var bulanNames = {
+                        1:'Januari',2:'Februari',3:'Maret',4:'April',5:'Mei',
+                        6:'Juni',7:'Juli',8:'Agustus',9:'September',10:'Oktober',
+                        11:'November',12:'Desember'
+                    };
+                    $('#review_bulan').text(bulanNames[data.bulan] || data.bulan);
+                    $('#review_tahun').text(data.tahun);
+                    $('#review_total_hadir').text(data.total_hadir);
+                    $('#review_total_izin').text(data.total_izin);
+                    $('#review_total_cuti').text(data.total_cuti);
+                    $('#review_total_tk').text(data.total_tanpa_keterangan);
+                    $('#review_total_sakit').text(data.total_sakit);
+
+                    // Isi form edit rekap
+                    $('#rekap_id_anggota_edit').val(data.id_anggota);
+                    $('#rekap_bulan_edit').val(data.bulan);
+                    $('#rekap_tahun_edit').val(data.tahun);
+                    $('#total_hadir_edit').val(data.total_hadir);
+                    $('#total_izin_edit').val(data.total_izin);
+                    $('#total_cuti_edit').val(data.total_cuti);
+                    $('#total_tanpa_keterangan_edit').val(data.total_tanpa_keterangan);
+                    $('#total_sakit_edit').val(data.total_sakit);
+
+                    $('#rekapReviewModal').modal('show');
+                } else {
+                    showToast(resp.result, 'error');
+                }
+            },
+            error: function() {
+                showToast('Terjadi kesalahan saat memuat data rekap absensi.', 'error');
+            }
+        });
+    });
+    $('#btnOpenEditRekap').on('click', function(){
+        $('#rekapReviewModal').modal('hide');
+        $('#rekapAbsensiModal').modal('show');
+    });
+    $('#rekapAbsensiForm').on('submit', function(e){
+        e.preventDefault();
+        var form = $(this);
+        $.ajax({
+            url: 'employees.php?ajax=1',
+            type: 'POST',
+            dataType: 'json',
+            data: form.serialize(),
+            beforeSend: function(){
+                form.find('button[type="submit"]').prop('disabled', true);
+                form.find('.spinner-border').removeClass('d-none');
+            },
+            success: function(resp){
+                form.find('button[type="submit"]').prop('disabled', false);
+                form.find('.spinner-border').addClass('d-none');
+                if(resp.code === 0){
+                    showToast(resp.result, 'success');
+                    $('#rekapAbsensiModal').modal('hide');
+                } else {
+                    showToast(resp.result, 'error');
+                }
+            },
+            error: function(){
+                form.find('button[type="submit"]').prop('disabled', false);
+                form.find('.spinner-border').addClass('d-none');
+                showToast('Terjadi kesalahan saat menyimpan rekap absensi.', 'error');
+            }
+        });
+    });
+
+    // ==================================================
+    // 9. Assign Payheads -> Modal
+    // ==================================================
+    $('#employees tbody').on('click', '.btnAssignPayheads', function(){
+        var id = $(this).data('id');
+        $('#empcode').val(id);
+
+        // Kosongkan div list
+        $('#all_payheads_list').empty();
+        $('#selected_payheads_list').empty();
+        $("#selected_payamount_table tbody").empty();
+
+        // Ambil data detail karyawan (ViewEmployeeDetail)
+        $.ajax({
+            type: "POST",
+            dataType: "json",
+            url: 'employees.php?ajax=1',
+            data: { case: 'ViewEmployeeDetail', id: id, csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
+            success: function(result) {
+                if(result.code === 0) {
+                    var e = result.result;
+                    // Isi field di modal
+                    $('#fieldNamaKaryawan').val(e.nama);
+                    var selMonth = localStorage.getItem('selectedMonthPayroll') || '';
+                    var selYear = localStorage.getItem('selectedYearPayroll') || '';
+                    $('#fieldPeriode').val(selMonth + " " + selYear);
+                    $('#fieldMasaKerja').val(e.masa_kerja);
+                    $('#inputIndexLevel').val(e.salary_index_level);
+                    $('#inputNoRek').val(e.no_rekening);
+
+                    var now = new Date();
+                    $('#inputTanggalPayroll').val(now.toISOString().slice(0,16));
+                    $('#inputDescription').val('');
+                    $('#inputGajiPokok').val(e.gaji_pokok_val);
+
+                    let indexBaseFormatted = e.salary_index_base.toLocaleString('id-ID', { minimumFractionDigits: 2 });
+                    $('#inputIndexNominal').val(indexBaseFormatted);
+
+                    $('#inputTotalEarnings').val('Rp 0,00');
+                    $('#inputTotalDeductions').val('Rp 0,00');
+                    $('#inputNetSalary').val('Rp ' + parseFloat(e.gaji_pokok_val).toLocaleString('id-ID',{minimumFractionDigits:2}));
+
+                    // Ambil data semua payheads
+                    $.ajax({
+                        type: "POST",
+                        dataType: "json",
+                        url: 'employees.php?ajax=1',
+                        data: { case: 'GetAllPayheads', csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
+                        success: function(allPayheadsResult) {
+                            if(allPayheadsResult.code === 0) {
+                                var allPayheadsList = allPayheadsResult.result;
+                                var assignedPayheads = e.payheads || [];
+                                var assignedIds = assignedPayheads.map(function(ph){
+                                    return parseInt(ph.id_payhead, 10);
+                                });
+
+                                // Filter payheads: mana yang belum dipilih
+                                var availablePayheads = allPayheadsList.filter(function(ph) {
+                                    return !assignedIds.includes(parseInt(ph.id, 10));
+                                });
+
+                                // Tampilkan "available" + "selected"
+                                loadAvailablePayheads(availablePayheads);
+                                loadSelectedPayheads(assignedPayheads);
+
+                                // Tampilkan modal
+                                $('#ManageModal').modal('show');
+                            } else {
+                                showToast(allPayheadsResult.result, 'error');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            showToast('Terjadi kesalahan saat memuat semua payheads: ' + error, 'error');
+                        }
+                    });
+                } else {
+                    showToast(result.result, 'error');
+                }
+            },
+            error: function(){
+                showToast('Terjadi kesalahan saat load payheads.', 'error');
+            }
+        });
+    });
+
+    // Submit form assign payheads (hanya simpan draft)
+    $('#assign-payhead-form').on('submit', function(e){
+        e.preventDefault();
+        var form = $(this);
+
+        // Kumpulkan ID payhead terpilih
+        var payHeads = [];
+        $('#selected_payheads_list .payhead-item').each(function() {
+            payHeads.push($(this).data('id'));
+        });
+
+        // Kumpulkan nominal dari table
+        var payAmounts = {};
+        payHeads.forEach(function(payheadId) {
+            var inputSel = `input[name="pay_amounts[${payheadId}]"]`;
+            var amount = $(inputSel).val();
+            payAmounts[payheadId] = amount;
+        });
+
+        // Validasi nominal > 0
+        var isValid = true;
+        payHeads.forEach(function(payheadId){
+            var amount = payAmounts[payheadId];
+            var numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+            if(!amount || isNaN(numericAmount) || numericAmount <= 0){
+                $(`input[name="pay_amounts[${payheadId}]"]`).addClass('is-invalid');
+                isValid = false;
+            } else {
+                $(`input[name="pay_amounts[${payheadId}]"]`).removeClass('is-invalid');
+            }
+        });
+        if(!isValid){
+            showToast('Pastikan semua jumlah payhead valid (angka & > 0)!', 'error');
+            return;
+        }
+
+        var formData = new FormData(form[0]);
+        formData.append('payheads', JSON.stringify(payHeads));
+        formData.append('pay_amounts', JSON.stringify(payAmounts));
+
+        $.ajax({
+            url:'employees.php?ajax=1',
+            type:'POST',
+            dataType:'json',
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend:function(){
+                form.find('button[type="submit"]').prop('disabled', true);
+                form.find('.spinner-border').removeClass('d-none');
+            },
+            success:function(resp){
+                form.find('button[type="submit"]').prop('disabled', false);
+                form.find('.spinner-border').addClass('d-none');
+                if(resp.code === 0){
+                    showToast(resp.result, 'success');
+                    $('#employees').DataTable().ajax.reload(null, false);
+                    setTimeout(function(){
+                        $('#ManageModal').modal('hide');
+                        form[0].reset();
+                        $('#all_payheads_list').empty();
+                        $('#selected_payheads_list').empty();
+                        $("#selected_payamount_table tbody").empty();
+                    }, 200);
+                } else {
+                    showToast(resp.result, 'error');
+                }
+            },
+            error:function(xhr, status, error){
+                form.find('button[type="submit"]').prop('disabled', false);
+                form.find('.spinner-border').addClass('d-none');
+                showToast('Terjadi kesalahan saat menetapkan payheads: ' + error, 'error');
+            }
+        });
+    });
+
+    // Fungsi penyimpanan payheads ke draft + callback
+    function savePayheads(callback) {
+        var form = $('#assign-payhead-form');
+
+        var payHeads = [];
+        $('#selected_payheads_list .payhead-item').each(function() {
+            payHeads.push($(this).data('id'));
+        });
+
+        var payAmounts = {};
+        payHeads.forEach(function(payheadId) {
+            var inputSel = `input[name="pay_amounts[${payheadId}]"]`;
+            var amount = $(inputSel).val();
+            payAmounts[payheadId] = amount;
+        });
+
+        // Validasi
+        var isValid = true;
+        payHeads.forEach(function(payheadId) {
+            var amount = payAmounts[payheadId];
+            var numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+            if(!amount || isNaN(numericAmount) || numericAmount <= 0){
+                $(`input[name="pay_amounts[${payheadId}]"]`).addClass('is-invalid');
+                isValid = false;
+            } else {
+                $(`input[name="pay_amounts[${payheadId}]"]`).removeClass('is-invalid');
+            }
+        });
+        if(!isValid){
+            showToast('Pastikan semua jumlah payhead valid (angka & > 0)!', 'error');
+            return;
+        }
+
+        var formData = new FormData(form[0]);
+        formData.append('payheads', JSON.stringify(payHeads));
+        formData.append('pay_amounts', JSON.stringify(payAmounts));
+
+        $.ajax({
+            url: 'employees.php?ajax=1',
+            type: 'POST',
+            dataType: 'json',
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend: function(){
+                form.find('button[type="submit"]').prop('disabled', true);
+                form.find('.spinner-border').removeClass('d-none');
+            },
+            success: function(resp) {
+                form.find('button[type="submit"]').prop('disabled', false);
+                form.find('.spinner-border').addClass('d-none');
+                if(resp.code === 0){
+                    showToast(resp.result, 'success');
+                    $('#employees').DataTable().ajax.reload(null, false);
+                    setTimeout(function(){
+                        $('#ManageModal').modal('hide');
+                        form[0].reset();
+                        $('#all_payheads_list').empty();
+                        $('#selected_payheads_list').empty();
+                        $("#selected_payamount_table tbody").empty();
+                    }, 200);
+                    if (typeof callback === 'function') {
+                        callback();
+                    }
+                } else {
+                    showToast(resp.result, 'error');
+                }
+            },
+            error: function(xhr, status, error){
+                form.find('button[type="submit"]').prop('disabled', false);
+                form.find('.spinner-border').addClass('d-none');
+                showToast('Terjadi kesalahan saat menetapkan payheads: ' + error, 'error');
+            }
+        });
+    }
+
+    // ==================================================
+    // 10. Tombol Proses Payroll (Final)
+    // ==================================================
+    function callProcessPayroll(empcode, selectedMonth, selectedYear) {
+        $.ajax({
+            url: 'employees.php?ajax=1',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                case: 'ProcessPayroll',
+                id_anggota: empcode,
+                selectedMonth: selectedMonth,
+                selectedYear: selectedYear,
+                csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+            },
+            success: function(resp) {
+                if(resp.code === 0) {
+                    Swal.fire('Berhasil', resp.result, 'success').then(() => {
+                        $('#employees').DataTable().ajax.reload(null, false);
+                        $('#ManageModal').modal('hide');
+                    });
+                } else {
+                    Swal.fire('Gagal', resp.result, 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.fire('Error', 'Terjadi kesalahan saat memproses payroll: ' + error, 'error');
+            }
+        });
+    }
+
+    $('#btnProcessPayroll').on('click', function(){
+        var selectedMonth = localStorage.getItem('selectedMonthNumber') || 0;
+        var selectedYear = localStorage.getItem('selectedYearPayroll') || 0;
+        var empcode = $('#empcode').val();
+        if (!empcode || selectedMonth == 0 || selectedYear == 0) {
+            Swal.fire('Error', 'Pastikan ID anggota dan bulan payroll valid!', 'error');
+            return;
+        }
+        Swal.fire({
+            title: 'Proses Payroll',
+            text: "Apakah Anda yakin data payroll sudah benar dan ingin diproses?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, proses sekarang',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Jika payheads ada (selected), simpan dulu (draft), lalu final
+                if ($('#selected_payheads_list .payhead-item').length > 0) {
+                    savePayheads(function(){
+                        callProcessPayroll(empcode, selectedMonth, selectedYear);
+                    });
+                } else {
+                    // Tidak ada payheads terpilih? Tetap proses
+                    callProcessPayroll(empcode, selectedMonth, selectedYear);
+                }
+            }
+        });
+    });
+
+    // ==================================================
+    // 11. Pemilihan Bulan (Calendar)
+    // ==================================================
+    $(document).on('click', '.month-link', function(e) {
+        e.preventDefault();
+        var monthNumber = $(this).data('month-number');
+        var monthName   = $(this).data('month');
+        var year        = $(this).data('year');
+
+        // Jika punya logika khusus "currentEmpId"
+        if (window.currentEmpId) {
+            var employeeId = window.currentEmpId;
+            var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
+            targetUrl += "?id_anggota=" + employeeId;
+            targetUrl += "&bulan=" + encodeURIComponent(monthName);
+            targetUrl += "&tahun=" + encodeURIComponent(year);
+            window.location.href = targetUrl;
+        } 
+        else {
+            // Cek apakah payroll sudah complete
             $.ajax({
                 url: 'employees.php?ajax=1',
                 type: 'POST',
                 dataType: 'json',
                 data: {
-                    case: 'ProcessPayroll',
-                    id_anggota: empcode,
-                    selectedMonth: selectedMonth,
-                    selectedYear: selectedYear,
+                    case: 'CheckPayrollCompletion',
+                    selectedMonth: monthNumber,
+                    selectedYear: year,
                     csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                 },
                 success: function(resp) {
-                    if(resp.code === 0) {
-                        Swal.fire('Berhasil', resp.result, 'success').then(() => {
-                            $('#employees').DataTable().ajax.reload(null, false);
-                            $('#ManageModal').modal('hide');
-                        });
-                    } else {
-                        Swal.fire('Gagal', resp.result, 'error');
+                    if (resp.code === 0) {
+                        if (resp.result.complete === false) {
+                            var messages = resp.result.messages;
+                            var messageText = messages.join("<br>");
+                            Swal.fire({
+                                title: 'Perhatian!',
+                                html: messageText + "<br><br>Apakah Anda tetap ingin memilih bulan ini?",
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'Ya, pilih bulan ini',
+                                cancelButtonText: 'Batal'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    simpanPilihanBulan(monthNumber, monthName, year);
+                                }
+                            });
+                        } 
+                        else {
+                            // Sudah complete, langsung simpan
+                            simpanPilihanBulan(monthNumber, monthName, year);
+                        }
+                    } 
+                    else {
+                        showToast(resp.result, 'error');
                     }
                 },
-                error: function(xhr, status, error) {
-                    Swal.fire('Error', 'Terjadi kesalahan saat memproses payroll: ' + error, 'error');
+                error: function(xhr, status, error){
+                    showToast('Terjadi kesalahan saat mengecek payroll: ' + error, 'error');
                 }
             });
-        }
-        $('#btnProcessPayroll').on('click', function(){
-            var selectedMonth = localStorage.getItem('selectedMonthNumber') || 0;
-            var selectedYear = localStorage.getItem('selectedYearPayroll') || 0;
-            var empcode = $('#empcode').val();
-            if (!empcode || selectedMonth == 0 || selectedYear == 0) {
-                Swal.fire('Error', 'Pastikan ID anggota dan bulan payroll valid!', 'error');
-                return;
-            }
-            Swal.fire({
-                title: 'Proses Payroll',
-                text: "Apakah Anda yakin data payroll sudah benar dan ingin diproses?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Ya, proses sekarang',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    if ($('#selected_payheads option').length > 0) {
-                        savePayheads(function(){
-                            callProcessPayroll(empcode, selectedMonth, selectedYear);
-                        });
-                    } else {
-                        callProcessPayroll(empcode, selectedMonth, selectedYear);
-                    }
-                }
-            });
-        });
-        $(document).on('click', '.month-link', function(e) {
-            e.preventDefault();
-            var monthNumber = $(this).data('month-number');
-            var monthName = $(this).data('month');
-            var year = $(this).data('year');
-            if (window.currentEmpId) {
-                var employeeId = window.currentEmpId;
-                var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
-                targetUrl += "?id_anggota=" + employeeId;
-                targetUrl += "&bulan=" + encodeURIComponent(monthName);
-                targetUrl += "&tahun=" + encodeURIComponent(year);
-                window.location.href = targetUrl;
-            } else {
-                $.ajax({
-                    url: 'employees.php?ajax=1',
-                    type: 'POST',
-                    dataType: 'json',
-                    data: { 
-                        case: 'CheckPayrollCompletion', 
-                        selectedMonth: monthNumber, 
-                        selectedYear: year, 
-                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>' 
-                    },
-                    success: function(resp) {
-                        if (resp.code === 0) {
-                            if (resp.result.complete === false) {
-                                var messages = resp.result.messages;
-                                var messageText = messages.join("<br>");
-                                Swal.fire({
-                                    title: 'Perhatian!',
-                                    html: messageText + "<br><br>Apakah Anda tetap ingin memilih bulan ini?",
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonText: 'Ya, pilih bulan ini',
-                                    cancelButtonText: 'Batal'
-                                }).then((result) => {
-                                    if (result.isConfirmed) {
-                                        simpanPilihanBulan(monthNumber, monthName, year);
-                                    }
-                                });
-                            } else {
-                                simpanPilihanBulan(monthNumber, monthName, year);
-                            }
-                        } else {
-                            showToast(resp.result, 'error');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        showToast('Terjadi kesalahan saat mengecek payroll: ' + error, 'error');
-                    }
-                });
-            }
-        });
-        function simpanPilihanBulan(monthNumber, monthName, year) {
-            localStorage.setItem('selectedMonthPayroll', monthName);
-            localStorage.setItem('selectedMonthNumber', monthNumber);
-            localStorage.setItem('selectedYearPayroll', year);
-            $('#selectedMonthDisplay').html('<h4>Payroll Bulan: ' + monthName + ' ' + year + ' <button id="btnChangeCalendar" class="btn btn-link">Ganti Kalender</button></h4>');
-            $('#SalaryMonthModal').modal('hide');
-            initEmployeesTable();
         }
     });
-    </script>
+
+    // Simpan pilihan bulan ke localStorage & reload
+    function simpanPilihanBulan(monthNumber, monthName, year) {
+        localStorage.setItem('selectedMonthPayroll', monthName);
+        localStorage.setItem('selectedMonthNumber', monthNumber);
+        localStorage.setItem('selectedYearPayroll', year);
+
+        // Update tampilan header
+        $('#selectedMonthDisplay').html(
+            '<h4>Payroll Bulan: ' + monthName + ' ' + year +
+            ' <button id="btnChangeCalendar" class="btn btn-link">Ganti Kalender</button></h4>'
+        );
+        $('#SalaryMonthModal').modal('hide');
+
+        // Reload page agar param GET di URL ikut berubah (opsional)
+        var newUrl = "employees.php?filterMonth=" + monthNumber + "&filterYear=" + year;
+        window.location.href = newUrl;
+    }
+});
+</script>
+
 </body>
 </html>

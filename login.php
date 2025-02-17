@@ -1,10 +1,11 @@
 <?php
-// login.php
+// ---------------------------
+// Bagian PHP Tetap Sama
+// ---------------------------
 session_start();
 require_once __DIR__ . '/koneksi.php';
 require_once __DIR__ . '/helpers.php'; // Pastikan helpers.php terinklusi
 
-// Inisialisasi variabel pesan error
 $error = '';
 
 // Jika pengguna sudah login, langsung arahkan ke dashboard sesuai role yang tersimpan di session
@@ -36,15 +37,12 @@ if (isset($_SESSION['role'])) {
 
 // Jika form disubmit
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Ambil data dari form
-    $nip_input = trim($_POST['username']); // disini username dianggap NIP
+    $nip_input      = trim($_POST['username']);
     $password_input = trim($_POST['password']);
 
-    // Validasi input
     if (empty($nip_input) || empty($password_input)) {
         $error = "Username/NIP dan Password harus diisi.";
     } else {
-        // Cari data di tabel anggota_sekolah berdasarkan NIP
         $stmt = $conn->prepare("SELECT id, nip, nama, password, job_title, role FROM anggota_sekolah WHERE nip = ? LIMIT 1");
         if ($stmt) {
             $stmt->bind_param("s", $nip_input);
@@ -62,11 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Verifikasi password dengan MD5
             if (md5($password_input) === $row['password']) {
                 // Simpan data di session
-                $_SESSION['nip'] = $row['nip'];
+                $_SESSION['nip']  = $row['nip'];
                 $_SESSION['nama'] = $row['nama'];
                 
-                // Tentukan dashboard berdasarkan job_title dan role dari tabel anggota_sekolah
-                $jobTitle = strtolower($row['job_title'] ?? '');
+                // Tentukan dashboard berdasarkan job_title dan role
+                $jobTitle    = strtolower($row['job_title'] ?? '');
                 $anggotaRole = $row['role'] ?? '';
 
                 if ($anggotaRole === 'M') { // Role managerial
@@ -124,123 +122,196 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Login - Sekolah Nusaputera</title>
-    <!-- Link Bootstrap 4 -->
+    <!-- Bootstrap (Opsional) -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
     <style>
-    body {
-        background: linear-gradient(45deg, #4e73df, rgb(172, 234, 255));
-        height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-family: 'Arial', sans-serif;
-    }
-    .login-container {
-        width: 100%;
-        max-width: 400px;
-        background-color: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        overflow: hidden;
-        animation: fadeIn 1s ease-in-out;
-    }
-    .card-header {
-        background-color: white;
-        text-align: center;
-        padding: 20px;
-        border-bottom: none;
-    }
-    .card-header img {
-        width: 80px;
-        height: auto;
-        margin-bottom: 10px;
-    }
-    .card-header h2 {
-        font-size: 1.8rem;
-        font-weight: bold;
-        color: #4e73df;
-    }
-    .card-body {
-        padding: 30px;
-    }
-    .form-group label {
-        font-weight: bold;
-        color: #4e73df;
-    }
-    .form-control {
-        border-radius: 10px;
-        border: 2px solid #d1d3e2;
-        transition: border-color 0.3s ease-in-out;
-    }
-    .form-control:focus {
-        border-color: #4e73df;
-        box-shadow: 0 0 10px rgba(78, 115, 223, 0.2);
-    }
-    .btn-primary {
-        background-color: #4e73df;
-        border-radius: 20px;
-        font-size: 1.2rem;
-        padding: 10px 20px;
-        transition: background-color 0.3s ease-in-out;
-        border: none;
-    }
-    .btn-primary:hover {
-        background-color: #2e59d9;
-    }
-    .btn i {
-        margin-right: 8px;
-    }
-    .form-icon {
-        font-size: 1.5rem;
-        color: #4e73df;
-        margin-right: 10px;
-    }
-    .alert {
-        border-radius: 10px;
-        margin-top: 10px;
-    }
-    @keyframes fadeIn {
-        from {opacity: 0; transform: translateY(20px);}
-        to   {opacity: 1; transform: translateY(0);}
-    }
+        /* RESET & GLOBAL STYLE */
+        * {
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* SPLIT SCREEN LAYOUT */
+        .left {
+            flex: 1;
+            /* Gunakan warna biru gradient seperti tema sebelumnya */
+            background: linear-gradient(45deg, #4e73df, rgb(172, 234, 255));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .left-content {
+            max-width: 400px;
+            text-align: center;
+            color: #fff;
+        }
+        .left-content h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        .left-content p {
+            font-size: 1rem;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        .right {
+            flex: 1;
+            background: #f8f9fc; /* Latar form, senada dengan biru/abu */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        /* LOGIN FORM STYLE */
+        .login-form {
+            width: 100%;
+            max-width: 380px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            text-align: center; /* Untuk memusatkan logo */
+        }
+        /* Tempat untuk logo */
+        .logo-container {
+            margin-bottom: 1rem;
+        }
+        .logo-container img {
+            width: 80px; /* Sesuaikan ukuran logo */
+            height: auto;
+        }
+
+        .login-form h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #444;
+            float: left; /* label rata kiri */
+        }
+        .form-control {
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            height: 45px;
+            font-size: 0.9rem;
+            border: 1px solid #d1d3e2;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #4e73df;
+            box-shadow: 0 0 5px rgba(78,115,223,0.3);
+        }
+
+        /* Tombol Login */
+        .btn-login {
+            width: 100%;
+            height: 45px;
+            border: none;
+            border-radius: 20px;
+            background-color: #4e73df;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 0.5rem;
+        }
+        .btn-login:hover {
+            background-color: #2e59d9;
+        }
+
+        /* ALERT */
+        .alert {
+            margin-bottom: 1rem;
+            border-radius: 5px;
+        }
+
+        /* RESPONSIVE */
+        @media(max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            .left, .right {
+                flex: unset;
+                width: 100%;
+                height: auto;
+            }
+            .left {
+                padding: 1rem;
+            }
+            .right {
+                padding: 1rem;
+            }
+            .left-content {
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="card">
-            <div class="card-header">
-                <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
-                <div style="text-align: center; margin-top: 10px;">
-                    <span style="color:rgb(48, 179, 249); font-size:1.7rem; font-weight:bold;">Sekolah </span>
-                    <span style="color:#0d47a1; font-size:1.7rem; font-weight:bold;">Nusaputera</span>
-                </div>
-            </div>
-            <div class="card-body">
-                <?php if (!empty($error)): ?>
-                    <div class="alert alert-danger">
-                        <?= htmlspecialchars($error); ?>
-                    </div>
-                <?php endif; ?>
-                <form action="login.php" method="POST">
-                    <div class="form-group">
-                        <label for="username"><i class="fas fa-user form-icon"></i> Username / NIP</label>
-                        <input type="text" class="form-control" id="username" name="username" required
-                               value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="password"><i class="fas fa-lock form-icon"></i> Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-block mt-3">
-                        <i class="fas fa-sign-in-alt"></i> Login
-                    </button>
-                </form>
-            </div>
+
+    <!-- Bagian kiri (Welcome section) -->
+    <div class="left">
+        <div class="left-content">
+            <h1>Welcome to website</h1>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                Sed diam nonummy nibh euismod tincidunt ut laoreet dolore 
+                magna aliquam erat volutpat.
+            </p>
         </div>
     </div>
-    <!-- Script JavaScript -->
+
+    <!-- Bagian kanan (Login Form) -->
+    <div class="right">
+        <div class="login-form">
+            <!-- Tempat untuk logo -->
+            <div class="logo-container">
+                <!-- Pastikan path logo sesuai dengan file Anda -->
+                <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
+            </div>
+
+            <h2>User Login</h2>
+
+            <?php if (!empty($error)): ?>
+                <div class="alert alert-danger">
+                    <?= htmlspecialchars($error); ?>
+                </div>
+            <?php endif; ?>
+
+            <form action="login.php" method="POST">
+                <div class="form-group text-left">
+                    <label for="username">Username / NIP</label>
+                    <input type="text" class="form-control" id="username" name="username" 
+                           value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>" 
+                           required>
+                </div>
+                <div class="form-group text-left">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+
+                <!-- Tombol Login -->
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script (jika menggunakan Bootstrap) -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

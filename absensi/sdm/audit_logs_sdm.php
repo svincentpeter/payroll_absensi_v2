@@ -1,5 +1,5 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/audit_logs_keuangan.php
+// File: /payroll_absensi_v2/payroll/sdm/audit_logs_sdm.php
 
 // =========================
 // 1. Pengaturan Dasar & Session
@@ -11,8 +11,9 @@ session_start();
 require_once __DIR__ . '/../../helpers.php';
 init_error_handling(); // Hanya sistem error log yang dipertahankan
 
-// Pastikan hanya keuangan yang dapat mengakses halaman ini
-authorize('keuangan', '/payroll_absensi_v2/login.php');
+// Pastikan hanya role SDM yang dapat mengakses halaman ini
+// (Anda juga bisa menambahkan superadmin jika diinginkan, misalnya: authorize(['sdm','superadmin'], ...))
+authorize('sdm', '/payroll_absensi_v2/login.php');
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';
@@ -78,7 +79,8 @@ function getActivityColor($action) {
 // 3. Ambil Data Audit Logs dengan Filter (Max 30)
 // =========================
 
-// Periksa parameter GET (start_date, end_date, role, search)
+// Periksa parameter GET (start_date, end_date, search)
+// Note: Untuk halaman SDM, filter role dipaksa menjadi 'sdm'
 $conditions = [];
 if (!empty($_GET['start_date'])) {
     $start_date = $conn->real_escape_string($_GET['start_date']);
@@ -88,10 +90,10 @@ if (!empty($_GET['end_date'])) {
     $end_date = $conn->real_escape_string($_GET['end_date']);
     $conditions[] = "a.created_at <= '$end_date 23:59:59'";
 }
-if (!empty($_GET['role'])) {
-    $role_filter = $conn->real_escape_string($_GET['role']);
-    $conditions[] = "u.role = '$role_filter'";
-}
+
+// Tetapkan filter role ke 'sdm'
+$conditions[] = "u.role = 'sdm'";
+
 if (!empty($_GET['search'])) {
     $search = $conn->real_escape_string($_GET['search']);
     $conditions[] = "(a.action LIKE '%$search%' OR a.details LIKE '%$search%')";
@@ -114,13 +116,13 @@ if (!$resultFiltered) {
 
 // Catat audit log bahwa halaman logs diakses
 $user_id = $_SESSION['user_id'] ?? 0;
-add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.');
+add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs SDM.');
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Audit Logs Keuangan - Superadmin</title>
+    <title>Audit Logs SDM - Halaman SDM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS & SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -231,7 +233,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 text-gray-800"><i class="fas fa-list-alt"></i> Audit Logs Keuangan</h1>
+                        <h1 class="h3 text-gray-800"><i class="fas fa-list-alt"></i> Audit Logs SDM</h1>
                     </div>
 
                     <!-- Filter Form Card -->
@@ -251,7 +253,8 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                                 </div>
                                 <div class="col-md-3">
                                     <label for="role" class="form-label">Role</label>
-                                    <input type="text" class="form-control" id="role" name="role" placeholder="Filter by Role" value="<?php echo isset($_GET['role']) ? htmlspecialchars($_GET['role']) : ''; ?>">
+                                    <!-- Role SDM dipaksa -->
+                                    <input type="text" class="form-control" id="role" name="role" value="sdm" readonly>
                                 </div>
                                 <div class="col-md-3">
                                     <label for="search" class="form-label">Search</label>
@@ -259,7 +262,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                                 </div>
                                 <div class="col-12 text-end">
                                     <button type="submit" class="btn btn-primary mt-2"><i class="fas fa-search"></i> Filter</button>
-                                    <a href="audit_logs_keuangan.php" class="btn btn-warning mt-2 ms-2"><i class="fas fa-sync-alt"></i> Reset</a>
+                                    <a href="audit_logs_sdm.php" class="btn btn-warning mt-2 ms-2"><i class="fas fa-sync-alt"></i> Reset</a>
                                 </div>
                             </form>
                         </div>
@@ -319,10 +322,9 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
     </div>
     <!-- End of Page Wrapper -->
 
-
     <!-- JS Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
 
