@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['sdm', 'superadmin']);  // Pastikan hanya role yang diizinkan yang bisa akses
+authorize(['keuangan', 'superadmin']);  // Pastikan hanya role yang diizinkan yang bisa akses
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 

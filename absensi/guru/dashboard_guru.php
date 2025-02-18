@@ -149,13 +149,19 @@ $dashboard_title = ($role === 'guru') ? 'Dashboard Guru' : 'Dashboard Karyawan';
 <head>
     <meta charset="UTF-8">
     <title><?= htmlspecialchars($dashboard_title) ?></title>
-    <!-- Font Awesome & SB Admin 2 CSS -->
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" nonce="<?= htmlspecialchars($nonce); ?>">
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?= htmlspecialchars($nonce); ?>">
-    <!-- Chart.js & Plugin Data Labels -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <style nonce="<?= htmlspecialchars($nonce); ?>">
+   <!-- Bootstrap 5 CSS dan SB Admin 2 CSS -->
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- Font Awesome untuk icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
+    <!-- Chart.js & Chartjs Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?php echo $nonce; ?>"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
+   <style nonce="<?= htmlspecialchars($nonce); ?>">
         /* Perbesar area grafik */
         #attendanceChart {
             width: 100% !important;
@@ -177,17 +183,9 @@ $dashboard_title = ($role === 'guru') ? 'Dashboard Guru' : 'Dashboard Karyawan';
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
-                <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item">
-                            <a href="../../logout.php" class="btn btn-danger btn-sm">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- End of Topbar -->
+                <!-- Navbar -->
+                <?php include __DIR__ . '/../../navbar.php'; ?>
+                <!-- Breadcrumb -->
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
@@ -233,10 +231,10 @@ $dashboard_title = ($role === 'guru') ? 'Dashboard Guru' : 'Dashboard Karyawan';
     <!-- End Page Wrapper -->
 
     <!-- JavaScript Dependencies -->
-    <script src="../../assets/vendor/jquery/jquery.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="../../assets/vendor/bootstrap/js/bootstrap.bundle.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="../../assets/vendor/jquery-easing/jquery.easing.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
-    <script src="../../assets/js/sb-admin-2.min.js" nonce="<?= htmlspecialchars($nonce); ?>"></script>
+    <!-- JS Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js" nonce="<?php echo $nonce; ?>"></script>
     
     <!-- Script untuk Chart.js -->
     <script nonce="<?= htmlspecialchars($nonce); ?>">

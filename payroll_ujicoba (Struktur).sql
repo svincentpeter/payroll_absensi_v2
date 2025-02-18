@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 14, 2025 at 03:12 PM
+-- Generation Time: Feb 18, 2025 at 03:55 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -251,6 +251,7 @@ CREATE TABLE `pengajuan_ijin` (
   `tanggal` text NOT NULL,
   `pesan` text NOT NULL,
   `tipe_ijin` enum('Sakit','Cuti Biasa','Ijin Lainnya') NOT NULL,
+  `status_kepalasekolah` enum('Diterima','Pending','Ditolak') NOT NULL DEFAULT 'Pending',
   `status` enum('Diterima','Pending','Ditolak') DEFAULT 'Pending'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
