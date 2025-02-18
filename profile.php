@@ -1,45 +1,18 @@
 <?php
-session_start();
+require_once __DIR__ . '/helpers.php';
+start_session_safe();
 
-// Pastikan pengguna sudah login
-if (!isset($_SESSION['user_id'])) {
-    header("Location: /payroll_absensi_v2/login.php");
-    exit();
-}
-
-// Ambil userId dari session
-$userId = (int) $_SESSION['user_id'];
+// Pastikan pengguna sudah login dan memiliki role yang diizinkan
+authorize(['P', 'TK', 'M']);
 
 // Koneksi ke database
 require_once __DIR__ . '/koneksi.php';
 
-/**
- * Fungsi JSON response sederhana
- */
-function send_response($code, $result)
-{
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['code' => $code, 'result' => $result], JSON_UNESCAPED_UNICODE);
-    exit();
-}
+// Ambil nip dari session sebagai identitas unik user
+$userNip = $_SESSION['nip'];
 
-/**
- * Fungsi untuk membersihkan input
- */
-function bersihkan_input($str)
-{
-    return htmlspecialchars(strip_tags(trim($str)));
-}
-
-/**
- * Fungsi verifikasi CSRF Token
- */
-function verify_csrf_token($token)
-{
-    if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
-        send_response(403, 'Token CSRF tidak valid.');
-    }
-}
+// Fungsi-fungsi sudah didefinisikan di helpers.php, jadi kita tidak perlu mendefinisikan ulang send_response() dan bersihkan_input()
+// Namun, jika ada fungsi khusus untuk membersihkan input, pastikan gunakan alias yang sudah disediakan
 
 // ================ BAGIAN AJAX UNTUK UPDATE PROFIL ================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
@@ -68,7 +41,25 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             send_response(1, 'NIP dan Nama wajib diisi.');
         }
 
-        // 4. Proses upload foto profil (jika ada)
+        // 4. Validasi bahwa user yang diupdate adalah user yang sedang login
+        $sqlLogged = "SELECT id FROM anggota_sekolah WHERE nip=? LIMIT 1";
+        $stmtLogged = $conn->prepare($sqlLogged);
+        if (!$stmtLogged) {
+            send_response(1, 'Query error: ' . $conn->error);
+        }
+        $stmtLogged->bind_param("s", $userNip);
+        $stmtLogged->execute();
+        $resLogged = $stmtLogged->get_result();
+        if ($resLogged->num_rows === 0) {
+            send_response(1, 'Data pengguna tidak ditemukan.');
+        }
+        $loggedUser = $resLogged->fetch_assoc();
+        $stmtLogged->close();
+        if ($id !== (int)$loggedUser['id']) {
+            send_response(403, 'Anda tidak diizinkan mengubah data pengguna lain.');
+        }
+
+        // 5. Proses upload foto profil (jika ada)
         $foto_profil_path = '';
         $uploadDir = __DIR__ . '/uploads/profile_pics/';
         if (!is_dir($uploadDir)) {
@@ -87,7 +78,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             }
         }
 
-        // 5. Cek apakah data user ada di tabel anggota_sekolah
+        // 6. Cek apakah data user ada di tabel anggota_sekolah
         $checkSql = "SELECT id, foto_profil FROM anggota_sekolah WHERE id=? LIMIT 1";
         $stmtCheck = $conn->prepare($checkSql);
         if (!$stmtCheck) {
@@ -102,13 +93,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         $rowUser = $resCheck->fetch_assoc();
         $stmtCheck->close();
 
-        // 6. Siapkan kolom foto_profil akhir
+        // 7. Siapkan kolom foto_profil akhir
         $final_foto_profil = $rowUser['foto_profil'];
         if (!empty($foto_profil_path)) {
             $final_foto_profil = $foto_profil_path;
         }
 
-        // 7. Handle password baru (opsional)
+        // 8. Handle password baru (opsional)
         $updatePassword = false;
         $password_hashed = '';
         if (!empty($password_plain)) {
@@ -116,7 +107,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $updatePassword = true;
         }
 
-        // 8. Buat SQL UPDATE
+        // 9. Buat SQL UPDATE
         if ($updatePassword) {
             $updateSql = "UPDATE anggota_sekolah
                           SET nip=?, nama=?, jenjang=?, job_title=?,
@@ -129,7 +120,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 send_response(1, 'Query error: ' . $conn->error);
             }
             $stmtUpd->bind_param(
-                "ssssssssssssi",
+                "sssssssssssis",
                 $nip, $nama, $jenjang, $job_title,
                 $no_hp, $email, $alamat_domisili,
                 $tanggal_lahir, $pendidikan, $status_perkawinan,
@@ -157,11 +148,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             );
         }
 
-        // 9. Eksekusi update data
+        // 10. Eksekusi update data
         if ($stmtUpd->execute()) {
             $stmtUpd->close();
 
-            // 10. Perbarui data session
+            // 11. Perbarui data session
             $_SESSION['nip']               = $nip;
             $_SESSION['nama']              = $nama;
             $_SESSION['jenjang']           = $jenjang;
@@ -186,13 +177,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // ============= BAGIAN HALAMAN (BUKAN AJAX) =============
-// Ambil data profil user dari tabel anggota_sekolah
-$sqlProfile = "SELECT * FROM anggota_sekolah WHERE id=? LIMIT 1";
+// Ambil data profil user dari tabel anggota_sekolah menggunakan nip dari session
+$sqlProfile = "SELECT * FROM anggota_sekolah WHERE nip=? LIMIT 1";
 $stmt = $conn->prepare($sqlProfile);
 if (!$stmt) {
     die("Query error: " . $conn->error);
 }
-$stmt->bind_param("i", $userId);
+$stmt->bind_param("s", $userNip);
 $stmt->execute();
 $resProfile = $stmt->get_result();
 if ($resProfile->num_rows === 0) {
@@ -202,9 +193,7 @@ $profile = $resProfile->fetch_assoc();
 $stmt->close();
 
 // Buat CSRF token jika belum ada
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+generate_csrf_token();
 
 // Format tanggal lahir
 $tanggalLahirFormatted = '-';

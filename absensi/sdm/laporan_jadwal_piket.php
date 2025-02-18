@@ -10,11 +10,11 @@ init_error_handling();
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 require_once __DIR__ . '/../../koneksi.php';
 
-// Hasilkan CSRF token
+// Hasilkan dan ambil CSRF token
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
-// ---------- PROSES DELETE ----------
+// ---------- PROSES DELETE ---------- 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     // Verifikasi CSRF token
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -74,7 +74,6 @@ if ($jadwal_type === '1') {
 
 // Buat query SQL dinamis
 if (empty($date_ranges)) {
-    // Jika tidak ada rentang tanggal, tampilkan semua data
     $sql = "SELECT id_jadwal, nip, nama_guru, waktu_piket, tanggal, tahun, status 
             FROM jadwal_piket 
             ORDER BY tanggal ASC";
@@ -112,8 +111,7 @@ for ($y = 2020; $y <= 2050; $y++) {
 }
 
 // Proses data menjadi format untuk tabel laporan
-$formattedJadwal = []; // [nama_guru]['waktu_piket'] dan [nama_guru][tanggal] = status
-
+$formattedJadwal = []; // Format: $formattedJadwal[nama_guru]['waktu_piket'] dan $formattedJadwal[nama_guru][tanggal] = status
 foreach ($laporan as $lap) {
     $nama_guru = $lap['nama_guru'];
     $tanggal = $lap['tanggal']; // Format: YYYY-MM-DD
@@ -158,8 +156,8 @@ function translate_day($day_eng) {
     return $days[$day_eng] ?? $day_eng;
 }
 
-// Buat daftar bulan dan tanggal berdasarkan data
-$months = []; // Format: ['Juni 2025' => [ ['formatted_date'=>'2025-06-01', 'day'=>'Senin'], ... ], ...]
+// Buat daftar bulan dan tanggal berdasarkan data laporan
+$months = []; // Format: [ "Juni 2025" => [ ['formatted_date' => '2025-06-01', 'day' => 'Senin'], ... ], ... ]
 foreach ($laporan as $lap) {
     $tanggal = $lap['tanggal'];
     $dateObj = new DateTime($tanggal);
@@ -171,6 +169,7 @@ foreach ($laporan as $lap) {
     if (!isset($months[$full_month])) {
         $months[$full_month] = [];
     }
+    // Tambahkan tanggal jika belum ada
     $existing_dates = array_column($months[$full_month], 'formatted_date');
     if (!in_array($tanggal, $existing_dates)) {
         $months[$full_month][] = [
@@ -179,29 +178,29 @@ foreach ($laporan as $lap) {
         ];
     }
 }
-// Urutkan bulan dan tanggal
+// Urutkan kelompok bulan berdasarkan tahun dan nomor bulan
 uksort($months, function($a, $b) {
     $translate_reverse = [
-        'Januari' => 'January',
-        'Februari' => 'February',
-        'Maret' => 'March',
-        'April' => 'April',
-        'Mei' => 'May',
-        'Juni' => 'June',
-        'Juli' => 'July',
-        'Agustus' => 'August',
+        'Januari'   => 'January',
+        'Februari'  => 'February',
+        'Maret'     => 'March',
+        'April'     => 'April',
+        'Mei'       => 'May',
+        'Juni'      => 'June',
+        'Juli'      => 'July',
+        'Agustus'   => 'August',
         'September' => 'September',
-        'Oktober' => 'October',
-        'November' => 'November',
-        'Desember' => 'December'
+        'Oktober'   => 'October',
+        'November'  => 'November',
+        'Desember'  => 'December'
     ];
-    list($month_a, $year_a) = explode(' ', $a);
-    list($month_b, $year_b) = explode(' ', $b);
-    $month_a_eng = $translate_reverse[$month_a] ?? $month_a;
-    $month_b_eng = $translate_reverse[$month_b] ?? $month_b;
-    $date_a = DateTime::createFromFormat('F Y', "$month_a_eng $year_a");
-    $date_b = DateTime::createFromFormat('F Y', "$month_b_eng $year_b");
-    return $date_a <=> $date_b;
+    list($monthA, $yearA) = explode(' ', $a);
+    list($monthB, $yearB) = explode(' ', $b);
+    $monthA_eng = $translate_reverse[$monthA] ?? $monthA;
+    $monthB_eng = $translate_reverse[$monthB] ?? $monthB;
+    $dateA = DateTime::createFromFormat('F Y', "$monthA_eng $yearA");
+    $dateB = DateTime::createFromFormat('F Y', "$monthB_eng $yearB");
+    return $dateA <=> $dateB;
 });
 foreach ($months as $month => &$days) {
     usort($days, function($a, $b) {
@@ -216,11 +215,13 @@ unset($days);
     <meta charset="UTF-8">
     <title>Laporan Jadwal Piket Guru</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- SB Admin 2 CSS & Bootstrap 5 CSS -->
+    <!-- SB Admin 2 CSS & Bootstrap 5 CSS via CDN -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="../../assets/vendor/fontawesome-free/css/all.min.css">
+    <!-- DataTables CSS (versi Bootstrap 5) -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <style>
         th, td {
             vertical-align: middle !important;
@@ -242,6 +243,7 @@ unset($days);
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
+
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
@@ -301,7 +303,7 @@ unset($days);
                         <div class="alert alert-info">Tidak ada data laporan sesuai filter.</div>
                     <?php else: ?>
                         <?php
-                            // Kumpulkan semua tanggal unik
+                            // Kumpulkan semua tanggal unik dari laporan
                             $all_dates = [];
                             foreach ($months as $month => $days) {
                                 foreach ($days as $day) {
@@ -364,10 +366,9 @@ unset($days);
                             </table>
                         </div>
                     <?php endif; ?>
-                </div>
-                <!-- End Page Content -->
-            </div>
-            <!-- End Main Content -->
+
+                </div><!-- End Page Content -->
+            </div><!-- End Main Content -->
 
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
@@ -376,20 +377,16 @@ unset($days);
                     </div>
                 </div>
             </footer>
-        </div>
-        <!-- End Content Wrapper -->
-    </div>
-    <!-- End Page Wrapper -->
+        </div><!-- End Content Wrapper -->
+    </div><!-- End Page Wrapper -->
 
     <!-- JavaScript Dependencies -->
-    <!-- jQuery & jQuery UI -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-    <!-- Bootstrap Bundle (termasuk Popper) -->
+    <!-- jQuery, Bootstrap 5.3.3, dan DataTables JS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables & Plugins -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- DataTables Buttons & Responsive (jika diperlukan) -->
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -400,10 +397,21 @@ unset($days);
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
-    <!-- FullCalendar & Moment.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
-    <!-- SB Admin 2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#activeIjinTable').DataTable({
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
+                    emptyTable: "Tidak ada data laporan sesuai filter."
+                }
+            });
+            $('#historyIjinTable').DataTable({
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
+                    emptyTable: "Tidak ada data laporan sesuai filter."
+                }
+            });
+        });
+    </script>
 </body>
 </html>

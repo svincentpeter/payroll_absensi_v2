@@ -1,5 +1,6 @@
 <?php
-// File: /payroll_absensi_v2/helpers.php
+// Definisikan BASE_URL untuk digunakan di seluruh aplikasi
+define('BASE_URL', '/payroll_absensi_v2');
 
 /**
  * Memulai session dengan aman jika belum dimulai.
@@ -127,7 +128,6 @@ function add_audit_log($conn, $user_nip, $action, $details) {
     $stmt->close();
     return true;
 }
-
 
 /**
  * Menerjemahkan jenis payhead dari bahasa Inggris ke Indonesia.
@@ -276,7 +276,7 @@ function getBadgeStatusKerja($status) {
  * @param string $redirectUrl URL tujuan jika pengguna tidak memiliki akses.
  * @return void
  */
-function authorize($allowedRoles, $redirectUrl = '/payroll_absensi_v2/login.php') {
+function authorize($allowedRoles, $redirectUrl = BASE_URL . '/login.php') {
     // Pastikan session sudah dimulai
     start_session_safe();
     
@@ -294,5 +294,4 @@ function authorize($allowedRoles, $redirectUrl = '/payroll_absensi_v2/login.php'
         exit();
     }
 }
-
 ?>

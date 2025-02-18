@@ -43,22 +43,12 @@ header("Content-Security-Policy: default-src 'self';
     connect-src 'self'");
 
 // =============================================================================
-// 2. Otorisasi Akses
-// =============================================================================
-// Hanya pengguna dengan role 'guru' atau 'karyawan' yang boleh mengakses dashboard ini
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['guru', 'karyawan'])) {
-    header("Location: ../../login.php");
-    exit();
-}
-
-// =============================================================================
-// 3. Koneksi Database & Inisialisasi
+// 2. Koneksi Database & Inisialisasi
 // =============================================================================
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
-// Ambil data pengguna dari session
-$role = $_SESSION['role'];
+// Ambil data pengguna dari session (minimal nip harus sudah tersimpan)
 $nip = $_SESSION['nip'] ?? '';
 
 if (empty($nip)) {
@@ -66,18 +56,37 @@ if (empty($nip)) {
     exit();
 }
 
-// Catat audit log bahwa dashboard guru diakses
-$user_id = $_SESSION['user_id'] ?? 0;
-add_audit_log($conn, $user_id, 'AccessDashboardGuru', 'Mengakses dashboard guru.');
+// Query untuk mendapatkan data pengguna (nama dan role) dari tabel `anggota_sekolah`
+$queryUser = "SELECT nama, role FROM anggota_sekolah WHERE nip = ?";
+$stmtUser = $conn->prepare($queryUser);
+$stmtUser->bind_param("s", $nip);
+$stmtUser->execute();
+$resultUser = $stmtUser->get_result();
+$userData = $resultUser->fetch_assoc();
+$stmtUser->close();
 
-// Query untuk mendapatkan nama pengguna dari tabel `anggota_sekolah`
-$name_query = "SELECT nama FROM anggota_sekolah WHERE nip = ?";
-$stmt_name = $conn->prepare($name_query);
-$stmt_name->bind_param("s", $nip);
-$stmt_name->execute();
-$result_name = $stmt_name->get_result();
-$nama_pengguna = $result_name->fetch_assoc()['nama'] ?? 'Nama Tidak Diketahui';
-$stmt_name->close();
+// Jika data pengguna tidak ditemukan atau role tidak sesuai, tolak akses
+if (!$userData || !in_array($userData['role'], ['P', 'TK'])) {
+    header("Location: ../../login.php");
+    exit();
+}
+
+$nama_pengguna = $userData['nama'] ?? 'Nama Tidak Diketahui';
+$db_role       = $userData['role'];
+
+// Jika diperlukan, perbarui nilai role di session untuk konsistensi (opsional)
+$_SESSION['role'] = $db_role;
+
+// Catat audit log bahwa dashboard diakses
+// Menggunakan nip sebagai identitas user
+add_audit_log($conn, $nip, 'AccessDashboard', 'Mengakses dashboard.');
+
+// Tentukan judul dashboard berdasarkan role dari database
+$dashboard_title = ($db_role === 'P') ? 'Dashboard Guru' : 'Dashboard Karyawan';
+
+// =============================================================================
+// 3. Data Absensi
+// =============================================================================
 
 // Tentukan jam masuk standar (misalnya: 08:00:00)
 $jam_masuk_standar = '08:00:00';
@@ -140,9 +149,6 @@ $attendance_json = json_encode([
     'izin'      => $total_izin,
     'hadir'     => $total_hadir
 ]);
-
-// Tentukan judul dashboard berdasarkan peran
-$dashboard_title = ($role === 'guru') ? 'Dashboard Guru' : 'Dashboard Karyawan';
 ?>
 <!DOCTYPE html>
 <html lang="en">

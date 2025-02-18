@@ -1,35 +1,24 @@
 <?php
 // laporan_ijin_ke_kepalasekolah.php
 
-// Aktifkan error reporting untuk debugging (non-produksi)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Inisiasi session secara aman, buat CSRF token, dan batasi akses hanya untuk kepala sekolah
+require_once __DIR__ . '/../../helpers.php';
+start_session_safe();
+generate_csrf_token();
+authorize('kepalasekolah');
 
-session_start();
-require_once '../../koneksi.php';
+// Koneksi database
+require_once __DIR__ . '/../../koneksi.php';
 
-// Pastikan pengguna sudah login dan memiliki role "kepalasekolah"
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'kepalasekolah') {
-    header("Location: ../../login.php");
-    exit();
-}
-
-/* 
-   PROSES UPDATE STATUS PENGAJUAN IZIN (HANYA UNTUK kolom status_kepalasekolah)
-   dan PROSES DELETE HISTORY.
-   Gunakan field hidden "action_type" untuk membedakan:
-   - Jika action_type = "update" maka update status_kepalasekolah (nilai hanya "Diterima" atau "Ditolak")
-   - Jika action_type = "delete" maka hapus data dari tabel history, 
-     dengan logika tombol "Hapus" aktif jika:
-         * Jika status_kepalasekolah = "Ditolak" (langsung aktif), atau
-         * Jika status_kepalasekolah = "Diterima" dan kolom status (SDM) sudah bukan "Pending".
-*/
+// PROSES UPDATE STATUS PENGAJUAN IZIN atau DELETE HISTORY
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Verifikasi token CSRF
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    
     if (isset($_POST['action_type']) && $_POST['action_type'] === 'update' && isset($_POST['id'], $_POST['status'])) {
-        $id = $_POST['id'];
+        $id = intval($_POST['id']);
         $status = $_POST['status'];
-        // Hanya terima nilai "Diterima" atau "Ditolak" untuk update oleh kepala sekolah
+        // Terima hanya nilai "Diterima" atau "Ditolak"
         if (in_array($status, ['Diterima', 'Ditolak'])) {
             $update_query = "UPDATE pengajuan_ijin SET status_kepalasekolah = ? WHERE id = ?";
             $stmt = $conn->prepare($update_query);
@@ -48,9 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['notif_error'] = "Status tidak valid.";
         }
     } elseif (isset($_POST['action_type']) && $_POST['action_type'] === 'delete' && isset($_POST['id'])) {
-        // Proses hapus history: izinkan hapus jika (status SDM bukan "Pending") 
-        // atau jika status_kepalasekolah adalah "Ditolak"
-        $id = $_POST['id'];
+        $id = intval($_POST['id']);
+        // Cek apakah pengajuan dapat dihapus:
+        // - Jika status_kepalasekolah = 'Ditolak'
+        //   OR jika status_kepalasekolah = 'Diterima' dan status (SDM) bukan 'Pending'
         $check_query = "SELECT status, status_kepalasekolah FROM pengajuan_ijin WHERE id = ?";
         $stmt = $conn->prepare($check_query);
         $stmt->bind_param("i", $id);
@@ -58,9 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_result($statusSDM, $statusKepsek);
         $stmt->fetch();
         $stmt->close();
-        // Tombol hapus aktif jika:
-        // - status_kepalasekolah = 'Ditolak'
-        //   OR jika status_kepalasekolah = 'Diterima' dan status (SDM) sudah bukan 'Pending'
         if ($statusKepsek === 'Ditolak' || ($statusKepsek === 'Diterima' && $statusSDM !== 'Pending')) {
             $delete_query = "DELETE FROM pengajuan_ijin WHERE id = ?";
             $stmt = $conn->prepare($delete_query);
@@ -75,16 +62,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['notif_error'] = "Tidak dapat menghapus pengajuan yang masih pending SDM.";
         }
     }
+    header("Location: laporan_ijin_ke_kepalasekolah.php");
+    exit();
 }
 
-// Query untuk data aktif: status_kepalasekolah = 'Pending'
+// Query untuk data aktif: pengajuan dengan status_kepalasekolah = 'Pending'
 $activeQuery = "SELECT * FROM pengajuan_ijin WHERE status_kepalasekolah = 'Pending' ORDER BY id DESC";
 $activeResult = $conn->query($activeQuery);
 if (!$activeResult) {
     die("Query active error: " . $conn->error);
 }
 
-// Query untuk data history: status_kepalasekolah <> 'Pending'
+// Query untuk data history: pengajuan dengan status_kepalasekolah <> 'Pending'
 $historyQuery = "SELECT * FROM pengajuan_ijin WHERE status_kepalasekolah <> 'Pending' ORDER BY id DESC";
 $historyResult = $conn->query($historyQuery);
 if (!$historyResult) {
@@ -96,21 +85,24 @@ if (!$historyResult) {
 <head>
     <meta charset="UTF-8">
     <title>Laporan Pengajuan Izin - Kepala Sekolah</title>
-    <link href="../../assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
-    <link href="../../assets/css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+    <!-- FontAwesome, Bootstrap v5.3.3, SB Admin 2, dan DataTables CSS via CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- SB Admin 2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" rel="stylesheet">
+    <!-- DataTables CSS (gunakan versi untuk Bootstrap 5 jika diinginkan) -->
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <style>
         .badge-pending { background-color: #f6c23e; color: #fff; } /* kuning */
         .badge-success { background-color: #28a745; color: #fff; } /* hijau */
         .badge-danger { background-color: #e74a3b; color: #fff; }   /* merah */
         .badge-secondary { background-color: #858796; color: #fff; }
-        /* Tambahan margin antar section */
         .section-card { margin-bottom: 20px; }
     </style>
 </head>
 <body id="page-top">
 <div id="wrapper">
-    <?php include '../../sidebar.php'; ?>
+    <?php include __DIR__ . '/../../sidebar.php'; ?>
     <div id="content-wrapper" class="d-flex flex-column">
         <div id="content">
             <!-- Topbar -->
@@ -133,18 +125,14 @@ if (!$historyResult) {
                 <?php if (isset($_SESSION['notif_success'])): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <?= htmlspecialchars($_SESSION['notif_success']); ?>
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     <?php unset($_SESSION['notif_success']); ?>
                 <?php endif; ?>
                 <?php if (isset($_SESSION['notif_error'])): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <?= htmlspecialchars($_SESSION['notif_error']); ?>
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     <?php unset($_SESSION['notif_error']); ?>
                 <?php endif; ?>
@@ -156,7 +144,6 @@ if (!$historyResult) {
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <!-- Tabel dengan 9 kolom -->
                             <table id="activeIjinTable" class="table table-bordered">
                                 <thead class="thead-dark">
                                     <tr>
@@ -188,13 +175,15 @@ if (!$historyResult) {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <!-- Tombol aksi untuk update status oleh Kepala Sekolah -->
-                                                    <form method="POST" action="" style="display:inline-block;">
+                                                    <!-- Form update status oleh Kepala Sekolah -->
+                                                    <form method="POST" action="" class="d-inline-block">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                                                         <input type="hidden" name="action_type" value="update">
                                                         <input type="hidden" name="id" value="<?= $row['id']; ?>">
                                                         <button type="submit" name="status" value="Diterima" class="btn btn-success btn-sm">Setuju</button>
                                                     </form>
-                                                    <form method="POST" action="" style="display:inline-block;">
+                                                    <form method="POST" action="" class="d-inline-block">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                                                         <input type="hidden" name="action_type" value="update">
                                                         <input type="hidden" name="id" value="<?= $row['id']; ?>">
                                                         <button type="submit" name="status" value="Ditolak" class="btn btn-danger btn-sm">Tolak</button>
@@ -203,7 +192,6 @@ if (!$historyResult) {
                                             </tr>
                                         <?php endwhile; ?>
                                     <?php endif; ?>
-                                    <!-- Jika tabel aktif kosong, <tbody> dibiarkan kosong -->
                                 </tbody>
                             </table>
                         </div>
@@ -217,7 +205,6 @@ if (!$historyResult) {
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <!-- Tabel dengan 10 kolom -->
                             <table id="historyIjinTable" class="table table-bordered">
                                 <thead class="thead-dark">
                                     <tr>
@@ -255,13 +242,11 @@ if (!$historyResult) {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <!-- Tombol Hapus History: Aktif jika:
-                                                         - Jika status_kepalasekolah adalah "Ditolak", tombol hapus aktif, atau
-                                                         - Jika status_kepalasekolah adalah "Diterima" DAN status (SDM) bukan "Pending"
-                                                    -->
+                                                    <!-- Tombol hapus history aktif jika kondisi terpenuhi -->
                                                     <?php if (($row['status_kepalasekolah'] === 'Ditolak') || 
                                                               ($row['status_kepalasekolah'] === 'Diterima' && $row['status'] !== 'Pending')): ?>
-                                                        <form method="POST" action="" style="display:inline-block;">
+                                                        <form method="POST" action="" class="d-inline-block" onsubmit="return confirm('Anda yakin ingin menghapus history ini?');">
+                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                                                             <input type="hidden" name="action_type" value="delete">
                                                             <input type="hidden" name="id" value="<?= $row['id']; ?>">
                                                             <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
@@ -273,7 +258,6 @@ if (!$historyResult) {
                                             </tr>
                                         <?php endwhile; ?>
                                     <?php endif; ?>
-                                    <!-- Jika tabel history kosong, <tbody> dibiarkan kosong -->
                                 </tbody>
                             </table>
                         </div>
@@ -285,42 +269,26 @@ if (!$historyResult) {
     </div><!-- End Content Wrapper -->
 </div><!-- End Page Wrapper -->
 
-<!-- JavaScript -->
-<script src="../../assets/vendor/jquery/jquery.min.js"></script>
-<script src="../../assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script>
-    flatpickr("#tanggal", {
-        mode: "multiple",
-        dateFormat: "Y-m-d",
-        minDate: "today",
-        locale: "id"
-    });
-</script>
-<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<!-- JavaScript: jQuery, Bootstrap v5.3.3, dan DataTables JS via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 <script>
-$(document).ready(function() {
-    // Inisialisasi DataTables untuk tabel "Daftar Izin Saya" (7 kolom)
-    $('#pengajuanTable').DataTable({
-        "language": {
-            "url": "https://cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
-            "emptyTable": "Belum ada data pengajuan izin."
-        },
-        "columns": [ null, null, null, null, null, null, null ]
+    $(document).ready(function() {
+        $('#activeIjinTable').DataTable({
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
+                emptyTable: "Tidak ada data pengajuan izin."
+            }
+        });
+        $('#historyIjinTable').DataTable({
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
+                emptyTable: "Tidak ada history pengajuan izin."
+            }
+        });
     });
-    
-    // Inisialisasi DataTables untuk tabel "History Pengajuan Izin" (9 kolom)
-    $('#historyTable').DataTable({
-        "language": {
-            "url": "https://cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
-            "emptyTable": "Belum ada history pengajuan izin."
-        },
-        "columns": [ null, null, null, null, null, null, null, null, null ]
-    });
-});
 </script>
 </body>
 </html>
