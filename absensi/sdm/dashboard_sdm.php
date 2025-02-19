@@ -2,14 +2,14 @@
 // File: /payroll_absensi_v2/sdm/dashboard_sdm.php
 
 // =========================
-// 1. Pengaturan Awal
+// 1. Inisialisasi Session, Keamanan, & Koneksi Database
 // =========================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
 require_once __DIR__ . '/../../koneksi.php';
 
-// Otorisasi pengguna (hanya role sdm & superadmin yang boleh)
+// Otorisasi pengguna (hanya role sdm & superadmin)
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
 // Pastikan CSRF token telah di-generate
@@ -20,183 +20,110 @@ generate_csrf_token();
 // =========================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
-    // Verifikasi CSRF Token (jika dikirim)
+    // Verifikasi CSRF Token
     if (!isset($_POST['csrf_token'])) {
         send_response(403, 'Token CSRF tidak ditemukan.');
     }
     verify_csrf_token($_POST['csrf_token']);
 
-    // (Opsional) Cek ulang otorisasi jika diperlukan
+    // Otorisasi ulang (opsional)
     authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
     $action = $_POST['action'];
 
-    if ($action === 'get_data' && isset($_POST['id_anggota'])) {
-        // Mengambil Data Absensi untuk Anggota Tertentu
-        $id_anggota = intval($_POST['id_anggota']);
-        if ($id_anggota <= 0) {
-            send_response(1, 'ID anggota tidak valid.');
+    if ($action === 'get_payroll_dashboard') {
+        // ================
+        // Ambil data pie chart Jumlah Anggota per Jenjang
+        // ================
+        $query = "SELECT jenjang, COUNT(*) as total,
+                         SUM(CASE WHEN role='P'  THEN 1 ELSE 0 END) as P,
+                         SUM(CASE WHEN role='TK' THEN 1 ELSE 0 END) as TK,
+                         SUM(CASE WHEN role='M'  THEN 1 ELSE 0 END) as M
+                  FROM anggota_sekolah
+                  GROUP BY jenjang";
+        $result = $conn->query($query);
+        $detailData = [];
+        $chartLabels = [];
+        $chartData   = [];
+        $chartColors = [];
+        while ($row = $result->fetch_assoc()) {
+            $detailData[] = $row;
+            $chartLabels[] = $row['jenjang'];
+            $chartData[]   = intval($row['total']);
+            // Warna chart per jenjang
+            if ($row['jenjang'] === 'SD') {
+                $chartColors[] = '#28a745'; // Hijau
+            } elseif ($row['jenjang'] === 'SMP') {
+                $chartColors[] = '#ffc107'; // Kuning
+            } elseif ($row['jenjang'] === 'SMA') {
+                $chartColors[] = '#17a2b8'; // Biru
+            } else {
+                $chartColors[] = '#6c757d'; // Abu-abu
+            }
         }
+        send_response(0, [
+            'chartData' => [
+                'labels' => $chartLabels,
+                'data'   => $chartData,
+                'colors' => $chartColors
+            ],
+            'detailData' => $detailData
+        ]);
 
-        $query = "SELECT status_kehadiran, terlambat, tanggal FROM absensi WHERE id_anggota = ? ORDER BY tanggal ASC";
+    } elseif ($action === 'get_upcoming_holidays') {
+        // ================
+        // Ambil 5 hari libur terdekat
+        // ================
+        $today = date('Y-m-d');
+        $query = "SELECT holiday_title, holiday_desc, holiday_date, holiday_type 
+                  FROM holidays 
+                  WHERE holiday_date >= ? 
+                  ORDER BY holiday_date ASC LIMIT 5";
         $stmt = $conn->prepare($query);
-        if (!$stmt) {
-            send_response(1, 'Gagal menyiapkan query: ' . $conn->error);
-        }
-        $stmt->bind_param("i", $id_anggota);
+        $stmt->bind_param("s", $today);
         $stmt->execute();
         $result = $stmt->get_result();
-
-        $attendance_records = [];
+        $holidays = [];
         while ($row = $result->fetch_assoc()) {
-            $attendance_records[] = $row;
+            $holidays[] = $row;
         }
         $stmt->close();
+        send_response(0, $holidays);
 
-        // Inisialisasi kategori status
-        $status_categories = ['hadir', 'terlambat', 'izin', 'sakit', 'cuti', 'tanpa_keterangan', 'libur'];
-        $monthly_data = []; // Format: ['YYYY-MM' => ['hadir'=>x, 'terlambat'=>y, ...], ...]
-        foreach ($attendance_records as $record) {
-            $tanggal = $record['tanggal'];
-            $status = strtolower($record['status_kehadiran']);
-            $terlambat = intval($record['terlambat']);
-            $month = date('Y-m', strtotime($tanggal));
-            if (!isset($monthly_data[$month])) {
-                foreach ($status_categories as $cat) {
-                    $monthly_data[$month][$cat] = 0;
-                }
-            }
-            if ($status === 'hadir') {
-                if ($terlambat === 1) {
-                    $monthly_data[$month]['terlambat'] += 1;
-                } else {
-                    $monthly_data[$month]['hadir'] += 1;
-                }
-            } elseif (in_array($status, $status_categories)) {
-                $monthly_data[$month][$status] += 1;
-            }
+    } elseif ($action === 'get_unpaid_summary') {
+        // ================
+        // Hitung berapa anggota (per jenjang) yang BELUM di payroll final
+        // ================
+        $bulan = isset($_POST['bulan']) ? intval($_POST['bulan']) : date('n');
+        $tahun = isset($_POST['tahun']) ? intval($_POST['tahun']) : date('Y');
+
+        $sql = "SELECT COALESCE(jenjang, 'Lainnya') AS jenjang,
+                       COUNT(a.id) AS total_unpaid
+                FROM anggota_sekolah a
+                WHERE a.id NOT IN (
+                    SELECT p.id_anggota 
+                    FROM payroll p 
+                    WHERE p.bulan = ? AND p.tahun = ? AND p.status = 'final'
+                )
+                GROUP BY a.jenjang";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            send_response(1, 'Gagal menyiapkan query unpaid summary: ' . $conn->error);
         }
+        $stmt->bind_param("ii", $bulan, $tahun);
+        $stmt->execute();
+        $res = $stmt->get_result();
 
-        // Siapkan data untuk Chart.js
-        $labels = [];
-        $data_hadir = [];
-        $data_terlambat = [];
-        $data_izin = [];
-        $data_sakit = [];
-        $data_cuti = [];
-        $data_tanpa_keterangan = [];
-        $data_libur = [];
-        ksort($monthly_data);
-        foreach ($monthly_data as $month => $data) {
-            $labels[] = $month;
-            $data_hadir[] = $data['hadir'];
-            $data_terlambat[] = $data['terlambat'];
-            $data_izin[] = $data['izin'];
-            $data_sakit[] = $data['sakit'];
-            $data_cuti[] = $data['cuti'];
-            $data_tanpa_keterangan[] = $data['tanpa_keterangan'];
-            $data_libur[] = $data['libur'];
-        }
-        // Data untuk grafik pie
-        $total_hadir = array_sum($data_hadir);
-        $total_terlambat = array_sum($data_terlambat);
-        $total_izin = array_sum($data_izin);
-        $total_sakit = array_sum($data_sakit);
-        $total_cuti = array_sum($data_cuti);
-        $total_tanpa_keterangan = array_sum($data_tanpa_keterangan);
-        $total_libur = array_sum($data_libur);
-        $pie_data = [
-            'hadir' => $total_hadir,
-            'terlambat' => $total_terlambat,
-            'izin' => $total_izin,
-            'sakit' => $total_sakit,
-            'cuti' => $total_cuti,
-            'tanpa_keterangan' => $total_tanpa_keterangan,
-            'libur' => $total_libur
-        ];
-
-        // Catat audit log
-        $user_nip = $_SESSION['nip'] ?? '';
-        $details_log = "Mengambil data absensi untuk anggota dengan NIP: $user_nip, ID anggota: $id_anggota.";
-        add_audit_log($conn, $user_nip, 'GetAttendanceData', $details_log);
-
-        send_response(0, [
-            'monthly_labels' => $labels,
-            'hadir' => $data_hadir,
-            'terlambat' => $data_terlambat,
-            'izin' => $data_izin,
-            'sakit' => $data_sakit,
-            'cuti' => $data_cuti,
-            'tanpa_keterangan' => $data_tanpa_keterangan,
-            'libur' => $data_libur,
-            'pie_data' => $pie_data
-        ]);
-
-    } elseif ($action === 'get_performance') {
-        // Mengambil data performa untuk semua anggota
-        $query = "SELECT id, nama, nip FROM anggota_sekolah ORDER BY nama ASC";
-        $result = $conn->query($query);
-        $anggota = [];
-        if ($result && $result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                $anggota[] = $row;
-            }
-        }
-        $performance_data = [];
-        foreach ($anggota as $a) {
-            $id = intval($a['id']);
-            $nama = $a['nama'];
-            $nip = $a['nip'];
-            $query_absensi = "SELECT 
-                                SUM(CASE WHEN status_kehadiran = 'hadir' AND terlambat = 0 THEN 1 ELSE 0 END) AS total_hadir,
-                                SUM(CASE WHEN status_kehadiran = 'hadir' AND terlambat = 1 THEN 1 ELSE 0 END) AS total_terlambat,
-                                SUM(CASE WHEN status_kehadiran = 'izin' THEN 1 ELSE 0 END) AS total_izin,
-                                SUM(CASE WHEN status_kehadiran = 'sakit' THEN 1 ELSE 0 END) AS total_sakit,
-                                SUM(CASE WHEN status_kehadiran = 'cuti' THEN 1 ELSE 0 END) AS total_cuti,
-                                SUM(CASE WHEN status_kehadiran = 'tanpa_keterangan' THEN 1 ELSE 0 END) AS total_tanpa_keterangan,
-                                SUM(CASE WHEN status_kehadiran = 'libur' THEN 1 ELSE 0 END) AS total_libur
-                              FROM absensi 
-                              WHERE id_anggota = ?";
-            $stmt_absensi = $conn->prepare($query_absensi);
-            if (!$stmt_absensi) {
-                continue;
-            }
-            $stmt_absensi->bind_param("i", $id);
-            $stmt_absensi->execute();
-            $result_absensi = $stmt_absensi->get_result();
-            $absensi = $result_absensi->fetch_assoc();
-            $stmt_absensi->close();
-
-            // Hitung skor performa (misalnya: total_hadir - (total_terlambat + total_izin))
-            $score = $absensi['total_hadir'] - ($absensi['total_terlambat'] + $absensi['total_izin']);
-            $performance_data[] = [
-                'id' => $id,
-                'nama' => $nama,
-                'nip' => $nip,
-                'score' => $score
+        $unpaidData = [];
+        while ($row = $res->fetch_assoc()) {
+            $unpaidData[] = [
+                'jenjang' => $row['jenjang'] ?: 'Lainnya',
+                'total'   => intval($row['total_unpaid'])
             ];
         }
-        // Urutkan data performa (terbaik ke terburuk)
-        usort($performance_data, function($a, $b) {
-            return $b['score'] - $a['score'];
-        });
-        $top_performers = array_slice($performance_data, 0, 3);
-        $bottom_performers = array_slice($performance_data, -3, 3);
-        $selected_performers = array_merge($top_performers, $bottom_performers);
-        $labels = [];
-        $scores = [];
-        foreach ($selected_performers as $p) {
-            $labels[] = $p['nama'] . " (" . $p['nip'] . ")";
-            $scores[] = $p['score'];
-        }
-        // Catat audit log
-        $user_nip = $_SESSION['nip'] ?? '';
-        $details_log = "Mengambil data performa untuk semua anggota oleh pengguna dengan NIP $user_nip.";
-        add_audit_log($conn, $user_nip, 'GetPerformanceData', $details_log);
-        send_response(0, [
-            'labels' => $labels,
-            'scores' => $scores
-        ]);
+        $stmt->close();
+        send_response(0, $unpaidData);
+
     } else {
         send_response(404, 'Aksi tidak dikenali.');
     }
@@ -204,20 +131,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // =========================
-// 3. Render Halaman HTML (bukan AJAX)
+// 3. Ambil Data Penting (KPI, dsb.)
 // =========================
 
-// Ambil data anggota (guru/karyawan) untuk dropdown filter
-$query = "SELECT id, nama, nip, job_title FROM anggota_sekolah ORDER BY nama ASC";
-$result = $conn->query($query);
-$anggota = [];
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $anggota[] = $row;
-    }
+// 3a. Total Anggota Sekolah
+$sqlTotalAnggota = "SELECT COUNT(*) AS total_anggota FROM anggota_sekolah";
+$resTotal = $conn->query($sqlTotalAnggota);
+$totalAnggota = 0;
+if ($resTotal) {
+    $row = $resTotal->fetch_assoc();
+    $totalAnggota = $row['total_anggota'] ?? 0;
+    $resTotal->close();
 }
 
-// Jika menggunakan nonce untuk CSP, pastikan variabel $nonce sudah didefinisikan, misalnya:
+// 3b. Detail guru per jenjang (untuk popover)
+$sqlHoverDetail = "SELECT jenjang, COUNT(*) AS totalGuru
+                   FROM anggota_sekolah
+                   WHERE LOWER(job_title) LIKE '%guru%'
+                   GROUP BY jenjang
+                   ORDER BY jenjang ASC";
+$resHover = $conn->query($sqlHoverDetail);
+$hoverDetail = [];
+if ($resHover) {
+    while ($r = $resHover->fetch_assoc()) {
+        $hoverDetail[] = $r;
+    }
+    $resHover->close();
+}
+$hoverHtml = '';
+if (!empty($hoverDetail)) {
+    $hoverHtml .= '<table class="table table-sm mb-0">';
+    $hoverHtml .= '<thead><tr><th>Jenjang</th><th>Guru</th></tr></thead><tbody>';
+    foreach ($hoverDetail as $d) {
+        $hoverHtml .= '<tr><td>'.$d['jenjang'].'</td><td>'.$d['totalGuru'].'</td></tr>';
+    }
+    $hoverHtml .= '</tbody></table>';
+} else {
+    $hoverHtml .= 'Belum ada data guru';
+}
+
+// =========================
+// 4. Render Halaman
+// =========================
 $nonce = bin2hex(random_bytes(8));
 ?>
 <!DOCTYPE html>
@@ -226,180 +181,252 @@ $nonce = bin2hex(random_bytes(8));
     <meta charset="UTF-8">
     <title>Dashboard SDM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 5 CSS dan SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
-    <!-- Font Awesome untuk icon -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
-    <!-- Chart.js & Chartjs Plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?php echo $nonce; ?>"></script>
+    <!-- Bootstrap 5 & SB Admin 2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?= $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" nonce="<?= $nonce; ?>">
+    <!-- Font Awesome & Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?= $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" nonce="<?= $nonce; ?>">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?= $nonce; ?>"></script>
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?= $nonce; ?>"></script>
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
-    <style nonce="<?php echo $nonce; ?>">
-        .chart-container {
-            position: relative;
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?= $nonce; ?>"></script>
+
+    <style nonce="<?= $nonce; ?>">
+        .chart-container { position: relative; width: 100%; height: 370px; }
+        .card-body { overflow: hidden; }
+
+        /* Calendar & Clock */
+        .calendar {
             width: 100%;
-            height: 400px;
+            border-collapse: collapse;
         }
-        .card-body {
-            overflow: hidden;
+        .calendar th, .calendar td {
+            border: 1px solid #dee2e6;
+            padding: 5px;
+            text-align: center;
+        }
+        .calendar th {
+            background-color: #f8f9fc;
+        }
+        .calendar .today {
+            background-color: #42a5f5;
+            color: #fff;
+            font-weight: bold;
+        }
+        .clock {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .border-left-info {
+            border-left: .25rem solid #36b9cc !important;
+        }
+        .border-left-danger {
+            border-left: .25rem solid #e74a3b !important;
+        }
+        /* Simple loading spinner */
+        #loadingSpinner {
+            display: none;
+            position: fixed; 
+            z-index: 9999; 
+            height: 100px; 
+            width: 100px; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
         }
     </style>
 </head>
 <body id="page-top">
-    <!-- Page Wrapper -->
     <div id="wrapper">
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
-        <!-- End Sidebar -->
+        <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
+
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End Topbar -->
 
-                <!-- Breadcrumb -->
+                <!-- Breadcrumb (optional) -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
-                <!-- Main Container -->
+                <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-users me-2"></i>Dashboard SDM</h1>
+                    <h1 class="h3 mb-4 text-gray-800">
+                        <i class="fas fa-users me-2"></i>Dashboard SDM
+                    </h1>
 
-                    <!-- Card Filter -->
+                    <!-- Filter Periode (opsional) -->
                     <div class="card mb-4">
                         <div class="card-header">
-                            <strong><i class="fas fa-filter me-1"></i>Filter Absensi</strong>
+                            <i class="bi bi-filter"></i> Filter Periode
                         </div>
                         <div class="card-body">
-                            <form id="filterForm" class="row align-items-end">
-                                <div class="col-md-6 mb-2">
-                                    <label for="anggotaSelect" class="form-label">
-                                        <i class="fas fa-user me-1"></i>Pilih Guru/Karyawan
-                                    </label>
-                                    <select id="anggotaSelect" class="form-select" required>
-                                        <option value="" disabled selected>-- Pilih Guru/Karyawan --</option>
-                                        <?php foreach ($anggota as $a): ?>
-                                            <option value="<?= htmlspecialchars($a['id']); ?>">
-                                                <?= htmlspecialchars($a['nama']) . " (" . htmlspecialchars($a['nip']) . ")"; ?>
-                                            </option>
-                                        <?php endforeach; ?>
+                            <div class="row align-items-end g-3">
+                                <div class="col-md-3">
+                                    <label for="filterBulan" class="form-label">Bulan</label>
+                                    <select id="filterBulan" class="form-select">
+                                        <?php
+                                        $bulanNow = date('n');
+                                        for ($m = 1; $m <= 12; $m++) {
+                                            $selected = ($m == $bulanNow) ? 'selected' : '';
+                                            echo "<option value='$m' $selected>$m</option>";
+                                        }
+                                        ?>
                                     </select>
                                 </div>
-                                <div class="col-md-3 mb-2">
-                                    <button type="button" id="resetFilter" class="btn btn-secondary w-100">
-                                        <i class="fas fa-undo me-1"></i>Reset Filter
+                                <div class="col-md-3">
+                                    <label for="filterTahun" class="form-label">Tahun</label>
+                                    <select id="filterTahun" class="form-select">
+                                        <?php
+                                        $yearNow = date('Y');
+                                        for ($y = $yearNow - 3; $y <= $yearNow + 3; $y++) {
+                                            $sel = ($y == $yearNow) ? 'selected' : '';
+                                            echo "<option value='$y' $sel>$y</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mt-2">
+                                    <button id="btnApplyFilter" class="btn btn-primary w-100">
+                                        <i class="bi bi-search"></i> Terapkan
                                     </button>
                                 </div>
-                                <div class="col-md-3 mb-2">
-                                    <button type="button" id="viewPerformance" class="btn btn-info w-100">
-                                        <i class="fas fa-chart-bar me-1"></i>Lihat Performa Guru/Karyawan
-                                    </button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Grafik Absensi -->
-                    <div class="row" id="attendanceChartsContainer">
-                        <!-- Bar Chart -->
+                    <!-- Row Pertama (3 Grid) -->
+                    <div class="row mb-4">
+                        <!-- Grid 1: Total Anggota -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2"
+                                 data-bs-toggle="popover"
+                                 data-bs-trigger="hover"
+                                 data-bs-html="true"
+                                 title="Detail Guru per Jenjang"
+                                 data-bs-content="<?= htmlspecialchars($hoverHtml, ENT_QUOTES); ?>">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col me-2 text-start">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                <i class="fas fa-users"></i> Total Anggota Sekolah
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                <?= number_format($totalAnggota); ?>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block">
+                                        (Hover di kartu ini untuk melihat detail guru per jenjang)
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Grid 2: Upcoming Holidays -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header bg-success text-white">
+                                    <strong><i class="fas fa-calendar-alt me-1"></i>Upcoming Holidays</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div id="holidaysList"><!-- Diisi via AJAX --></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Grid 3: Calendar & Clock -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header bg-info text-white">
+                                    <strong><i class="fas fa-clock me-1"></i>Live Calendar & Clock (WIB)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Clock -->
+                                    <div class="clock text-center" id="digitalClock"></div>
+                                    <!-- Calendar -->
+                                    <div id="calendarContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- End Row Pertama -->
+
+                    <!-- Row Kedua (2 Grid) -->
+                    <div class="row mb-4">
+                        <!-- Grid 1: Grafik Payroll Realtime -->
                         <div class="col-lg-6 mb-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <strong><i class="fas fa-chart-bar me-1"></i>Grafik Absensi Bulanan</strong>
+                            <div class="card shadow">
+                                <div class="card-header bg-primary text-white">
+                                    <strong><i class="fas fa-chart-pie me-1"></i>Grafik Jumlah Anggota per Jenjang</strong>
                                 </div>
                                 <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="barChart"></canvas>
+                                    <div class="chart-container mb-3">
+                                        <canvas id="payrollChart"></canvas>
                                     </div>
+                                    <div id="payrollDetailTable" class="small"><!-- Tabel ringkasan diisi AJAX --></div>
                                 </div>
                             </div>
                         </div>
-                        <!-- Line Chart -->
+                        <!-- Grid 2: Unpaid Summary -->
                         <div class="col-lg-6 mb-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <strong><i class="fas fa-chart-line me-1"></i>Grafik Tren Absensi</strong>
+                            <div class="card shadow">
+                                <div class="card-header bg-danger text-white">
+                                    <strong><i class="fas fa-exclamation-circle me-1"></i>Anggota Belum di Payroll Final</strong>
+                                    <small class="ms-1">(Sesuai Bulan/Tahun)</small>
                                 </div>
                                 <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="lineChart"></canvas>
+                                    <div id="unpaidSummaryContainer" class="mb-3"><!-- AJAX --></div>
+                                    <div style="height: 300px;">
+                                        <canvas id="unpaidSummaryChart"></canvas>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div><!-- End Row Kedua -->
 
-                    <!-- Grafik Pie -->
-                    <div class="row" id="pieChartContainer">
-                        <div class="col-lg-12 mb-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <strong><i class="fas fa-chart-pie me-1"></i>Grafik Proporsi Absensi</strong>
-                                </div>
-                                <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="pieChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Grafik Performa -->
-                    <div class="row" id="performanceChartContainer" style="display: none;">
-                        <div class="col-lg-12 mb-4">
-                            <div class="card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <strong><i class="fas fa-trophy me-1"></i>Grafik Performa Terbaik & Terburuk</strong>
-                                    <!-- Dropdown aksi -->
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm" type="button" id="performanceActions" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
-                                        <ul class="dropdown-menu" aria-labelledby="performanceActions">
-                                            <li>
-                                                <a class="dropdown-item" href="#" id="refreshPerformance">
-                                                    <i class="fas fa-sync-alt me-1"></i>Refresh
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="performanceChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div> <!-- end .container-fluid -->
-            </div> <!-- end #content -->
+                </div><!-- /.container-fluid -->
+            </div><!-- End #content -->
 
             <!-- Footer -->
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
-                        <span>&copy; <?php echo date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
+                        <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
                     </div>
                 </div>
             </footer>
-        </div> <!-- End content-wrapper -->
-    </div> <!-- End wrapper -->
+        </div><!-- End Content Wrapper -->
+    </div><!-- End Wrapper -->
 
-    <!-- JS Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script nonce="<?php echo $nonce; ?>">
+    <!-- Loading Spinner (opsional) -->
+    <div id="loadingSpinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?= $nonce; ?>"></script>
+    <!-- SB Admin 2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js" nonce="<?= $nonce; ?>"></script>
+
+    <script nonce="<?= $nonce; ?>">
     $(document).ready(function() {
-        // Inisialisasi SweetAlert2 Toast
+
+        // Inisialisasi popover
+        $('[data-bs-toggle="popover"]').popover();
+
+        // SweetAlert2 Toast
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -411,346 +438,275 @@ $nonce = bin2hex(random_bytes(8));
                 toast.addEventListener('mouseleave', Swal.resumeTimer);
             }
         });
-        function showToast(message, icon = 'success') {
-            Toast.fire({
-                icon: icon,
-                title: message
-            });
+        function showToast(msg, icon='success') {
+            Toast.fire({ icon, title: msg });
         }
 
-        let barChart, lineChart, pieChart, performanceChart;
+        let payrollChart, unpaidChart;
 
-        function renderAttendanceCharts(data) {
-            const labels = data.monthly_labels;
-            const hadir = data.hadir;
-            const terlambat = data.terlambat;
-            const izin = data.izin;
-            const sakit = data.sakit;
-            const cuti = data.cuti;
-            const tanpa_keterangan = data.tanpa_keterangan;
-            const libur = data.libur;
-            const pieData = data.pie_data;
+        // Loading spinner
+        function showSpinner() { $('#loadingSpinner').show(); }
+        function hideSpinner() { $('#loadingSpinner').hide(); }
 
-            if (barChart) barChart.destroy();
-            if (lineChart) lineChart.destroy();
-            if (pieChart) pieChart.destroy();
-
-            const ctxBar = document.getElementById('barChart').getContext('2d');
-            barChart = new Chart(ctxBar, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Hadir',
-                            data: hadir,
-                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Terlambat',
-                            data: terlambat,
-                            backgroundColor: 'rgba(255, 206, 86, 0.6)',
-                            borderColor: 'rgba(255, 206, 86, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Izin',
-                            data: izin,
-                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Sakit',
-                            data: sakit,
-                            backgroundColor: 'rgba(153, 102, 255, 0.6)',
-                            borderColor: 'rgba(153, 102, 255, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Cuti',
-                            data: cuti,
-                            backgroundColor: 'rgba(255, 159, 64, 0.6)',
-                            borderColor: 'rgba(255, 159, 64, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Tanpa Keterangan',
-                            data: tanpa_keterangan,
-                            backgroundColor: 'rgba(201, 203, 207, 0.6)',
-                            borderColor: 'rgba(201, 203, 207, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Libur',
-                            data: libur,
-                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            borderWidth: 1
-                        }
-                    ]
+        // 1) Grafik Payroll Realtime
+        function fetchPayrollDashboardData() {
+            showSpinner();
+            $.ajax({
+                url: 'dashboard_sdm.php',
+                method: 'POST',
+                data: { 
+                    action: 'get_payroll_dashboard', 
+                    csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Absensi Bulanan' }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                dataType: 'json',
+                success: function(resp) {
+                    hideSpinner();
+                    if(resp.code !== 0) {
+                        showToast(resp.result, 'error');
+                        return;
                     }
+                    renderPayrollDashboard(resp.result);
+                },
+                error: function() {
+                    hideSpinner();
+                    showToast('Gagal memuat data payroll.', 'error');
                 }
             });
+        }
+        function renderPayrollDashboard(data) {
+            const { chartData, detailData } = data;
+            const ctx = document.getElementById('payrollChart').getContext('2d');
 
-            const ctxLine = document.getElementById('lineChart').getContext('2d');
-            lineChart = new Chart(ctxLine, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Hadir',
-                            data: hadir,
-                            fill: false,
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Terlambat',
-                            data: terlambat,
-                            fill: false,
-                            borderColor: 'rgba(255, 206, 86, 1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Izin',
-                            data: izin,
-                            fill: false,
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Sakit',
-                            data: sakit,
-                            fill: false,
-                            borderColor: 'rgba(153, 102, 255, 1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Cuti',
-                            data: cuti,
-                            fill: false,
-                            borderColor: 'rgba(255, 159, 64, 1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Tanpa Keterangan',
-                            data: tanpa_keterangan,
-                            fill: false,
-                            borderColor: 'rgba(201, 203, 207, 1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Libur',
-                            data: libur,
-                            fill: false,
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            tension: 0.1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Tren Absensi' }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
-                }
-            });
-
-            const ctxPie = document.getElementById('pieChart').getContext('2d');
-            pieChart = new Chart(ctxPie, {
+            if(payrollChart) payrollChart.destroy();
+            payrollChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
-                    labels: ['Hadir', 'Terlambat', 'Izin', 'Sakit', 'Cuti', 'Tanpa Keterangan', 'Libur'],
+                    labels: chartData.labels,
                     datasets: [{
-                        label: 'Proporsi Absensi',
-                        data: [pieData.hadir, pieData.terlambat, pieData.izin, pieData.sakit, pieData.cuti, pieData.tanpa_keterangan, pieData.libur],
-                        backgroundColor: [
-                            'rgba(75, 192, 192, 0.6)',
-                            'rgba(255, 206, 86, 0.6)',
-                            'rgba(54, 162, 235, 0.6)',
-                            'rgba(153, 102, 255, 0.6)',
-                            'rgba(255, 159, 64, 0.6)',
-                            'rgba(201, 203, 207, 0.6)',
-                            'rgba(255, 99, 132, 0.6)'
-                        ],
-                        borderColor: [
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(255, 206, 86, 1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(153, 102, 255, 1)',
-                            'rgba(255, 159, 64, 1)',
-                            'rgba(201, 203, 207, 1)',
-                            'rgba(255, 99, 132, 1)'
-                        ],
+                        data: chartData.data,
+                        backgroundColor: chartData.colors,
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'top' },
-                        title: { display: true, text: 'Proporsi Absensi' }
+                        title: { display: true, text: 'Jumlah Anggota per Jenjang' }
                     }
                 }
             });
+
+            let html = '<table class="table table-bordered table-sm mt-2">';
+            html += '<thead><tr><th>Jenjang</th><th>Total</th><th>P</th><th>TK</th><th>M</th></tr></thead><tbody>';
+            detailData.forEach(item => {
+                html += '<tr>';
+                html += `<td>${item.jenjang ?? '-'}</td>`;
+                html += `<td>${item.total}</td>`;
+                html += `<td>${item.P ?? 0}</td>`;
+                html += `<td>${item.TK ?? 0}</td>`;
+                html += `<td>${item.M ?? 0}</td>`;
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            $('#payrollDetailTable').html(html);
         }
 
-        function renderPerformanceChart(data) {
-            const labels = data.labels;
-            const scores = data.scores;
-            if (performanceChart) performanceChart.destroy();
-            const ctxPerformance = document.getElementById('performanceChart').getContext('2d');
-            performanceChart = new Chart(ctxPerformance, {
+        // 2) Upcoming Holidays
+        function fetchUpcomingHolidays() {
+            showSpinner();
+            $.ajax({
+                url: 'dashboard_sdm.php',
+                method: 'POST',
+                data: { 
+                    action: 'get_upcoming_holidays', 
+                    csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
+                },
+                dataType: 'json',
+                success: function(resp) {
+                    hideSpinner();
+                    if(resp.code !== 0) {
+                        showToast(resp.result, 'error');
+                        return;
+                    }
+                    renderHolidays(resp.result);
+                },
+                error: function() {
+                    hideSpinner();
+                    showToast('Gagal memuat data Holidays.', 'error');
+                }
+            });
+        }
+        function renderHolidays(holidays) {
+            let html = '<ul class="list-group list-group-flush">';
+            if(holidays.length === 0) {
+                html += '<li class="list-group-item">Tidak ada hari libur mendatang.</li>';
+            } else {
+                holidays.forEach(h => {
+                    html += `<li class="list-group-item">
+                        <strong>${h.holiday_title}</strong> (${h.holiday_date})<br>
+                        <small>${h.holiday_desc} - ${capitalize(h.holiday_type)}</small>
+                    </li>`;
+                });
+            }
+            html += '</ul>';
+            $('#holidaysList').html(html);
+        }
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // 3) Calendar & Clock
+        function updateClock() {
+            const now = new Date();
+            const opt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' };
+            $('#digitalClock').text(new Intl.DateTimeFormat('id-ID', opt).format(now));
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function buildCalendar() {
+            const today = new Date();
+            const currentYear  = today.getFullYear();
+            const currentMonth = today.getMonth();
+            const currentDate  = today.getDate();
+
+            const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            const dayNames   = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
+            let calendarHtml = `<h5 class="text-center mb-2">${monthNames[currentMonth]} ${currentYear}</h5>`;
+            calendarHtml += '<table class="calendar"><thead><tr>';
+            dayNames.forEach(d => { calendarHtml += `<th>${d}</th>`; });
+            calendarHtml += '</tr></thead><tbody>';
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            let day = 1;
+
+            for(let row=0; row<6; row++){
+                calendarHtml += '<tr>';
+                for(let col=0; col<7; col++){
+                    if(row===0 && col<firstDay) {
+                        calendarHtml += '<td></td>';
+                    } else if(day > daysInMonth){
+                        calendarHtml += '<td></td>';
+                    } else {
+                        if(day === currentDate){
+                            calendarHtml += `<td class="today">${day}</td>`;
+                        } else {
+                            calendarHtml += `<td>${day}</td>`;
+                        }
+                        day++;
+                    }
+                }
+                calendarHtml += '</tr>';
+                if(day>daysInMonth) break;
+            }
+            calendarHtml += '</tbody></table>';
+            $('#calendarContainer').html(calendarHtml);
+        }
+        buildCalendar();
+
+        // 4) Unpaid Summary
+        function fetchUnpaidSummary(bulan, tahun) {
+            showSpinner();
+            $.ajax({
+                url: 'dashboard_sdm.php',
+                method: 'POST',
+                data: {
+                    action: 'get_unpaid_summary',
+                    bulan, tahun,
+                    csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
+                },
+                dataType: 'json',
+                success: function(resp) {
+                    hideSpinner();
+                    if(resp.code===0) {
+                        renderUnpaidSummary(resp.result);
+                    } else {
+                        showToast(resp.result, 'error');
+                    }
+                },
+                error: function() {
+                    hideSpinner();
+                    showToast('Gagal memuat data unpaid summary.', 'error');
+                }
+            });
+        }
+        function renderUnpaidSummary(data) {
+            const c = $('#unpaidSummaryContainer');
+            if(!data || data.length===0) {
+                c.html('<div class="alert alert-info mb-2">Semua anggota sudah di payroll final untuk periode ini.</div>');
+                if(unpaidChart) { 
+                    unpaidChart.destroy(); 
+                    unpaidChart = null; 
+                }
+                return;
+            }
+            let totalAll=0;
+            let html = '<ul class="list-group mb-3">';
+            data.forEach(d => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            <strong>${d.jenjang}</strong>
+                            <span class="badge bg-danger">${d.total} Belum Final</span>
+                         </li>`;
+                totalAll += d.total;
+            });
+            html += '</ul>';
+            html += `<p class="fw-bold">Total belum final: ${totalAll}</p>`;
+            c.html(html);
+
+            // Bar chart
+            const ctx = document.getElementById('unpaidSummaryChart').getContext('2d');
+            if(unpaidChart) unpaidChart.destroy();
+
+            unpaidChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Skor Performa',
-                        data: scores,
-                        backgroundColor: [
-                            'rgba(75, 192, 192, 0.6)',
-                            'rgba(75, 192, 192, 0.6)',
-                            'rgba(75, 192, 192, 0.6)',
-                            'rgba(255, 99, 132, 0.6)',
-                            'rgba(255, 99, 132, 0.6)',
-                            'rgba(255, 99, 132, 0.6)'
-                        ],
-                        borderColor: [
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(255, 99, 132, 1)'
-                        ],
-                        borderWidth: 1
+                    labels: data.map(d=>d.jenjang),
+                    datasets:[{
+                        label:'Belum di Payroll Final',
+                        data: data.map(d=>d.total),
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth:1
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: true, text: 'Performa Terbaik dan Terburuk (Top 3 & Bottom 3)' }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Skor' } }
+                    responsive:true,
+                    scales:{
+                        y:{beginAtZero:true, ticks:{precision:0}}
                     }
                 }
             });
         }
 
-        function fetchAttendanceData(id_anggota) {
-            $.ajax({
-                url: 'dashboard_sdm.php',
-                method: 'POST',
-                data: { 
-                    action: 'get_data',
-                    id_anggota: id_anggota,
-                    csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.code !== 0) {
-                        showToast(response.result, 'error');
-                        return;
-                    }
-                    $('#attendanceChartsContainer').show();
-                    $('#pieChartContainer').show();
-                    $('#performanceChartContainer').hide();
-                    renderAttendanceCharts(response.result);
-                },
-                error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
-                    showToast('Terjadi kesalahan saat mengambil data absensi.', 'error');
-                }
-            });
-        }
+        // Default: Bulan & Tahun Saat Ini
+        const now = new Date();
+        let currentMonth = now.getMonth()+1;
+        let currentYear  = now.getFullYear();
 
-        function fetchPerformanceData() {
-            $.ajax({
-                url: 'dashboard_sdm.php',
-                method: 'POST',
-                data: { 
-                    action: 'get_performance',
-                    csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.code !== 0) {
-                        showToast(response.result, 'error');
-                        return;
-                    }
-                    $('#attendanceChartsContainer').hide();
-                    $('#pieChartContainer').hide();
-                    $('#performanceChartContainer').show();
-                    renderPerformanceChart(response.result);
-                },
-                error: function(xhr, status, error) {
-                    console.error(xhr.responseText);
-                    showToast('Terjadi kesalahan saat mengambil data performa.', 'error');
-                }
-            });
-        }
+        // Load pertama
+        fetchPayrollDashboardData();
+        fetchUpcomingHolidays();
+        fetchUnpaidSummary(currentMonth, currentYear);
 
-        function resetCharts() {
-            if (barChart) barChart.destroy();
-            if (lineChart) lineChart.destroy();
-            if (pieChart) pieChart.destroy();
-            if (performanceChart) performanceChart.destroy();
-            $('#attendanceChartsContainer').hide();
-            $('#pieChartContainer').hide();
-            $('#performanceChartContainer').hide();
-        }
+        // Filter Periode
+        $('#btnApplyFilter').on('click', function(){
+            const selBulan = parseInt($('#filterBulan').val()) || currentMonth;
+            const selTahun = parseInt($('#filterTahun').val()) || currentYear;
+            // Update global?
+            currentMonth = selBulan;
+            currentYear  = selTahun;
 
-        $('#anggotaSelect').on('change', function() {
-            const id_anggota = $(this).val();
-            if (id_anggota) {
-                fetchAttendanceData(id_anggota);
-            } else {
-                resetCharts();
-            }
+            // Panggil unpaidSummary (bisa juga panggil fetchPayrollDashboardData() jika relevan)
+            fetchUnpaidSummary(currentMonth, currentYear);
+            showToast(`Menampilkan data untuk periode ${selBulan}-${selTahun}`, 'info');
         });
-
-        $('#resetFilter').on('click', function() {
-            $('#anggotaSelect').val('');
-            resetCharts();
-            showToast('Filter direset.', 'info');
-        });
-
-        $('#viewPerformance').on('click', function(e) {
-            e.preventDefault();
-            fetchPerformanceData();
-        });
-
-        $('#refreshPerformance').on('click', function(e) {
-            e.preventDefault();
-            fetchPerformanceData();
-        });
-
-        // Inisialisasi: sembunyikan semua grafik pada awalnya
-        resetCharts();
     });
     </script>
 </body>
 </html>
+<?php
+$conn->close();
+?>

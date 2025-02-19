@@ -113,7 +113,7 @@ function add_audit_log($conn, $user_nip, $action, $details) {
     
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN';
-    
+
     $stmt = $conn->prepare("INSERT INTO audit_logs (nip, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
     if (!$stmt) {
         log_error("Gagal menyiapkan statement untuk audit log: " . $conn->error);
@@ -128,6 +128,7 @@ function add_audit_log($conn, $user_nip, $action, $details) {
     $stmt->close();
     return true;
 }
+
 
 /**
  * Menerjemahkan jenis payhead dari bahasa Inggris ke Indonesia.

@@ -1,14 +1,16 @@
 <?php
-// ---------------------------
-// Bagian PHP Tetap Sama
-// ---------------------------
+// Aktifkan error reporting untuk debugging (nonaktifkan di produksi)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+ob_start(); // Mulai output buffering harus diletakkan paling awal
 session_start();
 require_once __DIR__ . '/koneksi.php';
-require_once __DIR__ . '/helpers.php'; // Pastikan helpers.php terinklusi
+require_once __DIR__ . '/helpers.php'; // Pastikan file ini tersedia
 
 $error = '';
 
-// Jika pengguna sudah login, langsung arahkan ke dashboard sesuai role yang tersimpan di session
+// Jika pengguna sudah login, langsung arahkan ke dashboard sesuai role
 if (isset($_SESSION['role'])) {
     switch ($_SESSION['role']) {
         case 'superadmin':
@@ -70,27 +72,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($anggotaRole === 'M') { // Role managerial
                     if (strpos($jobTitle, 'superadmin') !== false) {
                         $_SESSION['role'] = 'superadmin';
-                        add_audit_log($conn, $row['id'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai superadmin.");
+                        add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai superadmin.");
                         header("Location: payroll/superadmin/dashboard_superadmin.php");
                         exit();
                     } elseif (strpos($jobTitle, 'sdm') !== false) {
                         $_SESSION['role'] = 'sdm';
-                        add_audit_log($conn, $row['id'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai sdm.");
+                        add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai sdm.");
                         header("Location: absensi/sdm/dashboard_sdm.php");
                         exit();
                     } elseif (strpos($jobTitle, 'keuangan') !== false) {
                         $_SESSION['role'] = 'keuangan';
-                        add_audit_log($conn, $row['id'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai keuangan.");
+                        add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai keuangan.");
                         header("Location: payroll/keuangan/dashboard_keuangan.php");
                         exit();
                     } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
                         $_SESSION['role'] = 'kepala_sekolah';
-                        add_audit_log($conn, $row['id'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai kepala_sekolah.");
+                        add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai kepala_sekolah.");
                         header("Location: dashboard_kepala_sekolah.php");
                         exit();
                     } else {
                         $error = "Role managerial tidak dikenali.";
-                        add_audit_log($conn, $row['id'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Role managerial tidak dikenali.");
+                        add_audit_log($conn, $row['nip'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Role managerial tidak dikenali.");
                     }
                 } elseif (
                     strpos($jobTitle, 'guru') !== false ||
@@ -99,23 +101,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $anggotaRole === 'TK'
                 ) {
                     $_SESSION['role'] = 'guru';
-                    add_audit_log($conn, $row['id'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai guru.");
+                    add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai guru.");
                     header("Location: absensi/guru/dashboard_guru.php");
                     exit();
                 } else {
                     $error = "Role anggota_sekolah tidak dikenali.";
-                    add_audit_log($conn, $row['id'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Role anggota_sekolah tidak dikenali.");
+                    add_audit_log($conn, $row['nip'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Role anggota_sekolah tidak dikenali.");
                 }
             } else {
                 $error = "Password salah.";
-                add_audit_log($conn, $row['id'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Password salah.");
+                add_audit_log($conn, $row['nip'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Password salah.");
             }
         } else {
             $error = "NIP tidak ditemukan.";
             add_audit_log($conn, NULL, 'LoginFailed', "Pengguna dengan NIP '{$nip_input}' gagal login: Tidak ditemukan di tabel anggota_sekolah.");
         }
     }
+
+    // Jika terjadi error, simpan error di session dan redirect ke login.php
+    if (!empty($error)) {
+        $_SESSION['error'] = $error;
+        header("Location: login.php");
+        exit();
+    }
 }
+
+// Ambil error dari session (jika ada) untuk ditampilkan
+if (isset($_SESSION['error'])) {
+    $error = $_SESSION['error'];
+    unset($_SESSION['error']);
+}
+
+ob_end_flush(); // Akhiri output buffering
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -141,7 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* SPLIT SCREEN LAYOUT */
         .left {
             flex: 1;
-            /* Gunakan warna biru gradient seperti tema sebelumnya */
             background: linear-gradient(45deg, #4e73df, rgb(172, 234, 255));
             display: flex;
             align-items: center;
@@ -166,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .right {
             flex: 1;
-            background: #f8f9fc; /* Latar form, senada dengan biru/abu */
+            background: #f8f9fc;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -181,14 +197,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 10px;
             padding: 2rem;
             box-shadow: 0 8px 30px rgba(0,0,0,0.1);
-            text-align: center; /* Untuk memusatkan logo */
+            text-align: center;
         }
-        /* Tempat untuk logo */
         .logo-container {
             margin-bottom: 1rem;
         }
         .logo-container img {
-            width: 80px; /* Sesuaikan ukuran logo */
+            width: 80px;
             height: auto;
         }
 
@@ -201,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 600;
             font-size: 0.9rem;
             color: #444;
-            float: left; /* label rata kiri */
+            float: left;
         }
         .form-control {
             border-radius: 5px;
@@ -216,7 +231,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 0 5px rgba(78,115,223,0.3);
         }
 
-        /* Tombol Login */
         .btn-login {
             width: 100%;
             height: 45px;
@@ -234,13 +248,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: #2e59d9;
         }
 
-        /* ALERT */
         .alert {
             margin-bottom: 1rem;
             border-radius: 5px;
         }
 
-        /* RESPONSIVE */
         @media(max-width: 768px) {
             body {
                 flex-direction: column;
@@ -281,7 +293,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-form">
             <!-- Tempat untuk logo -->
             <div class="logo-container">
-                <!-- Pastikan path logo sesuai dengan file Anda -->
                 <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
             </div>
 
@@ -305,7 +316,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="password" class="form-control" id="password" name="password" required>
                 </div>
 
-                <!-- Tombol Login -->
                 <button type="submit" class="btn-login">Login</button>
             </form>
         </div>

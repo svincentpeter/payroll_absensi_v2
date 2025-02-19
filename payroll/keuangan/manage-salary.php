@@ -126,10 +126,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             send_response(1, 'Case tidak dikenali.');
             break;
     }
-    exit;
+    exit();
 }
 
-// -----------------------------
+/// -----------------------------
 // 4. Proses POST untuk Insert Payroll (jika ada) atau Review Payroll (GET)
 // -----------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
@@ -212,6 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     }
 }
 
+
 // -----------------------------
 // 5. Jika GET: Review Payroll (Belum Final)
 // -----------------------------
@@ -293,7 +294,10 @@ if ($resKar->num_rows == 0) {
 $karyawan = $resKar->fetch_assoc();
 $stmtKar->close();
 
-// Hitung gaji pokok dengan menggabungkan gaji dasar karyawan dan salary indeks (jika ada)
+// Untuk pembuatan nama file download dokumen, ambil juga NIP (jika tersedia)
+$nip = isset($karyawan['nip']) ? $karyawan['nip'] : 'unknown';
+
+// Hitung gaji pokok (dengan salary indeks jika ada)
 $salary_index_level = '';
 $salary_index_amount = 0;
 if (!empty($karyawan['salary_index_id'])) {
@@ -324,17 +328,13 @@ foreach($payheads as $ph) {
 }
 $gaji_kotor  = $gaji_pokok + $total_earnings;
 $gaji_bersih = $gaji_kotor - $total_deductions;
-
 $masa_kerja = ((int)($karyawan['masa_kerja_tahun'] ?? 0)) . " Tahun, " . ((int)($karyawan['masa_kerja_bulan'] ?? 0)) . " Bulan";
-
 $namaKaryawan = $karyawan['nama'] ?? '';
-$noRek        = $karyawan['no_rekening'] ?? '';
-$catatan      = "";
+$noRek = $karyawan['no_rekening'] ?? '';
+$catatan = "";
 
-// Catat audit log untuk akses review payroll
 $user_nip = $_SESSION['nip'] ?? '';
 add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk Karyawan ID $id_anggota pada bulan $bulan tahun $tahun.");
-
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -353,54 +353,30 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
     <style>
         .card-header { background-color: #4e73df; color: #fff; }
         .currency-input { text-align: right; }
-        /* Penyesuaian tampilan agar lebih rapi dan responsif */
-        @media (max-width: 576px) {
-            .card { margin-bottom: 1rem; }
-        }
-        #loadingSpinner {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            height: 100px;
-            width: 100px;
-            margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
-        }
+        @media (max-width: 576px) { .card { margin-bottom: 1rem; } }
+        #loadingSpinner { display: none; position: fixed; z-index: 9999; height: 100px; width: 100px; margin: auto; top: 0; left: 0; bottom: 0; right: 0; }
     </style>
     <script>
         const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
         const EMPLOYEE_ID = <?= htmlspecialchars($id_anggota); ?>;
-        // Simpan nilai pendapatan & potongan dari PHP (tanpa format)
         const TOTAL_EARNINGS = <?= $total_earnings; ?>;
         const TOTAL_DEDUCTIONS = <?= $total_deductions; ?>;
     </script>
 </head>
 <body id="page-top">
-    <!-- Page Wrapper -->
     <div id="wrapper">
-        <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
-        <!-- End of Sidebar -->
-
-        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
             <div id="content">
-                <!-- Navbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
-
                 <div class="container-fluid">
-                    <!-- Header -->
                     <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-file-invoice-dollar me-2"></i>Review Payroll</h1>
                     <div class="row">
-                        <!-- Kolom Kiri: Informasi Umum -->
+                        <!-- Informasi Umum -->
                         <div class="col-lg-6 mb-4">
                             <div class="card shadow mb-4">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">Informasi Umum</h5>
-                                </div>
+                                <div class="card-header"><h5 class="card-title mb-0">Informasi Umum</h5></div>
                                 <div class="card-body">
                                     <div class="mb-3">
                                         <label>Nama Karyawan</label>
@@ -433,16 +409,13 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                 </div>
                             </div>
                         </div>
-                        <!-- Kolom Kanan: Perhitungan Payroll & Detail Payheads -->
+                        <!-- Perhitungan Payroll & Detail Payheads -->
                         <div class="col-lg-6 mb-4">
                             <div class="card shadow mb-4">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">Perhitungan Payroll</h5>
-                                </div>
+                                <div class="card-header"><h5 class="card-title mb-0">Perhitungan Payroll</h5></div>
                                 <div class="card-body">
                                     <div class="mb-3">
                                         <label for="inputGajiPokok">Gaji Pokok</label>
-                                        <!-- Gaji pokok ditampilkan sebagai readonly agar tidak bisa diubah -->
                                         <input type="text" id="inputGajiPokok" class="form-control currency-input" value="<?= htmlspecialchars($gaji_pokok); ?>" readonly>
                                     </div>
                                     <div class="mb-3">
@@ -460,11 +433,8 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                 </div>
                             </div>
                             <div class="card shadow mb-4">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">Detail Payheads</h5>
-                                </div>
+                                <div class="card-header"><h5 class="card-title mb-0">Detail Payheads</h5></div>
                                 <div class="card-body p-0">
-                                    <!-- Tabel payheads dibungkus dengan .table-responsive agar responsive -->
                                     <div class="table-responsive">
                                         <table id="payheadsTable" class="table table-bordered table-striped">
                                             <thead>
@@ -490,11 +460,21 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                                         <td><?= htmlspecialchars($ph['status']); ?></td>
                                                         <td><?= !empty($ph['remarks']) ? "<small><em>" . htmlspecialchars($ph['remarks']) . "</em></small>" : "<small><em>-</em></small>"; ?></td>
                                                         <td>
-                                                            <?php if (!empty($ph['support_doc_path'])): ?>
-                                                                <a href="<?= htmlspecialchars($ph['support_doc_path']); ?>" target="_blank">Lihat Dokumen</a>
-                                                            <?php else: ?>
-                                                                <em>-</em>
-                                                            <?php endif; ?>
+                                                        <?php if (!empty($ph['support_doc_path'])): 
+                                                            // Buat nama file download berdasarkan nama payhead dan ekstensi file.
+                                                            $ext = pathinfo($ph['support_doc_path'], PATHINFO_EXTENSION);
+                                                            $cleanPayheadName = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $ph['nama_payhead']);
+                                                            $cleanPayheadName = str_replace(' ', '_', trim($cleanPayheadName));
+                                                            $downloadName = $nip . '_' . $bulanVal . '_' . $cleanPayheadName . '.' . $ext;
+                                                        ?>
+                                                            <a class="btn btn-sm btn-info" 
+                                                               href="<?= '/payroll_absensi_v2/uploads/payhead_support/' . basename($ph['support_doc_path']); ?>" 
+                                                               download="<?= $downloadName; ?>">
+                                                                <i class="bi bi-download"></i> Download Dokumen
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <em>-</em>
+                                                        <?php endif; ?>
                                                         </td>
                                                         <td class="text-end">
                                                             <div class="btn-group btn-group-sm">
@@ -537,6 +517,7 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                     <input type="hidden" name="payheads_jenis[]" value="<?= htmlspecialchars($ph['jenis']); ?>">
                                     <input type="hidden" name="payheads_amount[]" value="<?= htmlspecialchars($ph['amount']); ?>">
                                 <?php endforeach; ?>
+                                <!-- Field tersembunyi yang akan diisi oleh JS sebelum submit -->
                                 <input type="hidden" name="no_rekening" id="fieldNoRek" value="">
                                 <input type="hidden" name="gaji_pokok" id="fieldGajiPokok" value="">
                                 <input type="hidden" name="total_earnings" id="fieldTotalEarnings" value="">
@@ -554,9 +535,9 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                         </div>
                     </div>
                 </div>
-                <!-- End of Container Fluid -->
+                <!-- End Container Fluid -->
             </div>
-            <!-- End of Main Content -->
+            <!-- End Main Content -->
 
             <!-- Footer -->
             <footer class="sticky-footer bg-white">
@@ -567,9 +548,9 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                 </div>
             </footer>
         </div>
-        <!-- End of Content Wrapper -->
+        <!-- End Content Wrapper -->
     </div>
-    <!-- End of Page Wrapper -->
+    <!-- End Page Wrapper -->
 
     <!-- MODAL: Edit Payhead -->
     <div class="modal fade" id="modalEditPayhead" tabindex="-1" aria-hidden="true">
@@ -629,17 +610,23 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
     </div>
 
     <!-- JS Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Bootstrap 5 Bundle JS (termasuk Popper) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- AutoNumeric -->
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.colVis.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(function() {
         // Inisialisasi DataTable pada tabel payheads agar responsif
@@ -659,11 +646,7 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
             unformatOnSubmit: true
         });
 
-        // Karena gaji pokok tidak dapat diubah, kita tidak inisialisasi AutoNumeric untuk input tersebut
-        // Input Gaji Pokok sudah ditandai readonly pada HTML
-
         // --- Fitur Edit Payhead ---
-        // Tampilkan modal edit saat tombol edit diklik
         $(document).on('click', '.btn-edit-payhead', function(){
             const idPayhead = $(this).data('idpayhead');
             const amount = $(this).data('amount');
@@ -674,7 +657,6 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
             new bootstrap.Modal(document.getElementById('modalEditPayhead')).show();
         });
 
-        // Proses update payhead melalui AJAX ketika form edit disubmit
         $('#formEditPayhead').on('submit', function(e){
             e.preventDefault();
             const idPayhead = $('#edit_idpayhead').val();
@@ -803,6 +785,16 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                     });
                 }
             });
+        });
+
+        // --- Tambahkan kode untuk menyalin nilai dari field terlihat ke field tersembunyi sebelum submit ---
+        $('#formPayroll').on('submit', function(){
+            $('#fieldNoRek').val($('#inputNoRek').val());
+            $('#fieldGajiPokok').val($('#inputGajiPokok').val());
+            $('#fieldTotalEarnings').val($('#inputTotalEarnings').val());
+            $('#fieldTotalDeductions').val($('#inputTotalDeductions').val());
+            $('#fieldDescription').val($('#inputDescription').val());
+            $('#fieldTglPayroll').val($('#inputTanggalPayroll').val());
         });
     });
     </script>

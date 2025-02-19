@@ -18,7 +18,7 @@ if (ob_get_length()) {
 }
 
 // =========================
-// 2. Ambil Parameter & Data Payroll
+// 2. Ambil Parameter & Data Payroll dari payroll_final
 // =========================
 $id_payroll = isset($_GET['id_payroll']) ? intval($_GET['id_payroll']) : 0;
 if ($id_payroll <= 0) {
@@ -27,10 +27,10 @@ if ($id_payroll <= 0) {
 }
 
 try {
-    // Ambil data payroll dari tabel payroll (atau payroll_final jika sudah final)
-    $stmtPayroll = $conn->prepare("SELECT * FROM payroll WHERE id = ? LIMIT 1");
+    // Ambil data payroll dari tabel payroll_final
+    $stmtPayroll = $conn->prepare("SELECT * FROM payroll_final WHERE id = ? LIMIT 1");
     if ($stmtPayroll === false) {
-        throw new Exception("Prepare payroll gagal: " . $conn->error);
+        throw new Exception("Prepare payroll_final gagal: " . $conn->error);
     }
     $stmtPayroll->bind_param("i", $id_payroll);
     $stmtPayroll->execute();
@@ -41,10 +41,7 @@ try {
     $payroll = $resPayroll->fetch_assoc();
     $stmtPayroll->close();
 
-    // Jika status payroll belum final, arahkan user ke halaman lain
-    if ($payroll['status'] !== 'final') {
-        die("Slip gaji hanya tersedia untuk payroll yang sudah final.");
-    }
+    // Karena data diambil dari payroll_final, statusnya dianggap final.
 
     // Ambil data karyawan berdasarkan id_anggota pada payroll
     $id_anggota = $payroll['id_anggota'];

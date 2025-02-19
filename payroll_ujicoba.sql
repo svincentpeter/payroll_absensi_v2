@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 18, 2025 at 03:54 AM
+-- Generation Time: Feb 19, 2025 at 09:00 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -141,111 +141,6 @@ CREATE TABLE `audit_logs` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `audit_logs`
---
-
-INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
-(50, '1', 'ApplyFilter', 'Pengguna menerapkan filter pada Hari Libur.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:01:45'),
-(51, '1', 'ApplyFilter', 'Pengguna menerapkan filter pada Hari Libur.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:01:47'),
-(52, '1', 'ApplyFilter', 'Pengguna menerapkan filter pada Hari Libur.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:01:54'),
-(53, '1', 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:03:01'),
-(54, '1', 'AccessPage', 'Pengguna dengan ID 1 dan peran \'superadmin\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:03:02'),
-(55, '1', 'LoadingRekapPayroll', 'Pengguna dengan ID 1 dan peran \'superadmin\' memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:03:02'),
-(56, '1', 'Logout', 'Pengguna \'superadmin\' dengan role \'superadmin\' berhasil logout.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 06:16:27'),
-(57, '12', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login sebagai keuangan.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 07:06:11'),
-(58, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 07:06:55'),
-(59, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 07:55:55'),
-(60, '13', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login sebagai sdm.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 07:56:31'),
-(61, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 08:00:20'),
-(62, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 08:04:06'),
-(63, '300004', 'ViewDashboardKeuangan', 'Dashboard Keuangan diakses oleh user dengan NIP 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 09:18:50'),
-(64, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 6.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 09:44:34'),
-(65, '300004', 'ProcessPayroll', 'Memproses payroll untuk anggota dengan NIP 300004, ID anggota: 6.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 09:44:59'),
-(66, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:24'),
-(67, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:28'),
-(68, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:29'),
-(69, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:30'),
-(70, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:35'),
-(71, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:35'),
-(72, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:36'),
-(73, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:36'),
-(74, '300004', 'ViewDashboardKeuangan', 'Dashboard Keuangan diakses oleh user dengan NIP 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:37'),
-(75, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:37'),
-(76, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:21:46'),
-(77, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:23:53'),
-(78, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:23:55'),
-(79, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:24:09'),
-(80, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:27:00'),
-(81, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:27:04'),
-(82, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:27:05'),
-(83, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:31:55'),
-(84, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:33:09'),
-(85, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 10:33:23'),
-(86, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 13:40:48'),
-(87, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', '2025-02-14 13:56:17'),
-(88, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:26:37'),
-(89, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:26:44'),
-(90, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:26:57'),
-(91, '300004', 'ViewDashboardKeuangan', 'Dashboard Keuangan diakses oleh user dengan NIP 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:47:31'),
-(92, '300004', 'ViewDashboardKeuangan', 'Dashboard Keuangan diakses oleh user dengan NIP 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:47:33'),
-(93, '300004', 'ViewDashboardKeuangan', 'Dashboard Keuangan diakses oleh user dengan NIP 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:47:38'),
-(94, '300004', 'ViewDashboardKeuangan', 'Dashboard Keuangan diakses oleh user dengan NIP 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:47:40'),
-(95, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:55:14'),
-(96, '300004', 'SelectPayrollMonth', 'User dengan NIP 300004 memilih bulan payroll: 1/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:55:18'),
-(97, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 1/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:55:18'),
-(98, '300004', 'SelectPayrollMonth', 'User dengan NIP 300004 memilih bulan payroll: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:55:21'),
-(99, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 01:55:21'),
-(100, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 02:01:42'),
-(101, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 02:20:02'),
-(102, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 02:26:47'),
-(103, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 02:27:22'),
-(104, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 13.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 02:39:12'),
-(105, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 02:57:11'),
-(106, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:07:49'),
-(107, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:11:57'),
-(108, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 13.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:15:04'),
-(109, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:15:31'),
-(110, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 13.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:16:34'),
-(111, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 10.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:17:11'),
-(112, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 8.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:17:49'),
-(113, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:25:39'),
-(114, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:25:44'),
-(115, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:26:22'),
-(116, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:26:24'),
-(117, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:26:26'),
-(118, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:26:38'),
-(119, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:26:40'),
-(120, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:26:49'),
-(121, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:26:53'),
-(122, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:38:44'),
-(123, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:43:53'),
-(124, '300004', 'UpdatePayhead', 'Memperbarui Payhead ID 3 untuk Karyawan ID 7 dengan jumlah Rp 700.000,00', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:44:26'),
-(125, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:44:28'),
-(126, '300004', 'DeletePayhead', 'Menghapus Payhead ID 3 untuk Karyawan ID 7.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:44:44'),
-(127, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:44:45'),
-(128, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:31'),
-(129, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 7 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:34'),
-(130, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:37'),
-(131, '300004', 'SelectPayrollMonth', 'User dengan NIP 300004 memilih bulan payroll: 1/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:41'),
-(132, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 1/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:41'),
-(133, '300004', 'SelectPayrollMonth', 'User dengan NIP 300004 memilih bulan payroll: 12/2024', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:45'),
-(134, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 12/2024', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:45'),
-(135, '300004', 'SelectPayrollMonth', 'User dengan NIP 300004 memilih bulan payroll: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:47'),
-(136, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:47'),
-(137, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:49:48'),
-(138, '300004', 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:51:00'),
-(139, '300004', 'GetGuruDetail', 'Melihat detail data guru/karyawan ID 1: Nama=\'Ahmad Fauzi\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 03:51:02'),
-(140, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-17 07:49:21'),
-(141, '14', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-18 02:42:27'),
-(142, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-18 02:43:33'),
-(143, '300004', 'ProcessPayroll', 'Memproses payroll untuk anggota dengan NIP 300004, ID anggota: 14.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-18 02:43:50'),
-(144, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-18 02:43:54'),
-(145, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Karyawan ID 14 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-18 02:43:57'),
-(146, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-18 02:44:09'),
-(147, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-18 02:44:26'),
-(148, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota dengan NIP 300004, ID: 7.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', '2025-02-18 02:46:00');
-
 -- --------------------------------------------------------
 
 --
@@ -321,6 +216,23 @@ CREATE TABLE `holidays` (
 INSERT INTO `holidays` (`holiday_id`, `holiday_title`, `holiday_desc`, `holiday_date`, `holiday_type`) VALUES
 (1, 'Natal 2025', 'Libur Natal', '2025-12-24', 'wajib'),
 (2, 'Tahun Baru 2025', 'Libur Tahun Baru', '2025-01-01', 'opsional');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `jadwal_piket`
+--
+
+CREATE TABLE `jadwal_piket` (
+  `id_jadwal` int(11) NOT NULL,
+  `nip` varchar(20) NOT NULL,
+  `nama_guru` varchar(100) NOT NULL,
+  `waktu_piket` varchar(50) NOT NULL,
+  `tanggal` date NOT NULL,
+  `bulan` varchar(20) NOT NULL,
+  `tahun` int(11) NOT NULL,
+  `status` enum('pending','hadir','tidak hadir') NOT NULL DEFAULT 'pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -494,6 +406,24 @@ INSERT INTO `pengajuan_ijin` (`id`, `nip`, `nama`, `judul_surat`, `tanggal`, `pe
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `permintaan_tukar_jadwal`
+--
+
+CREATE TABLE `permintaan_tukar_jadwal` (
+  `id` int(11) NOT NULL,
+  `id_jadwal_pengaju` int(11) NOT NULL,
+  `id_jadwal_tujuan` int(11) DEFAULT NULL,
+  `status` enum('Pending','Diterima','Ditolak') DEFAULT 'Pending',
+  `tanggal_permintaan` timestamp NOT NULL DEFAULT current_timestamp(),
+  `nip_tujuan` varchar(20) DEFAULT NULL,
+  `nip_pengaju` varchar(20) NOT NULL,
+  `nama_pengaju` varchar(100) NOT NULL,
+  `tanggal_piket` varchar(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `rekap_absensi`
 --
 
@@ -650,7 +580,7 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=149;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `holidays`

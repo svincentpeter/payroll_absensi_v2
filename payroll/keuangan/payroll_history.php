@@ -11,6 +11,10 @@ authorize(['keuangan', 'superadmin']);  // Pastikan hanya role yang diizinkan ya
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
+// Definisikan nonce (atau hapus atribut nonce di tag <script> jika tidak digunakan)
+$nonce = '';
+
+// Koneksi Database
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) {
     ob_end_clean();
@@ -290,8 +294,8 @@ function ViewPayrollDetail($conn) {
     <meta charset="UTF-8">
     <title>History Payroll - Payroll Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 5 CSS & SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <!-- Bootstrap 5 CSS untuk SB Admin 2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
     <!-- DataTables CSS untuk Bootstrap 5 -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
@@ -699,3 +703,6 @@ function ViewPayrollDetail($conn) {
     </script>
 </body>
 </html>
+<?php
+$conn->close();
+?>
