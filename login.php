@@ -139,7 +139,10 @@ ob_end_flush(); // Akhiri output buffering
 <head>
     <meta charset="UTF-8">
     <title>Login - Sekolah Nusaputera</title>
-    <!-- Bootstrap -->
+    <!-- Agar tampilan responsive di mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Bootstrap CSS (opsional, jika Anda menggunakannya) -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome (untuk ikon) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
@@ -147,30 +150,29 @@ ob_end_flush(); // Akhiri output buffering
     <style>
         /* RESET & GLOBAL STYLE */
         * {
-            margin: 0; 
-            padding: 0; 
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Arial', sans-serif;
             min-height: 100vh;
             display: flex;
-            /* Pastikan tidak ada overflow horizontal */
             overflow-x: hidden;
         }
 
         /* SPLIT SCREEN LAYOUT */
         .left {
             flex: 1;
-            /* Contoh mengganti background gradien dengan brand color */
-            background: linear-gradient(45deg, #4e73df, #a5d8f7);
+            background: linear-gradient(135deg, #4e73df, #74c0fc);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 3rem; /* Tambahkan padding lebih besar untuk white space */
+            padding: 3rem;
         }
         .left-content {
-            max-width: 450px; /* Perlebar sedikit area konten */
+            max-width: 450px;
             text-align: center;
             color: #fff;
         }
@@ -194,7 +196,7 @@ ob_end_flush(); // Akhiri output buffering
             padding: 2rem;
         }
 
-        /* LOGIN FORM STYLE */
+        /* LOGIN FORM CARD */
         .login-form {
             width: 100%;
             max-width: 400px;
@@ -203,52 +205,120 @@ ob_end_flush(); // Akhiri output buffering
             padding: 2rem;
             box-shadow: 0 8px 30px rgba(0,0,0,0.1);
             text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.4s ease, transform 0.3s ease;
         }
+
+        .login-form:hover {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1), 0 0 15px rgba(78,115,223,0.5);
+            transform: translateY(-3px);
+        }
+
+        /* Efek animasi radial background */
+        .login-form::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(78,115,223,0.2), transparent 50%);
+            animation: rotateGradient 6s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes rotateGradient {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Logo & Tagline */
         .logo-container {
             margin-bottom: 1rem;
         }
         .logo-container img {
-            width: 100px; /* Perbesar logo */
+            width: 100px;
             height: auto;
         }
-        /* Tambahkan tagline */
         .tagline {
             font-size: 0.9rem;
             color: #666;
             margin-top: 0.5rem;
         }
 
+        /* Judul */
         .login-form h2 {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             margin-bottom: 1.5rem;
             color: #333;
             font-weight: 700;
         }
 
-        /* Form Group & Icon */
+        /* ALERT ERROR */
+        .alert-danger {
+            color: #fff;
+            background-color: #dc3545;
+            border-color: #dc3545;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+            padding: 0.75rem 1rem;
+        }
+
+        /* FORM GROUP */
         .form-group {
             text-align: left;
+            margin-bottom: 1.5rem; /* Spasi bawah antar field */
         }
-        .input-group-text {
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        /*
+          PENTING:
+          Di bawah ini adalah kunci pendekatan Flex 
+          untuk ikon di sisi kiri input
+        */
+        .icon-input-container {
+            display: flex;
+            align-items: center;
+            border: 1px solid #d1d3e2;
+            border-radius: 5px;
             background-color: #fff;
-            border: 1px solid #d1d3e2;
-            border-right: none;
-        }
-        .form-control {
-            border-radius: 0 5px 5px 0;
-            margin-bottom: 1rem;
             height: 45px;
-            font-size: 0.9rem;
-            border: 1px solid #d1d3e2;
-            border-left: none;
+            padding: 0 10px; /* Ruang kiri & kanan */
         }
-        .form-control:focus {
-            outline: none;
+
+        /* Style ikon */
+        .icon-input-container i {
+            color: #888;
+            font-size: 1rem;
+            margin-right: 8px; /* Jarak antara ikon & input */
+        }
+
+        /* Style input agar menyatu dengan container */
+        .icon-input-container .form-control {
+            border: none;
+            box-shadow: none;
+            height: 100%;
+            padding: 0; /* Hilangkan padding default */
+        }
+
+        /* Efek fokus: highlight border container */
+        .icon-input-container:focus-within {
             border-color: #4e73df;
             box-shadow: 0 0 5px rgba(78,115,223,0.3);
         }
 
-        /* Tombol Login */
+        /* BUTTON */
         .btn-login {
             width: 100%;
             height: 45px;
@@ -260,56 +330,30 @@ ob_end_flush(); // Akhiri output buffering
             font-size: 1rem;
             cursor: pointer;
             margin-top: 0.5rem;
-            /* Tambahkan efek transisi */
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
         }
         .btn-login:hover {
             background-color: #2e59d9;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        /* Styling Alert Error */
-        .alert-danger {
-            color: #fff;
-            background-color: #dc3545;
-            border-color: #dc3545;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            border-radius: 5px;
+            transform: translateY(-2px);
         }
 
         /* RESPONSIVE DESIGN */
         @media(max-width: 768px) {
-            body {
-                flex-direction: column;
+            /* Sembunyikan bagian kiri */
+            .left {
+                display: none;
             }
-            .left, .right {
+            /* Buat bagian kanan memenuhi lebar */
+            .right {
                 flex: unset;
                 width: 100%;
                 height: auto;
-            }
-            .left {
-                padding: 2rem;
-            }
-            .right {
                 padding: 1rem;
             }
-            .left-content {
-                max-width: 100%;
-            }
-        }
-
-        /* Tambahkan media query untuk 768px - 1024px agar tetap nyaman */
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .left-content h1 {
-                font-size: 2rem;
-            }
-            .left-content p {
-                font-size: 1rem;
-            }
             .login-form {
-                max-width: 380px;
-                padding: 1.5rem;
+                margin: 0 auto;
+                max-width: 400px;
             }
         }
     </style>
@@ -331,42 +375,55 @@ ob_end_flush(); // Akhiri output buffering
     <!-- Bagian kanan (Login Form) -->
     <div class="right">
         <div class="login-form">
-            <!-- Tempat untuk logo -->
+            <!-- Logo -->
             <div class="logo-container">
                 <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
                 <div class="tagline">Sekolah Nusaputera</div>
             </div>
 
-            <h2>User Login</h2>
+            <h2>Login</h2>
 
+            <!-- Contoh jika ada error -->
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger">
                     <?= htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
 
+            <!-- Form Login -->
             <form action="login.php" method="POST">
+                <!-- NIP -->
                 <div class="form-group">
-                    <label for="username">Username / NIP</label>
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-user"></i></span>
-                        </div>
-                        <input type="text" class="form-control" id="username" name="username" 
-                               value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>" 
-                               required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        </div>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    <label for="username">NIP</label>
+                    <div class="icon-input-container">
+                        <i class="fas fa-user"></i>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="username" 
+                            name="username" 
+                            required
+                            value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
+                        >
                     </div>
                 </div>
 
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="icon-input-container">
+                        <i class="fas fa-lock"></i>
+                        <input 
+                            type="password" 
+                            class="form-control" 
+                            id="password" 
+                            name="password" 
+                            required
+                        >
+                    </div>
+                </div>
+
+                <!-- Tombol Submit -->
                 <button type="submit" class="btn-login">Login</button>
             </form>
         </div>
