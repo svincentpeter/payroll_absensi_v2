@@ -139,8 +139,10 @@ ob_end_flush(); // Akhiri output buffering
 <head>
     <meta charset="UTF-8">
     <title>Login - Sekolah Nusaputera</title>
-    <!-- Bootstrap (Opsional) -->
+    <!-- Bootstrap -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome (untuk ikon) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
     <style>
         /* RESET & GLOBAL STYLE */
@@ -153,30 +155,33 @@ ob_end_flush(); // Akhiri output buffering
             font-family: 'Arial', sans-serif;
             min-height: 100vh;
             display: flex;
+            /* Pastikan tidak ada overflow horizontal */
+            overflow-x: hidden;
         }
 
         /* SPLIT SCREEN LAYOUT */
         .left {
             flex: 1;
-            background: linear-gradient(45deg, #4e73df, rgb(172, 234, 255));
+            /* Contoh mengganti background gradien dengan brand color */
+            background: linear-gradient(45deg, #4e73df, #a5d8f7);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 3rem; /* Tambahkan padding lebih besar untuk white space */
         }
         .left-content {
-            max-width: 400px;
+            max-width: 450px; /* Perlebar sedikit area konten */
             text-align: center;
             color: #fff;
         }
         .left-content h1 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
             font-weight: bold;
         }
         .left-content p {
-            font-size: 1rem;
-            line-height: 1.5;
+            font-size: 1.1rem;
+            line-height: 1.6;
             opacity: 0.9;
         }
 
@@ -192,7 +197,7 @@ ob_end_flush(); // Akhiri output buffering
         /* LOGIN FORM STYLE */
         .login-form {
             width: 100%;
-            max-width: 380px;
+            max-width: 400px;
             background: #fff;
             border-radius: 10px;
             padding: 2rem;
@@ -203,27 +208,39 @@ ob_end_flush(); // Akhiri output buffering
             margin-bottom: 1rem;
         }
         .logo-container img {
-            width: 80px;
+            width: 100px; /* Perbesar logo */
             height: auto;
+        }
+        /* Tambahkan tagline */
+        .tagline {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
         }
 
         .login-form h2 {
             font-size: 1.5rem;
             margin-bottom: 1.5rem;
             color: #333;
+            font-weight: 700;
         }
-        .form-group label {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #444;
-            float: left;
+
+        /* Form Group & Icon */
+        .form-group {
+            text-align: left;
+        }
+        .input-group-text {
+            background-color: #fff;
+            border: 1px solid #d1d3e2;
+            border-right: none;
         }
         .form-control {
-            border-radius: 5px;
+            border-radius: 0 5px 5px 0;
             margin-bottom: 1rem;
             height: 45px;
             font-size: 0.9rem;
             border: 1px solid #d1d3e2;
+            border-left: none;
         }
         .form-control:focus {
             outline: none;
@@ -231,6 +248,7 @@ ob_end_flush(); // Akhiri output buffering
             box-shadow: 0 0 5px rgba(78,115,223,0.3);
         }
 
+        /* Tombol Login */
         .btn-login {
             width: 100%;
             height: 45px;
@@ -241,18 +259,26 @@ ob_end_flush(); // Akhiri output buffering
             font-weight: 600;
             font-size: 1rem;
             cursor: pointer;
-            transition: background 0.3s ease;
             margin-top: 0.5rem;
+            /* Tambahkan efek transisi */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
         }
         .btn-login:hover {
             background-color: #2e59d9;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
-        .alert {
+        /* Styling Alert Error */
+        .alert-danger {
+            color: #fff;
+            background-color: #dc3545;
+            border-color: #dc3545;
+            font-weight: 600;
             margin-bottom: 1rem;
             border-radius: 5px;
         }
 
+        /* RESPONSIVE DESIGN */
         @media(max-width: 768px) {
             body {
                 flex-direction: column;
@@ -263,13 +289,27 @@ ob_end_flush(); // Akhiri output buffering
                 height: auto;
             }
             .left {
-                padding: 1rem;
+                padding: 2rem;
             }
             .right {
                 padding: 1rem;
             }
             .left-content {
                 max-width: 100%;
+            }
+        }
+
+        /* Tambahkan media query untuk 768px - 1024px agar tetap nyaman */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .left-content h1 {
+                font-size: 2rem;
+            }
+            .left-content p {
+                font-size: 1rem;
+            }
+            .login-form {
+                max-width: 380px;
+                padding: 1.5rem;
             }
         }
     </style>
@@ -281,8 +321,8 @@ ob_end_flush(); // Akhiri output buffering
         <div class="left-content">
             <h1>Welcome to website</h1>
             <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                Sed diam nonummy nibh euismod tincidunt ut laoreet dolore 
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Sed diam nonummy nibh euismod tincidunt ut laoreet dolore
                 magna aliquam erat volutpat.
             </p>
         </div>
@@ -294,6 +334,7 @@ ob_end_flush(); // Akhiri output buffering
             <!-- Tempat untuk logo -->
             <div class="logo-container">
                 <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
+                <div class="tagline">Sekolah Nusaputera</div>
             </div>
 
             <h2>User Login</h2>
@@ -305,15 +346,25 @@ ob_end_flush(); // Akhiri output buffering
             <?php endif; ?>
 
             <form action="login.php" method="POST">
-                <div class="form-group text-left">
+                <div class="form-group">
                     <label for="username">Username / NIP</label>
-                    <input type="text" class="form-control" id="username" name="username" 
-                           value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>" 
-                           required>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        </div>
+                        <input type="text" class="form-control" id="username" name="username" 
+                               value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>" 
+                               required>
+                    </div>
                 </div>
-                <div class="form-group text-left">
+                <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        </div>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-login">Login</button>
