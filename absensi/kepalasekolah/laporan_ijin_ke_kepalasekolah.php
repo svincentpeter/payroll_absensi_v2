@@ -1,14 +1,17 @@
 <?php
 // laporan_ijin_ke_kepalasekolah.php
 
-// Inisiasi session secara aman, buat CSRF token, dan batasi akses hanya untuk kepala sekolah
-require_once __DIR__ . '/../../helpers.php';
+// Aktifkan error reporting untuk debugging (non-produksi)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+require_once '../../helpers.php';
 start_session_safe();
 generate_csrf_token();
-authorize('kepalasekolah');
+authorize('kepala_sekolah'); // Hanya untuk role kepala_sekolah
 
 // Koneksi database
-require_once __DIR__ . '/../../koneksi.php';
+require_once '../../koneksi.php';
 
 // PROSES UPDATE STATUS PENGAJUAN IZIN atau DELETE HISTORY
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -27,11 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmt->execute()) {
                     $_SESSION['notif_success'] = "Status pengajuan berhasil diperbarui.";
                 } else {
-                    $_SESSION['notif_error'] = "Terjadi kesalahan: " . $conn->error;
+                    $_SESSION['notif_error'] = "Terjadi kesalahan saat update: " . $conn->error;
                 }
                 $stmt->close();
             } else {
-                $_SESSION['notif_error'] = "Gagal menyiapkan pernyataan SQL: " . $conn->error;
+                $_SESSION['notif_error'] = "Gagal menyiapkan pernyataan SQL untuk update: " . $conn->error;
             }
         } else {
             $_SESSION['notif_error'] = "Status tidak valid.";
@@ -62,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['notif_error'] = "Tidak dapat menghapus pengajuan yang masih pending SDM.";
         }
     }
+    // Redirect ulang agar form tidak di-submit ulang saat refresh
     header("Location: laporan_ijin_ke_kepalasekolah.php");
     exit();
 }
@@ -90,7 +94,7 @@ if (!$historyResult) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- SB Admin 2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css" rel="stylesheet">
-    <!-- DataTables CSS (gunakan versi untuk Bootstrap 5 jika diinginkan) -->
+    <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <style>
         .badge-pending { background-color: #f6c23e; color: #fff; } /* kuning */
@@ -144,6 +148,7 @@ if (!$historyResult) {
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
+                            <!-- Tambahkan kolom Lampiran di header -->
                             <table id="activeIjinTable" class="table table-bordered">
                                 <thead class="thead-dark">
                                     <tr>
@@ -154,6 +159,7 @@ if (!$historyResult) {
                                         <th>Tanggal</th>
                                         <th>Pesan</th>
                                         <th>Tipe Ijin</th>
+                                        <th>Lampiran</th>
                                         <th>Status Kepala Sekolah</th>
                                         <th>Aksi</th>
                                     </tr>
@@ -169,6 +175,24 @@ if (!$historyResult) {
                                                 <td><?= htmlspecialchars($row['tanggal']); ?></td>
                                                 <td><?= htmlspecialchars($row['pesan']); ?></td>
                                                 <td><?= htmlspecialchars($row['tipe_ijin']); ?></td>
+                                                <td>
+                                                    <?php
+                                                    // Mencari file lampiran di folder uploads/surat_ijin berdasarkan nip
+                                                    $pattern = __DIR__ . '/../../uploads/surat_ijin/' . $row['nip'] . '_*';
+                                                    $files = glob($pattern);
+                                                    if (!empty($files)) {
+                                                        // Urutkan file berdasarkan filemtime secara descending
+                                                        usort($files, function($a, $b) {
+                                                            return filemtime($b) - filemtime($a);
+                                                        });
+                                                        $lampiran = basename($files[0]);
+                                                        $uploadDirRelative = '/payroll_absensi_v2/uploads/surat_ijin/';
+                                                        echo '<a href="' . $uploadDirRelative . htmlspecialchars($lampiran) . '" target="_blank" class="btn btn-sm btn-info">Lihat Lampiran</a>';
+                                                    } else {
+                                                        echo '<em>Tidak ada</em>';
+                                                    }
+                                                    ?>
+                                                </td>
                                                 <td>
                                                     <span class="badge badge-pending">
                                                         <?= htmlspecialchars($row['status_kepalasekolah']); ?>
@@ -205,6 +229,7 @@ if (!$historyResult) {
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
+                            <!-- Tambahkan kolom Lampiran di header -->
                             <table id="historyIjinTable" class="table table-bordered">
                                 <thead class="thead-dark">
                                     <tr>
@@ -215,6 +240,7 @@ if (!$historyResult) {
                                         <th>Tanggal</th>
                                         <th>Pesan</th>
                                         <th>Tipe Ijin</th>
+                                        <th>Lampiran</th>
                                         <th>Status Kepala Sekolah</th>
                                         <th>Status Persetujuan SDM</th>
                                         <th>Aksi</th>
@@ -232,6 +258,22 @@ if (!$historyResult) {
                                                 <td><?= htmlspecialchars($row['pesan']); ?></td>
                                                 <td><?= htmlspecialchars($row['tipe_ijin']); ?></td>
                                                 <td>
+                                                    <?php
+                                                    $pattern = __DIR__ . '/../../uploads/surat_ijin/' . $row['nip'] . '_*';
+                                                    $files = glob($pattern);
+                                                    if (!empty($files)) {
+                                                        usort($files, function($a, $b) {
+                                                            return filemtime($b) - filemtime($a);
+                                                        });
+                                                        $lampiran = basename($files[0]);
+                                                        $uploadDirRelative = '/payroll_absensi_v2/uploads/surat_ijin/';
+                                                        echo '<a href="' . $uploadDirRelative . htmlspecialchars($lampiran) . '" target="_blank" class="btn btn-sm btn-info">Lihat Lampiran</a>';
+                                                    } else {
+                                                        echo '<em>Tidak ada</em>';
+                                                    }
+                                                    ?>
+                                                </td>
+                                                <td>
                                                     <span class="<?= ($row['status_kepalasekolah'] === 'Diterima') ? 'badge badge-success' : 'badge badge-danger'; ?>">
                                                         <?= htmlspecialchars($row['status_kepalasekolah']); ?>
                                                     </span>
@@ -242,7 +284,6 @@ if (!$historyResult) {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <!-- Tombol hapus history aktif jika kondisi terpenuhi -->
                                                     <?php if (($row['status_kepalasekolah'] === 'Ditolak') || 
                                                               ($row['status_kepalasekolah'] === 'Diterima' && $row['status'] !== 'Pending')): ?>
                                                         <form method="POST" action="" class="d-inline-block" onsubmit="return confirm('Anda yakin ingin menghapus history ini?');">
@@ -269,7 +310,7 @@ if (!$historyResult) {
     </div><!-- End Content Wrapper -->
 </div><!-- End Page Wrapper -->
 
-<!-- JavaScript: jQuery, Bootstrap v5.3.3, dan DataTables JS via CDN -->
+<!-- JavaScript: jQuery, Bootstrap, dan DataTables JS via CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>

@@ -29,7 +29,7 @@ if (isset($_SESSION['role'])) {
             header("Location: absensi/karyawan/dashboard_karyawan.php");
             exit();
         case 'kepala_sekolah':
-            header("Location: dashboard_kepala_sekolah.php");
+            header("Location: absensi/kepalasekolah/dashboard_kepala_sekolah.php");
             exit();
         default:
             header("Location: logout.php");
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
                         $_SESSION['role'] = 'kepala_sekolah';
                         add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai kepala_sekolah.");
-                        header("Location: dashboard_kepala_sekolah.php");
+                        header("Location: absensi/kepalasekolah/dashboard_kepala_sekolah.php");
                         exit();
                     } else {
                         $error = "Role managerial tidak dikenali.";

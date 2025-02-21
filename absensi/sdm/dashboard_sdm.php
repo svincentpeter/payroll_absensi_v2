@@ -1,5 +1,5 @@
 <?php
-// File: /payroll_absensi_v2/sdm/dashboard_sdm.php
+// File: /payroll_absensi_v2/absensi/sdm/dashboard_sdm.php
 
 // =========================
 // 1. Inisialisasi Session, Keamanan, & Koneksi Database
