@@ -170,6 +170,9 @@ function init_error_handling() {
  * @return string Nama bulan dalam Bahasa Indonesia.
  */
 function getIndonesianMonthName($monthNumber) {
+    // Pastikan angka sudah diproses sebagai integer
+    $monthNumber = intval($monthNumber);
+
     $bulan = [
         1  => 'Januari',
         2  => 'Februari',
@@ -184,8 +187,16 @@ function getIndonesianMonthName($monthNumber) {
         11 => 'November',
         12 => 'Desember'
     ];
-    return $bulan[$monthNumber] ?? '';
+
+    // Debug sebelum return
+    if (!isset($bulan[$monthNumber])) {
+        error_log("Bulan tidak ditemukan untuk angka: " . json_encode($monthNumber));
+    }
+
+    return $bulan[$monthNumber] ?? 'Tidak Diketahui';
 }
+
+
 
 /**
  * Mengonversi nama bulan (dalam bahasa Indonesia) ke angka.

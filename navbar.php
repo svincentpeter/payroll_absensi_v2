@@ -6,29 +6,87 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($conn)) {
-    require_once __DIR__ . '/../../koneksi.php';
+    require_once __DIR__ . '/koneksi.php';
 }
+require_once __DIR__ . '/helpers.php';
 
 $role     = $_SESSION['role'] ?? '';
 $username = $_SESSION['username'] ?? '';
 $nama     = $_SESSION['nama'] ?? $username;
 $nip      = $_SESSION['nip'] ?? '';
 
-$foto = $_SESSION['foto_profil'] ?? '../../assets/img/undraw_profile.svg';
+// Gambar profil default
+$foto = $_SESSION['foto_profil'] ?? '/assets/img/undraw_profile.svg';
 if (empty($foto)) {
-    $foto = '../../assets/img/undraw_profile.svg';
+    $foto = '/assets/img/undraw_profile.svg';
 }
 
-// Gunakan kolom nip untuk filter audit log, karena di tabel audit_logs kolomnya adalah 'nip'
-$stmt = $conn->prepare("SELECT action, created_at FROM audit_logs WHERE nip = ? ORDER BY created_at DESC LIMIT 3");
-$stmt->bind_param("s", $nip);
-$stmt->execute();
-$alerts = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+// ----------------------------------------------
+// 1. (Dihapus) Bagian Ambil Data Audit Log
+// ----------------------------------------------
 
-$notifCount = ($alerts && count($alerts) > 0) ? count($alerts) : 0;
+// 2. Hitung notifikasi payroll (untuk user dengan role SDM / superadmin saja)
+$payrollNotification = "";
+$payrollCount        = 0; // penanda apakah ada notifikasi payroll
+if (in_array($role, ['sdm', 'superadmin'])) {
+    $currentDay   = (int) date('d');
+    $currentMonth = (int) date('n');
+    $currentYear  = (int) date('Y');
+
+    // Jika sudah tanggal 24 atau lebih, targetkan ke bulan berikutnya
+    if ($currentDay >= 24) {
+        if ($currentMonth == 12) {
+            $targetMonth = 1;
+            $targetYear  = $currentYear + 1;
+        } else {
+            $targetMonth = $currentMonth + 1;
+            $targetYear  = $currentYear;
+        }
+    } else {
+        $targetMonth = $currentMonth;
+        $targetYear  = $currentYear;
+    }
+
+    // Cek anggota yang belum masuk ke payroll_final untuk targetMonth & targetYear
+    $sqlPayroll = "SELECT COUNT(*) AS pending
+                   FROM anggota_sekolah
+                   WHERE id NOT IN (
+                       SELECT id_anggota 
+                       FROM payroll_final
+                       WHERE bulan = ? AND tahun = ?
+                   )";
+    $stmtPayroll = $conn->prepare($sqlPayroll);
+    if ($stmtPayroll) {
+        $stmtPayroll->bind_param("ii", $targetMonth, $targetYear);
+        $stmtPayroll->execute();
+        $resultPayroll = $stmtPayroll->get_result();
+        $rowPayroll = $resultPayroll->fetch_assoc();
+        $pendingPayroll = intval($rowPayroll['pending'] ?? 0);
+        $stmtPayroll->close();
+    } else {
+        error_log("Gagal menyiapkan statement notifikasi payroll: " . $conn->error);
+        $pendingPayroll = 0;
+    }
+
+    if ($pendingPayroll > 0) {
+        $monthName = getIndonesianMonthName($targetMonth);
+        $payrollNotification = "Payroll Bulan {$monthName} Terdapat {$pendingPayroll} Anggota Belum Dibayar";
+        // Jika hanya ingin menampilkan 1 notifikasi saja
+        $payrollCount = 1;
+    }
+}
+
+// 3. Total notifikasi hanya dari payroll (karena audit log dihapus)
+$totalAlerts = $payrollCount;
+
+// Fungsi helper untuk menampilkan badge
+function formatBadge($count) {
+    if ($count < 1) return "";
+    // Jika count = 1, tampil "1"
+    // Jika count > 1, tampil "2+", "3+", dst
+    return ($count === 1) ? "1" : ($count . "+");
+}
 ?>
-
 
 <!-- Topbar -->
 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
@@ -41,8 +99,9 @@ $notifCount = ($alerts && count($alerts) > 0) ? count($alerts) : 0;
     <!-- Topbar Search -->
     <form class="d-none d-sm-inline-block form-inline me-auto ms-md-3 my-2 my-md-0 mw-100 navbar-search">
         <div class="input-group">
-            <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
-                   aria-label="Search" aria-describedby="basic-addon2">
+            <input type="text" class="form-control bg-light border-0 small" 
+                   placeholder="Search for..." aria-label="Search" 
+                   aria-describedby="basic-addon2">
             <div class="input-group-append">
                 <button class="btn btn-primary" type="button">
                     <i class="fas fa-search fa-sm"></i>
@@ -80,11 +139,16 @@ $notifCount = ($alerts && count($alerts) > 0) ? count($alerts) : 0;
 
         <!-- Nav Item - Alerts -->
         <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-               data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" 
+               role="button" data-bs-toggle="dropdown" 
+               aria-haspopup="true" aria-expanded="false">
+               
                 <i class="fas fa-bell fa-fw"></i>
-                <?php if ($notifCount > 0): ?>
-                    <span class="badge badge-danger badge-counter"><?= $notifCount; ?>+</span>
+                <?php if ($totalAlerts > 0): ?>
+                    <!-- Tampilkan badge dengan format 1 atau 2+ -->
+                    <span class="badge badge-danger badge-counter">
+                        <?= formatBadge($totalAlerts); ?>
+                    </span>
                 <?php endif; ?>
             </a>
             <!-- Dropdown - Alerts -->
@@ -93,31 +157,42 @@ $notifCount = ($alerts && count($alerts) > 0) ? count($alerts) : 0;
                 <h6 class="dropdown-header">
                     Alerts Center
                 </h6>
-                <?php if (!empty($alerts)): ?>
-                    <?php foreach ($alerts as $alert): ?>
-                        <a class="dropdown-item d-flex align-items-center" href="#">
-                            <div class="mr-3">
-                                <div class="icon-circle bg-primary">
-                                    <i class="fas fa-file-alt text-white"></i>
-                                </div>
+
+                <!-- Notifikasi Payroll -->
+                <?php if (!empty($payrollNotification)): ?>
+                    <a class="dropdown-item d-flex align-items-center" href="#">
+                        <div class="mr-3">
+                            <div class="icon-circle bg-warning">
+                                <i class="fas fa-exclamation-triangle text-white"></i>
                             </div>
-                            <div>
-                                <div class="small text-gray-500"><?= date('F d, Y', strtotime($alert['created_at'])); ?></div>
-                                <span class="font-weight-bold"><?= htmlspecialchars($alert['action']); ?></span>
-                            </div>
-                        </a>
-                    <?php endforeach; ?>
+                        </div>
+                        <div>
+                            <!-- Tanggal "sekarang" untuk info notifikasi -->
+                            <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
+                            <span class="font-weight-bold">
+                                <?= htmlspecialchars($payrollNotification); ?>
+                            </span>
+                        </div>
+                    </a>
                 <?php else: ?>
-                    <a class="dropdown-item text-center small text-gray-500" href="#">No alerts available</a>
+                    <!-- Jika tidak ada notifikasi payroll -->
+                    <a class="dropdown-item text-center small text-gray-500" href="#">
+                        No alerts available
+                    </a>
                 <?php endif; ?>
-                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
+
+                <a class="dropdown-item text-center small text-gray-500" href="#">
+                    Show All Alerts
+                </a>
             </div>
         </li>
 
         <!-- Nav Item - Messages -->
         <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
-               data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" 
+               role="button" data-bs-toggle="dropdown" 
+               aria-haspopup="true" aria-expanded="false">
+               
                 <i class="fas fa-envelope fa-fw"></i>
                 <span class="badge badge-danger badge-counter">7</span>
             </a>
@@ -134,11 +209,15 @@ $notifCount = ($alerts && count($alerts) > 0) ? count($alerts) : 0;
                         <div class="status-indicator bg-success"></div>
                     </div>
                     <div class="font-weight-bold">
-                        <div class="text-truncate">Hi there! I am wondering if you can help me with a problem I've been having.</div>
+                        <div class="text-truncate">
+                            Hi there! I am wondering if you can help me with a problem I've been having.
+                        </div>
                         <div class="small text-gray-500">Emily Fowler · 58m</div>
                     </div>
                 </a>
-                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                <a class="dropdown-item text-center small text-gray-500" href="#">
+                    Read More Messages
+                </a>
             </div>
         </li>
 
@@ -146,9 +225,13 @@ $notifCount = ($alerts && count($alerts) > 0) ? count($alerts) : 0;
 
         <!-- Nav Item - User Information -->
         <li class="nav-item dropdown no-arrow">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-               data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="me-2 d-none d-lg-inline text-gray-600 small"><?= htmlspecialchars($nama); ?></span>
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" 
+               role="button" data-bs-toggle="dropdown" 
+               aria-haspopup="true" aria-expanded="false">
+               
+                <span class="me-2 d-none d-lg-inline text-gray-600 small">
+                    <?= htmlspecialchars($nama); ?>
+                </span>
                 <img class="img-profile rounded-circle" src="<?= htmlspecialchars($foto); ?>">
             </a>
             <!-- Dropdown - User Information -->

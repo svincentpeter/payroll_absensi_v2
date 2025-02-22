@@ -147,7 +147,8 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             'Payroll Anggota'         => '/absensi/sdm/employees.php',
             'Payheads'                => '/absensi/sdm/payheads.php',
             'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php',
-            'Audit Logs SDM'          => '/absensi/sdm/audit_logs_sdm.php'
+            'Audit Logs SDM'          => '/absensi/sdm/audit_logs_sdm.php',
+            'Notifikasi SDM'          => '/absensi/sdm/notifikasi_sdm.php'
         ];
         renderCollapseMenu('collapseSDM', 'fas fa-user-tie fa-fw', 'Role SDM', $sdmItems);
 
@@ -157,7 +158,8 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             'List Payroll'         => '/payroll/keuangan/list_payroll.php',
             'History Payroll'      => '/payroll/keuangan/payroll_history.php',
             'Rekap Payroll'        => '/payroll/keuangan/rekap_payroll.php',
-            'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php'
+            'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php',
+            'Notifikasi Keuangan'  => '/payroll/keuangan/notifikasi_keuangan.php'
         ];
         renderCollapseMenu('collapseKeuangan', 'fas fa-wallet fa-fw', 'Role Keuangan', $keuanganItems);
         ?>

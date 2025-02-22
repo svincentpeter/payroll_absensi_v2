@@ -7,6 +7,9 @@
 # Perbolehkan folder payroll dan isinya
 !payroll/
 !payroll/**
+# Perbolehkan folder payroll dan isinya
+!uploads/
+!uploads/**
 # Perbolehkan file lain yang kamu butuhkan
 !koneksi.php
 !helpers.php
