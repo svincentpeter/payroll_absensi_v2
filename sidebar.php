@@ -126,20 +126,22 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 
     <!-- Menu Berdasarkan Peran -->
     <?php if ($role === 'superadmin'): ?>
-        <!-- Contoh menu superadmin dengan sub-menu -->
+        <!-- Menu Superadmin dengan sub-menu -->
         <?php
+        // Menu Kelola Sistem
         $kelolaSistemItems = [
             'Kelola User' => '/payroll/superadmin/kelola_user.php',
             'Audit Logs'  => '/payroll/superadmin/logs.php'
         ];
-        renderCollapseMenu('collapseKelolaSistem', 'fas fa-lock fa-fw', 'Kelola Sistem', $kelolaSistemItems);
+        renderCollapseMenu('collapseKelolaSistem', 'fas fa-user-shield fa-fw', 'Kelola Sistem', $kelolaSistemItems);
 
+        // Menu Laporan
         $laporanItems = [
             'Laporan Gaji' => '/payroll/laporan_gaji.php'
         ];
-        renderCollapseMenu('collapseLaporan', 'fas fa-file-alt fa-fw', 'Laporan', $laporanItems);
+        renderCollapseMenu('collapseLaporan', 'fas fa-chart-pie fa-fw', 'Laporan', $laporanItems);
 
-        // Role SDM (superadmin juga bisa akses, contoh)
+        // Role SDM
         $sdmItems = [
             'Dashboard SDM'           => '/absensi/sdm/dashboard_sdm.php',
             'Koreksi Absensi'         => '/absensi/sdm/koreksi_absensi.php',
@@ -150,9 +152,9 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             'Audit Logs SDM'          => '/absensi/sdm/audit_logs_sdm.php',
             'Notifikasi SDM'          => '/absensi/sdm/notifikasi_sdm.php'
         ];
-        renderCollapseMenu('collapseSDM', 'fas fa-user-tie fa-fw', 'Role SDM', $sdmItems);
+        renderCollapseMenu('collapseSDM', 'fas fa-users-cog fa-fw', 'Role SDM', $sdmItems);
 
-        // Role Keuangan (superadmin juga bisa akses, contoh)
+        // Role Keuangan
         $keuanganItems = [
             'Dashboard Keuangan'   => '/payroll/keuangan/dashboard_keuangan.php',
             'List Payroll'         => '/payroll/keuangan/list_payroll.php',
@@ -179,13 +181,13 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         </li>
         <li class="nav-item <?= isActive('/absensi/sdm/manage_guru_karyawan.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/manage_guru_karyawan.php">
-                <i class="fas fa-users fa-fw"></i>
+                <i class="fas fa-users-cog fa-fw"></i>
                 <span>Kelola Guru/Karyawan</span>
             </a>
         </li>
         <li class="nav-item <?= isActive('/absensi/sdm/employees.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/employees.php">
-                <i class="fas fa-file-alt fa-fw"></i>
+                <i class="fas fa-money-check-alt fa-fw"></i>
                 <span>Payroll Anggota</span>
             </a>
         </li>
@@ -197,14 +199,20 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         </li>
         <li class="nav-item <?= isActive('/absensi/sdm/laporan_pengajuan_ijin.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/laporan_pengajuan_ijin.php">
-                <i class="fas fa-envelope-open fa-fw"></i>
+                <i class="fas fa-envelope-open-text fa-fw"></i>
                 <span>Laporan Surat Ijin</span>
             </a>
         </li>
         <li class="nav-item <?= isActive('/absensi/sdm/audit_logs_sdm.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/audit_logs_sdm.php">
-                <i class="fas fa-clipboard-check fa-fw"></i>
+                <i class="fas fa-history fa-fw"></i>
                 <span>Audit Logs SDM</span>
+            </a>
+        </li>
+        <li class="nav-item <?= isActive('/absensi/sdm/notifikasi_sdm.php'); ?>">
+            <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/notifikasi_sdm.php">
+                <i class="fas fa-bell fa-fw"></i>
+                <span>Notifikasi SDM</span>
             </a>
         </li>
     <?php elseif ($role === 'keuangan'): ?>
@@ -217,13 +225,13 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         </li>
         <li class="nav-item <?= isActive('/payroll/keuangan/list_payroll.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/payroll/keuangan/list_payroll.php">
-                <i class="fas fa-list-alt fa-fw"></i>
+                <i class="fas fa-list-ul fa-fw"></i>
                 <span>List Payroll</span>
             </a>
         </li>
         <li class="nav-item <?= isActive('/payroll/keuangan/payroll_history.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/payroll/keuangan/payroll_history.php">
-                <i class="fas fa-clock fa-fw"></i>
+                <i class="fas fa-history fa-fw"></i>
                 <span>History Payroll</span>
             </a>
         </li>
@@ -233,9 +241,15 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 <span>Rekap Payroll</span>
             </a>
         </li>
+        <li class="nav-item <?= isActive('/payroll/keuangan/notifikasi_keuangan.php'); ?>">
+            <a class="nav-link" href="<?= BASE_URL ?>/payroll/keuangan/notifikasi_keuangan.php">
+                <i class="fas fa-bell fa-fw"></i>
+                <span>Notifikasi Keuangan</span>
+            </a>
+        </li>
         <li class="nav-item <?= isActive('/payroll/keuangan/audit_logs_keuangan.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/payroll/keuangan/audit_logs_keuangan.php">
-                <i class="fas fa-clipboard-check fa-fw"></i>
+                <i class="fas fa-history fa-fw"></i>
                 <span>Audit Logs Keuangan</span>
             </a>
         </li>
@@ -247,21 +261,11 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             </a>
         </li>
         <li class="nav-item <?= isActive('/absensi/kepalasekolah/laporan_ijin_ke_kepalasekolah.php'); ?>">
-    <a class="nav-link" href="<?= BASE_URL ?>/absensi/kepalasekolah/laporan_ijin_ke_kepalasekolah.php">
-        <i class="fas fa-envelope fa-fw"></i>
-        <span>Laporan Surat Ijin</span>
-    </a>
-</li>
-
-        <!-- Tambahkan menu tambahan khusus Kepala Sekolah jika dibutuhkan -->
-        <!--
-        <li class="nav-item <?= isActive('/absensi/kepalasekolah/laporan_absensi.php'); ?>">
-            <a class="nav-link" href="<?= BASE_URL ?>/absensi/kepalasekolah/laporan_absensi.php">
-                <i class="fas fa-file-alt fa-fw"></i>
-                <span>Laporan Absensi</span>
+            <a class="nav-link" href="<?= BASE_URL ?>/absensi/kepalasekolah/laporan_ijin_ke_kepalasekolah.php">
+                <i class="fas fa-envelope fa-fw"></i>
+                <span>Laporan Surat Ijin</span>
             </a>
         </li>
-        -->
     <?php elseif (in_array($role, ['P', 'TK'])): ?>
         <!-- Menu untuk Guru/Pendidik (P) dan Tenaga Kependidikan (TK) -->
         <li class="nav-item <?= isActive('/absensi/guru/dashboard_guru.php'); ?>">
@@ -272,7 +276,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         </li>
         <li class="nav-item <?= isActive('/absensi/guru/pengajuan_surat_ijin.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/pengajuan_surat_ijin.php">
-                <i class="fas fa-envelope fa-fw"></i>
+                <i class="fas fa-paper-plane fa-fw"></i>
                 <span>Ajukan Permohonan Ijin</span>
             </a>
         </li>
@@ -284,7 +288,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         </li>
         <li class="nav-item <?= isActive('/absensi/guru/dashboard_jadwal.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/dashboard_jadwal.php">
-                <i class="fas fa-briefcase fa-fw"></i>
+                <i class="fas fa-calendar-check fa-fw"></i>
                 <span>Jadwal Piket</span>
             </a>
         </li>

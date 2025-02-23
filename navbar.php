@@ -1,5 +1,5 @@
 <?php
-// navbar.php
+// File: navbar.php
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -21,14 +21,13 @@ if (empty($foto)) {
     $foto = '/assets/img/undraw_profile.svg';
 }
 
-// ----------------------------------------------
-// 1. (Dihapus) Bagian Ambil Data Audit Log
-// ----------------------------------------------
-
-// 2. Hitung notifikasi payroll (untuk user dengan role SDM / superadmin saja)
-$payrollNotification = "";
-$payrollCount        = 0; // penanda apakah ada notifikasi payroll
-if (in_array($role, ['sdm', 'superadmin'])) {
+// ----------------------------------------------------------------------
+// 1. NOTIFIKASI untuk SDM/Superadmin: 
+//    Hitung anggota belum final di payroll_final
+// ----------------------------------------------------------------------
+$sdmNotification = ""; 
+$sdmCount        = 0; // Penanda notifikasi sdm
+if (in_array($role, ['sdm','superadmin'])) {
     $currentDay   = (int) date('d');
     $currentMonth = (int) date('n');
     $currentYear  = (int) date('Y');
@@ -47,43 +46,87 @@ if (in_array($role, ['sdm', 'superadmin'])) {
         $targetYear  = $currentYear;
     }
 
-    // Cek anggota yang belum masuk ke payroll_final untuk targetMonth & targetYear
-    $sqlPayroll = "SELECT COUNT(*) AS pending
-                   FROM anggota_sekolah
-                   WHERE id NOT IN (
-                       SELECT id_anggota 
-                       FROM payroll_final
-                       WHERE bulan = ? AND tahun = ?
-                   )";
-    $stmtPayroll = $conn->prepare($sqlPayroll);
-    if ($stmtPayroll) {
-        $stmtPayroll->bind_param("ii", $targetMonth, $targetYear);
-        $stmtPayroll->execute();
-        $resultPayroll = $stmtPayroll->get_result();
-        $rowPayroll = $resultPayroll->fetch_assoc();
-        $pendingPayroll = intval($rowPayroll['pending'] ?? 0);
-        $stmtPayroll->close();
-    } else {
-        error_log("Gagal menyiapkan statement notifikasi payroll: " . $conn->error);
-        $pendingPayroll = 0;
-    }
+    $sqlSdm = "
+        SELECT COUNT(*) AS pending
+        FROM anggota_sekolah
+        WHERE id NOT IN (
+            SELECT id_anggota 
+            FROM payroll_final
+            WHERE bulan = ? AND tahun = ?
+        )
+    ";
+    $stmtSdm = $conn->prepare($sqlSdm);
+    if ($stmtSdm) {
+        $stmtSdm->bind_param("ii", $targetMonth, $targetYear);
+        $stmtSdm->execute();
+        $resSdm = $stmtSdm->get_result();
+        $rowSdm = $resSdm->fetch_assoc();
+        $pendingSdm = intval($rowSdm['pending'] ?? 0);
+        $stmtSdm->close();
 
-    if ($pendingPayroll > 0) {
-        $monthName = getIndonesianMonthName($targetMonth);
-        $payrollNotification = "Payroll Bulan {$monthName} Terdapat {$pendingPayroll} Anggota Belum Dibayar";
-        // Jika hanya ingin menampilkan 1 notifikasi saja
-        $payrollCount = 1;
+        if ($pendingSdm > 0) {
+            $monthName = getIndonesianMonthName($targetMonth);
+            $sdmNotification = "Payroll Bulan {$monthName} Terdapat {$pendingSdm} Anggota Belum Dibayar";
+            $sdmCount = 1;  // Kita jadikan "1 notifikasi"
+        }
+    } else {
+        error_log("Gagal menyiapkan statement notifikasi sdm: " . $conn->error);
     }
 }
 
-// 3. Total notifikasi hanya dari payroll (karena audit log dihapus)
-$totalAlerts = $payrollCount;
+// ----------------------------------------------------------------------
+// 2. NOTIFIKASI untuk Keuangan/Superadmin:
+//    Hitung data payroll status 'draft' yang belum final di payroll_final
+// ----------------------------------------------------------------------
+$keuNotification = "";
+$keuCount        = 0;
+if (in_array($role, ['keuangan','superadmin'])) {
+    // Contoh: ambil periode bulan/tahun sekarang
+    $thisMonth = (int) date('n');
+    $thisYear  = (int) date('Y');
 
-// Fungsi helper untuk menampilkan badge
+    $sqlKeu = "
+        SELECT COUNT(*) AS pending
+        FROM payroll p
+        WHERE p.bulan = ? 
+          AND p.tahun = ?
+          AND p.status = 'draft'
+          AND NOT EXISTS (
+                SELECT 1 FROM payroll_final pf
+                WHERE pf.id_anggota = p.id_anggota
+                  AND pf.bulan = p.bulan
+                  AND pf.tahun = p.tahun
+          )
+    ";
+    $stmtKeu = $conn->prepare($sqlKeu);
+    if ($stmtKeu) {
+        $stmtKeu->bind_param("ii", $thisMonth, $thisYear);
+        $stmtKeu->execute();
+        $resKeu = $stmtKeu->get_result();
+        $rowKeu = $resKeu->fetch_assoc();
+        $pendingKeu = intval($rowKeu['pending'] ?? 0);
+        $stmtKeu->close();
+
+        if ($pendingKeu > 0) {
+            $monthName = getIndonesianMonthName($thisMonth);
+            $keuNotification = "Payroll Bulan {$monthName} (Status Draft) Terdapat {$pendingKeu} Anggota Belum Final";
+            $keuCount = 1; 
+        }
+    } else {
+        error_log("Gagal menyiapkan statement notifikasi keuangan: " . $conn->error);
+    }
+}
+
+// ----------------------------------------------------------------------
+// 3. Total Alerts = sdmCount + keuCount
+// ----------------------------------------------------------------------
+$totalAlerts = $sdmCount + $keuCount;
+
+// Fungsi helper untuk menampilkan badge notifikasi
 function formatBadge($count) {
     if ($count < 1) return "";
     // Jika count = 1, tampil "1"
-    // Jika count > 1, tampil "2+", "3+", dst
+    // Jika count > 1, tampil "2+", "3+", dsb.
     return ($count === 1) ? "1" : ($count . "+");
 }
 ?>
@@ -158,24 +201,42 @@ function formatBadge($count) {
                     Alerts Center
                 </h6>
 
-                <!-- Notifikasi Payroll -->
-                <?php if (!empty($payrollNotification)): ?>
+                <!-- Notifikasi SDM -->
+                <?php if (!empty($sdmNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
-                        <div class="mr-3">
+                        <div class="me-3">
                             <div class="icon-circle bg-warning">
                                 <i class="fas fa-exclamation-triangle text-white"></i>
                             </div>
                         </div>
                         <div>
-                            <!-- Tanggal "sekarang" untuk info notifikasi -->
                             <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
                             <span class="font-weight-bold">
-                                <?= htmlspecialchars($payrollNotification); ?>
+                                <?= htmlspecialchars($sdmNotification); ?>
                             </span>
                         </div>
                     </a>
-                <?php else: ?>
-                    <!-- Jika tidak ada notifikasi payroll -->
+                <?php endif; ?>
+
+                <!-- Notifikasi Keuangan -->
+                <?php if (!empty($keuNotification)): ?>
+                    <a class="dropdown-item d-flex align-items-center" href="#">
+                        <div class="me-3">
+                            <div class="icon-circle bg-info">
+                                <i class="fas fa-info-circle text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
+                            <span class="font-weight-bold">
+                                <?= htmlspecialchars($keuNotification); ?>
+                            </span>
+                        </div>
+                    </a>
+                <?php endif; ?>
+
+                <?php if (empty($sdmNotification) && empty($keuNotification)): ?>
+                    <!-- Jika tidak ada notifikasi -->
                     <a class="dropdown-item text-center small text-gray-500" href="#">
                         No alerts available
                     </a>

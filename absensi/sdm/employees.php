@@ -25,21 +25,22 @@ $selectedMonth = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : da
 $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date('Y');
 
 /* === [SERVER SIDE FUNCTIONS] === */
-// Fungsi ProcessPayroll, CheckPayrollCompletion, ViewRekapAbsensi,
-// EditRekapAbsensi, GetAllPayheads, LoadingEmployees, EditEmployee,
-// AssignPayheadsToEmployee, dan GetPayheadById tidak diubah signifikan dari versi sebelumnya.
-// Hanya fungsi ViewEmployeeDetail yang dimodifikasi untuk menyertakan field support_doc_path.
-
+/**
+ * Fungsi ProcessPayroll: Memproses payroll untuk anggota yang dipilih.
+ * Setelah proses payroll berhasil, bila user saat ini adalah sdm,
+ * maka notifikasi akan dikirim ke semua user dengan role keuangan dan superadmin.
+ */
 function ProcessPayroll($conn) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
     
     $id_anggota = isset($_POST['id_anggota']) ? intval($_POST['id_anggota']) : 0;
     $bulan = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : 0;
     $tahun = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : 0;
-    if($id_anggota <= 0 || $bulan <= 0 || $tahun <= 0) {
+    if ($id_anggota <= 0 || $bulan <= 0 || $tahun <= 0) {
         send_response(1, 'Parameter tidak valid untuk proses payroll.');
     }
     
+    // Update status payheads dari draft/revisi ke final
     $stmtFinal = $conn->prepare("UPDATE employee_payheads SET status = 'final' 
         WHERE id_anggota = ? AND status IN ('draft','revisi')");
     $stmtFinal->bind_param("i", $id_anggota);
@@ -49,6 +50,7 @@ function ProcessPayroll($conn) {
     }
     $stmtFinal->close();
 
+    // Hitung total pendapatan dan potongan
     $sqlSum = "SELECT jenis, SUM(amount) as total
                FROM employee_payheads
                WHERE id_anggota = ? AND status = 'final'
@@ -71,6 +73,7 @@ function ProcessPayroll($conn) {
     }
     $stmtSum->close();
 
+    // Ambil data anggota
     $stmtEmp = $conn->prepare("SELECT gaji_pokok, salary_index_id, no_rekening 
                                FROM anggota_sekolah WHERE id = ? LIMIT 1");
     $stmtEmp->bind_param("i", $id_anggota);
@@ -122,9 +125,36 @@ function ProcessPayroll($conn) {
     }
     $stmtPayroll->close();
 
+    // Catat audit log untuk proses payroll
     $user_nip = $_SESSION['nip'] ?? '';
     $details_log = "Memproses payroll untuk anggota ID = $id_anggota (diproses oleh NIP user: $user_nip).";
     add_audit_log($conn, $user_nip, 'ProcessPayroll', $details_log);
+
+    // --- NOTIFIKASI UNTUK KEUANGAN & SUPERADMIN ---
+    // Jika user yang memproses payroll adalah sdm, maka kirim notifikasi ke user dengan role keuangan dan superadmin
+    if ($_SESSION['role'] === 'sdm') {
+        $sqlNotif = "SELECT id, nip FROM anggota_sekolah WHERE role IN ('keuangan', 'superadmin')";
+        $resultNotif = $conn->query($sqlNotif);
+        if ($resultNotif) {
+            while ($notifUser = $resultNotif->fetch_assoc()) {
+                $message = "Payroll untuk anggota dengan ID $id_anggota telah diproses.";
+                // Perhatikan kita pakai 4 kolom: user_id, message, is_read, role_target
+                $stmtNotif = $conn->prepare("INSERT INTO notifications (user_id, message, is_read, role_target) VALUES (?, ?, 0, ?)");
+                if ($stmtNotif) {
+                    // role_target isi 'keuangan' atau 'superadmin'? 
+                    // Supaya satu notifikasi bisa untuk semua keuangan + superadmin, Anda bisa pakai 'keuangan' saja 
+                    // lalu notifikasi.php menampilkan jika role-nya keuangan. 
+                    // Atau Anda buat loop 2 kali, dsb.
+                    // Yang paling sederhana: masukkan 'keuangan' (nanti user superadmin pun bisa dicek di notifikasi.php)
+                    $target = 'keuangan'; 
+                    $stmtNotif->bind_param("iss", $notifUser['id'], $message, $target);
+                    $stmtNotif->execute();
+                    $stmtNotif->close();
+                }
+            }
+        }
+    }
+    // --- END NOTIFIKASI ---
 
     send_response(0, 'Payroll berhasil diproses dan masuk ke list payroll dengan status draft.');
 }
@@ -596,8 +626,6 @@ function AssignPayheadsToEmployee($conn) {
     }
 }
 
-
-
 function ViewEmployeeDetail($conn) {
     error_log("DEBUG: Entering ViewEmployeeDetail");
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -812,8 +840,6 @@ if ($result) {
         }
     }
 }
-
-
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -831,41 +857,6 @@ if ($result) {
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
     <style>
-
-.label-pendapatan {
-  color: #fff;
-  background-color: #28a745; /* hijau */
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  margin-right: 5px; /* jika ingin jarak ke teks lain */
-}
-
-.label-potongan {
-  color: #fff;
-  background-color: #dc3545; /* merah */
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  margin-right: 5px;
-}
-
-
-.file-label {
-  display: inline-block;
-  padding: 0.375rem 0.75rem;
-  background-color: #0d6efd; /* warna btn-primary misalnya */
-  color: #fff;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.file-label:hover {
-  background-color: #0b5ed7; /* warna hover */
-}
-
-
         body { color: #000 !important; }
         .text-gray-800 { color: #000 !important; }
         .btnEdit, .btnAssignPayheads, .btnViewDetail, .btnRekapAbsensi {
@@ -1170,9 +1161,7 @@ if ($result) {
           <div class="container-fluid">
             
             <!-- Row 1: Informasi Anggota & Payroll -->
-            <!-- Gunakan row g-3 (atau g-4) agar ada jarak horizontal & vertical antar-col -->
             <div class="row g-3 mb-4">
-              
               <!-- Kolom Kiri: Informasi Anggota -->
               <div class="col-md-6">
                 <div class="card border-primary shadow-sm">
@@ -1180,7 +1169,6 @@ if ($result) {
                     <i class="bi bi-person-badge me-1"></i> Informasi Anggota & Payroll
                   </div>
                   <div class="card-body">
-                    <!-- Baris 1: Anggota, Role, Job Title -->
                     <div class="row g-3 mb-3">
                       <div class="col-md-4">
                         <label>Anggota</label>
@@ -1195,7 +1183,6 @@ if ($result) {
                         <input type="text" class="form-control" id="fieldJobTitle" readonly>
                       </div>
                     </div>
-                    <!-- Baris 2: Periode, Masa Kerja, No Rekening -->
                     <div class="mb-3">
                       <label>Periode</label>
                       <input type="text" class="form-control" id="fieldPeriode" readonly>
@@ -1219,7 +1206,6 @@ if ($result) {
                   </div>
                 </div>
               </div>
-
               <!-- Kolom Kanan: Perhitungan Payroll -->
               <div class="col-md-6">
                 <div class="card border-warning shadow-sm">
@@ -1262,7 +1248,6 @@ if ($result) {
             <!-- End Row 1 -->
 
             <!-- Row 2: Rekap Absensi -->
-            <!-- Agar ada jarak antar-card, gunakan row g-3 -->
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-2">
                 <div class="card shadow-sm border-success">
@@ -1648,171 +1633,140 @@ if ($result) {
 
         // ================= Render Assigned Payheads =================
         function renderAssignedPayheads(payheads) {
-  const tbody = $("#selected_payamount_table tbody");
-  tbody.empty();
+            const tbody = $("#selected_payamount_table tbody");
+            tbody.empty();
 
-  payheads.forEach(function(ph, index) {
-    const payheadId = ph.id_payhead;
-    // Pastikan ph.jenis_payhead = 'earnings' atau 'deduction' (atau 'potongan')
-    let badgeHTML = '';
-    // Cek nilainya (pakai .toLowerCase() untuk jaga-jaga)
-    const payheadType = (ph.jenis_payhead || '').toLowerCase();
+            payheads.forEach(function(ph, index) {
+                const payheadId = ph.id_payhead;
+                let badgeHTML = '';
+                const payheadType = (ph.jenis_payhead || '').toLowerCase();
 
-    if (payheadType === 'earnings' || payheadType === 'pendapatan') {
-      // Pendapatan -> badge hijau
-      badgeHTML = '<span class="badge bg-success text-white me-1">Pendapatan</span>';
-    } else {
-      // Jika bukan earnings, anggap potongan -> badge merah
-      badgeHTML = '<span class="badge bg-danger text-white me-1">Potongan</span>';
-    }
+                if (payheadType === 'earnings' || payheadType === 'pendapatan') {
+                    badgeHTML = '<span class="badge bg-success text-white me-1">Pendapatan</span>';
+                } else {
+                    badgeHTML = '<span class="badge bg-danger text-white me-1">Potongan</span>';
+                }
 
-    // Tampilkan badge + nama payhead
-    const payheadNameWithBadge = badgeHTML + ph.nama_payhead;
-
-    const defaultAmt = ph.amount || "0";
-    const rowHtml = `
-      <tr data-id="${payheadId}" data-type="${ph.jenis_payhead}">
-        <td>${index + 1}</td>
-        <td>${payheadNameWithBadge}</td>
-        <td>
-          <input type="text" name="pay_amounts[${payheadId}]"
-                 class="form-control currency-input"
-                 value="${defaultAmt}" required>
-        </td>
-        <td>
-          <textarea name="remarks[${payheadId}]" class="form-control" placeholder="Keterangan payhead..."></textarea>
-        </td>
-        <td>
-          <div class="input-group">
-            <input type="file" id="support_doc_${payheadId}"
-                   name="support_doc[${payheadId}]"
-                   class="file-input d-none"
-                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-            <label for="support_doc_${payheadId}" class="btn btn-sm btn-info file-label me-2">Pilih File</label>
-            <button type="button" class="btn btn-sm btn-danger btn-clear-file">Hapus</button>
-          </div>
-        </td>
-        <td>
-          <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
-            <i class="bi bi-dash"></i>
-          </button>
-        </td>
-      </tr>
-    `;
-    tbody.append(rowHtml);
-  });
-
-  // Inisialisasi kembali AutoNumeric
-  AutoNumeric.multiple('.currency-input', {
-    digitGroupSeparator: '.',
-    decimalCharacter: ',',
-    decimalPlaces: 2,
-    unformatOnSubmit: true
-  });
-
-  // Re‐hitung total
-  recalcPayheadsTotals();
-}
-
-
-// Saat file dipilih, ganti teks label
-$(document).on('change', '.file-input', function() {
-  const fileName = $(this).prop('files')[0]
-      ? $(this).prop('files')[0].name
-      : 'Pilih File';
-  // Cari label yang 'for'-nya sesuai dengan ID input file ini dan perbarui teksnya
-  $(this).siblings('label.file-label').text(fileName);
-});
-
-
-// Tombol hapus untuk mengosongkan file
-$(document).on('click', '.btn-clear-file', function() {
-    // Kosongkan input
-    const inputFile = $(this).siblings('.file-input');
-    inputFile.val('');
-
-    // Kembalikan label ke teks default
-    $(this).siblings('label.file-label').text('Pilih File');
-});
-
-
-
-        // ================= Event: Tambah payhead =================
-        $(document).on('click', '.btnAddPayhead', function() {
-    const item = $(this).closest('.payhead-item');
-    const payheadId = item.data('id');
-    const payheadName = item.find('.payhead-name').text();
-    const defaultAmt = item.data('nominal') || "0";
-    const payType = item.data('type') || '';
-
-    // Hilangkan payhead ini dari daftar "tersedia"
-    item.remove();
-
-    // === Tambahkan baris ke tabel selected_payamount_table dengan badge ===
-    const existingRows = $("#selected_payamount_table tbody tr").map(function() {
-        return $(this).data('id');
-    }).get();
-    if (!existingRows.includes(payheadId)) {
-        const newIndex = existingRows.length;
-
-        // LOGIKA BADGE WARNA
-        let badgeHTML = '';
-        const payTypeLower = payType.toLowerCase();
-        if (payTypeLower === 'earnings' || payTypeLower === 'pendapatan') {
-            badgeHTML = '<span class="badge bg-success text-white me-1">Pendapatan</span>';
-        } else {
-            badgeHTML = '<span class="badge bg-danger text-white me-1">Potongan</span>';
-        }
-        // Gabungkan badge + nama
-        const payheadNameWithBadge = badgeHTML + payheadName;
-
-        const rowHtml = `
-            <tr data-id="${payheadId}" data-type="${payType}">
-                <td>${newIndex + 1}</td>
-                <td>${payheadNameWithBadge}</td>
-                <td>
-                    <input type="text" name="pay_amounts[${payheadId}]"
-                           class="form-control currency-input"
-                           value="${defaultAmt}" required>
-                </td>
-                <td>
-                    <textarea name="remarks[${payheadId}]" class="form-control"></textarea>
-                </td>
-                <td>
-                    <div class="input-group">
-                        <input type="file" name="support_doc[${payheadId}]"
+                const payheadNameWithBadge = badgeHTML + ph.nama_payhead;
+                const defaultAmt = ph.amount || "0";
+                const rowHtml = `
+                  <tr data-id="${payheadId}" data-type="${ph.jenis_payhead}">
+                    <td>${index + 1}</td>
+                    <td>${payheadNameWithBadge}</td>
+                    <td>
+                      <input type="text" name="pay_amounts[${payheadId}]"
+                             class="form-control currency-input"
+                             value="${defaultAmt}" required>
+                    </td>
+                    <td>
+                      <textarea name="remarks[${payheadId}]" class="form-control" placeholder="Keterangan payhead..."></textarea>
+                    </td>
+                    <td>
+                      <div class="input-group">
+                        <input type="file" id="support_doc_${payheadId}"
+                               name="support_doc[${payheadId}]"
                                class="file-input d-none"
-                               id="support_doc_${payheadId}"
                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
                         <label for="support_doc_${payheadId}" class="btn btn-sm btn-info file-label me-2">Pilih File</label>
                         <button type="button" class="btn btn-sm btn-danger btn-clear-file">Hapus</button>
-                    </div>
-                </td>
-                <td>
-                    <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
+                      </div>
+                    </td>
+                    <td>
+                      <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
                         <i class="bi bi-dash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-        const tbody = $("#selected_payamount_table tbody");
-        tbody.append(rowHtml);
+                      </button>
+                    </td>
+                  </tr>
+                `;
+                tbody.append(rowHtml);
+            });
 
-        // Re-inisialisasi AutoNumeric
-        AutoNumeric.multiple('.currency-input', {
-            digitGroupSeparator: '.',
-            decimalCharacter: ',',
-            decimalPlaces: 2,
-            unformatOnSubmit: true
+            AutoNumeric.multiple('.currency-input', {
+                digitGroupSeparator: '.',
+                decimalCharacter: ',',
+                decimalPlaces: 2,
+                unformatOnSubmit: true
+            });
+            recalcPayheadsTotals();
+        }
+
+        $(document).on('change', '.file-input', function() {
+            const fileName = $(this).prop('files')[0]
+                ? $(this).prop('files')[0].name
+                : 'Pilih File';
+            $(this).siblings('label.file-label').text(fileName);
         });
 
-        // Panggil recalcPayheadsTotals agar total diperbarui
-        recalcPayheadsTotals();
-    }
-});
+        $(document).on('click', '.btn-clear-file', function() {
+            const inputFile = $(this).siblings('.file-input');
+            inputFile.val('');
+            $(this).siblings('label.file-label').text('Pilih File');
+        });
 
+        $(document).on('click', '.btnAddPayhead', function() {
+            const item = $(this).closest('.payhead-item');
+            const payheadId = item.data('id');
+            const payheadName = item.find('.payhead-name').text();
+            const defaultAmt = item.data('nominal') || "0";
+            const payType = item.data('type') || '';
 
-        // ================= Event: Hapus baris dari tabel payheads terpilih =================
+            item.remove();
+
+            const existingRows = $("#selected_payamount_table tbody tr").map(function() {
+                return $(this).data('id');
+            }).get();
+            if (!existingRows.includes(payheadId)) {
+                const newIndex = existingRows.length;
+                let badgeHTML = '';
+                const payTypeLower = payType.toLowerCase();
+                if (payTypeLower === 'earnings' || payTypeLower === 'pendapatan') {
+                    badgeHTML = '<span class="badge bg-success text-white me-1">Pendapatan</span>';
+                } else {
+                    badgeHTML = '<span class="badge bg-danger text-white me-1">Potongan</span>';
+                }
+                const payheadNameWithBadge = badgeHTML + payheadName;
+                const rowHtml = `
+                    <tr data-id="${payheadId}" data-type="${payType}">
+                        <td>${newIndex + 1}</td>
+                        <td>${payheadNameWithBadge}</td>
+                        <td>
+                            <input type="text" name="pay_amounts[${payheadId}]"
+                                   class="form-control currency-input"
+                                   value="${defaultAmt}" required>
+                        </td>
+                        <td>
+                            <textarea name="remarks[${payheadId}]" class="form-control"></textarea>
+                        </td>
+                        <td>
+                            <div class="input-group">
+                                <input type="file" name="support_doc[${payheadId}]"
+                                       class="file-input d-none"
+                                       id="support_doc_${payheadId}"
+                                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                <label for="support_doc_${payheadId}" class="btn btn-sm btn-info file-label me-2">Pilih File</label>
+                                <button type="button" class="btn btn-sm btn-danger btn-clear-file">Hapus</button>
+                            </div>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
+                                <i class="bi bi-dash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                const tbody = $("#selected_payamount_table tbody");
+                tbody.append(rowHtml);
+
+                AutoNumeric.multiple('.currency-input', {
+                    digitGroupSeparator: '.',
+                    decimalCharacter: ',',
+                    decimalPlaces: 2,
+                    unformatOnSubmit: true
+                });
+                recalcPayheadsTotals();
+            }
+        });
+
         $(document).on('click', '.btnRemoveRow', function() {
             const row = $(this).closest('tr');
             const payheadId = row.data('id');
@@ -1823,7 +1777,6 @@ $(document).on('click', '.btn-clear-file', function() {
             $("#selected_payamount_table tbody tr").each(function(index) {
                 $(this).find("td:first").text(index + 1);
             });
-            // Buat kembali elemen payhead available
             const availableItem = $(`
                 <div class="payhead-item d-flex align-items-center mb-1" data-id="${payheadId}" data-nominal="${defaultAmt}" data-type="${payheadType}">
                     <button type="button" class="btn btn-sm btn-primary btnAddPayhead me-2">
@@ -1839,69 +1792,56 @@ $(document).on('click', '.btn-clear-file', function() {
         });
 
         function calcPotonganAbsensi(role, totalIzin, totalCuti, totalTK, totalSakit) {
-  // total hari ketidakhadiran
-  let totalTidakHadir = totalIzin + totalCuti + totalTK + totalSakit;
-  const biayaPerHari = 75000;
-  
-  let potongan = 0;
-  if (role === 'P' || role === 'TK') {
-    // Maksimal 2 hari saja
-    potongan = Math.min(totalTidakHadir, 2) * biayaPerHari;
-  } else if (role === 'M') {
-    // Tidak dibatasi
-    potongan = totalTidakHadir * biayaPerHari;
-  } else {
-    // Jika ada role lain, misalnya 0 atau aturan lain
-    potongan = 0;
-  }
-  
-  return potongan;
-}
-
-
-        // ================= Fungsi menghitung total =================
-        function recalcPayheadsTotals() {
-    let totalEarnings = 0;
-    let totalDeductions = 0;
-    $("#selected_payamount_table tbody tr").each(function() {
-        let type = ($(this).data("type") || "").toLowerCase();
-        let val  = $(this).find("input.currency-input").val();
-        let amount = parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
-        if (type === "earnings") {
-            totalEarnings += amount;
-        } else if (type === "deduction" || type === "deductions" || type === "potongan") {
-            totalDeductions += amount;
+            let totalTidakHadir = totalIzin + totalCuti + totalTK + totalSakit;
+            const biayaPerHari = 75000;
+            let potongan = 0;
+            if (role === 'P' || role === 'TK') {
+                potongan = Math.min(totalTidakHadir, 2) * biayaPerHari;
+            } else if (role === 'M') {
+                potongan = totalTidakHadir * biayaPerHari;
+            } else {
+                potongan = 0;
+            }
+            return potongan;
         }
-    });
-    function formatNumber(num) {
-        return num.toLocaleString('id-ID', { minimumFractionDigits: 2 });
-    }
-    $("#inputTotalEarnings").val("Rp " + formatNumber(totalEarnings));
-    $("#inputTotalDeductions").val("Rp " + formatNumber(totalDeductions));
 
-    let gajiPokokText = $("#inputGajiPokok").val().replace(/[Rp\s.]/g, '').replace(',', '.');
-    let gajiPokok = parseFloat(gajiPokokText) || 0;
+        function recalcPayheadsTotals() {
+            let totalEarnings = 0;
+            let totalDeductions = 0;
+            $("#selected_payamount_table tbody tr").each(function() {
+                let type = ($(this).data("type") || "").toLowerCase();
+                let val  = $(this).find("input.currency-input").val();
+                let amount = parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
+                if (type === "earnings") {
+                    totalEarnings += amount;
+                } else if (type === "deduction" || type === "deductions" || type === "potongan") {
+                    totalDeductions += amount;
+                }
+            });
+            function formatNumber(num) {
+                return num.toLocaleString('id-ID', { minimumFractionDigits: 2 });
+            }
+            $("#inputTotalEarnings").val("Rp " + formatNumber(totalEarnings));
+            $("#inputTotalDeductions").val("Rp " + formatNumber(totalDeductions));
 
-    let indexNominalText = $("#inputIndexNominal").val().replace(/[Rp\s.]/g, '').replace(',', '.');
-    let indexNominal = parseFloat(indexNominalText) || 0;
+            let gajiPokokText = $("#inputGajiPokok").val().replace(/[Rp\s.]/g, '').replace(',', '.');
+            let gajiPokok = parseFloat(gajiPokokText) || 0;
 
-    // Ambil potongan absensi global
-    let potonganAbsensi = window.potonganAbsensiGlobal || 0;
+            let indexNominalText = $("#inputIndexNominal").val().replace(/[Rp\s.]/g, '').replace(',', '.');
+            let indexNominal = parseFloat(indexNominalText) || 0;
 
-    // Tampilkan di kolom "Potongan Tidak Hadir"
-    $("#inputPotonganAbsensi").val("Rp " + formatNumber(potonganAbsensi));
+            let potonganAbsensi = window.potonganAbsensiGlobal || 0;
 
-    // Hitung net salary
-    let netSalary = gajiPokok + indexNominal + totalEarnings - totalDeductions - potonganAbsensi;
-    $("#inputNetSalary").val("Rp " + formatNumber(netSalary));
-}
+            $("#inputPotonganAbsensi").val("Rp " + formatNumber(potonganAbsensi));
 
+            let netSalary = gajiPokok + indexNominal + totalEarnings - totalDeductions - potonganAbsensi;
+            $("#inputNetSalary").val("Rp " + formatNumber(netSalary));
+        }
 
         $("#selected_payamount_table").on("input", "input.currency-input", function() {
             recalcPayheadsTotals();
         });
 
-        // ================= Inisialisasi tampilan bulan payroll =================
         function initSelectedMonthDisplay() {
             if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
                 var selMonth = localStorage.getItem('selectedMonthPayroll');
@@ -1937,7 +1877,6 @@ $(document).on('click', '.btn-clear-file', function() {
             $('#employees').DataTable().ajax.reload();
         });
 
-        // ================= Edit Employee =================
         $('#employees tbody').on('click', '.btnEdit', function() {
             var id = $(this).data('id');
             $.ajax({
@@ -2005,7 +1944,6 @@ $(document).on('click', '.btn-clear-file', function() {
             });
         });
 
-        // ================= View Detail Anggota =================
         $('#employees tbody').on('click', '.btnViewDetail', function(){
             var id = $(this).data('id');
             $.ajax({
@@ -2035,7 +1973,6 @@ $(document).on('click', '.btn-clear-file', function() {
                         $('#detailGajiPokok').text(e.gaji_pokok);
                         let baseSalary = parseFloat(e.salary_index_base) || 0;
                         $('#detailSalaryIndexNominal').text('Rp ' + baseSalary.toLocaleString('id-ID', {minimumFractionDigits:2}));
-                        // Modifikasi: Render payheads dengan link "Lihat Dokumen" jika support_doc_path ada.
                         if(e.payheads && e.payheads.length > 0){
                             var s = '<ul>';
                             e.payheads.forEach(function(ph){
@@ -2067,7 +2004,6 @@ $(document).on('click', '.btn-clear-file', function() {
             });
         });
 
-        // ================= Rekap Absensi =================
         $('#employees tbody').on('click', '.btnRekapAbsensi', function(){
             var id = $(this).data('id');
             var selectedMonth = localStorage.getItem('selectedMonthNumber');
@@ -2081,7 +2017,7 @@ $(document).on('click', '.btn-clear-file', function() {
                     id: id, 
                     selectedMonth: selectedMonth, 
                     selectedYear: selectedYear, 
-                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>' 
+                    csrf_token: CSRF_TOKEN
                 },
                 success: function(resp) {
                     if(resp.code === 0) {
@@ -2151,175 +2087,145 @@ $(document).on('click', '.btn-clear-file', function() {
             });
         });
 
-        // Di dalam event handler btnAssignPayheads
         $('#employees tbody').on('click', '.btnAssignPayheads', function() {
-    var id = $(this).data('id');
-    $('#empcode').val(id);
-    $('#all_payheads').empty();
-    $("#selected_payamount_table tbody").empty();
+            var id = $(this).data('id');
+            $('#empcode').val(id);
+            $('#all_payheads').empty();
+            $("#selected_payamount_table tbody").empty();
 
-    $.ajax({
-        type: "POST",
-        dataType: "json",
-        url: 'employees.php?ajax=1',
-        data: { 
-            case: 'ViewEmployeeDetail', 
-            id: id, 
-            csrf_token: CSRF_TOKEN 
-        },
-        success: function(result) {
-            if(result.code === 0) {
-                // 1) Berhasil dapat data detail anggota
-                var e = result.result;
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: 'employees.php?ajax=1',
+                data: { 
+                    case: 'ViewEmployeeDetail', 
+                    id: id, 
+                    csrf_token: CSRF_TOKEN 
+                },
+                success: function(result) {
+                    if(result.code === 0) {
+                        var e = result.result;
+                        $('#fieldAnggota').val(e.nama);
+                        $('#fieldRole').val(e.role);
+                        $('#fieldJobTitle').val(e.job_title);
 
-                // Tampilkan data ke modal
-                $('#fieldAnggota').val(e.nama);
-                $('#fieldRole').val(e.role);
-                $('#fieldJobTitle').val(e.job_title);
+                        var selMonth = localStorage.getItem('selectedMonthPayroll') || '';
+                        var selYear  = localStorage.getItem('selectedYearPayroll')  || '';
+                        $('#fieldPeriode').val(selMonth + " " + selYear);
+                        $('#fieldMasaKerja').val(e.masa_kerja);
+                        $('#inputIndexLevel').val(e.salary_index_level);
+                        $('#inputNoRek').val(e.no_rekening);
 
-                var selMonth = localStorage.getItem('selectedMonthPayroll') || '';
-                var selYear  = localStorage.getItem('selectedYearPayroll')  || '';
-                $('#fieldPeriode').val(selMonth + " " + selYear);
-                $('#fieldMasaKerja').val(e.masa_kerja);
-                $('#inputIndexLevel').val(e.salary_index_level);
-                $('#inputNoRek').val(e.no_rekening);
+                        var now = new Date();
+                        $('#inputTanggalPayroll').val(now.toISOString().slice(0,16));
+                        $('#inputDescription').val('');
 
-                // Set default Tanggal Payroll = sekarang
-                var now = new Date();
-                $('#inputTanggalPayroll').val(now.toISOString().slice(0,16));
-                $('#inputDescription').val('');
+                        $('#inputGajiPokok').val(e.gaji_pokok_val);
+                        let indexBaseFormatted = e.salary_index_base.toLocaleString('id-ID', { minimumFractionDigits: 2 });
+                        $('#inputIndexNominal').val(indexBaseFormatted);
 
-                // Set default Gaji Pokok & Indeks
-                $('#inputGajiPokok').val(e.gaji_pokok_val);
-                let indexBaseFormatted = e.salary_index_base.toLocaleString('id-ID', { minimumFractionDigits: 2 });
-                $('#inputIndexNominal').val(indexBaseFormatted);
+                        $('#inputTotalEarnings').val('Rp 0,00');
+                        $('#inputTotalDeductions').val('Rp 0,00');
+                        $('#inputNetSalary').val(
+                          'Rp ' + parseFloat(e.gaji_pokok_val).toLocaleString('id-ID', { minimumFractionDigits:2 })
+                        );
 
-                // Default payheads = 0
-                $('#inputTotalEarnings').val('Rp 0,00');
-                $('#inputTotalDeductions').val('Rp 0,00');
-                $('#inputNetSalary').val(
-                  'Rp ' + parseFloat(e.gaji_pokok_val).toLocaleString('id-ID', { minimumFractionDigits:2 })
-                );
+                        $.ajax({
+                            url: 'employees.php?ajax=1',
+                            type: 'POST',
+                            dataType: 'json',
+                            data: {
+                                case: 'ViewRekapAbsensi',
+                                id: id,
+                                selectedMonth: localStorage.getItem('selectedMonthNumber'),
+                                selectedYear: localStorage.getItem('selectedYearPayroll'),
+                                csrf_token: CSRF_TOKEN
+                            },
+                            success: function(resp) {
+                                if(resp.code === 0) {
+                                    var data = resp.result;
+                                    $("#rekap_total_hadir").text(data.total_hadir);
+                                    $("#rekap_total_izin").text(data.total_izin);
+                                    $("#rekap_total_cuti").text(data.total_cuti);
+                                    $("#rekap_total_tanpa_keterangan").text(data.total_tanpa_keterangan);
+                                    $("#rekap_total_sakit").text(data.total_sakit);
 
-                // 2) Ambil data rekap absensi
-                $.ajax({
-                    url: 'employees.php?ajax=1',
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        case: 'ViewRekapAbsensi',
-                        id: id,
-                        selectedMonth: localStorage.getItem('selectedMonthNumber'),
-                        selectedYear: localStorage.getItem('selectedYearPayroll'),
-                        csrf_token: CSRF_TOKEN
-                    },
-                    success: function(resp) {
-                        if(resp.code === 0) {
-                            // Sukses dapat rekap
-                            var data = resp.result;
-                            $("#rekap_total_hadir").text(data.total_hadir);
-                            $("#rekap_total_izin").text(data.total_izin);
-                            $("#rekap_total_cuti").text(data.total_cuti);
-                            $("#rekap_total_tanpa_keterangan").text(data.total_tanpa_keterangan);
-                            $("#rekap_total_sakit").text(data.total_sakit);
+                                    let potonganAbsensi = calcPotonganAbsensi(
+                                        e.role, 
+                                        data.total_izin,
+                                        data.total_cuti,
+                                        data.total_tanpa_keterangan,
+                                        data.total_sakit
+                                    );
+                                    window.potonganAbsensiGlobal = potonganAbsensi; 
+                                } else {
+                                    $("#rekap_total_hadir, #rekap_total_izin, #rekap_total_cuti, #rekap_total_tanpa_keterangan, #rekap_total_sakit").text("0");
+                                    window.potonganAbsensiGlobal = 0;
+                                }
+                                recalcPayheadsTotals();
+                            },
+                            error: function() {
+                                $("#rekap_total_hadir, #rekap_total_izin, #rekap_total_cuti, #rekap_total_tanpa_keterangan, #rekap_total_sakit").text("0");
+                                window.potonganAbsensiGlobal = 0;
+                                recalcPayheadsTotals();
+                            }
+                        });
 
-                            // 3) Hitung potongan absensi
-                            let potonganAbsensi = calcPotonganAbsensi(
-                                e.role, 
-                                data.total_izin,
-                                data.total_cuti,
-                                data.total_tanpa_keterangan,
-                                data.total_sakit
-                            );
-                            window.potonganAbsensiGlobal = potonganAbsensi; 
-                        } else {
-                            // Jika error, anggap rekap 0
-                            $("#rekap_total_hadir, #rekap_total_izin, #rekap_total_cuti, #rekap_total_tanpa_keterangan, #rekap_total_sakit").text("0");
-                            window.potonganAbsensiGlobal = 0;
-                        }
-
-                        // Setelah dapat potongan absensi, panggil recalc
-                        recalcPayheadsTotals();
-                    },
-                    error: function() {
-                        // Error rekap => anggap 0
-                        $("#rekap_total_hadir, #rekap_total_izin, #rekap_total_cuti, #rekap_total_tanpa_keterangan, #rekap_total_sakit").text("0");
-                        window.potonganAbsensiGlobal = 0;
-                        recalcPayheadsTotals();
+                        $.ajax({
+                            type: "POST",
+                            dataType: "json",
+                            url: 'employees.php?ajax=1',
+                            data: { case: 'GetAllPayheads', csrf_token: CSRF_TOKEN },
+                            success: function(allPayheadsResult) {
+                                if(allPayheadsResult.code === 0) {
+                                    var allPayheadsList = allPayheadsResult.result;
+                                    var assignedPayheads = e.payheads || [];
+                                    var assignedIds = assignedPayheads.map(function(ph) {
+                                        return parseInt(ph.id_payhead, 10);
+                                    });
+                                    var availablePayheads = allPayheadsList.filter(function(ph) {
+                                        return !assignedIds.includes(parseInt(ph.id, 10));
+                                    });
+                                    const availableDiv = $("#all_payheads");
+                                    availableDiv.empty();
+                                    availablePayheads.forEach(function(ph) {
+                                        const labelText = ph.nama_payhead + ' (' + ph.jenis_payhead_idn + ')';
+                                        const item = $(`
+                                          <div class="payhead-item d-flex align-items-center mb-1" 
+                                               data-id="${ph.id}" 
+                                               data-nominal="${ph.nominal}" 
+                                               data-type="${ph.jenis_payhead}">
+                                            <button type="button" class="btn btn-sm btn-primary btnAddPayhead me-2">
+                                              <i class="bi bi-plus"></i>
+                                            </button>
+                                            <span class="payhead-name ${ph.jenis_payhead === 'earnings' ? 'text-success' : 'text-danger'}">
+                                              ${labelText}
+                                            </span>
+                                          </div>
+                                        `);
+                                        availableDiv.append(item);
+                                    });
+                                    renderAssignedPayheads(assignedPayheads);
+                                    recalcPayheadsTotals();
+                                    $('#ManageModal').modal('show');
+                                } else {
+                                    showToast(allPayheadsResult.result, 'error');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                showToast('Terjadi kesalahan saat memuat semua payheads: ' + error, 'error');
+                            }
+                        });
+                    } else {
+                        showToast(result.result, 'error');
                     }
-                });
+                },
+                error: function() {
+                    showToast('Terjadi kesalahan saat load payheads.', 'error');
+                }
+            });
+        });
 
-                // 4) Ambil data payheads (untuk available & assigned)
-                $.ajax({
-                    type: "POST",
-                    dataType: "json",
-                    url: 'employees.php?ajax=1',
-                    data: { case: 'GetAllPayheads', csrf_token: CSRF_TOKEN },
-                    success: function(allPayheadsResult) {
-                        if(allPayheadsResult.code === 0) {
-                            var allPayheadsList = allPayheadsResult.result;
-                            var assignedPayheads = e.payheads || [];
-
-                            // Buat array ID payheads yang sudah di-assign
-                            var assignedIds = assignedPayheads.map(function(ph) {
-                                return parseInt(ph.id_payhead, 10);
-                            });
-
-                            // Filter payheads yang belum di-assign
-                            var availablePayheads = allPayheadsList.filter(function(ph) {
-                                return !assignedIds.includes(parseInt(ph.id, 10));
-                            });
-
-                            // 5) Render payheads available
-                            const availableDiv = $("#all_payheads");
-                            availableDiv.empty();
-                            availablePayheads.forEach(function(ph) {
-                                const labelText = ph.nama_payhead + ' (' + ph.jenis_payhead_idn + ')';
-                                const item = $(`
-                                  <div class="payhead-item d-flex align-items-center mb-1" 
-                                       data-id="${ph.id}" 
-                                       data-nominal="${ph.nominal}" 
-                                       data-type="${ph.jenis_payhead}">
-                                    <button type="button" class="btn btn-sm btn-primary btnAddPayhead me-2">
-                                      <i class="bi bi-plus"></i>
-                                    </button>
-                                    <span class="payhead-name ${ph.jenis_payhead === 'earnings' ? 'text-success' : 'text-danger'}">
-                                      ${labelText}
-                                    </span>
-                                  </div>
-                                `);
-                                availableDiv.append(item);
-                            });
-
-                            // 6) Render payheads assigned
-                            renderAssignedPayheads(assignedPayheads);
-
-                            // Recalc lagi supaya net salary update
-                            recalcPayheadsTotals();
-
-                            // Tampilkan modal
-                            $('#ManageModal').modal('show');
-                        } else {
-                            showToast(allPayheadsResult.result, 'error');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        showToast('Terjadi kesalahan saat memuat semua payheads: ' + error, 'error');
-                    }
-                });
-            } else {
-                // Gagal ViewEmployeeDetail
-                showToast(result.result, 'error');
-            }
-        },
-        error: function() {
-            showToast('Terjadi kesalahan saat load payheads.', 'error');
-        }
-    });
-});
-
-
-        // Submit form assign payheads
         $('#assign-payhead-form').on('submit', function(e){
             e.preventDefault();
             var form = $(this);
@@ -2386,7 +2292,6 @@ $(document).on('click', '.btn-clear-file', function() {
             });
         });
 
-        // Fungsi penyimpanan payheads ke draft dengan callback
         function savePayheads(callback) {
             var form = $('#assign-payhead-form');
             var payHeads = [];
@@ -2455,7 +2360,6 @@ $(document).on('click', '.btn-clear-file', function() {
             });
         }
 
-        // Tombol Proses Payroll
         function callProcessPayroll(empcode, selectedMonth, selectedYear) {
             $.ajax({
                 url: 'employees.php?ajax=1',
@@ -2512,7 +2416,6 @@ $(document).on('click', '.btn-clear-file', function() {
             });
         });
 
-        // Pemilihan Bulan (Calendar)
         $(document).on('click', '.month-link', function(e) {
             e.preventDefault();
             var monthNumber = $(this).data('month-number');
@@ -2537,8 +2440,8 @@ $(document).on('click', '.btn-clear-file', function() {
                         csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                     },
                     success: function(resp) {
-                        if (resp.code === 0) {
-                            if (resp.result.complete === false) {
+                        if(resp.code === 0) {
+                            if(resp.result.complete === false) {
                                 var messages = resp.result.messages;
                                 var messageText = messages.join("<br>");
                                 Swal.fire({
@@ -2549,7 +2452,7 @@ $(document).on('click', '.btn-clear-file', function() {
                                     confirmButtonText: 'Ya, pilih bulan ini',
                                     cancelButtonText: 'Batal'
                                 }).then((result) => {
-                                    if (result.isConfirmed) {
+                                    if(result.isConfirmed) {
                                         simpanPilihanBulan(monthNumber, monthName, year);
                                     }
                                 });
@@ -2581,7 +2484,6 @@ $(document).on('click', '.btn-clear-file', function() {
         }
     });
     </script>
-
 </body>
 </html>
 <?php

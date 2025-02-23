@@ -343,7 +343,7 @@ $gajiBulananBersih_json = json_encode($gajiBulananBersih, JSON_UNESCAPED_SLASHES
                             <div class="card border-left-warning shadow h-100 py-2"
                                  data-bs-toggle="popover" data-bs-trigger="hover" data-bs-html="true"
                                  title="Detail Anggota Sekolah"
-                                 data-bs-content="Guru: <?= $guruAll ?>, Karyawan: <?= $karyawanAll ?>">
+                                 data-bs-content="Guru: <?= $teacher_count ?>, Karyawan: <?= $employee_count ?>">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col me-2 text-start">
