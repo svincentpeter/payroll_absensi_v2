@@ -130,7 +130,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         <?php
         // Menu Kelola Sistem
         $kelolaSistemItems = [
-            'Kelola User' => '/payroll/superadmin/kelola_user.php',
+            'Backup Database' => '/payroll/superadmin/backup_database.php',
             'Audit Logs'  => '/payroll/superadmin/logs.php'
         ];
         renderCollapseMenu('collapseKelolaSistem', 'fas fa-user-shield fa-fw', 'Kelola Sistem', $kelolaSistemItems);

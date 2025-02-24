@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 18, 2025 at 03:55 AM
+-- Generation Time: Feb 24, 2025 at 08:39 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -121,7 +121,8 @@ CREATE TABLE `employee_payheads` (
   `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
   `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft',
   `remarks` text DEFAULT NULL,
-  `support_doc_path` varchar(255) DEFAULT NULL
+  `support_doc_path` varchar(255) DEFAULT NULL,
+  `upload_file_blob` mediumblob DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -153,12 +154,30 @@ CREATE TABLE `holidays` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `jadwal_piket`
+--
+
+CREATE TABLE `jadwal_piket` (
+  `id_jadwal` int(11) NOT NULL,
+  `nip` varchar(20) NOT NULL,
+  `nama_guru` varchar(100) NOT NULL,
+  `waktu_piket` varchar(50) NOT NULL,
+  `tanggal` date NOT NULL,
+  `bulan` varchar(20) NOT NULL,
+  `tahun` int(11) NOT NULL,
+  `status` enum('pending','hadir','tidak hadir') NOT NULL DEFAULT 'pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `notifications`
 --
 
 CREATE TABLE `notifications` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
+  `role_target` enum('keuangan','superadmin','sdm','all') NOT NULL DEFAULT 'all',
   `message` text NOT NULL,
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -253,6 +272,24 @@ CREATE TABLE `pengajuan_ijin` (
   `tipe_ijin` enum('Sakit','Cuti Biasa','Ijin Lainnya') NOT NULL,
   `status_kepalasekolah` enum('Diterima','Pending','Ditolak') NOT NULL DEFAULT 'Pending',
   `status` enum('Diterima','Pending','Ditolak') DEFAULT 'Pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `permintaan_tukar_jadwal`
+--
+
+CREATE TABLE `permintaan_tukar_jadwal` (
+  `id` int(11) NOT NULL,
+  `id_jadwal_pengaju` int(11) NOT NULL,
+  `id_jadwal_tujuan` int(11) DEFAULT NULL,
+  `status` enum('Pending','Diterima','Ditolak') DEFAULT 'Pending',
+  `tanggal_permintaan` timestamp NOT NULL DEFAULT current_timestamp(),
+  `nip_tujuan` varchar(20) DEFAULT NULL,
+  `nip_pengaju` varchar(20) NOT NULL,
+  `nama_pengaju` varchar(100) NOT NULL,
+  `tanggal_piket` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------

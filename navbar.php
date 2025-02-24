@@ -21,13 +21,18 @@ if (empty($foto)) {
     $foto = '/assets/img/undraw_profile.svg';
 }
 
-// ----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------
 // 1. NOTIFIKASI untuk SDM/Superadmin: 
-//    Hitung anggota belum final di payroll_final
-// ----------------------------------------------------------------------
-$sdmNotification = ""; 
-$sdmCount        = 0; // Penanda notifikasi sdm
+//    - Hitung anggota belum final di `payroll_final` (sdmNotification)
+//    - Hitung pengajuan ijin "status_kepalasekolah = 'Diterima' AND status = 'Pending'"
+// ------------------------------------------------------------------------------------
+$sdmNotification   = "";  // notifikasi payroll (sdm)
+$sdmCount          = 0;   // penanda notifikasi payroll sdm
+$ijinNotification  = "";  // notifikasi pengajuan ijin
+$ijinCount         = 0;   // penanda notifikasi ijin
+
 if (in_array($role, ['sdm','superadmin'])) {
+    // --------- Cek payroll final (mirip contoh sebelumnya) ---------
     $currentDay   = (int) date('d');
     $currentMonth = (int) date('n');
     $currentYear  = (int) date('Y');
@@ -67,21 +72,44 @@ if (in_array($role, ['sdm','superadmin'])) {
         if ($pendingSdm > 0) {
             $monthName = getIndonesianMonthName($targetMonth);
             $sdmNotification = "Payroll Bulan {$monthName} Terdapat {$pendingSdm} Anggota Belum Dibayar";
-            $sdmCount = 1;  // Kita jadikan "1 notifikasi"
+            $sdmCount = 1;
         }
     } else {
-        error_log("Gagal menyiapkan statement notifikasi sdm: " . $conn->error);
+        error_log("Gagal statement notifikasi sdm: " . $conn->error);
+    }
+
+    // --------- Cek pengajuan ijin baru (status_kepalasekolah='Diterima' & status='Pending') ---------
+    $sqlIjin = "
+        SELECT COUNT(*) AS jml
+        FROM pengajuan_ijin
+        WHERE status_kepalasekolah = 'Diterima'
+          AND status = 'Pending'
+    ";
+    $stmtIjin = $conn->prepare($sqlIjin);
+    if ($stmtIjin) {
+        $stmtIjin->execute();
+        $resIjin = $stmtIjin->get_result();
+        $rowIjin = $resIjin->fetch_assoc();
+        $countIjin = intval($rowIjin['jml'] ?? 0);
+        $stmtIjin->close();
+
+        if ($countIjin > 0) {
+            $ijinNotification = "Terdapat {$countIjin} Pengajuan Izin Baru (Menunggu SDM)";
+            $ijinCount = 1;
+        }
+    } else {
+        error_log("Gagal statement notifikasi ijin SDM: " . $conn->error);
     }
 }
 
-// ----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------
 // 2. NOTIFIKASI untuk Keuangan/Superadmin:
-//    Hitung data payroll status 'draft' yang belum final di payroll_final
-// ----------------------------------------------------------------------
+//    - Hitung data payroll status 'draft' yang belum final di payroll_final
+// ------------------------------------------------------------------------------------
 $keuNotification = "";
 $keuCount        = 0;
+
 if (in_array($role, ['keuangan','superadmin'])) {
-    // Contoh: ambil periode bulan/tahun sekarang
     $thisMonth = (int) date('n');
     $thisYear  = (int) date('Y');
 
@@ -109,7 +137,7 @@ if (in_array($role, ['keuangan','superadmin'])) {
 
         if ($pendingKeu > 0) {
             $monthName = getIndonesianMonthName($thisMonth);
-            $keuNotification = "Payroll Bulan {$monthName} (Status Draft) Terdapat {$pendingKeu} Anggota Belum Final";
+            $keuNotification = "Payroll Bulan {$monthName} (Draft) Terdapat {$pendingKeu} Anggota Belum Final";
             $keuCount = 1; 
         }
     } else {
@@ -117,16 +145,14 @@ if (in_array($role, ['keuangan','superadmin'])) {
     }
 }
 
-// ----------------------------------------------------------------------
-// 3. Total Alerts = sdmCount + keuCount
-// ----------------------------------------------------------------------
-$totalAlerts = $sdmCount + $keuCount;
+// ------------------------------------------------------------------------------------
+// 3. Total Alerts = sdmCount + ijinCount + keuCount
+// ------------------------------------------------------------------------------------
+$totalAlerts = $sdmCount + $ijinCount + $keuCount;
 
-// Fungsi helper untuk menampilkan badge notifikasi
+// Helper untuk menampilkan badge
 function formatBadge($count) {
     if ($count < 1) return "";
-    // Jika count = 1, tampil "1"
-    // Jika count > 1, tampil "2+", "3+", dsb.
     return ($count === 1) ? "1" : ($count . "+");
 }
 ?>
@@ -188,7 +214,6 @@ function formatBadge($count) {
                
                 <i class="fas fa-bell fa-fw"></i>
                 <?php if ($totalAlerts > 0): ?>
-                    <!-- Tampilkan badge dengan format 1 atau 2+ -->
                     <span class="badge badge-danger badge-counter">
                         <?= formatBadge($totalAlerts); ?>
                     </span>
@@ -197,11 +222,9 @@ function formatBadge($count) {
             <!-- Dropdown - Alerts -->
             <div class="dropdown-list dropdown-menu dropdown-menu-end shadow animated--grow-in"
                  aria-labelledby="alertsDropdown">
-                <h6 class="dropdown-header">
-                    Alerts Center
-                </h6>
+                <h6 class="dropdown-header">Alerts Center</h6>
 
-                <!-- Notifikasi SDM -->
+                <!-- Notifikasi Payroll SDM -->
                 <?php if (!empty($sdmNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -213,6 +236,23 @@ function formatBadge($count) {
                             <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
                             <span class="font-weight-bold">
                                 <?= htmlspecialchars($sdmNotification); ?>
+                            </span>
+                        </div>
+                    </a>
+                <?php endif; ?>
+
+                <!-- Notifikasi Izin Baru (SDM) -->
+                <?php if (!empty($ijinNotification)): ?>
+                    <a class="dropdown-item d-flex align-items-center" href="#">
+                        <div class="me-3">
+                            <div class="icon-circle bg-success">
+                                <i class="fas fa-envelope text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
+                            <span class="font-weight-bold">
+                                <?= htmlspecialchars($ijinNotification); ?>
                             </span>
                         </div>
                     </a>
@@ -235,8 +275,8 @@ function formatBadge($count) {
                     </a>
                 <?php endif; ?>
 
-                <?php if (empty($sdmNotification) && empty($keuNotification)): ?>
-                    <!-- Jika tidak ada notifikasi -->
+                <!-- Jika tidak ada notifikasi sama sekali -->
+                <?php if (empty($sdmNotification) && empty($keuNotification) && empty($ijinNotification)): ?>
                     <a class="dropdown-item text-center small text-gray-500" href="#">
                         No alerts available
                     </a>

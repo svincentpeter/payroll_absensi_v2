@@ -959,14 +959,9 @@ if ($resMon) {
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
-                <?php include __DIR__ . '/../../navbar.php'; ?>
+            <?php include __DIR__ . '/../../navbar.php'; ?>
+            <?php include __DIR__ . '/../../breadcrumb.php'; ?>
                 <div class="container-fluid">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="/payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php">Home</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Payroll Anggota</li>
-                        </ol>
-                    </nav>
                     <div id="selectedMonthDisplay" class="mb-3">
                         <div class="card mb-3">
                             <div class="card-body d-flex align-items-center">
