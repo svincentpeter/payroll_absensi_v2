@@ -53,13 +53,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 }
 
 // ==============================================================================
-// 3. Fungsi-Fungsi AJAX CRUD (tidak diubah kecuali menyesuaikan tampilan)
+// 3. Fungsi-Fungsi AJAX CRUD (tidak diubah)
 // ==============================================================================
 function LoadingGuru($conn) {
-    // Ambil parameter pagination manual
+    $draw          = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start         = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length        = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    // Jika ada fitur search (opsional), sementara kita abaikan atau sesuaikan
     $search        = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
     $jenjangFilter = isset($_POST['jenjang']) ? bersihkan_input($_POST['jenjang']) : '';
     $roleFilter    = isset($_POST['role']) ? bersihkan_input($_POST['role']) : '';
@@ -85,8 +84,32 @@ function LoadingGuru($conn) {
     if (!empty($statusFilter)) {
         $sql .= " AND status_kerja = '$statusFilter'";
     }
-    // Urutan default: ID DESC
-    $sql .= " ORDER BY id DESC";
+
+    // Mapping indeks kolom DataTables ke nama kolom database
+    $columns = [
+        0 => 'id',
+        1 => 'uid',
+        2 => 'nip',
+        3 => 'nama',
+        4 => 'jenjang',
+        5 => 'job_title',
+        6 => 'role',
+        7 => 'status_kerja',
+        8 => 'masa_kerja_tahun',
+        9 => 'pendidikan',
+        10 => 'email',
+        11 => 'no_hp'
+    ];
+
+    // Tangkap parameter sorting dari DataTables
+    if (isset($_POST['order']) && count($_POST['order'])) {
+        $orderColIndex = intval($_POST['order'][0]['column']);
+        $orderDir = $_POST['order'][0]['dir'] === 'asc' ? 'ASC' : 'DESC';
+        $orderCol = isset($columns[$orderColIndex]) ? $columns[$orderColIndex] : 'id';
+        $sql .= " ORDER BY $orderCol $orderDir";
+    } else {
+        $sql .= " ORDER BY id DESC";
+    }
 
     // Batasi jumlah data yang ditampilkan
     $sql .= " LIMIT $start, $length";
@@ -94,27 +117,46 @@ function LoadingGuru($conn) {
     $result = mysqli_query($conn, $sql);
     $data = [];
     while ($row = mysqli_fetch_assoc($result)) {
-        // Simpan data minimal yang kita butuhkan di front-end
+        // Buat dropdown aksi dengan tiga titik vertikal
+        $aksi = '
+        <div class="dropdown">
+          <button class="btn btn-sm" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-three-dots-vertical"></i>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
+            <li><a class="dropdown-item btn-view" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+              <i class="fas fa-eye"></i> View Detail
+            </a></li>
+            <li><a class="dropdown-item btn-edit" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+              <i class="fas fa-pencil-alt"></i> Edit
+            </a></li>
+            <li><a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+              <i class="fas fa-trash-alt"></i> Hapus
+            </a></li>
+          </ul>
+        </div>';
+
         $data[] = [
             "id"           => $row['id'],
             "uid"          => htmlspecialchars($row['uid']),
             "nip"          => htmlspecialchars($row['nip']),
             "nama"         => htmlspecialchars($row['nama']),
-            "jenjang"      => $row['jenjang'],
+            "jenjang"      => getBadgeJenjang($row['jenjang']),
             "job_title"    => htmlspecialchars($row['job_title']),
-            "role"         => $row['role'],
-            "status_kerja" => $row['status_kerja'],
+            "role"         => getBadgeRole($row['role']),
+            "status_kerja" => getBadgeStatusKerja($row['status_kerja']),
             "masa_kerja"   => $row['masa_kerja_tahun'] . " Thn " . $row['masa_kerja_bulan'] . " Bln",
             "pendidikan"   => htmlspecialchars($row['pendidikan']),
             "email"        => htmlspecialchars($row['email']),
             "no_hp"        => htmlspecialchars($row['no_hp']),
-            "foto_profil"  => getProfilePhotoUrl($row['nama'], $row['jenjang'], $row['role'], $row['id'])
+            "aksi"         => $aksi
         ];
     }
 
-    // Kembalikan data JSON
     echo json_encode([
+        "draw"            => $draw,
         "recordsTotal"    => $recordsTotal,
+        "recordsFiltered" => $recordsTotal, // Untuk filter lebih akurat, Anda dapat menjalankan query COUNT tambahan
         "data"            => $data
     ], JSON_UNESCAPED_UNICODE);
     exit();
@@ -191,8 +233,7 @@ function CreateGuru($conn) {
         usia, agama, alamat_domisili, alamat_ktp, no_rekening, no_hp,
         pendidikan, status_perkawinan, email, nama_pasangan, jumlah_anak,
         salary_index_id, gaji_pokok, role
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, '', ?, ?, ?, ?, ?, ?, ?, ?,
-        '', '', ?, ?, ?, ?, ?, ?)";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, '', ?, ?, ?, ?, ?, ?, ?, ?, '', '', ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         send_response(1, 'Terjadi kesalahan query: ' . $conn->error);
@@ -250,7 +291,7 @@ function GetGuruDetail($conn) {
     if ($result && $result->num_rows == 1) {
         $data = $result->fetch_assoc();
         unset($data['password']);
-        // Sesuaikan field
+        // Sesuaikan field jika perlu
         $data['religion'] = $data['agama'];
         $data['jk'] = $data['jenis_kelamin'];
         $stmt->close();
@@ -549,60 +590,24 @@ function getGajiPokokByRole($conn, $role) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- SB Admin 2 CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
-    <!-- (Opsional) DataTables CSS - Bisa dihapus jika tidak lagi digunakan 
+    <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.bootstrap4.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap4.min.css" rel="stylesheet">
-    -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        body, .text-gray-800 {
-            color: #000 !important;
-        }
-        .card-header {
-            background: linear-gradient(45deg, #0d47a1, #42a5f5);
-            color: white;
-        }
-        #loadingSpinner {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            height: 100px;
-            width: 100px;
-            margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
-        }
+        body, .text-gray-800 { color: #000 !important; }
+        #guruTable th, #guruTable td { vertical-align: middle; white-space: nowrap; }
+        .table-responsive { overflow-x: auto; }
+        .card-header { background: linear-gradient(45deg, #0d47a1, #42a5f5); color: white; }
+        #loadingSpinner { display: none; position: fixed; z-index: 9999; height: 100px; width: 100px; margin: auto; top: 0; left: 0; bottom: 0; right: 0; }
+        .invisible-field { display: none; }
         /* Styling khusus untuk modal Manage (misalnya, atur gaji) */
         #ManageModal .modal-dialog {
             max-width: 1000px;
             margin: auto;
             padding-top: 70px;
             color: #000 !important;
-        }
-
-        /* Styling card */
-        .employee-initial {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #ff9800;
-            color: #fff;
-            font-size: 24px;
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            margin: 0 auto 10px auto;
-        }
-
-        /* (Contoh) Biar terlihat rapih: 5 kolom di layar besar, 1-2 kolom di layar kecil */
-        #employeeCards {
-            margin-top: 20px;
-        }
-        #employeeCards .col {
-            display: flex;
-        }
-        #employeeCards .card {
-            flex: 1; 
         }
     </style>
 </head>
@@ -631,9 +636,9 @@ function getGajiPokokByRole($conn, $role) {
                             <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
                         </button>
                         <button class="btn btn-info mb-2 ms-2" id="btnManageSalaryIndices" data-href="/payroll_absensi_v2/absensi/sdm/manage_salary_indices.php">
-                            <i class="fas fa-money-bill-wave"></i> Atur Salary Indeks
-                        </button>
-                        <button class="btn btn-warning mb-2 ms-2" id="btnManageHolidays" data-href="/payroll_absensi_v2/absensi/sdm/holidays.php">
+        <i class="fas fa-money-bill-wave"></i> Atur Salary Indeks
+    </button>
+    <button class="btn btn-warning mb-2 ms-2" id="btnManageHolidays" data-href="/payroll_absensi_v2/absensi/sdm/holidays.php">
                             <i class="fas fa-calendar-alt"></i> Atur Hari Libur
                         </button>
                     </div>
@@ -647,7 +652,6 @@ function getGajiPokokByRole($conn, $role) {
                                 <select class="form-control me-2" id="filterJenjang" name="jenjang">
                                     <option value="">Semua Jenjang</option>
                                     <?php
-                                    // Buat filter jenjang dari DB
                                     $sqlJenjang = "SELECT DISTINCT jenjang FROM anggota_sekolah ORDER BY jenjang ASC";
                                     $resJ = $conn->query($sqlJenjang);
                                     if ($resJ && $resJ->num_rows > 0) {
@@ -661,15 +665,15 @@ function getGajiPokokByRole($conn, $role) {
                                 <label class="me-2" for="filterRole">Role:</label>
                                 <select class="form-control me-2" id="filterRole" name="role">
                                     <option value="">Semua Role</option>
-                                    <option value="P"  <?= (isset($_GET['role']) && $_GET['role'] === 'P') ? 'selected' : ''; ?>>Pendidik</option>
-                                    <option value="TK" <?= (isset($_GET['role']) && $_GET['role'] === 'TK') ? 'selected' : ''; ?>>Tenaga Kependidikan</option>
-                                    <option value="M"  <?= (isset($_GET['role']) && $_GET['role'] === 'M') ? 'selected' : ''; ?>>Manajerial</option>
+                                    <option value="P" <?php echo (isset($_GET['role']) && $_GET['role'] === 'P') ? 'selected' : ''; ?>>Pendidik</option>
+                                    <option value="TK" <?php echo (isset($_GET['role']) && $_GET['role'] === 'TK') ? 'selected' : ''; ?>>Tenaga Kependidikan</option>
+                                    <option value="M" <?php echo (isset($_GET['role']) && $_GET['role'] === 'M') ? 'selected' : ''; ?>>Manajerial</option>
                                 </select>
                                 <label class="me-2" for="filterStatus">Status Kerja:</label>
                                 <select class="form-control me-2" id="filterStatus" name="status_kerja">
                                     <option value="">Semua Status</option>
-                                    <option value="Tetap"   <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Tetap') ? 'selected' : ''; ?>>Tetap</option>
-                                    <option value="Kontrak" <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Kontrak') ? 'selected' : ''; ?>>Kontrak</option>
+                                    <option value="Tetap" <?php echo (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Tetap') ? 'selected' : ''; ?>>Tetap</option>
+                                    <option value="Kontrak" <?php echo (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Kontrak') ? 'selected' : ''; ?>>Kontrak</option>
                                 </select>
                                 <button type="button" id="btnApplyFilter" class="btn btn-primary me-2">
                                     <i class="fas fa-filter"></i> Terapkan
@@ -681,26 +685,36 @@ function getGajiPokokByRole($conn, $role) {
                         </div>
                     </div>
 
-                    <!-- Daftar Karyawan/Guru dalam Grid (5 kolom) -->
+                    <!-- Tabel Data Guru/Karyawan -->
                     <div class="card shadow mb-4">
-                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <div class="card-header py-3">
                             <h6 class="m-0 fw-bold text-white">
-                                <i class="fas fa-user"></i> Daftar Guru/Karyawan
+                                <i class="fas fa-table"></i> Daftar Guru/Karyawan
                             </h6>
                         </div>
                         <div class="card-body">
-                            <!-- Grid Card Container -->
-                            <div id="employeeCards" 
-                                 class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3">
-                                <!-- Kartu-kartu akan di-generate via AJAX loadGuru() -->
+                            <div class="table-responsive">
+                                <table id="guruTable" class="table table-sm table-bordered table-striped display nowrap text-dark" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>UID</th>
+                                            <th>NIP</th>
+                                            <th>Nama</th>
+                                            <th>Jenjang</th>
+                                            <th>Job Title</th>
+                                            <th>Role</th>
+                                            <th>Status Kerja</th>
+                                            <th>Masa Kerja</th>
+                                            <th>Pendidikan</th>
+                                            <th>Email</th>
+                                            <th>No HP</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
                             </div>
-
-                            <!-- Pagination Container -->
-                            <nav class="mt-4">
-                                <ul class="pagination justify-content-center" id="paginationContainer">
-                                    <!-- Pagination link akan di-generate via JS -->
-                                </ul>
-                            </nav>
                         </div>
                     </div>
 
@@ -1420,10 +1434,10 @@ function getGajiPokokByRole($conn, $role) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- SB Admin 2 JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
-
-    <!-- (Opsional) DataTables JS - Bisa dihapus jika tidak lagi digunakan
+    <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap4.min.js"></script>
+    <!-- DataTables Buttons & Responsive Plugins -->
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.bootstrap4.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
@@ -1434,11 +1448,9 @@ function getGajiPokokByRole($conn, $role) {
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.colVis.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap4.min.js"></script>
-    -->
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    // SweetAlert2 Toast
+    // Inisialisasi SweetAlert2 Toast
     const Toast = Swal.mixin({
         toast: true,
         position: 'top-end',
@@ -1456,8 +1468,6 @@ function getGajiPokokByRole($conn, $role) {
             title: message
         });
     }
-
-    // Bikin helper untuk status_kerja
     function getStatusBadge(status) {
         let s = (status || '').toLowerCase();
         if (s === 'tetap') {
@@ -1468,131 +1478,134 @@ function getGajiPokokByRole($conn, $role) {
             return '<span class="badge bg-secondary">' + (status || '') + '</span>';
         }
     }
-
     $(document).ready(function() {
-        // --- Inisialisasi parameter pagination manual ---
-        let currentPage = 1;
-        let pageSize    = 10;  // Berapa data per halaman
-
-        // Panggil pertama kali
-        loadGuru(1);
-
-        // Filter
-        $('#btnApplyFilter').on('click', function(){
-            loadGuru(1); // Reset ke halaman 1
-        });
-        $('#btnResetFilter').on('click', function(){
-            $('#filterForm')[0].reset();
-            loadGuru(1);
-        });
-
-        // Fungsi utama load data guru/karyawan
-        function loadGuru(page) {
-            currentPage = page;
-            let start = (currentPage - 1) * pageSize;
-
-            $.ajax({
+        var guruTable = $('#guruTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: {
-                    case: 'LoadingGuru',
-                    start: start,
-                    length: pageSize,
-                    jenjang: $('#filterJenjang').val(),
-                    role: $('#filterRole').val(),
-                    status_kerja: $('#filterStatus').val(),
-                    csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
+                data: function(d) {
+                    d.case = 'LoadingGuru';
+                    d.jenjang = $('#filterJenjang').val();
+                    d.role = $('#filterRole').val();
+                    d.status_kerja = $('#filterStatus').val();
+                    d.csrf_token = "<?= htmlspecialchars($csrf_token); ?>";
                 },
-                dataType: "json",
                 beforeSend: function(){
                     $('#loadingSpinner').show();
                 },
-                success: function(res) {
+                complete: function(){
                     $('#loadingSpinner').hide();
-                    if (res.data) {
-                        generateCards(res.data);
-                        generatePagination(res.recordsTotal);
-                    } else {
-                        showToast('Data kosong atau gagal di-load.', 'warning');
-                        $('#employeeCards').empty();
-                        $('#paginationContainer').empty();
-                    }
                 },
-                error: function() {
-                    $('#loadingSpinner').hide();
+                error: function(){
                     showToast('Terjadi kesalahan saat memuat data.', 'error');
                 }
-            });
-        }
-
-        function generateCards(data) {
-  let container = $('#employeeCards');
-  container.empty();
-
-  data.forEach(item => {
-      // Jika foto_profil kosong, pakai default.
-      let photoUrl = (item.foto_profil && item.foto_profil !== '')
-    ? item.foto_profil
-    : '<?= BASE_URL ?>/assets/img/undraw_profile.svg';
-
-
-      let cardHtml = `
-        <div class="col">
-          <div class="card shadow-sm text-center p-3 h-100">
-
-            <!-- Ganti lingkaran oranye jadi <img> foto profil -->
-            <img src="${photoUrl}"
-                 alt="Foto Profil"
-                 class="rounded-circle mb-2"
-                 style="width: 60px; height: 60px; object-fit: cover; margin: 0 auto;">
-
-            <h6 class="mb-0">${item.nama}</h6>
-            <p class="text-muted" style="font-size:0.9rem;">NIP: ${item.nip}</p>
-            <p style="font-size:0.85rem;">
-              Role: ${item.role} |
-              ${getStatusBadge(item.status_kerja)}
-            </p>
-
-            <!-- Tombol Aksi -->
-            <div class="d-grid gap-2">
-              <button class="btn btn-sm btn-primary btn-view" data-id="${item.id}">
-                <i class="fas fa-eye"></i> Detail
-              </button>
-              <button class="btn btn-sm btn-warning btn-edit" data-id="${item.id}">
-                <i class="fas fa-pencil-alt"></i> Edit
-              </button>
-              <button class="btn btn-sm btn-danger btn-delete" data-id="${item.id}">
-                <i class="fas fa-trash-alt"></i> Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      container.append(cardHtml);
-  });
-}
-
-
-        function generatePagination(totalRecords) {
-            let totalPages = Math.ceil(totalRecords / pageSize);
-            let pagination = $('#paginationContainer');
-            pagination.empty();
-
-            for (let i = 1; i <= totalPages; i++) {
-                let li = $('<li>').addClass('page-item').append(
-                    $('<a>').addClass('page-link').text(i).attr('href', '#').on('click', function(e){
-                        e.preventDefault();
-                        loadGuru(i);
-                    })
-                );
-                if (i === currentPage) {
-                    li.addClass('active');
+            },
+            columns: [
+                { data: "id" },
+                { data: "uid" },
+                { data: "nip" },
+                { data: "nama" },
+                { data: "jenjang" },
+                { data: "job_title" },
+                { data: "role" },
+                { data: "status_kerja" },
+                { data: "masa_kerja" },
+                { data: "pendidikan" },
+                { data: "email" },
+                { data: "no_hp" },
+                { data: "aksi", orderable: false }
+            ],
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
+            },
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'excelHtml5',
+                    text: '<i class="fas fa-file-excel"></i> Export Excel',
+                    className: 'btn btn-success btn-sm',
+                    exportOptions: { columns: ':not(:last-child)' }
+                },
+                {
+                    extend: 'pdfHtml5',
+                    text: '<i class="fas fa-file-pdf"></i> Export PDF',
+                    className: 'btn btn-danger btn-sm',
+                    exportOptions: { columns: ':not(:last-child)' },
+                    customize: function (doc) {
+                        doc.styles.tableHeader.fillColor = '#343a40';
+                        doc.styles.tableHeader.color = 'white';
+                        doc.defaultStyle.fontSize = 10;
+                    }
+                },
+                {
+                    extend: 'print',
+                    text: '<i class="fas fa-print"></i> Print',
+                    className: 'btn btn-info btn-sm',
+                    exportOptions: { columns: ':not(:last-child)' }
+                },
+                {
+                    extend: 'colvis',
+                    text: '<i class="fas fa-columns"></i> Kolom',
+                    className: 'btn btn-warning btn-sm'
                 }
-                pagination.append(li);
-            }
-        }
+            ],
+            responsive: true,
+            autoWidth: false
+        });
 
-        // =========== FUNGSI VIEW, EDIT, DELETE SAMA =============
+        $('#btnApplyFilter').on('click', function(){
+            guruTable.ajax.reload();
+            showToast('Filter diterapkan.');
+        });
+
+        $('#btnResetFilter').on('click', function(){
+            $('#filterForm')[0].reset();
+            guruTable.ajax.reload();
+            showToast('Filter direset.');
+        });
+
+        // Form Create Guru/Karyawan
+        $('#add-guru-form').on('submit', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                form.addClass('was-validated');
+                return;
+            }
+            var formData = form.serialize();
+            $.ajax({
+                url: "manage_guru_karyawan.php?ajax=1",
+                type: "POST",
+                data: formData,
+                dataType: "json",
+                beforeSend: function(){
+                    form.find('button[type="submit"]').prop('disabled', true);
+                    form.find('.spinner-border').removeClass('d-none');
+                },
+                success: function(response){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    if(response.code == 0) {
+                        showToast(response.result);
+                        $('#modalAdd').modal('hide');
+                        guruTable.ajax.reload(null, false);
+                        form[0].reset();
+                        form.removeClass('was-validated');
+                    } else {
+                        showToast(response.result, 'error');
+                    }
+                },
+                error: function(){
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    showToast('Terjadi kesalahan saat menambah data.', 'error');
+                }
+            });
+        });
+
         // View Detail
         $(document).on('click', '.btn-view', function() {
             var id = $(this).data('id');
@@ -1607,7 +1620,6 @@ function getGajiPokokByRole($conn, $role) {
                 success: function(response) {
                     $('#loadingSpinner').hide();
                     if(response.code == 0) {
-                        // Tampilkan ke modal #modalView
                         $('#detailNip').text(response.result.nip);
                         $('#detailUid').text(response.result.uid);
                         $('#detailNama').text(response.result.nama);
@@ -1666,7 +1678,6 @@ function getGajiPokokByRole($conn, $role) {
                 success: function(response) {
                     $('#loadingSpinner').hide();
                     if(response.code == 0) {
-                        // Isi form modal Edit
                         $('#editId').val(response.result.id);
                         $('#editNip').val(response.result.nip);
                         $('#editUid').val(response.result.uid);
@@ -1687,7 +1698,6 @@ function getGajiPokokByRole($conn, $role) {
                         $('#editJumlahAnak').val(response.result.jumlah_anak || 0);
                         $('#editSalaryIndex').val(response.result.salary_index_id || 0);
                         $('#editRole').val(response.result.role || '');
-
                         modal.modal('show');
                     } else {
                         showToast(response.result, 'error');
@@ -1704,8 +1714,7 @@ function getGajiPokokByRole($conn, $role) {
         $(document).on('click', '.btn-delete', function() {
             var id = $(this).data('id');
             $('#delId').val(id);
-            // Kalau mau ambil nama, kita bisa ambil direct di card tapi di sini contohnya minimal
-            $('#delNama').text('ID: ' + id);
+            $('#delNama').text($(this).closest('tr').find('td:eq(3)').text());
             $('#modalDelete').modal('show');
         });
 
@@ -1732,7 +1741,7 @@ function getGajiPokokByRole($conn, $role) {
                     if(response.code == 0) {
                         showToast(response.result);
                         $('#modalDelete').modal('hide');
-                        loadGuru(currentPage); // Reload data
+                        guruTable.ajax.reload(null, false);
                     } else {
                         showToast(response.result, 'error');
                     }
@@ -1745,7 +1754,7 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Submit form Edit
+        // Update
         $('#edit-guru-form').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -1770,7 +1779,7 @@ function getGajiPokokByRole($conn, $role) {
                     if(response.code == 0) {
                         showToast(response.result);
                         $('#modalEdit').modal('hide');
-                        loadGuru(currentPage);
+                        guruTable.ajax.reload(null, false);
                     } else {
                         showToast(response.result, 'error');
                     }
@@ -1779,45 +1788,6 @@ function getGajiPokokByRole($conn, $role) {
                     form.find('button[type="submit"]').prop('disabled', false);
                     form.find('.spinner-border').addClass('d-none');
                     showToast('Terjadi kesalahan saat mengupdate data.', 'error');
-                }
-            });
-        });
-
-        // Form Create
-        $('#add-guru-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: form.serialize(),
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalAdd').modal('hide');
-                        loadGuru(1); // Kembali ke halaman 1
-                        form[0].reset();
-                        form.removeClass('was-validated');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menambah data.', 'error');
                 }
             });
         });
@@ -1831,10 +1801,11 @@ function getGajiPokokByRole($conn, $role) {
                 form.addClass('was-validated');
                 return;
             }
+            var formData = form.serialize();
             $.ajax({
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: form.serialize(),
+                data: formData,
                 dataType: "json",
                 beforeSend: function(){
                     form.find('button[type="submit"]').prop('disabled', true);
@@ -1867,10 +1838,11 @@ function getGajiPokokByRole($conn, $role) {
                 form.addClass('was-validated');
                 return;
             }
+            var formData = form.serialize();
             $.ajax({
                 url: "manage_guru_karyawan.php?ajax=1",
                 type: "POST",
-                data: form.serialize(),
+                data: formData,
                 dataType: "json",
                 beforeSend: function(){
                     form.find('button[type="submit"]').prop('disabled', true);
@@ -1893,20 +1865,20 @@ function getGajiPokokByRole($conn, $role) {
                 }
             });
         });
-
         // Tombol Atur Salary Indeks 
         $(document).on('click', '#btnManageSalaryIndices', function(e) {
             e.preventDefault();
             var url = $(this).data('href');
+            // Efek fadeOut pada kontainer utama. Pastikan #content-wrapper adalah elemen pembungkus konten utama.
             $('#content-wrapper').fadeOut(300, function() {
                 window.location.href = url;
             });
         });
-
-        // Tombol Atur Hari Libur 
+        // === Tambahan: Tombol Atur Hari Libur ===
         $(document).on('click', '#btnManageHolidays', function(e) {
             e.preventDefault();
             var url = $(this).data('href');
+            // Efek fadeOut pada kontainer utama sebelum redirect
             $('#content-wrapper').fadeOut(300, function() {
                 window.location.href = url;
             });

@@ -10,15 +10,19 @@ if (!isset($conn)) {
 }
 require_once __DIR__ . '/helpers.php';
 
+// Ambil data dari session
 $role     = $_SESSION['role'] ?? '';
 $username = $_SESSION['username'] ?? '';
 $nama     = $_SESSION['nama'] ?? $username;
 $nip      = $_SESSION['nip'] ?? '';
 
-// Gambar profil default
-$foto = $_SESSION['foto_profil'] ?? '/assets/img/undraw_profile.svg';
+// Gunakan BASE_URL jika tersedia, atau ganti dengan URL root aplikasi Anda
+$baseUrl = defined('BASE_URL') ? BASE_URL : '/payroll_absensi_v2';
+
+// Gambar profil default; pastikan path default konsisten di seluruh aplikasi
+$foto = $_SESSION['foto_profil'] ?? $baseUrl . '/assets/img/undraw_profile.svg';
 if (empty($foto)) {
-    $foto = '/assets/img/undraw_profile.svg';
+    $foto = $baseUrl . '/assets/img/undraw_profile.svg';
 }
 
 // ------------------------------------------------------------------------------------
@@ -26,13 +30,13 @@ if (empty($foto)) {
 //    - Hitung anggota belum final di `payroll_final` (sdmNotification)
 //    - Hitung pengajuan ijin "status_kepalasekolah = 'Diterima' AND status = 'Pending'"
 // ------------------------------------------------------------------------------------
-$sdmNotification   = "";  // notifikasi payroll (sdm)
-$sdmCount          = 0;   // penanda notifikasi payroll sdm
-$ijinNotification  = "";  // notifikasi pengajuan ijin
-$ijinCount         = 0;   // penanda notifikasi ijin
+$sdmNotification  = ""; // notifikasi payroll (sdm)
+$sdmCount         = 0;  // penanda notifikasi payroll sdm
+$ijinNotification = ""; // notifikasi pengajuan ijin
+$ijinCount        = 0;  // penanda notifikasi ijin
 
-if (in_array($role, ['sdm','superadmin'])) {
-    // --------- Cek payroll final (mirip contoh sebelumnya) ---------
+if (in_array($role, ['sdm', 'superadmin'])) {
+    // --------- Cek payroll final ---------
     $currentDay   = (int) date('d');
     $currentMonth = (int) date('n');
     $currentYear  = (int) date('Y');
@@ -78,7 +82,7 @@ if (in_array($role, ['sdm','superadmin'])) {
         error_log("Gagal statement notifikasi sdm: " . $conn->error);
     }
 
-    // --------- Cek pengajuan ijin baru (status_kepalasekolah='Diterima' & status='Pending') ---------
+    // --------- Cek pengajuan ijin baru ---------
     $sqlIjin = "
         SELECT COUNT(*) AS jml
         FROM pengajuan_ijin
@@ -109,7 +113,7 @@ if (in_array($role, ['sdm','superadmin'])) {
 $keuNotification = "";
 $keuCount        = 0;
 
-if (in_array($role, ['keuangan','superadmin'])) {
+if (in_array($role, ['keuangan', 'superadmin'])) {
     $thisMonth = (int) date('n');
     $thisYear  = (int) date('Y');
 
@@ -138,7 +142,7 @@ if (in_array($role, ['keuangan','superadmin'])) {
         if ($pendingKeu > 0) {
             $monthName = getIndonesianMonthName($thisMonth);
             $keuNotification = "Payroll Bulan {$monthName} (Draft) Terdapat {$pendingKeu} Anggota Belum Final";
-            $keuCount = 1; 
+            $keuCount = 1;
         }
     } else {
         error_log("Gagal menyiapkan statement notifikasi keuangan: " . $conn->error);
@@ -275,8 +279,8 @@ function formatBadge($count) {
                     </a>
                 <?php endif; ?>
 
-                <!-- Jika tidak ada notifikasi sama sekali -->
-                <?php if (empty($sdmNotification) && empty($keuNotification) && empty($ijinNotification)): ?>
+                <!-- Jika tidak ada notifikasi -->
+                <?php if (empty($sdmNotification) && empty($ijinNotification) && empty($keuNotification)): ?>
                     <a class="dropdown-item text-center small text-gray-500" href="#">
                         No alerts available
                     </a>
@@ -306,7 +310,7 @@ function formatBadge($count) {
                 <!-- Contoh pesan statis -->
                 <a class="dropdown-item d-flex align-items-center" href="#">
                     <div class="dropdown-list-image me-3">
-                        <img class="rounded-circle" src="img/undraw_profile_1.svg" alt="...">
+                        <img class="rounded-circle" src="<?= $baseUrl; ?>/assets/img/undraw_profile_1.svg" alt="...">
                         <div class="status-indicator bg-success"></div>
                     </div>
                     <div class="font-weight-bold">
@@ -338,20 +342,20 @@ function formatBadge($count) {
             <!-- Dropdown - User Information -->
             <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in"
                  aria-labelledby="userDropdown">
-                <a class="dropdown-item" href="<?= BASE_URL ?>/profile.php">
+                <a class="dropdown-item" href="<?= $baseUrl; ?>/profile.php">
                     <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i>
                     Profile
                 </a>
-                <a class="dropdown-item" href="<?= BASE_URL ?>/settings.php">
+                <a class="dropdown-item" href="<?= $baseUrl; ?>/settings.php">
                     <i class="fas fa-cogs fa-sm fa-fw me-2 text-gray-400"></i>
                     Settings
                 </a>
-                <a class="dropdown-item" href="<?= BASE_URL ?>/activity_log.php">
+                <a class="dropdown-item" href="<?= $baseUrl; ?>/activity_log.php">
                     <i class="fas fa-list fa-sm fa-fw me-2 text-gray-400"></i>
                     Activity Log
                 </a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="<?= BASE_URL ?>/logout.php">
+                <a class="dropdown-item" href="<?= $baseUrl; ?>/logout.php">
                     <i class="fas fa-sign-out-alt fa-sm fa-fw me-2 text-gray-400"></i>
                     Logout
                 </a>

@@ -306,4 +306,19 @@ function authorize($allowedRoles, $redirectUrl = BASE_URL . '/login.php') {
         exit();
     }
 }
+
+function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
+    // Buat nama file sesuai konvensi, misalnya:
+    $fileName = strtolower(preg_replace('/\s+/', '_', $nama))
+              . '_' . strtolower(preg_replace('/\s+/', '_', $jenjang))
+              . '_' . strtolower($role)
+              . '_' . $id . '.jpg';
+    $filePath = __DIR__ . '/uploads/profile_pics/' . $fileName;
+    if (file_exists($filePath)) {
+        return BASE_URL . '/uploads/profile_pics/' . $fileName;
+    } else {
+        return BASE_URL . '/assets/img/undraw_profile.svg';
+    }
+}
+
 ?>
