@@ -1,6 +1,8 @@
 # Abaikan semua file secara default
 *
-
+# Perbolehkan folder vendor dan isinya
+!vendor/
+!vendor/**
 # Perbolehkan folder absensi dan isinya
 !absensi/
 !absensi/**
@@ -26,3 +28,5 @@
 !chatgpt.txt
 !ujicoba.txt
 !.gitignore
+!notifikasi.php
+!pesan.php
