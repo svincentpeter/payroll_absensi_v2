@@ -286,29 +286,50 @@ function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
 }
 
 /**
- * Menghitung salary index untuk satu user berdasarkan masa kerja dan riwayat SP.
+ * Menghitung dan mengupdate salary_index_id, gaji_pokok, serta masa_kerja_efektif untuk user.
  *
- * Jika ada SP (surat peringatan) maka terdapat penalty 1 tahun.
+ * Fungsi ini:
+ *  - Mengambil masa kerja (tahun dan bulan) dari anggota_sekolah.
+ *  - Mengecek jumlah SP di tabel laporan_surat untuk user tersebut.
+ *  - Menghitung masa kerja efektif = (masa kerja aktual) - penalty (1 tahun jika ada SP).
+ *  - Menyimpan nilai masa_kerja_efektif ke kolom yang bersesuaian.
+ *  - Menggunakan nilai floor dari masa kerja efektif untuk mencari salary index yang sesuai.
+ *  - Mengupdate kolom salary_index_id, gaji_pokok, dan masa_kerja_efektif.
  *
  * @param mysqli $conn Koneksi database.
  * @param int $userId ID user di tabel anggota_sekolah.
  * @return bool True jika update berhasil, false jika gagal.
  */
 function updateSalaryIndexForUser($conn, $userId) {
-    // Ambil masa kerja dari anggota_sekolah
-    $stmt = $conn->prepare("SELECT masa_kerja_tahun, masa_kerja_bulan FROM anggota_sekolah WHERE id = ?");
+    // Ambil join_start beserta masa kerja
+    $stmt = $conn->prepare("SELECT join_start, masa_kerja_tahun, masa_kerja_bulan FROM anggota_sekolah WHERE id = ?");
     if (!$stmt) {
         error_log("Prepare error (masa kerja): " . $conn->error);
         return false;
     }
     $stmt->bind_param("i", $userId);
     $stmt->execute();
-    $stmt->bind_result($tahun, $bulan);
+    $stmt->bind_result($joinStart, $tahun, $bulan);
     if (!$stmt->fetch()) {
         $stmt->close();
         return false; // User tidak ditemukan
     }
     $stmt->close();
+    
+    // Gunakan join_start untuk menghitung masa kerja aktual
+    try {
+        $startDate = new DateTime($joinStart);
+        $now       = new DateTime();
+        // Jika tanggal bergabung di masa depan, set masa kerja aktual = 0
+        if ($startDate > $now) {
+            $masaKerjaAktual = 0;
+        } else {
+            $diff = $now->diff($startDate);
+            $masaKerjaAktual = $diff->y + ($diff->m / 12.0);
+        }
+    } catch (\Exception $e) {
+        $masaKerjaAktual = 0;
+    }
     
     // Cek apakah ada SP untuk user tersebut
     $stmt2 = $conn->prepare("SELECT COUNT(*) as spCount FROM laporan_surat WHERE id_penerima = ? AND jenis_surat = 'peringatan'");
@@ -323,11 +344,19 @@ function updateSalaryIndexForUser($conn, $userId) {
     $spCount = intval($row2['spCount'] ?? 0);
     $stmt2->close();
     
-    // Jika ada SP, berikan penalty 1 tahun
+    // Penalty: jika ada SP (minimal 1), penalty 1 tahun; jika tidak, penalty 0.
     $penalty = ($spCount > 0) ? 1 : 0;
-    // Hitung masa kerja efektif (dalam tahun, dibulatkan ke bawah)
-    $effectiveYears = floor(($tahun + $bulan / 12) - $penalty);
     
+    // Hitung masa kerja efektif
+    $masaKerjaEfektif = $masaKerjaAktual - $penalty;
+    if ($masaKerjaEfektif < 0) {
+        $masaKerjaEfektif = 0;
+    }
+    
+    // Untuk pencarian salary index, gunakan effectiveYearsForIndex = floor(masaKerjaEfektif)
+    $effectiveYearsForIndex = floor($masaKerjaEfektif);
+    error_log("DEBUG MasaKerja: userId=$userId, masaKerjaAktual=$masaKerjaAktual, penalty=$penalty, effectiveYears=$effectiveYearsForIndex");
+
     // Cari salary index yang sesuai dengan masa kerja efektif
     $stmt3 = $conn->prepare("SELECT id, base_salary FROM salary_indices 
                               WHERE min_years <= ? 
@@ -338,23 +367,23 @@ function updateSalaryIndexForUser($conn, $userId) {
         error_log("Prepare error (salary_indices): " . $conn->error);
         return false;
     }
-    $stmt3->bind_param("ii", $effectiveYears, $effectiveYears);
+    $stmt3->bind_param("ii", $effectiveYearsForIndex, $effectiveYearsForIndex);
     $stmt3->execute();
     $stmt3->bind_result($salaryIndexId, $baseSalary);
     if (!$stmt3->fetch()) {
         $stmt3->close();
-        error_log("Tidak ada salary index yang cocok untuk effectiveYears = $effectiveYears");
+        error_log("Tidak ada salary index yang cocok untuk effectiveYears = $effectiveYearsForIndex");
         return false;
     }
     $stmt3->close();
     
-    // Update data anggota_sekolah dengan salary_index_id dan gaji_pokok baru
-    $stmt4 = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, gaji_pokok = ? WHERE id = ?");
+    // Update data anggota_sekolah dengan salary_index_id, gaji_pokok, dan masa_kerja_efektif
+    $stmt4 = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, gaji_pokok = ?, masa_kerja_efektif = ? WHERE id = ?");
     if (!$stmt4) {
         error_log("Prepare error (update anggota): " . $conn->error);
         return false;
     }
-    $stmt4->bind_param("idi", $salaryIndexId, $baseSalary, $userId);
+    $stmt4->bind_param("iddi", $salaryIndexId, $baseSalary, $masaKerjaEfektif, $userId);
     $result = $stmt4->execute();
     if (!$result) {
         error_log("Execute error (update anggota): " . $stmt4->error);
@@ -362,6 +391,7 @@ function updateSalaryIndexForUser($conn, $userId) {
     $stmt4->close();
     return $result;
 }
+
 
 /**
  * Update salary index untuk semua anggota dengan role P atau TK.
@@ -383,4 +413,74 @@ function updateSalaryIndexForAll($conn) {
     mysqli_free_result($result);
     return true;
 }
+
+/**
+ * Menghitung perkiraan salary_index_id berdasarkan Tanggal Bergabung,
+ * tanpa mempertimbangkan SP (karena ini baru perkiraan di form create).
+ *
+ * @param mysqli $conn
+ * @param string $joinStart format YYYY-MM-DD
+ * @return array berisi ['salary_index_id' => int, 'explanation' => string]
+ */
+function getRecommendedSalaryIndex($conn, $joinStart) {
+    // Jika joinStart kosong atau '0000-00-00', langsung kembalikan 0
+    if (empty($joinStart) || $joinStart == '0000-00-00') {
+        return [
+            'salary_index_id' => 0,
+            'explanation' => 'Tanggal bergabung belum diisi / tidak valid'
+        ];
+    }
+
+    // Hitung selisih tahun (dibulatkan ke bawah)
+    try {
+        $startDate = new DateTime($joinStart);
+        $now       = new DateTime();
+        
+        // Jika join_start di masa depan, kita set masa kerja = 0
+        if ($startDate > $now) {
+            $masaKerjaTahun = 0;
+        } else {
+            // normal
+            $diff = $now->diff($startDate);
+            $masaKerjaTahun = $diff->y;
+        }
+    } catch (\Exception $e) {
+        return [
+            'salary_index_id' => 0,
+            'explanation' => 'Error parsing date: '.$e->getMessage()
+        ];
+    }
+
+    // Cari salary_index yang cocok, 
+    // misalnya cari min_years <= masaKerjaTahun <= max_years
+    $sql = "SELECT id, level FROM salary_indices
+            WHERE min_years <= ?
+              AND (max_years IS NULL OR ? <= max_years)
+            ORDER BY min_years DESC
+            LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return [
+            'salary_index_id' => 0,
+            'explanation' => 'Query error: '.$conn->error
+        ];
+    }
+    $stmt->bind_param("ii", $masaKerjaTahun, $masaKerjaTahun);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res && $res->num_rows > 0) {
+        $row = $res->fetch_assoc();
+        return [
+            'salary_index_id' => (int)$row['id'],
+            'explanation' => 'Cocok dengan level: '.$row['level']
+        ];
+    } else {
+        // kalau tidak ada, kembalikan 0
+        return [
+            'salary_index_id' => 0,
+            'explanation' => 'Tidak ada level salary_indices yang cocok'
+        ];
+    }
+}
+
 ?>

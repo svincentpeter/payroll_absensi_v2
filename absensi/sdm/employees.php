@@ -64,7 +64,7 @@ function ProcessPayroll($conn) {
         }
     }
     $stmtSum->close();
-
+    updateSalaryIndexForUser($conn, $id);
     // Ambil data anggota
     $stmtEmp = $conn->prepare("SELECT gaji_pokok, salary_index_id, no_rekening
                                FROM anggota_sekolah
@@ -623,6 +623,10 @@ function EditEmployee($conn) {
     }
     $stmtU->bind_param("si", $no_rekening, $id);
     if ($stmtU->execute()) {
+        $stmtU->close();
+        
+        updateSalaryIndexForUser($conn, $id);
+
         send_response(0, 'No Rekening anggota berhasil diperbarui.');
     } else {
         send_response(1, 'Gagal memperbarui No Rekening: ' . $stmtU->error);
@@ -659,6 +663,8 @@ function ViewEmployeeDetail($conn) {
         $masaKerja = trim($masaKerja) ?: '-';
         $gajiPokokVal   = floatval($emp['gaji_pokok']);
         $levelIndexVal  = floatval($emp['salary_index_base']);
+
+        updateSalaryIndexForUser($conn, $id);
 
         // Ambil payheads
         $stmtPH = $conn->prepare("

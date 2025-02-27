@@ -42,6 +42,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
         case 'update_gaji_strata_karyawan':
             updateGajiStrataKaryawan($conn);
             break;
+
+        case 'GetRecommendedSalaryIndex':
+                $joinStart = $_POST['join_start'] ?? '';
+                send_response(0, getRecommendedSalaryIndex($conn, $joinStart));
+                break;
+            
         case 'update_salary_index_all':
             if (updateSalaryIndexForAll($conn)) {
                 send_response(0, 'Salary index untuk semua user berhasil diperbarui.');
@@ -262,7 +268,15 @@ function GetGuruDetail($conn) {
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
     }
-    $stmt = $conn->prepare("SELECT * FROM anggota_sekolah WHERE id=? LIMIT 1");
+    $stmt = $conn->prepare("
+    SELECT a.*,
+           si.level AS salary_level,
+           si.description AS salary_desc
+    FROM anggota_sekolah a
+    LEFT JOIN salary_indices si ON a.salary_index_id = si.id
+    WHERE a.id=? LIMIT 1
+");
+
     if (!$stmt) {
         send_response(1, 'Query Error: ' . $conn->error);
     }
@@ -1536,6 +1550,46 @@ function getGajiPokokByRole($conn, $role) {
                 pagination.append(li);
             }
         }
+        
+$('#addJoinStart').on('change', function() {
+    let joinDate = $(this).val();  // format YYYY-MM-DD
+    if (!joinDate) {
+        // Kosongkan salary index
+        $('#addSalaryIndex').val('');
+        return;
+    }
+    // Panggil AJAX
+    $.ajax({
+        url: "manage_guru_karyawan.php?ajax=1",
+        type: "POST",
+        data: {
+            case: 'GetRecommendedSalaryIndex',
+            join_start: joinDate,
+            csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
+        },
+        dataType: "json",
+        beforeSend: function(){
+            // misal: tampilkan loader
+        },
+        success: function(response) {
+            if (response.code === 0) {
+                let recommendedId = response.result.salary_index_id || 0;
+                $('#addSalaryIndex').val(recommendedId);
+                console.log('Rekomendasi Salary Index ID:', recommendedId, response.result.explanation);
+            } else {
+                console.warn('Gagal dapat rekomendasi salary index:', response.result);
+                // Kosongkan salary index
+                $('#addSalaryIndex').val('');
+            }
+        },
+        error: function() {
+            console.error('Terjadi kesalahan AJAX Salary Index');
+            // Kosongkan salary index
+            $('#addSalaryIndex').val('');
+        }
+    });
+});
+
 
         // View Detail
         $(document).on('click', '.btn-view', function() {
@@ -1561,6 +1615,7 @@ function getGajiPokokByRole($conn, $role) {
                         $('#detailJoinStart').text(response.result.join_start);
                         $('#detailMasaKerja').text(response.result.masa_kerja);
                         $('#detailPendidikan').text(response.result.pendidikan);
+                        $('#detailSalaryIndexId').text(response.result.salary_level);
 
                         $('#detailJK').text(response.result.jk);
                         $('#detailTglLahir').text(response.result.tanggal_lahir);

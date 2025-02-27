@@ -13,6 +13,9 @@ require_once __DIR__ . '/../../koneksi.php';
 // Hanya user dengan role 'keuangan' dan 'superadmin' yang diizinkan
 authorize(['keuangan','superadmin'], '/payroll_absensi_v2/login.php');
 
+// Panggil fungsi updateSalaryIndexForAll agar data salary index selalu terupdate
+updateSalaryIndexForAll($conn);
+
 // ---------------------
 // AJAX HANDLER SECTION
 // ---------------------
@@ -43,7 +46,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 /**
  * Fungsi CheckPayrollCompletion: Menghitung jumlah anggota (per jenjang)
  * yang belum memiliki payroll final pada periode yang dipilih.
- * Di sini kami menggunakan tabel payroll_final (sesuai query overview).
  */
 function CheckPayrollCompletion($conn) {
     $bulan = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : 0;
@@ -71,6 +73,7 @@ function CheckPayrollCompletion($conn) {
             $messages[] = "Terdapat " . $row['pending'] . " anggota dengan jenjang '" . $row['jenjang'] . "' yang belum final.";
         }
     }
+    
     $stmt->close();
     if(empty($messages)){
         send_response(0, ['complete' => true, 'messages' => []]);
@@ -130,7 +133,7 @@ if ($stmtRole) {
     $stmtRole->close();
 }
 
-// Query untuk menampilkan payroll overview (status draft) sesuai filter
+// Ubah query utama untuk menampilkan payroll overview dengan join ke salary_indices
 $query = "
     SELECT 
         p.id, 
@@ -143,9 +146,11 @@ $query = "
         a.jenjang,
         a.role,
         p.status,
-        p.catatan
+        p.catatan,
+        si.level AS salary_index_level
     FROM payroll p
     JOIN anggota_sekolah a ON p.id_anggota = a.id
+    LEFT JOIN salary_indices si ON a.salary_index_id = si.id
     WHERE p.bulan = ? 
       AND p.tahun = ? 
       AND p.status = 'draft'
@@ -223,7 +228,7 @@ $result = $stmt->get_result();
                             <div class="card-body d-flex align-items-center">
                                 <i class="bi bi-calendar3 me-2"></i>
                                 <span class="fw-bold">
-                                    Payroll Bulan: <?= date("F", mktime(0,0,0,$filterMonth,1)); ?> <?= $filterYear; ?>
+                                    Payroll Bulan: <?= date("F", mktime(0,0,0,$filterMonth,1)) . " " . $filterYear; ?>
                                 </span>
                                 <button id="btnChangeCalendar" class="btn btn-link ms-auto">
                                     <i class="bi bi-pencil-square"></i> Ganti Kalender
@@ -288,6 +293,7 @@ $result = $stmt->get_result();
                                             <th>NIP</th>
                                             <th>Jenjang</th>
                                             <th>Role</th>
+                                            <th>Level Indeks</th>
                                             <th>Periode</th>
                                             <th>Status</th>
                                             <th>Tanggal Payroll</th>
@@ -304,6 +310,7 @@ $result = $stmt->get_result();
                                             echo "<td>" . htmlspecialchars($row['nip']) . "</td>";
                                             echo "<td>" . htmlspecialchars($row['jenjang']) . "</td>";
                                             echo "<td>" . htmlspecialchars($row['role']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['salary_index_level'] ?: '-') . "</td>";
                                             echo "<td>" . $periode . "</td>";
                                             echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                                             echo "<td>" . htmlspecialchars($row['tgl_payroll']) . "</td>";
@@ -344,7 +351,6 @@ $result = $stmt->get_result();
           <div class="modal-body">
             <div class="row text-center">
               <?php
-                // Buat grid pilihan 16 bulan (misalnya: 2 bulan sebelum sampai 13 bulan ke depan)
                 $currentYear  = date('Y');
                 $currentMonth = date('n');
                 $startMonth   = $currentMonth - 2;
@@ -359,7 +365,6 @@ $result = $stmt->get_result();
                         $month -= 12;
                         $year  += 1;
                     }
-                    // Highlight bulan yang sedang dipilih
                     $highlight = ($month == $filterMonth && $year == $filterYear) ? 'bg-warning text-dark fw-bold' : 'bg-light';
                     echo '<div class="col-3 mb-3">';
                     echo '  <div class="p-2 ' . $highlight . '" style="border: 1px solid #ddd; border-radius: 5px;">';
@@ -480,3 +485,6 @@ $result = $stmt->get_result();
     </script>
 </body>
 </html>
+<?php
+$conn->close();
+?>

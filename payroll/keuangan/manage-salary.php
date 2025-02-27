@@ -212,7 +212,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     }
 }
 
-
 // -----------------------------
 // 5. Jika GET: Review Payroll (Belum Final)
 // -----------------------------
@@ -236,6 +235,10 @@ $tahun = intval($tahunStr);
 if ($bulan <= 0 || $tahun <= 0) {
     die("Parameter bulan/tahun tidak valid.");
 }
+
+// Sebelum menampilkan detail payroll, pastikan salary index untuk anggota telah diperbarui
+// (Fungsi updateSalaryIndexForUser akan menghitung masa kerja efektif dan menentukan level indeks)
+updateSalaryIndexForUser($conn, $id_anggota);
 
 // Cek apakah payroll sudah final untuk periode ini
 $stmtCheck = $conn->prepare("SELECT id, status FROM payroll WHERE id_anggota=? AND bulan=? AND tahun=? LIMIT 1");
@@ -272,7 +275,7 @@ if ($resRekap->num_rows > 0) {
 }
 $stmtRekap->close();
 
-// Ambil data employee_payheads (payheads untuk karyawan)
+// Ambil data employee_payheads
 $stmtPH = $conn->prepare("SELECT ep.id_payhead, ph.nama_payhead, ph.jenis, ep.amount, ep.status, ep.remarks, ep.support_doc_path FROM employee_payheads ep JOIN payheads ph ON ep.id_payhead = ph.id WHERE ep.id_anggota=?");
 $stmtPH->bind_param("i", $id_anggota);
 $stmtPH->execute();
@@ -294,10 +297,10 @@ if ($resKar->num_rows == 0) {
 $karyawan = $resKar->fetch_assoc();
 $stmtKar->close();
 
-// Untuk pembuatan nama file download dokumen, ambil juga NIP (jika tersedia)
+// Untuk nama file download dokumen, ambil NIP (jika tersedia)
 $nip = isset($karyawan['nip']) ? $karyawan['nip'] : 'unknown';
 
-// Hitung gaji pokok (dengan salary indeks jika ada)
+// Hitung gaji pokok (dengan penambahan nilai salary indeks, jika ada)
 $salary_index_level = '';
 $salary_index_amount = 0;
 if (!empty($karyawan['salary_index_id'])) {
@@ -461,7 +464,6 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
                                                         <td><?= !empty($ph['remarks']) ? "<small><em>" . htmlspecialchars($ph['remarks']) . "</em></small>" : "<small><em>-</em></small>"; ?></td>
                                                         <td>
                                                         <?php if (!empty($ph['support_doc_path'])): 
-                                                            // Buat nama file download berdasarkan nama payhead dan ekstensi file.
                                                             $ext = pathinfo($ph['support_doc_path'], PATHINFO_EXTENSION);
                                                             $cleanPayheadName = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $ph['nama_payhead']);
                                                             $cleanPayheadName = str_replace(' ', '_', trim($cleanPayheadName));
@@ -787,7 +789,7 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', "Mengakses Review Payroll untuk K
             });
         });
 
-        // --- Tambahkan kode untuk menyalin nilai dari field terlihat ke field tersembunyi sebelum submit ---
+        // --- Salin nilai dari field tampilan ke field tersembunyi sebelum submit ---
         $('#formPayroll').on('submit', function(){
             $('#fieldNoRek').val($('#inputNoRek').val());
             $('#fieldGajiPokok').val($('#inputGajiPokok').val());
