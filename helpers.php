@@ -1,4 +1,6 @@
 <?php
+// File: helpers.php
+
 // Definisikan BASE_URL untuk digunakan di seluruh aplikasi
 define('BASE_URL', '/payroll_absensi_v2');
 
@@ -28,7 +30,7 @@ function sanitize_input($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
-// Tambahkan alias untuk fungsi bersihkan_input()
+// Alias untuk fungsi bersihkan_input()
 if (!function_exists('bersihkan_input')) {
     function bersihkan_input($data) {
         return sanitize_input($data);
@@ -38,15 +40,11 @@ if (!function_exists('bersihkan_input')) {
 /**
  * Mengirim respons JSON dan mengakhiri eksekusi script.
  *
- * Fungsi ini digunakan untuk mengembalikan hasil (baik sukses maupun error)
- * dalam format JSON. Fungsi ini juga menghentikan eksekusi script setelah mengirim respons.
- *
  * @param int $code Kode status (0 untuk sukses, >0 untuk error).
  * @param mixed $result Data atau pesan yang dikirim.
  */
 function send_response($code, $result) {
     if ($code !== 0) {
-        // Log error jika kode tidak 0 (error)
         error_log("Response Code $code: " . json_encode($result));
     }
     header('Content-Type: application/json; charset=utf-8');
@@ -56,9 +54,6 @@ function send_response($code, $result) {
 
 /**
  * Menghasilkan CSRF token dan menyimpannya ke dalam session.
- *
- * Fungsi ini membuat token unik untuk melindungi form dari serangan CSRF.
- * Jika token belum ada di session, maka token baru akan dibuat.
  */
 function generate_csrf_token() {
     if (empty($_SESSION['csrf_token'])) {
@@ -68,9 +63,6 @@ function generate_csrf_token() {
 
 /**
  * Memverifikasi CSRF token yang dikirimkan oleh klien.
- *
- * Fungsi ini membandingkan token yang dikirim dari form dengan token yang tersimpan
- * di session. Jika token tidak cocok atau tidak ada, maka respons error akan dikirim.
  *
  * @param string $token Token yang dikirim dari klien.
  */
@@ -83,9 +75,6 @@ function verify_csrf_token($token) {
 /**
  * Mencatat error ke dalam file log.
  *
- * Fungsi ini mencatat pesan error ke dalam file log yang terletak di folder yang sama.
- * Ini berguna untuk debugging dan audit kesalahan yang terjadi.
- *
  * @param string $message Pesan error yang akan dicatat.
  */
 function log_error($message) {
@@ -96,17 +85,13 @@ function log_error($message) {
 /**
  * Menambahkan catatan audit log ke database.
  *
- * Fungsi ini mencatat aktivitas atau aksi penting yang dilakukan oleh user ke dalam tabel audit_logs.
- * Ini membantu dalam melacak perubahan dan menjaga keamanan sistem.
- *
  * @param mysqli $conn Koneksi database.
- * @param int $user_id ID pengguna yang melakukan aksi.
- * @param string $action Jenis aksi (misal: AddPayhead, EditPayhead).
- * @param string $details Detail tambahan tentang aksi.
+ * @param string $user_nip NIP user yang melakukan aksi.
+ * @param string $action Jenis aksi.
+ * @param string $details Detail tambahan.
  * @return bool True jika berhasil, false jika gagal.
  */
 function add_audit_log($conn, $user_nip, $action, $details) {
-    // Jika NIP kosong, lewati pencatatan
     if (empty($user_nip)) {
         return true;
     }
@@ -129,13 +114,10 @@ function add_audit_log($conn, $user_nip, $action, $details) {
     return true;
 }
 
-
 /**
  * Menerjemahkan jenis payhead dari bahasa Inggris ke Indonesia.
  *
- * Fungsi ini digunakan untuk menampilkan jenis payhead dengan istilah bahasa Indonesia.
- *
- * @param string $jenis Jenis payhead (misal: 'earnings' atau 'deductions').
+ * @param string $jenis Jenis payhead.
  * @return string Terjemahan jenis payhead.
  */
 function translateJenis($jenis) {
@@ -148,15 +130,11 @@ function translateJenis($jenis) {
 
 /**
  * Menginisialisasi konfigurasi error handling.
- *
- * Fungsi ini mengatur konfigurasi PHP agar error tidak ditampilkan langsung ke user,
- * melainkan dicatat di file log. Sangat berguna untuk lingkungan produksi.
  */
 function init_error_handling() {
     ini_set('display_errors', 0);
     ini_set('display_startup_errors', 0);
     ini_set('log_errors', 1);
-    // Pastikan direktori tempat error log berada memiliki permission yang sesuai
     ini_set('error_log', __DIR__ . '/error.log');
     error_reporting(E_ALL);
 }
@@ -164,15 +142,11 @@ function init_error_handling() {
 /**
  * Mengembalikan nama bulan dalam Bahasa Indonesia.
  *
- * Fungsi ini mengonversi angka bulan (1-12) menjadi nama bulan dalam bahasa Indonesia.
- *
  * @param int $monthNumber Nomor bulan (1-12).
- * @return string Nama bulan dalam Bahasa Indonesia.
+ * @return string Nama bulan.
  */
 function getIndonesianMonthName($monthNumber) {
-    // Pastikan angka sudah diproses sebagai integer
     $monthNumber = intval($monthNumber);
-
     $bulan = [
         1  => 'Januari',
         2  => 'Februari',
@@ -187,24 +161,17 @@ function getIndonesianMonthName($monthNumber) {
         11 => 'November',
         12 => 'Desember'
     ];
-
-    // Debug sebelum return
     if (!isset($bulan[$monthNumber])) {
         error_log("Bulan tidak ditemukan untuk angka: " . json_encode($monthNumber));
     }
-
     return $bulan[$monthNumber] ?? 'Tidak Diketahui';
 }
 
-
-
 /**
- * Mengonversi nama bulan (dalam bahasa Indonesia) ke angka.
- *
- * Fungsi ini mengubah nama bulan (misalnya, "Januari") menjadi angka (misalnya, 1).
+ * Mengonversi nama bulan ke angka.
  *
  * @param string $monthName Nama bulan.
- * @return int Angka bulan (1-12) atau 0 jika tidak valid.
+ * @return int Angka bulan.
  */
 function monthNameToInt($monthName) {
     $lower = strtolower($monthName);
@@ -228,18 +195,15 @@ function monthNameToInt($monthName) {
 /**
  * Mengonversi nilai numerik ke format mata uang Rupiah.
  *
- * Fungsi ini memformat nilai numerik sehingga tampilannya sesuai dengan format mata uang
- * Indonesia, misalnya "Rp 1.234,56".
- *
- * @param float|int $nominal Nilai numerik yang akan diformat.
- * @return string Nilai yang sudah diformat.
+ * @param float|int $nominal Nilai numerik.
+ * @return string Format mata uang.
  */
 function formatNominal($nominal) {
     return 'Rp ' . number_format($nominal, 2, ',', '.');
 }
 
 /** 
- * Helper functions untuk menampilkan badge berwarna
+ * Helper functions untuk menampilkan badge berwarna.
  */
 function getBadgeRole($role) {
     switch ($role) {
@@ -282,33 +246,33 @@ function getBadgeStatusKerja($status) {
 }
 
 /**
- * Memeriksa apakah pengguna yang sedang login memiliki hak akses (role) yang diizinkan.
+ * Memeriksa apakah pengguna memiliki akses berdasarkan role.
  *
- * @param string|array $allowedRoles Role yang diizinkan. Bisa berupa string atau array.
- * @param string $redirectUrl URL tujuan jika pengguna tidak memiliki akses.
- * @return void
+ * @param string|array $allowedRoles Role yang diizinkan.
+ * @param string $redirectUrl URL tujuan jika tidak memiliki akses.
  */
 function authorize($allowedRoles, $redirectUrl = BASE_URL . '/login.php') {
-    // Pastikan session sudah dimulai
     start_session_safe();
-    
-    // Ambil role dari session (sesuaikan key session jika berbeda)
     $userRole = $_SESSION['role'] ?? '';
-    
-    // Ubah allowedRoles menjadi array jika bukan array
     if (!is_array($allowedRoles)) {
         $allowedRoles = [$allowedRoles];
     }
-    
-    // Jika role pengguna tidak termasuk dalam allowedRoles, redirect
     if (!in_array($userRole, $allowedRoles)) {
         header("Location: " . $redirectUrl);
         exit();
     }
 }
 
+/**
+ * Mendapatkan URL foto profil berdasarkan nama, jenjang, role, dan ID.
+ *
+ * @param string $nama
+ * @param string $jenjang
+ * @param string $role
+ * @param int $id
+ * @return string URL foto profil.
+ */
 function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
-    // Buat nama file sesuai konvensi, misalnya:
     $fileName = strtolower(preg_replace('/\s+/', '_', $nama))
               . '_' . strtolower(preg_replace('/\s+/', '_', $jenjang))
               . '_' . strtolower($role)
@@ -321,4 +285,102 @@ function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
     }
 }
 
+/**
+ * Menghitung salary index untuk satu user berdasarkan masa kerja dan riwayat SP.
+ *
+ * Jika ada SP (surat peringatan) maka terdapat penalty 1 tahun.
+ *
+ * @param mysqli $conn Koneksi database.
+ * @param int $userId ID user di tabel anggota_sekolah.
+ * @return bool True jika update berhasil, false jika gagal.
+ */
+function updateSalaryIndexForUser($conn, $userId) {
+    // Ambil masa kerja dari anggota_sekolah
+    $stmt = $conn->prepare("SELECT masa_kerja_tahun, masa_kerja_bulan FROM anggota_sekolah WHERE id = ?");
+    if (!$stmt) {
+        error_log("Prepare error (masa kerja): " . $conn->error);
+        return false;
+    }
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $stmt->bind_result($tahun, $bulan);
+    if (!$stmt->fetch()) {
+        $stmt->close();
+        return false; // User tidak ditemukan
+    }
+    $stmt->close();
+    
+    // Cek apakah ada SP untuk user tersebut
+    $stmt2 = $conn->prepare("SELECT COUNT(*) as spCount FROM laporan_surat WHERE id_penerima = ? AND jenis_surat = 'peringatan'");
+    if (!$stmt2) {
+        error_log("Prepare error (SP): " . $conn->error);
+        return false;
+    }
+    $stmt2->bind_param("i", $userId);
+    $stmt2->execute();
+    $result2 = $stmt2->get_result();
+    $row2 = $result2->fetch_assoc();
+    $spCount = intval($row2['spCount'] ?? 0);
+    $stmt2->close();
+    
+    // Jika ada SP, berikan penalty 1 tahun
+    $penalty = ($spCount > 0) ? 1 : 0;
+    // Hitung masa kerja efektif (dalam tahun, dibulatkan ke bawah)
+    $effectiveYears = floor(($tahun + $bulan / 12) - $penalty);
+    
+    // Cari salary index yang sesuai dengan masa kerja efektif
+    $stmt3 = $conn->prepare("SELECT id, base_salary FROM salary_indices 
+                              WHERE min_years <= ? 
+                                AND (max_years IS NULL OR ? <= max_years)
+                              ORDER BY min_years DESC
+                              LIMIT 1");
+    if (!$stmt3) {
+        error_log("Prepare error (salary_indices): " . $conn->error);
+        return false;
+    }
+    $stmt3->bind_param("ii", $effectiveYears, $effectiveYears);
+    $stmt3->execute();
+    $stmt3->bind_result($salaryIndexId, $baseSalary);
+    if (!$stmt3->fetch()) {
+        $stmt3->close();
+        error_log("Tidak ada salary index yang cocok untuk effectiveYears = $effectiveYears");
+        return false;
+    }
+    $stmt3->close();
+    
+    // Update data anggota_sekolah dengan salary_index_id dan gaji_pokok baru
+    $stmt4 = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, gaji_pokok = ? WHERE id = ?");
+    if (!$stmt4) {
+        error_log("Prepare error (update anggota): " . $conn->error);
+        return false;
+    }
+    $stmt4->bind_param("idi", $salaryIndexId, $baseSalary, $userId);
+    $result = $stmt4->execute();
+    if (!$result) {
+        error_log("Execute error (update anggota): " . $stmt4->error);
+    }
+    $stmt4->close();
+    return $result;
+}
+
+/**
+ * Update salary index untuk semua anggota dengan role P atau TK.
+ *
+ * @param mysqli $conn Koneksi database.
+ * @return bool True jika berhasil, false jika gagal.
+ */
+function updateSalaryIndexForAll($conn) {
+    $sql = "SELECT id FROM anggota_sekolah WHERE role IN ('P', 'TK')";
+    $result = mysqli_query($conn, $sql);
+    if (!$result) {
+        error_log("Query error (select all): " . mysqli_error($conn));
+        return false;
+    }
+    while ($row = mysqli_fetch_assoc($result)) {
+        $userId = intval($row['id']);
+        updateSalaryIndexForUser($conn, $userId);
+    }
+    mysqli_free_result($result);
+    return true;
+}
 ?>

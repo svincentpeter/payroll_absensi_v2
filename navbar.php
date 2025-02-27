@@ -26,22 +26,18 @@ if (empty($foto)) {
 }
 
 // ------------------------------------------------------------------------------------
-// 1. NOTIFIKASI untuk SDM/Superadmin: 
-//    - Hitung anggota belum final di `payroll_final` (sdmNotification)
-//    - Hitung pengajuan ijin "status_kepalasekolah = 'Diterima' AND status = 'Pending'"
+// NOTIFIKASI untuk SDM/Superadmin
 // ------------------------------------------------------------------------------------
-$sdmNotification  = ""; // notifikasi payroll (sdm)
-$sdmCount         = 0;  // penanda notifikasi payroll sdm
-$ijinNotification = ""; // notifikasi pengajuan ijin
-$ijinCount        = 0;  // penanda notifikasi ijin
+$sdmNotification  = "";
+$sdmCount         = 0;
+$ijinNotification = "";
+$ijinCount        = 0;
 
 if (in_array($role, ['sdm', 'superadmin'])) {
-    // --------- Cek payroll final ---------
     $currentDay   = (int) date('d');
     $currentMonth = (int) date('n');
     $currentYear  = (int) date('Y');
 
-    // Jika sudah tanggal 24 atau lebih, targetkan ke bulan berikutnya
     if ($currentDay >= 24) {
         if ($currentMonth == 12) {
             $targetMonth = 1;
@@ -82,7 +78,6 @@ if (in_array($role, ['sdm', 'superadmin'])) {
         error_log("Gagal statement notifikasi sdm: " . $conn->error);
     }
 
-    // --------- Cek pengajuan ijin baru ---------
     $sqlIjin = "
         SELECT COUNT(*) AS jml
         FROM pengajuan_ijin
@@ -107,8 +102,7 @@ if (in_array($role, ['sdm', 'superadmin'])) {
 }
 
 // ------------------------------------------------------------------------------------
-// 2. NOTIFIKASI untuk Keuangan/Superadmin:
-//    - Hitung data payroll status 'draft' yang belum final di payroll_final
+// NOTIFIKASI untuk Keuangan/Superadmin
 // ------------------------------------------------------------------------------------
 $keuNotification = "";
 $keuCount        = 0;
@@ -150,14 +144,43 @@ if (in_array($role, ['keuangan', 'superadmin'])) {
 }
 
 // ------------------------------------------------------------------------------------
-// 3. Total Alerts = sdmCount + ijinCount + keuCount
+// Total Alerts
 // ------------------------------------------------------------------------------------
 $totalAlerts = $sdmCount + $ijinCount + $keuCount;
 
-// Helper untuk menampilkan badge
 function formatBadge($count) {
     if ($count < 1) return "";
     return ($count === 1) ? "1" : ($count . "+");
+}
+
+// --- PESAN: untuk role P dan TK ---
+$messages = [];
+$unreadCount = 0;
+if (in_array($role, ['P','TK'])) {
+    $stmtMsg = $conn->prepare("SELECT ls.id, ls.judul, ls.isi, ls.tanggal_keluar, ls.status, sender.nama AS sender_name 
+                               FROM laporan_surat ls 
+                               LEFT JOIN anggota_sekolah sender ON ls.id_pengirim = sender.id 
+                               WHERE ls.id_penerima = ? 
+                               ORDER BY ls.tanggal_keluar DESC 
+                               LIMIT 5");
+    if ($stmtMsg) {
+        $stmtMsg->bind_param("i", $_SESSION['id']);
+        $stmtMsg->execute();
+        $resultMsg = $stmtMsg->get_result();
+        while ($row = $resultMsg->fetch_assoc()) {
+            $messages[] = $row;
+        }
+        $stmtMsg->close();
+    }
+    $stmtUnread = $conn->prepare("SELECT COUNT(*) as unread FROM laporan_surat WHERE id_penerima = ? AND status = 'terkirim'");
+    if ($stmtUnread) {
+        $stmtUnread->bind_param("i", $_SESSION['id']);
+        $stmtUnread->execute();
+        $resultUnread = $stmtUnread->get_result();
+        $rowUnread = $resultUnread->fetch_assoc();
+        $unreadCount = intval($rowUnread['unread'] ?? 0);
+        $stmtUnread->close();
+    }
 }
 ?>
 
@@ -186,30 +209,6 @@ function formatBadge($count) {
     <!-- Topbar Navbar -->
     <ul class="navbar-nav ms-auto">
 
-        <!-- Nav Item - Search Dropdown (Visible Only XS) -->
-        <li class="nav-item dropdown no-arrow d-sm-none">
-            <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
-               data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-search fa-fw"></i>
-            </a>
-            <!-- Dropdown - Search -->
-            <div class="dropdown-menu dropdown-menu-end p-3 shadow animated--grow-in"
-                 aria-labelledby="searchDropdown">
-                <form class="form-inline mr-auto w-100 navbar-search">
-                    <div class="input-group">
-                        <input type="text" class="form-control bg-light border-0 small"
-                               placeholder="Search for..." aria-label="Search"
-                               aria-describedby="basic-addon2">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="button">
-                                <i class="fas fa-search fa-sm"></i>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </li>
-
         <!-- Nav Item - Alerts -->
         <li class="nav-item dropdown no-arrow mx-1">
             <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" 
@@ -227,8 +226,6 @@ function formatBadge($count) {
             <div class="dropdown-list dropdown-menu dropdown-menu-end shadow animated--grow-in"
                  aria-labelledby="alertsDropdown">
                 <h6 class="dropdown-header">Alerts Center</h6>
-
-                <!-- Notifikasi Payroll SDM -->
                 <?php if (!empty($sdmNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -245,7 +242,6 @@ function formatBadge($count) {
                     </a>
                 <?php endif; ?>
 
-                <!-- Notifikasi Izin Baru (SDM) -->
                 <?php if (!empty($ijinNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -262,7 +258,6 @@ function formatBadge($count) {
                     </a>
                 <?php endif; ?>
 
-                <!-- Notifikasi Keuangan -->
                 <?php if (!empty($keuNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -279,7 +274,6 @@ function formatBadge($count) {
                     </a>
                 <?php endif; ?>
 
-                <!-- Jika tidak ada notifikasi -->
                 <?php if (empty($sdmNotification) && empty($ijinNotification) && empty($keuNotification)): ?>
                     <a class="dropdown-item text-center small text-gray-500" href="#">
                         No alerts available
@@ -293,55 +287,67 @@ function formatBadge($count) {
         </li>
 
         <!-- Nav Item - Messages -->
+        <?php if (in_array($role, ['P','TK'])): ?>
         <li class="nav-item dropdown no-arrow mx-1">
             <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" 
-               role="button" data-bs-toggle="dropdown" 
-               aria-haspopup="true" aria-expanded="false">
+               role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                
                 <i class="fas fa-envelope fa-fw"></i>
-                <span class="badge badge-danger badge-counter">7</span>
+                <?php if ($unreadCount > 0): ?>
+                    <span class="badge badge-danger badge-counter"><?= $unreadCount; ?></span>
+                <?php endif; ?>
             </a>
             <!-- Dropdown - Messages -->
             <div class="dropdown-list dropdown-menu dropdown-menu-end shadow animated--grow-in"
                  aria-labelledby="messagesDropdown">
-                <h6 class="dropdown-header">
-                    Message Center
-                </h6>
-                <!-- Contoh pesan statis -->
-                <a class="dropdown-item d-flex align-items-center" href="#">
-                    <div class="dropdown-list-image me-3">
-                        <img class="rounded-circle" src="<?= $baseUrl; ?>/assets/img/undraw_profile_1.svg" alt="...">
-                        <div class="status-indicator bg-success"></div>
-                    </div>
-                    <div class="font-weight-bold">
-                        <div class="text-truncate">
-                            Hi there! I am wondering if you can help me with a problem I've been having.
+                <h6 class="dropdown-header">Message Center</h6>
+                <?php if (!empty($messages)): ?>
+                    <?php foreach ($messages as $msg): 
+                        $isiRingkas = mb_strimwidth(strip_tags($msg['isi']), 0, 100, "...");
+                        $tgl = date('d M Y H:i', strtotime($msg['tanggal_keluar']));
+                        $pengirim = htmlspecialchars($msg['sender_name'] ?? 'SDM/Superadmin');
+                    ?>
+                    <a class="dropdown-item d-flex align-items-center message-item" href="pesan_detail.php?id=<?= $msg['id']; ?>"
+                       data-id="<?= $msg['id']; ?>"
+                       data-judul="<?= htmlspecialchars($msg['judul']); ?>"
+                       data-isi="<?= htmlspecialchars($msg['isi']); ?>"
+                       data-pengirim="<?= $pengirim; ?>"
+                       data-tanggal="<?= $tgl; ?>">
+                        <div class="dropdown-list-image me-3">
+                            <img class="rounded-circle" src="<?= $baseUrl; ?>/assets/img/undraw_profile_1.svg" alt="...">
+                            <?php if($msg['status'] == 'terkirim'): ?>
+                                <div class="status-indicator bg-danger"></div>
+                            <?php else: ?>
+                                <div class="status-indicator bg-success"></div>
+                            <?php endif; ?>
                         </div>
-                        <div class="small text-gray-500">Emily Fowler · 58m</div>
-                    </div>
-                </a>
-                <a class="dropdown-item text-center small text-gray-500" href="#">
-                    Read More Messages
-                </a>
+                        <div class="fw-bold">
+                            <div class="text-truncate"><?= htmlspecialchars($msg['judul']); ?></div>
+                            <div class="small text-gray-500"><?= $pengirim; ?> · <?= $tgl; ?></div>
+                        </div>
+                    </a>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <a class="dropdown-item text-center small text-gray-500" href="#">Tidak ada pesan</a>
+                <?php endif; ?>
+                <a class="dropdown-item text-center small text-gray-500" href="<?= $baseUrl; ?>/pesan.php">Lihat Semua Pesan</a>
             </div>
         </li>
+        <?php endif; ?>
 
         <div class="topbar-divider d-none d-sm-block"></div>
 
         <!-- Nav Item - User Information -->
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" 
-               role="button" data-bs-toggle="dropdown" 
-               aria-haspopup="true" aria-expanded="false">
-               
+               role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="me-2 d-none d-lg-inline text-gray-600 small">
                     <?= htmlspecialchars($nama); ?>
                 </span>
                 <img class="img-profile rounded-circle" src="<?= htmlspecialchars($foto); ?>">
             </a>
             <!-- Dropdown - User Information -->
-            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in"
-                 aria-labelledby="userDropdown">
+            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="userDropdown">
                 <a class="dropdown-item" href="<?= $baseUrl; ?>/profile.php">
                     <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i>
                     Profile
@@ -363,6 +369,42 @@ function formatBadge($count) {
         </li>
 
     </ul>
-
 </nav>
 <!-- End of Topbar -->
+
+<!-- Script untuk update status pesan ketika user klik salah satu pesan di dropdown -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+    // Ketika user klik salah satu item pesan di dropdown
+    $('.message-item').on('click', function(e){
+        var $this = $(this);
+        var pesanId = $this.data('id');
+        // Kirim AJAX request untuk update status pesan menjadi 'dibaca'
+        $.ajax({
+            url: "<?= $baseUrl; ?>/laporan_surat.php?ajax=1",
+            type: "POST",
+            data: { case: "UpdateStatus", id: pesanId },
+            dataType: "json",
+            success: function(response) {
+                if(response.code === 0){
+                    // Hapus pesan yang sudah dibaca dari dropdown
+                    $this.fadeOut(300, function(){
+                        $(this).remove();
+                        // Update badge unreadCount
+                        var currentCount = parseInt($('.badge-counter').text());
+                        if(!isNaN(currentCount) && currentCount > 1){
+                            $('.badge-counter').text(currentCount - 1);
+                        } else {
+                            $('.badge-counter').remove();
+                        }
+                    });
+                }
+            },
+            error: function() {
+                console.log("Gagal memperbarui status pesan.");
+            }
+        });
+    });
+});
+</script>

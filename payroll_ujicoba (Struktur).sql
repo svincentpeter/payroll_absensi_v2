@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 24, 2025 at 08:39 AM
+-- Generation Time: Feb 27, 2025 at 05:52 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -166,6 +166,23 @@ CREATE TABLE `jadwal_piket` (
   `bulan` varchar(20) NOT NULL,
   `tahun` int(11) NOT NULL,
   `status` enum('pending','hadir','tidak hadir') NOT NULL DEFAULT 'pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `laporan_surat`
+--
+
+CREATE TABLE `laporan_surat` (
+  `id` int(11) NOT NULL,
+  `id_pengirim` int(11) NOT NULL,
+  `id_penerima` int(11) NOT NULL,
+  `jenis_surat` enum('peringatan') NOT NULL DEFAULT 'peringatan',
+  `judul` varchar(255) NOT NULL,
+  `isi` text NOT NULL,
+  `tanggal_keluar` datetime NOT NULL DEFAULT current_timestamp(),
+  `status` enum('terkirim','dibaca') NOT NULL DEFAULT 'terkirim'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -364,6 +381,12 @@ ALTER TABLE `holidays`
   ADD PRIMARY KEY (`holiday_id`);
 
 --
+-- Indexes for table `laporan_surat`
+--
+ALTER TABLE `laporan_surat`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
@@ -434,6 +457,12 @@ ALTER TABLE `audit_logs`
 --
 ALTER TABLE `holidays`
   MODIFY `holiday_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `laporan_surat`
+--
+ALTER TABLE `laporan_surat`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `notifications`

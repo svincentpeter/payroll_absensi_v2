@@ -62,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Verifikasi password dengan MD5
             if (md5($password_input) === $row['password']) {
                 // Simpan data di session
+                $_SESSION['id']   = $row['id']; 
                 $_SESSION['nip']  = $row['nip'];
                 $_SESSION['nama'] = $row['nama'];
                 

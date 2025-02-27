@@ -1,5 +1,5 @@
 <?php
-// File: /payroll_absensi_v2/payroll/keuangan/payheads.php
+// File: /payroll_absensi_v2/absensi/sdm/payheads.php
 
 // =========================
 // 1. Pengaturan Awal

@@ -149,6 +149,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             'Payroll Anggota'         => '/absensi/sdm/employees.php',
             'Payheads'                => '/absensi/sdm/payheads.php',
             'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php',
+            'Pembuatan Surat'         => '/absensi/sdm/pembuatan_surat.php',
             'Audit Logs SDM'          => '/absensi/sdm/audit_logs_sdm.php',
             'Notifikasi SDM'          => '/absensi/sdm/notifikasi_sdm.php'
         ];
@@ -203,6 +204,12 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 <span>Laporan Surat Ijin</span>
             </a>
         </li>
+        <li class="nav-item <?= isActive('/absensi/sdm/pembuatan_surat.php'); ?>">
+            <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/pembuatan_surat.php">
+                <i class="fas fa-envelope-open-text fa-fw"></i>
+                <span>Pembuatan Surat</span>
+            </a>
+        </li>
         <li class="nav-item <?= isActive('/absensi/sdm/audit_logs_sdm.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/audit_logs_sdm.php">
                 <i class="fas fa-history fa-fw"></i>
@@ -215,6 +222,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 <span>Notifikasi SDM</span>
             </a>
         </li>
+
     <?php elseif ($role === 'keuangan'): ?>
         <!-- Menu Keuangan tanpa collapse -->
         <li class="nav-item <?= isActive('/payroll/keuangan/dashboard_keuangan.php'); ?>">
@@ -278,6 +286,12 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/pengajuan_surat_ijin.php">
                 <i class="fas fa-paper-plane fa-fw"></i>
                 <span>Ajukan Permohonan Ijin</span>
+            </a>
+        </li>
+        <li class="nav-item <?= isActive('/absensi/guru/laporan_surat.php'); ?>">
+            <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/laporan_surat.php">
+                <i class="fas fa-paper-plane fa-fw"></i>
+                <span>Laporan Surat</span>
             </a>
         </li>
         <li class="nav-item <?= isActive('/absensi/guru/list_hari_libur.php'); ?>">
