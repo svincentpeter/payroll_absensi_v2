@@ -34,6 +34,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             case 'DeleteSurat':
                 DeleteSurat($conn);
                 break;
+            case 'ViewSuratDetail':
+                ViewSuratDetail($conn);
+                break;
+                
             default:
                 send_response(404, 'Kasus tidak ditemukan.');
         }
@@ -158,35 +162,43 @@ function LoadingSurat($conn) {
     while ($row = $dataQuery->fetch_assoc()) {
         // Buat ringkasan isi
         $isiSingkat = mb_strimwidth(strip_tags($row['isi']), 0, 50, "...");
-
+    
         // Badge status
         if ($row['status'] === 'terkirim') {
-            $badgeStatus = '<span class="badge bg-primary">Terkirim</span>';
+            $badgeStatus = '<span class="badge bg-primary" style="color: #000 !important;">Terkirim</span>';
         } else {
-            $badgeStatus = '<span class="badge bg-success">Dibaca</span>';
+            $badgeStatus = '<span class="badge bg-success" style="color: #000 !important;">Dibaca</span>';
         }
-
+    
         // Tanggal
         $tanggal = date('d M Y H:i', strtotime($row['tanggal_keluar']));
-
-        // Tombol aksi (Delete)
+    
+        // Jika id_penerima = 0, tampilkan "Semua Anggota"
+        $nama_penerima = ($row['id_penerima'] == 0) ? 'Semua Anggota' : ($row['nama_penerima'] ?? '-');
+    
+        // Tombol aksi (View Detail & Delete)
         $aksi = '
-<div class="dropdown">
-  <button class="btn" type="button" data-bs-toggle="dropdown">
-    <i class="bi bi-three-dots-vertical"></i>
-  </button>
-  <ul class="dropdown-menu">
-    <li>
-      <a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
-        <i class="fas fa-trash-alt"></i> Hapus
-      </a>
-    </li>
-  </ul>
-</div>';
-
+        <div class="dropdown">
+          <button class="btn" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-three-dots-vertical"></i>
+          </button>
+          <ul class="dropdown-menu">
+            <li>
+              <a class="dropdown-item btn-view" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+                <i class="fas fa-eye"></i> View Detail
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item btn-delete" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
+                <i class="fas fa-trash-alt"></i> Hapus
+              </a>
+            </li>
+          </ul>
+        </div>';
+    
         $data[] = [
             "no"             => $no++,
-            "nama_penerima"  => $row['nama_penerima'] ?? '-',
+            "nama_penerima"  => $nama_penerima,
             "judul"          => htmlspecialchars($row['judul']),
             "isi"            => htmlspecialchars($isiSingkat),
             "tanggal_keluar" => $tanggal,
@@ -194,6 +206,7 @@ function LoadingSurat($conn) {
             "aksi"           => $aksi
         ];
     }
+    
     $stmtData->close();
 
     echo json_encode([
@@ -206,7 +219,7 @@ function LoadingSurat($conn) {
 }
 
 /**
- * Menambahkan Surat Peringatan baru.
+ * Menambahkan Surat baru.
  */
 function AddSurat($conn) {
     $id_pengirim = $_SESSION['id'] ?? 0; // ID user yang login
@@ -275,12 +288,42 @@ function DeleteSurat($conn) {
     send_response(0, 'Surat berhasil dihapus.');
 }
 
+/**
+ * Mengambil detail surat berdasarkan ID.
+ */
+function ViewSuratDetail($conn) {
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    if ($id <= 0) {
+        send_response(1, 'ID surat tidak valid.');
+    }
+    $stmt = $conn->prepare("
+        SELECT ls.*, penerima.nama AS nama_penerima 
+        FROM laporan_surat ls
+        LEFT JOIN anggota_sekolah penerima ON ls.id_penerima = penerima.id
+        WHERE ls.id = ? LIMIT 1
+    ");
+    if (!$stmt) {
+        send_response(1, 'Query Error: ' . $conn->error);
+    }
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $result->num_rows == 1) {
+        $row = $result->fetch_assoc();
+        send_response(0, $row);
+    } else {
+        send_response(2, 'Surat tidak ditemukan.');
+    }
+    $stmt->close();
+}
+
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Manajemen Surat Peringatan</title>
+    <title>Manajemen Surat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap 5 CSS -->
@@ -296,6 +339,10 @@ function DeleteSurat($conn) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <style>
+        /* Aturan global untuk semua font menjadi hitam */
+        body, label, button, input, textarea {
+            color: #000 !important;
+        }
         .card-header {
             background-color: #4e73df;
             color: #fff;
@@ -315,6 +362,7 @@ function DeleteSurat($conn) {
             margin: auto;
             top: 0; left: 0; bottom: 0; right: 0;
         }
+        
     </style>
 </head>
 <body id="page-top">
@@ -343,14 +391,19 @@ function DeleteSurat($conn) {
                 <!-- Page Content -->
                 <div class="container-fluid">
                     <!-- Judul Halaman -->
-                    <h1 class="h3 mb-4 text-gray-800">
-                        <i class="fas fa-envelope-open-text me-2"></i>Manajemen Surat Peringatan
-                    </h1>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800 mb-0">
+            <i class="fas fa-envelope-open-text me-2"></i>Manajemen Surat
+        </h1>
+        <button id="btnTemplateSurat" class="btn btn-info">
+            <i class="fas fa-file-alt"></i> Kelola Template Surat
+        </button>
+    </div>
 
                     <!-- Card: Form Tambah Surat -->
                     <div class="card mb-4">
                         <div class="card-header">
-                            <strong><i class="fas fa-plus-circle me-2"></i>Buat Surat Peringatan</strong>
+                            <strong><i class="fas fa-plus-circle me-2"></i>Buat Surat</strong>
                         </div>
                         <div class="card-body">
                             <form id="formAddSurat" class="row g-3 needs-validation" novalidate>
@@ -409,7 +462,7 @@ function DeleteSurat($conn) {
                     <div class="card shadow mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h6 class="m-0 fw-bold text-white">
-                                <i class="fas fa-envelope me-1"></i>Daftar Surat Peringatan
+                                <i class="fas fa-envelope me-1"></i>Daftar Surat
                             </h6>
                         </div>
                         <div class="card-body">
@@ -476,6 +529,31 @@ function DeleteSurat($conn) {
             </form>
         </div>
     </div>
+
+    <!-- MODAL: View Detail Surat -->
+<div class="modal fade" id="modalViewSurat" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detail Surat</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <h5 id="viewJudul"></h5>
+        <p><strong>Nama Penerima:</strong> <span id="viewNamaPenerima"></span></p>
+        <p><strong>Tanggal Keluar:</strong> <span id="viewTanggal"></span></p>
+        <hr>
+        <div id="viewIsi" style="white-space: pre-wrap;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
     <!-- Loading Spinner -->
     <div id="loadingSpinner">
@@ -686,6 +764,45 @@ function DeleteSurat($conn) {
                 }
             });
         });
+
+        $(document).on('click', '#btnTemplateSurat', function(e) {
+    e.preventDefault();
+    var url = "template_surat.php"; // pastikan path sesuai dengan struktur proyek Anda
+    $('#content-wrapper').fadeOut(300, function() {
+        window.location.href = url;
+    });
+});
+
+    // Event handler untuk tombol View Detail
+$(document).on('click', '.btn-view', function(){
+    var suratId = $(this).data('id');
+    $.ajax({
+        url: "pembuatan_surat.php?ajax=1",
+        type: "POST",
+        data: { case: 'ViewSuratDetail', id: suratId },
+        dataType: "json",
+        beforeSend: function(){
+            // Opsi: tampilkan loading jika diperlukan
+        },
+        success: function(response){
+            if(response.code === 0) {
+                // Isi modal dengan detail surat
+                $('#viewJudul').text(response.result.judul);
+                $('#viewNamaPenerima').text(response.result.nama_penerima || '-');
+                $('#viewTanggal').text(response.result.tanggal_keluar);
+                $('#viewIsi').text(response.result.isi);
+                // Tampilkan modal
+                $('#modalViewSurat').modal('show');
+            } else {
+                showToast(response.result, 'error');
+            }
+        },
+        error: function(){
+            showToast('Terjadi kesalahan saat mengambil detail surat.', 'error');
+        }
+    });
+});
+
 
     });
     </script>

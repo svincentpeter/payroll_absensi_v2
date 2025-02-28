@@ -1,5 +1,5 @@
 <?php
-// File: laporan_surat.php (untuk role P/TK)
+// File: /payroll_absensi_v2/absensi/guru/laporan_surat.php (atau di folder karyawan)
 
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
@@ -7,20 +7,18 @@ authorize(['P','TK']);
 
 require_once __DIR__ . '/../../koneksi.php';
 
-// Ambil ID pengguna dari session (pastikan ini dideklarasikan sebelum blok AJAX)
+// Ambil ID pengguna dari session
 $userId = $_SESSION['id'] ?? 0;
 if ($userId <= 0) {
     die("ID User tidak valid atau belum login.");
 }
 
-// Hapus output buffering jika ada
 if (ob_get_length()) {
     ob_end_clean();
 }
 
-// Tangani permintaan AJAX jika parameter "ajax" diset
+// Tangani permintaan AJAX
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
-    // Pastikan metode POST digunakan
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $case = isset($_POST['case']) ? trim($_POST['case']) : '';
         switch ($case) {
@@ -31,8 +29,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
                 $search = isset($_POST['search']['value']) ? trim($_POST['search']['value']) : '';
 
-                // Ambil total records tanpa filter (hanya untuk surat yang masuk ke user)
-                $sqlTotal = "SELECT COUNT(*) as total FROM laporan_surat WHERE id_penerima = ?";
+                // Ambil total records tanpa filter: surat untuk user OR surat untuk semua (id_penerima=0)
+                $sqlTotal = "SELECT COUNT(*) as total FROM laporan_surat WHERE id_penerima = ? OR id_penerima = 0";
                 $stmtTotal = $conn->prepare($sqlTotal);
                 $stmtTotal->bind_param("i", $userId);
                 $stmtTotal->execute();
@@ -41,35 +39,31 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 $recordsTotal = $rowTotal['total'];
                 $stmtTotal->close();
 
-                // Query dasar + JOIN untuk ambil nama penerima
+                // Query dasar + JOIN untuk ambil nama pengirim
                 $sqlFilter = "
-                    SELECT ls.*, penerima.nama AS nama_penerima 
+                    SELECT ls.*, pengirim.nama AS nama_pengirim 
                     FROM laporan_surat ls
-                    LEFT JOIN anggota_sekolah penerima ON ls.id_penerima = penerima.id
-                    WHERE ls.id_penerima = ?
+                    LEFT JOIN anggota_sekolah pengirim ON ls.id_pengirim = pengirim.id
+                    WHERE (ls.id_penerima = ? OR ls.id_penerima = 0)
                 ";
                 $sqlFilterCount = "
                     SELECT COUNT(*) as total 
                     FROM laporan_surat ls
-                    LEFT JOIN anggota_sekolah penerima ON ls.id_penerima = penerima.id
-                    WHERE ls.id_penerima = ?
+                    LEFT JOIN anggota_sekolah pengirim ON ls.id_penerima = pengirim.id
+                    WHERE (ls.id_penerima = ? OR ls.id_penerima = 0)
                 ";
 
-                // Inisialisasi parameter untuk filter berdasarkan user
                 $params = [$userId];
                 $types  = "i";
 
-                // Jika ada pencarian, tambahkan kondisi pencarian
                 if (!empty($search)) {
-                    $sqlFilter .= " AND (ls.judul LIKE ? OR ls.isi LIKE ? OR penerima.nama LIKE ?)";
-                    $sqlFilterCount .= " AND (ls.judul LIKE ? OR ls.isi LIKE ? OR penerima.nama LIKE ?)";
+                    $sqlFilter .= " AND (ls.judul LIKE ? OR ls.isi LIKE ? OR pengirim.nama LIKE ?)";
+                    $sqlFilterCount .= " AND (ls.judul LIKE ? OR ls.isi LIKE ? OR pengirim.nama LIKE ?)";
                     $searchParam = "%" . $search . "%";
-                    // Tambahkan tiga parameter pencarian
                     $params = array_merge($params, [$searchParam, $searchParam, $searchParam]);
-                    $types   .= "sss";
+                    $types  .= "sss";
                 }
 
-                // Hitung recordsFiltered
                 $stmtFiltered = $conn->prepare($sqlFilterCount);
                 if ($stmtFiltered === false) {
                     send_response(1, 'Query Error: ' . $conn->error);
@@ -83,13 +77,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
                 // Sorting
                 $sortableColumns = [
-                    "nama_penerima"  => "penerima.nama",
+                    "nama_pengirim"  => "pengirim.nama",
                     "judul"          => "ls.judul",
                     "isi"            => "ls.isi",
                     "tanggal_keluar" => "ls.tanggal_keluar",
                     "status"         => "ls.status"
                 ];
-                $orderBy = " ORDER BY ls.id DESC"; // default
+                $orderBy = " ORDER BY ls.id DESC";
                 if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
                     $columnIndex = intval($_POST['order'][0]['column']);
                     $colData = $_POST['columns'][$columnIndex]['data'] ?? '';
@@ -101,7 +95,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 }
 
                 $sqlFilter .= $orderBy . " LIMIT ?, ?";
-                // Tambahkan parameter untuk limit dan offset
                 $params[] = $start;
                 $params[] = $length;
                 $types   .= "ii";
@@ -124,15 +117,15 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                     $tglKeluar  = date('d M Y H:i', strtotime($row['tanggal_keluar']));
                     $badgeClass = ($row['status'] === 'dibaca') ? 'badge-dibaca' : 'badge-terkirim';
                     $badgeText  = ucfirst($row['status']);
-                    $namaPenerima = htmlspecialchars($row['nama_penerima'] ?? '-');
+                    $namaPengirim = htmlspecialchars($row['nama_pengirim'] ?? 'SDM/Superadmin');
                     $data[] = [
                         "no"             => $no++,
-                        "nama_penerima"  => $namaPenerima,
+                        "nama_pengirim"  => $namaPengirim,
                         "judul"          => htmlspecialchars($row['judul']),
                         "isi"            => htmlspecialchars($isiSingkat),
                         "tanggal_keluar" => $tglKeluar,
                         "status"         => '<span class="badge '.$badgeClass.'">'.$badgeText.'</span>',
-                        "aksi"           => '<button type="button" class="btn btn-sm btn-info btn-detail" data-id="'.$row['id'].'" data-judul="'.htmlspecialchars($row['judul']).'" data-isi="'.htmlspecialchars($row['isi']).'" data-pengirim="'.htmlspecialchars($row['nama_penerima'] ?? 'SDM/Superadmin').'" data-tanggal="'.$tglKeluar.'">Lihat Detail</button>'
+                        "aksi"           => '<button type="button" class="btn btn-sm btn-info btn-detail" data-id="'.$row['id'].'" data-judul="'.htmlspecialchars($row['judul']).'" data-isi="'.htmlspecialchars($row['isi']).'" data-pengirim="'.htmlspecialchars($namaPengirim).'" data-tanggal="'.$tglKeluar.'">Lihat Detail</button>'
                     ];
                 }
                 $stmtData->close();
@@ -144,7 +137,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 ], JSON_UNESCAPED_UNICODE);
                 exit();
             case 'UpdateStatus':
-                // Update status surat menjadi 'dibaca'
                 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
                 if ($id <= 0) {
                     send_response(2, 'ID surat tidak valid.');
@@ -186,51 +178,26 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // Jika bukan AJAX, tampilkan halaman HTML
-
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <title>Laporan Surat Peringatan</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <!-- FontAwesome, Bootstrap 5, SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.3/css/sb-admin-2.min.css">
-    
     <style>
-        body {
-            font-family: "Nunito", sans-serif;
-        }
-        .table-section {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .badge-terkirim {
-            background-color: #0d6efd;
-        }
-        .badge-dibaca {
-            background-color: #198754;
-        }
-        /* Styling Modal Detail */
-        .modal-header {
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .modal-title {
-            color: #000;
-        }
-        .modal-body {
-            color: #000;
-            font-size: 1rem;
-            line-height: 1.5;
-        }
+        body { font-family: "Nunito", sans-serif; }
+        .table-section { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .badge-terkirim { background-color: #0d6efd; }
+        .badge-dibaca { background-color: #198754; }
+        .modal-header { background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; }
+        .modal-title { color: #000; }
+        .modal-body { color: #000; font-size: 1rem; line-height: 1.5; }
     </style>
 </head>
 <body id="page-top">
@@ -238,7 +205,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
         <!-- End Sidebar -->
-
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
@@ -246,13 +212,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End Topbar -->
-
                 <!-- Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">
-                        <i class="fas fa-file-alt me-2"></i>Laporan Surat Peringatan
+                        <i class="fas fa-envelope-open-text me-2"></i>Laporan Surat Peringatan
                     </h1>
-
                     <div class="table-section">
                         <h4 class="mb-3">Surat Peringatan untuk Anda</h4>
                         <div class="table-responsive">
@@ -270,14 +234,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                                 </thead>
                                 <tbody>
                                 <?php 
-                                // Ambil data surat secara langsung tanpa DataTables (contoh sederhana)
+                                // Query langsung tanpa DataTables
                                 $sql = "
                                     SELECT ls.*, 
                                            pengirim.nama AS nama_pengirim,
                                            pengirim.job_title AS job_title_pengirim
                                     FROM laporan_surat ls
                                     LEFT JOIN anggota_sekolah pengirim ON ls.id_pengirim = pengirim.id
-                                    WHERE ls.id_penerima = ?
+                                    WHERE ls.id_penerima = ? OR ls.id_penerima = 0
                                     ORDER BY ls.tanggal_keluar DESC
                                 ";
                                 $stmt = $conn->prepare($sql);
@@ -314,14 +278,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                                             </span>
                                         </td>
                                         <td>
-                                            <button type="button" 
-                                                class="btn btn-sm btn-info btn-detail" 
+                                            <button type="button" class="btn btn-sm btn-info btn-detail" 
                                                 data-id="<?= $row['id']; ?>"
                                                 data-judul="<?= htmlspecialchars($row['judul']); ?>"
                                                 data-isi="<?= htmlspecialchars($row['isi']); ?>"
                                                 data-pengirim="<?= $displayPengirim; ?>"
-                                                data-tanggal="<?= $tglKeluar; ?>"
-                                            >
+                                                data-tanggal="<?= $tglKeluar; ?>">
                                                 Lihat Detail
                                             </button>
                                         </td>
@@ -331,9 +293,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                                 else:
                                 ?>
                                     <tr>
-                                        <td colspan="7" class="text-center">
-                                            Belum ada surat peringatan untuk Anda.
-                                        </td>
+                                        <td colspan="7" class="text-center">Belum ada surat peringatan untuk Anda.</td>
                                     </tr>
                                 <?php endif; 
                                 $stmt->close();
@@ -359,7 +319,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             <div class="mb-2"><strong>Dari:</strong> <span id="detailPengirim"></span></div>
             <div class="mb-2"><strong>Tanggal:</strong> <span id="detailTanggal"></span></div>
             <hr>
-            <div id="detailIsi" style="color: #000;"></div>
+            <div id="detailIsi" style="white-space: pre-wrap;"></div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -375,16 +335,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
     <script>
     $(document).ready(function(){
-        // Ketika tombol Lihat Detail diklik
         $(document).on('click', '.btn-detail', function(){
             var btn = $(this);
-            var suratId  = btn.data('id');
-            var judul    = btn.data('judul');
-            var isi      = btn.data('isi');
-            var pengirim = btn.data('pengirim');
-            var tanggal  = btn.data('tanggal');
-
-            // Jika status surat masih "terkirim", update ke "dibaca"
+            var suratId = btn.data('id');
             $.ajax({
                 url: "laporan_surat.php?ajax=1",
                 type: "POST",
@@ -402,14 +355,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                     console.log('Gagal memperbarui status surat.');
                 }
             });
-
-            // Set konten modal detail
-            $('#detailModalLabel').text(judul);
-            $('#detailPengirim').text(pengirim);
-            $('#detailTanggal').text(tanggal);
-            $('#detailIsi').html(isi);
-
-            // Tampilkan modal
+            $('#detailModalLabel').text(btn.data('judul'));
+            $('#detailPengirim').text(btn.data('pengirim'));
+            $('#detailTanggal').text(btn.data('tanggal'));
+            $('#detailIsi').html(btn.data('isi'));
             var detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
             detailModal.show();
         });
