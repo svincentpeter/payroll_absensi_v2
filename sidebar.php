@@ -39,12 +39,8 @@ if (empty($job_title) && !empty($nip)) {
  * @return string => 'active' jika cocok, '' jika tidak.
  */
 function isActive($menuUrl) {
-    // Ambil path saat ini (misal: /payroll_absensi_v2/absensi/sdm/dashboard_sdm.php)
     $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    // Bangun full path menu
     $fullMenuUrl = BASE_URL . $menuUrl;
-
-    // Cek apakah $currentPath diawali oleh $fullMenuUrl
     if (strpos($currentPath, $fullMenuUrl) === 0) {
         return 'active';
     }
@@ -131,7 +127,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         // Menu Kelola Sistem
         $kelolaSistemItems = [
             'Backup Database' => '/payroll/superadmin/backup_database.php',
-            'Audit Logs'  => '/payroll/superadmin/logs.php'
+            'Audit Logs'      => '/payroll/superadmin/logs.php'
         ];
         renderCollapseMenu('collapseKelolaSistem', 'fas fa-user-shield fa-fw', 'Kelola Sistem', $kelolaSistemItems);
 
@@ -143,26 +139,26 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 
         // Role SDM
         $sdmItems = [
-            'Dashboard SDM'           => '/absensi/sdm/dashboard_sdm.php',
-            'Koreksi Absensi'         => '/absensi/sdm/koreksi_absensi.php',
-            'Kelola Guru/Karyawan'    => '/absensi/sdm/manage_guru_karyawan.php',
-            'Payroll Anggota'         => '/absensi/sdm/employees.php',
-            'Payheads'                => '/absensi/sdm/payheads.php',
-            'Laporan Surat Ijin'      => '/absensi/sdm/laporan_pengajuan_ijin.php',
-            'Pembuatan Surat'         => '/absensi/sdm/pembuatan_surat.php',
-            'Audit Logs SDM'          => '/absensi/sdm/audit_logs_sdm.php',
-            'Notifikasi SDM'          => '/absensi/sdm/notifikasi_sdm.php'
+            'Dashboard SDM'        => '/absensi/sdm/dashboard_sdm.php',
+            'Koreksi Absensi'      => '/absensi/sdm/koreksi_absensi.php',
+            'Kelola Guru/Karyawan' => '/absensi/sdm/manage_guru_karyawan.php',
+            'Payroll Anggota'      => '/absensi/sdm/employees.php',
+            'Payheads'             => '/absensi/sdm/payheads.php',
+            'Laporan Surat Ijin'   => '/absensi/sdm/laporan_pengajuan_ijin.php',
+            'Pembuatan Surat'      => '/absensi/sdm/pembuatan_surat.php',
+            'Audit Logs SDM'       => '/absensi/sdm/audit_logs_sdm.php',
+            'Notifikasi SDM'       => '/absensi/sdm/notifikasi_sdm.php'
         ];
         renderCollapseMenu('collapseSDM', 'fas fa-users-cog fa-fw', 'Role SDM', $sdmItems);
 
         // Role Keuangan
         $keuanganItems = [
-            'Dashboard Keuangan'   => '/payroll/keuangan/dashboard_keuangan.php',
-            'List Payroll'         => '/payroll/keuangan/list_payroll.php',
-            'History Payroll'      => '/payroll/keuangan/payroll_history.php',
-            'Rekap Payroll'        => '/payroll/keuangan/rekap_payroll.php',
-            'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php',
-            'Notifikasi Keuangan'  => '/payroll/keuangan/notifikasi_keuangan.php'
+            'Dashboard Keuangan'  => '/payroll/keuangan/dashboard_keuangan.php',
+            'List Payroll'        => '/payroll/keuangan/list_payroll.php',
+            'History Payroll'     => '/payroll/keuangan/payroll_history.php',
+            'Rekap Payroll'       => '/payroll/keuangan/rekap_payroll.php',
+            'Audit Logs Keuangan' => '/payroll/keuangan/audit_logs_keuangan.php',
+            'Notifikasi Keuangan' => '/payroll/keuangan/notifikasi_keuangan.php'
         ];
         renderCollapseMenu('collapseKeuangan', 'fas fa-wallet fa-fw', 'Role Keuangan', $keuanganItems);
         ?>
@@ -319,7 +315,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">
 
-    <!-- Sidebar Toggler (untuk show/hide sidebar) -->
+    <!-- Sidebar Toggler -->
     <div class="text-center d-none d-md-inline">
         <button class="rounded-circle border-0" id="sidebarToggle"></button>
     </div>

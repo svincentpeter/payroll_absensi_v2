@@ -13,31 +13,18 @@ if (!defined('BASE_URL')) {
 $currentUrl = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 /*
-  Definisikan struktur menu untuk breadcrumb. Sesuaikan dengan data sidebar Anda.
+  Definisikan struktur menu untuk breadcrumb.
   Setiap grup memiliki:
     - 'url'  : URL utama grup (sebagai tautan ketika grup ditampilkan di breadcrumb)
     - 'items': array item dengan key sebagai label dan value sebagai URL.
 */
 $menuStructure = [
-    // Grup untuk Keuangan (digunakan untuk role "keuangan" dan "superadmin")
-    'Keuangan' => [
-         'url' => '/payroll/keuangan/dashboard_keuangan.php',
-         'items' => [
-             'Dashboard Keuangan'   => '/payroll/keuangan/dashboard_keuangan.php',
-             'Payroll Anggota'      => '/payroll/keuangan/employees.php',
-             'Payheads'             => '/payroll/keuangan/payheads.php',
-             'Rekap Absensi'        => '/payroll/keuangan/rekap_absensi.php',
-             'History Payroll'      => '/payroll/keuangan/payroll_history.php',
-             'Rekap Payroll'        => '/payroll/keuangan/rekap_payroll.php',
-             'Audit Logs Keuangan'  => '/payroll/keuangan/audit_logs_keuangan.php'
-         ]
-    ],
     // Grup untuk Kelola Sistem (superadmin)
     'Kelola Sistem' => [
          'url' => '/payroll/superadmin/kelola_user.php',
          'items' => [
-              'Kelola User' => '/payroll/superadmin/kelola_user.php',
-              'Audit Logs'  => '/payroll/superadmin/logs.php'
+              'Backup Database' => '/payroll/superadmin/backup_database.php',
+              'Audit Logs'      => '/payroll/superadmin/logs.php'
          ]
     ],
     // Grup untuk Laporan (superadmin)
@@ -47,28 +34,51 @@ $menuStructure = [
               'Laporan Gaji' => '/payroll/laporan_gaji.php'
          ]
     ],
-    // Grup untuk SDM
+    // Grup untuk Role SDM (untuk superadmin dan SDM)
     'SDM' => [
          'url' => '/absensi/sdm/dashboard_sdm.php',
          'items' => [
              'Dashboard SDM'          => '/absensi/sdm/dashboard_sdm.php',
-             'Upload Absensi'         => '/absensi/sdm/upload_absensi.php',
-             'Review Absensi'        => '/absensi/sdm/koreksi_absensi.php',
-             'Tambah Hari Libur'      => '/absensi/sdm/tambah_hari_libur.php',
-             'Tambah Jadwal Piket'    => '/absensi/sdm/tambah_jadwal_piket.php',
+             'Koreksi Absensi'        => '/absensi/sdm/koreksi_absensi.php',
              'Kelola Guru/Karyawan'   => '/absensi/sdm/manage_guru_karyawan.php',
-             'Lihat Password Guru'    => '/absensi/sdm/lihat_password_guru.php',
-             'Pengajuan Surat Ijin'   => '/absensi/sdm/laporan_pengajuan_ijin.php'
+             'Payroll Anggota'        => '/absensi/sdm/employees.php',
+             'Payheads'               => '/absensi/sdm/payheads.php',
+             'Laporan Surat Ijin'     => '/absensi/sdm/laporan_pengajuan_ijin.php',
+             'Pembuatan Surat'        => '/absensi/sdm/pembuatan_surat.php',
+             'Audit Logs SDM'         => '/absensi/sdm/audit_logs_sdm.php',
+             'Notifikasi SDM'         => '/absensi/sdm/notifikasi_sdm.php'
          ]
     ],
-    // Grup untuk Guru
+    // Grup untuk Role Keuangan (untuk superadmin dan keuangan)
+    'Keuangan' => [
+         'url' => '/payroll/keuangan/dashboard_keuangan.php',
+         'items' => [
+             'Dashboard Keuangan'  => '/payroll/keuangan/dashboard_keuangan.php',
+             'List Payroll'        => '/payroll/keuangan/list_payroll.php',
+             'History Payroll'     => '/payroll/keuangan/payroll_history.php',
+             'Rekap Payroll'       => '/payroll/keuangan/rekap_payroll.php',
+             'Audit Logs Keuangan' => '/payroll/keuangan/audit_logs_keuangan.php',
+             'Notifikasi Keuangan' => '/payroll/keuangan/notifikasi_keuangan.php'
+         ]
+    ],
+    // Grup untuk Guru/Pendidik (role P dan TK)
     'Dashboard Guru' => [
          'url' => '/absensi/guru/dashboard_guru.php',
          'items' => [
+             'Dashboard'              => '/absensi/guru/dashboard_guru.php',
              'Ganti Password'         => '/absensi/guru/ganti_password_guru.php',
              'Ajukan Permohonan Ijin'   => '/absensi/guru/pengajuan_surat_ijin.php',
+             'Laporan Surat'          => '/absensi/guru/laporan_surat.php',
              'List Hari Libur'        => '/absensi/guru/list_hari_libur.php',
-             'Kembali ke Dashboard'     => '/absensi/guru/dashboard_guru.php'
+             'Jadwal Piket'           => '/absensi/guru/dashboard_jadwal.php'
+         ]
+    ],
+    // Grup untuk Kepala Sekolah
+    'Kepala Sekolah' => [
+         'url' => '/absensi/kepalasekolah/dashboard_kepala_sekolah.php',
+         'items' => [
+             'Dashboard'            => '/absensi/kepalasekolah/dashboard_kepala_sekolah.php',
+             'Laporan Surat Ijin'   => '/absensi/kepalasekolah/laporan_ijin_ke_kepalasekolah.php'
          ]
     ]
 ];

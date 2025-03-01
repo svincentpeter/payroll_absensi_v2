@@ -195,14 +195,8 @@ if (in_array($role, ['P','TK'])) {
     <!-- Topbar Search -->
     <form class="d-none d-sm-inline-block form-inline me-auto ms-md-3 my-2 my-md-0 mw-100 navbar-search">
         <div class="input-group">
-            <input type="text" class="form-control bg-light border-0 small" 
-                   placeholder="Search for..." aria-label="Search" 
-                   aria-describedby="basic-addon2">
-            <div class="input-group-append">
-                <button class="btn btn-primary" type="button">
-                    <i class="fas fa-search fa-sm"></i>
-                </button>
-            </div>
+            <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..." aria-label="Search">
+            <span class="input-group-text bg-primary text-white"><i class="fas fa-search fa-sm"></i></span>
         </div>
     </form>
 
@@ -211,20 +205,14 @@ if (in_array($role, ['P','TK'])) {
 
         <!-- Nav Item - Alerts -->
         <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" 
-               role="button" data-bs-toggle="dropdown" 
-               aria-haspopup="true" aria-expanded="false">
-               
+            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-bell fa-fw"></i>
                 <?php if ($totalAlerts > 0): ?>
-                    <span class="badge badge-danger badge-counter">
-                        <?= formatBadge($totalAlerts); ?>
-                    </span>
+                    <span class="badge bg-danger badge-counter"><?= formatBadge($totalAlerts); ?></span>
                 <?php endif; ?>
             </a>
             <!-- Dropdown - Alerts -->
-            <div class="dropdown-list dropdown-menu dropdown-menu-end shadow animated--grow-in"
-                 aria-labelledby="alertsDropdown">
+            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="alertsDropdown">
                 <h6 class="dropdown-header">Alerts Center</h6>
                 <?php if (!empty($sdmNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
@@ -235,13 +223,10 @@ if (in_array($role, ['P','TK'])) {
                         </div>
                         <div>
                             <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
-                            <span class="font-weight-bold">
-                                <?= htmlspecialchars($sdmNotification); ?>
-                            </span>
+                            <span class="fw-bold"><?= htmlspecialchars($sdmNotification); ?></span>
                         </div>
                     </a>
                 <?php endif; ?>
-
                 <?php if (!empty($ijinNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -251,13 +236,10 @@ if (in_array($role, ['P','TK'])) {
                         </div>
                         <div>
                             <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
-                            <span class="font-weight-bold">
-                                <?= htmlspecialchars($ijinNotification); ?>
-                            </span>
+                            <span class="fw-bold"><?= htmlspecialchars($ijinNotification); ?></span>
                         </div>
                     </a>
                 <?php endif; ?>
-
                 <?php if (!empty($keuNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -267,39 +249,28 @@ if (in_array($role, ['P','TK'])) {
                         </div>
                         <div>
                             <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
-                            <span class="font-weight-bold">
-                                <?= htmlspecialchars($keuNotification); ?>
-                            </span>
+                            <span class="fw-bold"><?= htmlspecialchars($keuNotification); ?></span>
                         </div>
                     </a>
                 <?php endif; ?>
-
                 <?php if (empty($sdmNotification) && empty($ijinNotification) && empty($keuNotification)): ?>
-                    <a class="dropdown-item text-center small text-gray-500" href="#">
-                        No alerts available
-                    </a>
+                    <a class="dropdown-item text-center small text-gray-500" href="#">No alerts available</a>
                 <?php endif; ?>
-
-                <a class="dropdown-item text-center small text-gray-500" href="#">
-                    Show All Alerts
-                </a>
+                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
             </div>
         </li>
 
         <!-- Nav Item - Messages -->
         <?php if (in_array($role, ['P','TK'])): ?>
         <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" 
-               role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-               
+            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-envelope fa-fw"></i>
                 <?php if ($unreadCount > 0): ?>
-                    <span class="badge badge-danger badge-counter"><?= $unreadCount; ?></span>
+                    <span class="badge bg-danger badge-counter"><?= $unreadCount; ?></span>
                 <?php endif; ?>
             </a>
             <!-- Dropdown - Messages -->
-            <div class="dropdown-list dropdown-menu dropdown-menu-end shadow animated--grow-in"
-                 aria-labelledby="messagesDropdown">
+            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="messagesDropdown">
                 <h6 class="dropdown-header">Message Center</h6>
                 <?php if (!empty($messages)): ?>
                     <?php foreach ($messages as $msg): 
@@ -339,11 +310,8 @@ if (in_array($role, ['P','TK'])) {
 
         <!-- Nav Item - User Information -->
         <li class="nav-item dropdown no-arrow">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" 
-               role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="me-2 d-none d-lg-inline text-gray-600 small">
-                    <?= htmlspecialchars($nama); ?>
-                </span>
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="me-2 d-none d-lg-inline text-gray-600 small"><?= htmlspecialchars($nama); ?></span>
                 <img class="img-profile rounded-circle" src="<?= htmlspecialchars($foto); ?>">
             </a>
             <!-- Dropdown - User Information -->
@@ -376,11 +344,9 @@ if (in_array($role, ['P','TK'])) {
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script>
 $(document).ready(function(){
-    // Ketika user klik salah satu item pesan di dropdown
     $('.message-item').on('click', function(e){
         var $this = $(this);
         var pesanId = $this.data('id');
-        // Kirim AJAX request untuk update status pesan menjadi 'dibaca'
         $.ajax({
             url: "<?= $baseUrl; ?>/laporan_surat.php?ajax=1",
             type: "POST",
@@ -388,10 +354,8 @@ $(document).ready(function(){
             dataType: "json",
             success: function(response) {
                 if(response.code === 0){
-                    // Hapus pesan yang sudah dibaca dari dropdown
                     $this.fadeOut(300, function(){
                         $(this).remove();
-                        // Update badge unreadCount
                         var currentCount = parseInt($('.badge-counter').text());
                         if(!isNaN(currentCount) && currentCount > 1){
                             $('.badge-counter').text(currentCount - 1);
