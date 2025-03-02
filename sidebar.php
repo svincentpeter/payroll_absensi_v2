@@ -12,11 +12,11 @@ if (!defined('BASE_URL')) {
 }
 
 // Mengambil informasi pengguna dari session
-$role     = $_SESSION['role'] ?? '';       // Contoh nilai: 'P', 'TK', 'M', 'superadmin', 'sdm', 'keuangan', 'kepala_sekolah'
-$username = $_SESSION['username'] ?? '';
-$nama     = $_SESSION['nama'] ?? '';
-$nip      = $_SESSION['nip'] ?? '';
-$job_title= $_SESSION['job_title'] ?? '';
+$role      = $_SESSION['role'] ?? '';       // Contoh nilai: 'P', 'TK', 'M', 'superadmin', 'sdm', 'keuangan', 'kepala_sekolah'
+$username  = $_SESSION['username'] ?? '';
+$nama      = $_SESSION['nama'] ?? '';
+$nip       = $_SESSION['nip'] ?? '';
+$job_title = $_SESSION['job_title'] ?? '';
 
 // Jika job_title belum ada di session dan nip tersedia, ambil dari database
 if (empty($job_title) && !empty($nip)) {
@@ -35,24 +35,15 @@ if (empty($job_title) && !empty($nip)) {
 
 /**
  * Menentukan apakah link aktif atau tidak berdasarkan URL saat ini.
- * @param string $menuUrl => relative path, misal '/absensi/sdm/dashboard_sdm.php'
- * @return string => 'active' jika cocok, '' jika tidak.
  */
 function isActive($menuUrl) {
     $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $fullMenuUrl = BASE_URL . $menuUrl;
-    if (strpos($currentPath, $fullMenuUrl) === 0) {
-        return 'active';
-    }
-    return '';
+    return (strpos($currentPath, $fullMenuUrl) === 0) ? 'active' : '';
 }
 
 /**
- * Membuat item menu yang bisa di-collapse (memiliki submenu).
- * @param string $id => id unik untuk collapse (misal: 'collapseKelolaSistem')
- * @param string $iconClass => class icon FontAwesome (misal: 'fas fa-user-tie fa-fw')
- * @param string $title => Judul grup menu (misal: 'Role SDM')
- * @param array $items => array label => url (misal: ['Dashboard SDM' => '/absensi/sdm/dashboard_sdm.php'])
+ * Membuat item menu collapse dengan submenu.
  */
 function renderCollapseMenu($id, $iconClass, $title, $items) {
     $isAnyActive = false;
@@ -82,31 +73,46 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 }
 ?>
 <style>
-    /* Tambahan style untuk menandai item sidebar yang aktif */
+    /* Style tambahan untuk sidebar */
+    .sidebar {
+        font-size: 0.9rem;
+    }
+    .sidebar .nav-item .nav-link {
+        padding: 0.75rem 1rem;
+    }
     .sidebar .nav-item.active > .nav-link,
     .sidebar .nav-item.active > .nav-link:hover {
         background-color: #4e73df; /* Warna primer SB Admin 2 */
         color: #fff;
     }
+    .sidebar .collapse-inner a.collapse-item {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    .sidebar-heading {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        padding: 0.75rem 1rem;
+    }
 </style>
 
 <!-- Sidebar -->
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
-
     <!-- Sidebar - Brand (Logo / Judul Sistem) -->
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?= BASE_URL ?>/index.php">
-        <div class="sidebar-brand-icon rotate-n-15">
-            <!-- Ikon Font Awesome, misalnya graduation-cap untuk sekolah -->
-            <i class="fas fa-graduation-cap fa-fw"></i>
-        </div>
-        <div class="sidebar-brand-text mx-3">Sistem Nusaputera</div>
-    </a>
+<a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?= BASE_URL ?>/index.php">
+    <div class="sidebar-brand-icon">
+        <!-- Ganti ikon dengan tag <img> untuk menampilkan foto/logo -->
+        <img src="<?= BASE_URL; ?>/assets/img/logo.png" alt="Logo Sistem" class="img-fluid " style="max-width: 50px;">
+    </div>
+    <div class="sidebar-brand-text mx-3">Sistem Sekolah Nusaputera</div>
+</a>
+
 
     <!-- Divider -->
     <hr class="sidebar-divider my-0">
 
     <!-- Panel Informasi Pengguna -->
-    <div class="sidebar-heading mt-3 text-center">
+    <div class="sidebar-heading text-center">
         <?php if (in_array($role, ['P', 'TK', 'superadmin', 'sdm', 'keuangan', 'kepala_sekolah'])): ?>
             <strong><?= htmlspecialchars($nama ?: $username) ?></strong><br>
             <small><?= htmlspecialchars($job_title) ?></small><br>
@@ -122,22 +128,20 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 
     <!-- Menu Berdasarkan Peran -->
     <?php if ($role === 'superadmin'): ?>
-        <!-- Menu Superadmin dengan sub-menu -->
+        <!-- Menu Superadmin -->
+        <li class="nav-item <?= isActive('/payroll/superadmin/dashboard_superadmin.php'); ?>">
+            <a class="nav-link" href="<?= BASE_URL ?>/payroll/superadmin/dashboard_superadmin.php">
+                <i class="fas fa-tachometer-alt fa-fw"></i>
+                <span>Dashboard Superadmin</span>
+            </a>
+        </li>
         <?php
-        // Menu Kelola Sistem
         $kelolaSistemItems = [
             'Backup Database' => '/payroll/superadmin/backup_database.php',
             'Audit Logs'      => '/payroll/superadmin/logs.php'
         ];
         renderCollapseMenu('collapseKelolaSistem', 'fas fa-user-shield fa-fw', 'Kelola Sistem', $kelolaSistemItems);
 
-        // Menu Laporan
-        $laporanItems = [
-            'Laporan Gaji' => '/payroll/laporan_gaji.php'
-        ];
-        renderCollapseMenu('collapseLaporan', 'fas fa-chart-pie fa-fw', 'Laporan', $laporanItems);
-
-        // Role SDM
         $sdmItems = [
             'Dashboard SDM'        => '/absensi/sdm/dashboard_sdm.php',
             'Koreksi Absensi'      => '/absensi/sdm/koreksi_absensi.php',
@@ -151,7 +155,6 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         ];
         renderCollapseMenu('collapseSDM', 'fas fa-users-cog fa-fw', 'Role SDM', $sdmItems);
 
-        // Role Keuangan
         $keuanganItems = [
             'Dashboard Keuangan'  => '/payroll/keuangan/dashboard_keuangan.php',
             'List Payroll'        => '/payroll/keuangan/list_payroll.php',
@@ -163,7 +166,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         renderCollapseMenu('collapseKeuangan', 'fas fa-wallet fa-fw', 'Role Keuangan', $keuanganItems);
         ?>
     <?php elseif ($role === 'sdm'): ?>
-        <!-- Menu SDM tanpa collapse -->
+        <!-- Menu SDM -->
         <li class="nav-item <?= isActive('/absensi/sdm/dashboard_sdm.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/sdm/dashboard_sdm.php">
                 <i class="fas fa-tachometer-alt fa-fw"></i>
@@ -220,7 +223,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         </li>
 
     <?php elseif ($role === 'keuangan'): ?>
-        <!-- Menu Keuangan tanpa collapse -->
+        <!-- Menu Keuangan -->
         <li class="nav-item <?= isActive('/payroll/keuangan/dashboard_keuangan.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/payroll/keuangan/dashboard_keuangan.php">
                 <i class="fas fa-chart-line fa-fw"></i>
@@ -271,7 +274,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             </a>
         </li>
     <?php elseif (in_array($role, ['P', 'TK'])): ?>
-        <!-- Menu untuk Guru/Pendidik (P) dan Tenaga Kependidikan (TK) -->
+        <!-- Menu untuk Guru & Tenaga Kependidikan -->
         <li class="nav-item <?= isActive('/absensi/guru/dashboard_guru.php'); ?>">
             <a class="nav-link" href="<?= BASE_URL ?>/absensi/guru/dashboard_guru.php">
                 <i class="fas fa-home fa-fw"></i>
@@ -303,7 +306,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             </a>
         </li>
     <?php else: ?>
-        <!-- Jika role tidak dikenal -->
+        <!-- Jika role tidak dikenali -->
         <li class="nav-item">
             <a class="nav-link" href="#">
                 <i class="fas fa-question-circle fa-fw"></i>

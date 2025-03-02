@@ -1,9 +1,6 @@
 <?php
 // File: /payroll_absensi_v2/payroll/keuangan/rekap_payroll.php
 
-// =========================
-// 1. Pengaturan Awal & Keamanan
-// =========================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
@@ -14,7 +11,6 @@ $csrf_token = $_SESSION['csrf_token'];
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
-// Catat audit log akses halaman
 add_audit_log(
     $conn,
     $_SESSION['user_id'],
@@ -22,12 +18,10 @@ add_audit_log(
     "Pengguna dengan ID {$_SESSION['user_id']} dan peran '{$_SESSION['role']}' mengakses halaman Rekap Payroll."
 );
 
-// =========================
-// 2. HANDLE AJAX REQUEST
-// =========================
+// ======== Handle AJAX Requests ========
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Verifikasi CSRF token
+        // Verifikasi CSRF
         $csrf = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
         verify_csrf_token($csrf);
 
@@ -46,7 +40,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 ViewRekapPayrollDetail($conn);
                 break;
             case 'AddAuditLog':
-                // Untuk mencatat aksi tambahan (misalnya, saat klik tombol export atau reset)
                 $action  = isset($_POST['action']) ? sanitize_input($_POST['action']) : '';
                 $details = isset($_POST['details']) ? sanitize_input($_POST['details']) : '';
                 if (!empty($action) && !empty($details)) {
@@ -75,23 +68,20 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     exit();
 }
 
-/**
- * Fungsi memuat data rekap payroll (per jenjang) untuk DataTables.
- */
+// ======== Fungsi-Fungsi ========
 function LoadingRekapPayroll($conn) {
-    // Parameter DataTables
     $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length  = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search  = isset($_POST['search']['value']) ? sanitize_input($_POST['search']['value']) : '';
 
-    // Filter tambahan: Jenjang, Bulan, Tahun
     $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
-    // Query dasar
-    $sqlBase = "FROM payroll p JOIN anggota_sekolah a ON p.id_anggota = a.id WHERE 1=1";
+    $sqlBase = "FROM payroll p 
+                JOIN anggota_sekolah a ON p.id_anggota = a.id 
+                WHERE 1=1";
     $params = [];
     $types  = "";
 
@@ -111,13 +101,12 @@ function LoadingRekapPayroll($conn) {
         $types  .= "i";
     }
     if (!empty($search)) {
-        // Contoh: pencarian pada jenjang (Anda bisa tambahkan kolom lain jika perlu)
         $sqlBase .= " AND a.jenjang LIKE ?";
-        $params[] = "%" . $search . "%";
+        $params[] = "%{$search}%";
         $types  .= "s";
     }
 
-    // Total records terfilter
+    // Hitung total terfilter
     $sqlCountFiltered = "SELECT COUNT(DISTINCT a.jenjang) AS total " . $sqlBase;
     $stmtFiltered = $conn->prepare($sqlCountFiltered);
     if ($stmtFiltered === false) {
@@ -132,8 +121,10 @@ function LoadingRekapPayroll($conn) {
     $totalFiltered = isset($rowFiltered['total']) ? $rowFiltered['total'] : 0;
     $stmtFiltered->close();
 
-    // Total records (tanpa filter pencarian)
-    $sqlTotal = "SELECT COUNT(DISTINCT a.jenjang) AS total FROM payroll p JOIN anggota_sekolah a ON p.id_anggota = a.id";
+    // Hitung total keseluruhan (tanpa filter)
+    $sqlTotal = "SELECT COUNT(DISTINCT a.jenjang) AS total 
+                 FROM payroll p 
+                 JOIN anggota_sekolah a ON p.id_anggota = a.id";
     $resTotal = $conn->query($sqlTotal);
     if (!$resTotal) {
         send_response(1, 'Query gagal: ' . $conn->error);
@@ -141,19 +132,25 @@ function LoadingRekapPayroll($conn) {
     $rowTotal = $resTotal->fetch_assoc();
     $recordsTotal = isset($rowTotal['total']) ? $rowTotal['total'] : 0;
 
-    // Query data dengan grouping per jenjang
+    // Ambil data rekap group by jenjang
     $sqlData = "SELECT a.jenjang,
                        SUM(p.gaji_pokok) AS total_gaji_pokok,
                        SUM(p.total_pendapatan) AS total_pendapatan,
                        SUM(p.total_potongan) AS total_potongan,
                        SUM(p.gaji_bersih) AS total_gaji_bersih
-                " . $sqlBase . " GROUP BY a.jenjang";
-    
-    // ORDER BY: default ORDER BY a.jenjang ASC
+                " . $sqlBase . " 
+                GROUP BY a.jenjang";
+
     $orderBy = " ORDER BY a.jenjang ASC";
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $colIndex = intval($_POST['order'][0]['column']);
-        $allowedCols = ['jenjang', 'total_gaji_pokok', 'total_pendapatan', 'total_potongan', 'total_gaji_bersih'];
+        $allowedCols = [
+            'jenjang',
+            'total_gaji_pokok',
+            'total_pendapatan',
+            'total_potongan',
+            'total_gaji_bersih'
+        ];
         if (isset($_POST['columns'][$colIndex]['data']) && in_array($_POST['columns'][$colIndex]['data'], $allowedCols)) {
             $colName = $_POST['columns'][$colIndex]['data'];
             $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
@@ -169,6 +166,7 @@ function LoadingRekapPayroll($conn) {
             }
         }
     }
+
     $limit = " LIMIT ?, ?";
     $paramsData = $params;
     $typesData = $types . "ii";
@@ -195,10 +193,16 @@ function LoadingRekapPayroll($conn) {
             "total_potongan"    => formatNominal($row['total_potongan']),
             "total_gaji_bersih" => formatNominal($row['total_gaji_bersih']),
             "aksi" => '
-                <a href="rekap_payroll_details.php?jenjang=' . urlencode($row['jenjang']) . '" class="btn btn-info btn-sm me-1" data-bs-toggle="tooltip" title="Lihat Detail Payroll">
+                <a href="rekap_payroll_details.php?jenjang=' . urlencode($row['jenjang']) . '" 
+                   class="btn btn-info btn-sm me-1" 
+                   data-bs-toggle="tooltip" 
+                   title="Lihat Detail Payroll">
                     <i class="fas fa-file-invoice"></i>
                 </a>
-                <button class="btn btn-secondary btn-sm btn-view-rekap-detail" data-jenjang="' . htmlspecialchars($row['jenjang']) . '" data-bs-toggle="tooltip" title="View Detail">
+                <button class="btn btn-secondary btn-sm btn-view-rekap-detail" 
+                        data-jenjang="' . htmlspecialchars($row['jenjang']) . '" 
+                        data-bs-toggle="tooltip" 
+                        title="View Detail">
                     <i class="fas fa-eye"></i>
                 </button>
             '
@@ -215,17 +219,12 @@ function LoadingRekapPayroll($conn) {
     exit();
 }
 
-/**
- * Fungsi untuk menampilkan detail rekap payroll (rincian komponen pendapatan & potongan)
- * dalam format HTML yang kompak (untuk ditampilkan dalam modal).
- */
 function ViewRekapPayrollDetail($conn) {
     $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     if (empty($jenjang)) {
         send_response(1, 'Jenjang tidak valid.');
     }
 
-    // Ambil data rincian payhead secara agregat untuk jenjang tersebut
     $stmt = $conn->prepare("
         SELECT ph.nama_payhead, ph.jenis, SUM(pd.amount) as total_amount
         FROM payroll_detail pd
@@ -247,7 +246,6 @@ function ViewRekapPayrollDetail($conn) {
     }
     $stmt->close();
 
-    // Pisahkan data berdasarkan jenis: earnings dan deductions
     $earnings = [];
     $deductions = [];
     foreach ($details as $d) {
@@ -258,18 +256,17 @@ function ViewRekapPayrollDetail($conn) {
         }
     }
 
-    // Buat HTML tampilan detail
     $html  = '<h5 class="mb-3" style="font-size:14px;">Detail Rekap Payroll untuk Jenjang: ' . htmlspecialchars($jenjang) . '</h5>';
     $html .= '<div class="row" style="font-size:12px;">';
 
-    // Kolom Earnings
+    // Earnings
     $html .= '<div class="col-md-6 mb-2">';
-    $html .= '<div class="card">';
-    $html .= '<div class="card-header bg-success text-white p-1">Pendapatan</div>';
-    $html .= '<div class="card-body p-1">';
-    $html .= '<table class="table table-sm table-bordered table-striped mb-0">';
-    $html .= '<thead class="bg-light"><tr><th style="width:5%;">#</th><th>Payhead</th><th style="width:35%;">Jumlah</th></tr></thead>';
-    $html .= '<tbody>';
+    $html .= '  <div class="card">';
+    $html .= '    <div class="card-header bg-success text-white p-1">Pendapatan</div>';
+    $html .= '    <div class="card-body p-1">';
+    $html .= '      <table class="table table-sm table-bordered table-striped mb-0">';
+    $html .= '        <thead class="bg-light"><tr><th style="width:5%;">#</th><th>Payhead</th><th style="width:35%;">Jumlah</th></tr></thead>';
+    $html .= '        <tbody>';
     if (!empty($earnings)) {
         $no = 1;
         foreach ($earnings as $e) {
@@ -282,17 +279,20 @@ function ViewRekapPayrollDetail($conn) {
     } else {
         $html .= '<tr><td colspan="3" class="text-center">Tidak ada data</td></tr>';
     }
-    $html .= '</tbody></table>';
-    $html .= '</div></div></div>';
+    $html .= '        </tbody>';
+    $html .= '      </table>';
+    $html .= '    </div>';
+    $html .= '  </div>';
+    $html .= '</div>';
 
-    // Kolom Deductions
+    // Deductions
     $html .= '<div class="col-md-6 mb-2">';
-    $html .= '<div class="card">';
-    $html .= '<div class="card-header bg-danger text-white p-1">Potongan</div>';
-    $html .= '<div class="card-body p-1">';
-    $html .= '<table class="table table-sm table-bordered table-striped mb-0">';
-    $html .= '<thead class="bg-light"><tr><th style="width:5%;">#</th><th>Payhead</th><th style="width:35%;">Jumlah</th></tr></thead>';
-    $html .= '<tbody>';
+    $html .= '  <div class="card">';
+    $html .= '    <div class="card-header bg-danger text-white p-1">Potongan</div>';
+    $html .= '    <div class="card-body p-1">';
+    $html .= '      <table class="table table-sm table-bordered table-striped mb-0">';
+    $html .= '        <thead class="bg-light"><tr><th style="width:5%;">#</th><th>Payhead</th><th style="width:35%;">Jumlah</th></tr></thead>';
+    $html .= '        <tbody>';
     if (!empty($deductions)) {
         $no = 1;
         foreach ($deductions as $d) {
@@ -305,8 +305,11 @@ function ViewRekapPayrollDetail($conn) {
     } else {
         $html .= '<tr><td colspan="3" class="text-center">Tidak ada data</td></tr>';
     }
-    $html .= '</tbody></table>';
-    $html .= '</div></div></div>';
+    $html .= '        </tbody>';
+    $html .= '      </table>';
+    $html .= '    </div>';
+    $html .= '  </div>';
+    $html .= '</div>';
 
     $html .= '</div>'; // end row
 
@@ -319,14 +322,14 @@ function ViewRekapPayrollDetail($conn) {
     <meta charset="UTF-8">
     <title>Rekap Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 5 CSS -->
+    <!-- Bootstrap 5.3.3 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+    <!-- DataTables CSS (Bootstrap 5) -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -341,19 +344,29 @@ function ViewRekapPayrollDetail($conn) {
         }
         thead th {
             background-color: #343a40;
-            color: white;
+            color: #fff;
             text-align: center;
             vertical-align: middle;
-            white-space: nowrap;
         }
         #rekapPayrollTable th, #rekapPayrollTable td {
             font-size: 14px;
-            text-align: left;
             vertical-align: middle;
-            white-space: nowrap;
         }
-        .table-responsive {
-            overflow-x: auto;
+        #loadingSpinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            z-index: 9999;
+            display: none;
+        }
+        .card-filter-header {
+            background-color: #4e73df; /* Warna utama SB Admin 2 */
+            color: #fff;
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+        }
+        .form-select {
+            min-width: 160px; /* perlebar select agar tulisan tidak terpotong */
         }
     </style>
 </head>
@@ -371,26 +384,30 @@ function ViewRekapPayrollDetail($conn) {
                 <!-- Topbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
                 <!-- End of Topbar -->
+
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-chart-bar"></i> Rekap Payroll</h1>
+                    <h1 class="h3 mb-4 text-gray-800">
+                        <i class="fas fa-chart-bar"></i> Rekap Payroll
+                    </h1>
 
                     <!-- Filter Section -->
-                    <div class="card mb-4" style="background-color: #f8f9fa; border-radius: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <div class="card-header" style="background-color: #ffffff; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;">
-                            <strong>Filter Rekap Payroll</strong>
-                        </div>
-                        <div class="card-body">
+                    <div class="card mb-4 shadow" style="border-radius: 0.5rem;">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-search"></i> Filter Rekap Payroll
+    </h6>
+  </div>
+                        <div class="card-body" style="background-color: #f8f9fa;">
                             <form id="filterForm" class="row gy-2 gx-3 align-items-center">
-                                <!-- Sertakan CSRF Token -->
                                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                 <!-- Jenjang -->
                                 <div class="col-auto">
-                                    <label for="filterJenjang" class="form-label"><strong>Jenjang:</strong></label>
-                                    <select class="form-select" id="filterJenjang" name="jenjang" style="width:150px">
+                                    <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang:</strong></label>
+                                    <select class="form-select" id="filterJenjang" name="jenjang">
                                         <option value="">Semua Jenjang</option>
                                         <?php
                                         $stmtJenjang = $conn->prepare("SELECT DISTINCT jenjang FROM anggota_sekolah ORDER BY jenjang ASC");
@@ -407,8 +424,8 @@ function ViewRekapPayrollDetail($conn) {
                                 </div>
                                 <!-- Bulan -->
                                 <div class="col-auto">
-                                    <label for="filterBulan" class="form-label"><strong>Bulan:</strong></label>
-                                    <select class="form-select" id="filterBulan" name="bulan" style="width:120px">
+                                    <label for="filterBulan" class="form-label mb-0"><strong>Bulan:</strong></label>
+                                    <select class="form-select" id="filterBulan" name="bulan">
                                         <option value="">Semua Bulan</option>
                                         <?php
                                         for ($m = 1; $m <= 12; $m++) {
@@ -419,8 +436,8 @@ function ViewRekapPayrollDetail($conn) {
                                 </div>
                                 <!-- Tahun -->
                                 <div class="col-auto">
-                                    <label for="filterTahun" class="form-label"><strong>Tahun:</strong></label>
-                                    <select class="form-select" id="filterTahun" name="tahun" style="width:120px">
+                                    <label for="filterTahun" class="form-label mb-0"><strong>Tahun:</strong></label>
+                                    <select class="form-select" id="filterTahun" name="tahun">
                                         <option value="">Semua Tahun</option>
                                         <?php
                                         $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll ORDER BY tahun DESC");
@@ -435,15 +452,15 @@ function ViewRekapPayrollDetail($conn) {
                                         ?>
                                     </select>
                                 </div>
-                                <!-- Tombol Filter & Export -->
-                                <div class="col-auto">
-                                    <button type="button" class="btn btn-primary mb-2 me-2" id="btnApplyFilter">
+                                <!-- Tombol -->
+                                <div class="col-auto d-flex align-items-end">
+                                    <button type="button" class="btn btn-primary me-2" id="btnApplyFilter">
                                         <i class="fas fa-filter"></i> Terapkan Filter
                                     </button>
-                                    <button type="button" class="btn btn-secondary mb-2 me-2" id="btnResetFilter">
+                                    <button type="button" class="btn btn-secondary me-2" id="btnResetFilter">
                                         <i class="fas fa-undo"></i> Reset Filter
                                     </button>
-                                    <button type="button" class="btn btn-success mb-2" id="btnExportData">
+                                    <button type="button" class="btn btn-success" id="btnExportData">
                                         <i class="fas fa-file-export"></i> Export Data
                                     </button>
                                 </div>
@@ -454,12 +471,14 @@ function ViewRekapPayrollDetail($conn) {
 
                     <!-- Tabel Rekap Payroll -->
                     <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-white"><i class="fas fa-clipboard-list"></i> Daftar Rekap Payroll</h6>
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-clipboard-list"></i> Daftar Rekap Payroll
+    </h6>
+  </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table id="rekapPayrollTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
+                                <table id="rekapPayrollTable" class="table table-sm table-bordered table-striped table-hover display nowrap" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Jenjang</th>
@@ -523,28 +542,28 @@ function ViewRekapPayrollDetail($conn) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <!-- DataTables JS (Bootstrap 5) -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(function(){
-        // Inisialisasi tooltip Bootstrap 5
+        // Tooltip Bootstrap 5
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function(tooltipTriggerEl) {
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        // Inisialisasi SweetAlert2 Toast
+        // SweetAlert2 Toast
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -562,7 +581,7 @@ function ViewRekapPayrollDetail($conn) {
 
         var csrfToken = '<?php echo $csrf_token; ?>';
 
-        // Inisialisasi DataTables untuk Rekap Payroll
+        // DataTables
         var rekapPayrollTable = $('#rekapPayrollTable').DataTable({
             processing: true,
             serverSide: true,
@@ -582,7 +601,7 @@ function ViewRekapPayrollDetail($conn) {
                 complete: function(){
                     $('#loadingSpinner').hide();
                 },
-                error: function(xhr, error, thrown){
+                error: function(){
                     showToast('Terjadi kesalahan load data rekap payroll.', 'error');
                 }
             },
@@ -623,12 +642,12 @@ function ViewRekapPayrollDetail($conn) {
                     className: 'btn btn-info btn-sm',
                     exportOptions: { columns: [0,1,2,3,4] }
                 }
-            ]
+            ],
+            responsive: true
         });
 
-        // EVENT: Apply Filter
+        // Apply Filter
         $('#btnApplyFilter').on('click', function(){
-            // Optional: Catat aksi audit log via AJAX
             $.ajax({
                 url: 'rekap_payroll.php?ajax=1',
                 type: 'POST',
@@ -636,13 +655,13 @@ function ViewRekapPayrollDetail($conn) {
                     case: 'AddAuditLog',
                     csrf_token: csrfToken,
                     action: 'ApplyFilter',
-                    details: `Filter diterapkan: Jenjang = ${$('#filterJenjang').val() || 'Semua'}, Bulan = ${$('#filterBulan').val() || 'Semua'}, Tahun = ${$('#filterTahun').val() || 'Semua'}.`
+                    details: `Filter diterapkan: Jenjang=${$('#filterJenjang').val()||'Semua'}, Bulan=${$('#filterBulan').val()||'Semua'}, Tahun=${$('#filterTahun').val()||'Semua'}.`
                 }
             });
             rekapPayrollTable.ajax.reload();
         });
 
-        // EVENT: Reset Filter
+        // Reset Filter
         $('#btnResetFilter').on('click', function(){
             $.ajax({
                 url: 'rekap_payroll.php?ajax=1',
@@ -658,7 +677,7 @@ function ViewRekapPayrollDetail($conn) {
             rekapPayrollTable.ajax.reload();
         });
 
-        // EVENT: Export Data (Excel)
+        // Export Data (Excel)
         $('#btnExportData').on('click', function(){
             rekapPayrollTable.button('.buttons-excel').trigger();
             $.ajax({
@@ -673,7 +692,7 @@ function ViewRekapPayrollDetail($conn) {
             });
         });
 
-        // EVENT: Tampilkan Detail Rekap Payroll (View Detail) pada modal
+        // Detail Rekap Payroll
         $(document).on('click', '.btn-view-rekap-detail', function(){
             var jenjang = $(this).data('jenjang');
             if (jenjang) {
@@ -704,7 +723,7 @@ function ViewRekapPayrollDetail($conn) {
             }
         });
 
-        // Optional: Trigger filter on Enter key
+        // Trigger filter on Enter key
         $('#filterForm').on('keypress', function(e){
             if(e.which === 13){
                 $('#btnApplyFilter').click();

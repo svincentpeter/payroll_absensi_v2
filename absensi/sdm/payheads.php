@@ -443,8 +443,8 @@ function DeletePayhead($conn) {
         
         /* Hilangkan style gradien card-header agar konsisten dengan SB Admin 2 */
         .card-header {
-            background-color: #4e73df; /* SB Admin 2 default header color */
-            color: #fff;
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
         }
 
         /* Hover effect pada baris tabel */
@@ -534,7 +534,7 @@ function DeletePayhead($conn) {
                             <h6 class="m-0 fw-bold text-white">
                                 <i class="fas fa-clipboard-list me-1"></i>Daftar Payheads
                             </h6>
-                            <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
                                 <i class="fas fa-plus"></i> Tambah Payhead
                             </button>
                         </div>

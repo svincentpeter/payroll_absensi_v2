@@ -343,9 +343,10 @@ function ViewSuratDetail($conn) {
         body, label, button, input, textarea {
             color: #000 !important;
         }
-        .card-header {
-            background-color: #4e73df;
-            color: #fff;
+        
+.card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
         }
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
@@ -402,9 +403,11 @@ function ViewSuratDetail($conn) {
 
                     <!-- Card: Form Tambah Surat -->
                     <div class="card mb-4">
-                        <div class="card-header">
-                            <strong><i class="fas fa-plus-circle me-2"></i>Buat Surat</strong>
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-plus-circle me-2"></i> Buat Surat
+    </h6>
+  </div>
                         <div class="card-body">
                             <form id="formAddSurat" class="row g-3 needs-validation" novalidate>
                                 <!-- Field "case" untuk AJAX di server -->
@@ -460,11 +463,11 @@ function ViewSuratDetail($conn) {
 
                     <!-- Tabel Data Surat -->
                     <div class="card shadow mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 fw-bold text-white">
-                                <i class="fas fa-envelope me-1"></i>Daftar Surat
-                            </h6>
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-envelope me-1"></i> Daftar Surat
+    </h6>
+  </div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table id="tableSurat" class="table table-sm table-bordered table-hover table-striped display nowrap" style="width:100%">

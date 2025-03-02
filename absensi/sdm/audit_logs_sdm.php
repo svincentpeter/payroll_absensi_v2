@@ -131,6 +131,11 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <!-- Custom CSS untuk Card dan Timeline -->
     <style>
+
+.card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
         body {
             background-color: #f8f9fc;
         }
@@ -237,10 +242,12 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                     </div>
 
                     <!-- Filter Form Card -->
-                    <div class="card card-custom mb-4">
-                        <div class="card-header bg-secondary text-white">
-                            <i class="fas fa-filter"></i> Filter Audit Logs
-                        </div>
+                    <div class="card mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-filter"></i> Filter Audit Logs
+    </h6>
+  </div>
                         <div class="card-body">
                             <form method="GET" id="filterForm" class="row g-3">
                                 <div class="col-md-3">
@@ -269,10 +276,12 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                     </div>
 
                     <!-- Audit Logs Timeline Card -->
-                    <div class="card card-custom">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="m-0 fw-bold"><i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)</h6>
-                        </div>
+                    <div class="card mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)
+    </h6>
+  </div>
                         <div class="card-body">
                             <div class="vertical-timeline">
                                 <?php

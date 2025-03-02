@@ -94,6 +94,10 @@ function getRoleIcon($role) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
     <!-- Custom CSS untuk Timeline Audit Logs -->
     <style nonce="<?php echo $nonce; ?>">
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
         /* Timeline Styles */
         .vertical-timeline {
             position: relative;
@@ -228,9 +232,12 @@ function getRoleIcon($role) {
 
                     <!-- Preview Audit Logs (5 data terbaru) -->
                     <div class="card mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="m-0 font-weight-bold"><i class="fas fa-clock"></i> Recent Audit Logs</h6>
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-clock"></i> Recent Audit Logs
+    </h6>
+  </div>
+
                         <div class="card-body">
                             <div class="vertical-timeline">
                                 <?php

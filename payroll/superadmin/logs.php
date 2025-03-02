@@ -1,39 +1,11 @@
 <?php
 // File: /payroll_absensi_v2/payroll/keuangan/logs.php
 
-// =========================
-// 1. Pengaturan Keamanan & Session
-// =========================
-
-// Set parameter cookie session (pastikan menggunakan HTTPS)
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses via JavaScript
-    'samesite' => 'Strict'
-]);
-
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
 generate_csrf_token();
 
-// Buat nonce untuk CSP dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-// Paksa HTTPS jika belum menggunakan HTTPS
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-
-// HSTS header
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
 
 // Proteksi CSRF
 generate_csrf_token();
@@ -47,13 +19,6 @@ if (ob_get_length()) {
     ob_end_clean();
 }
 
-// Terapkan Content-Security-Policy (CSP) dengan nonce
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    style-src 'self' https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://cdn.datatables.net https://cdn.jsdelivr.net 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
 
 // =========================
 // 2. Fungsi Pendukung (Ikon, Warna & Badge)
@@ -169,12 +134,16 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
     <title>Audit Logs - Superadmin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS & SB Admin 2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <!-- Custom CSS untuk Card dan Timeline -->
-    <style nonce="<?php echo $nonce; ?>">
+    <style>
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
         body {
             background-color: #f8f9fc;
         }
@@ -287,9 +256,12 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
 
                     <!-- Filter Form Card -->
                     <div class="card card-custom mb-4">
-                        <div class="card-header bg-secondary text-white">
-                            <i class="fas fa-filter"></i> Filter Audit Logs
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-filter"></i> Filter Audit Logs
+    </h6>
+  </div>
+
                         <div class="card-body">
                             <form method="GET" id="filterForm" class="row g-3">
                                 <div class="col-md-3">
@@ -325,9 +297,12 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
 
                     <!-- Audit Logs Timeline Card -->
                     <div class="card card-custom">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="m-0 fw-bold"><i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)</h6>
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)
+    </h6>
+  </div>
+
                         <div class="card-body">
                             <div class="vertical-timeline">
                                 <?php

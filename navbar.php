@@ -19,7 +19,7 @@ $nip      = $_SESSION['nip'] ?? '';
 // Gunakan BASE_URL jika tersedia, atau ganti dengan URL root aplikasi Anda
 $baseUrl = defined('BASE_URL') ? BASE_URL : '/payroll_absensi_v2';
 
-// Gambar profil default; pastikan path default konsisten di seluruh aplikasi
+// Foto profil default
 $foto = $_SESSION['foto_profil'] ?? $baseUrl . '/assets/img/undraw_profile.svg';
 if (empty($foto)) {
     $foto = $baseUrl . '/assets/img/undraw_profile.svg';
@@ -143,14 +143,10 @@ if (in_array($role, ['keuangan', 'superadmin'])) {
     }
 }
 
-// ------------------------------------------------------------------------------------
-// Total Alerts
-// ------------------------------------------------------------------------------------
+// Hitung total alert
 $totalAlerts = $sdmCount + $ijinCount + $keuCount;
-
 function formatBadge($count) {
-    if ($count < 1) return "";
-    return ($count === 1) ? "1" : ($count . "+");
+    return ($count < 1) ? "" : (($count === 1) ? "1" : ($count . "+"));
 }
 
 // --- PESAN: untuk role P dan TK ---
@@ -184,19 +180,38 @@ if (in_array($role, ['P','TK'])) {
 }
 ?>
 
+<style>
+/* Sedikit penyesuaian tinggi navbar & item */
+.navbar-nav .nav-item .nav-link {
+    height: 50px; 
+    display: flex;
+    align-items: center;
+}
+.badge-counter {
+    font-size: 0.75rem;
+    position: absolute;
+    transform: translate(50%, -50%);
+    transform-origin: 50% 50%;
+}
+</style>
+
 <!-- Topbar -->
 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
 
-    <!-- Sidebar Toggle (Topbar) -->
+    <!-- Tombol toggle sidebar (hanya muncul di layar kecil) -->
     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle me-3">
         <i class="fa fa-bars"></i>
     </button>
 
-    <!-- Topbar Search -->
+    <!-- Form Pencarian (Topbar Search) -->
     <form class="d-none d-sm-inline-block form-inline me-auto ms-md-3 my-2 my-md-0 mw-100 navbar-search">
         <div class="input-group">
-            <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..." aria-label="Search">
-            <span class="input-group-text bg-primary text-white"><i class="fas fa-search fa-sm"></i></span>
+            <input type="text" class="form-control bg-light border-0 small" 
+                   placeholder="Search for..."
+                   aria-label="Search" aria-describedby="searchAddon">
+            <span class="input-group-text bg-primary text-white" id="searchAddon">
+                <i class="fas fa-search fa-sm"></i>
+            </span>
         </div>
     </form>
 
@@ -205,14 +220,18 @@ if (in_array($role, ['P','TK'])) {
 
         <!-- Nav Item - Alerts -->
         <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <a class="nav-link dropdown-toggle position-relative" href="#" id="alertsDropdown" 
+               role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-bell fa-fw"></i>
                 <?php if ($totalAlerts > 0): ?>
-                    <span class="badge bg-danger badge-counter"><?= formatBadge($totalAlerts); ?></span>
+                    <span class="badge bg-danger badge-counter">
+                        <?= formatBadge($totalAlerts); ?>
+                    </span>
                 <?php endif; ?>
             </a>
             <!-- Dropdown - Alerts -->
-            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="alertsDropdown">
+            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" 
+                 aria-labelledby="alertsDropdown">
                 <h6 class="dropdown-header">Alerts Center</h6>
                 <?php if (!empty($sdmNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
@@ -253,24 +272,33 @@ if (in_array($role, ['P','TK'])) {
                         </div>
                     </a>
                 <?php endif; ?>
+
+                <!-- Jika semua notifikasi kosong -->
                 <?php if (empty($sdmNotification) && empty($ijinNotification) && empty($keuNotification)): ?>
-                    <a class="dropdown-item text-center small text-gray-500" href="#">No alerts available</a>
+                    <a class="dropdown-item text-center small text-gray-500" href="#">
+                        No alerts available
+                    </a>
                 <?php endif; ?>
-                <a class="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
+
+                <a class="dropdown-item text-center small text-gray-500" href="#">
+                    Show All Alerts
+                </a>
             </div>
         </li>
 
-        <!-- Nav Item - Messages -->
+        <!-- Nav Item - Messages (khusus role P, TK) -->
         <?php if (in_array($role, ['P','TK'])): ?>
         <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <a class="nav-link dropdown-toggle position-relative" href="#" id="messagesDropdown" 
+               role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-envelope fa-fw"></i>
                 <?php if ($unreadCount > 0): ?>
                     <span class="badge bg-danger badge-counter"><?= $unreadCount; ?></span>
                 <?php endif; ?>
             </a>
             <!-- Dropdown - Messages -->
-            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="messagesDropdown">
+            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" 
+                 aria-labelledby="messagesDropdown">
                 <h6 class="dropdown-header">Message Center</h6>
                 <?php if (!empty($messages)): ?>
                     <?php foreach ($messages as $msg): 
@@ -284,7 +312,7 @@ if (in_array($role, ['P','TK'])) {
                        data-isi="<?= htmlspecialchars($msg['isi']); ?>"
                        data-pengirim="<?= $pengirim; ?>"
                        data-tanggal="<?= $tgl; ?>">
-                        <div class="dropdown-list-image me-3">
+                        <div class="dropdown-list-image me-3 position-relative">
                             <img class="rounded-circle" src="<?= $baseUrl; ?>/assets/img/undraw_profile_1.svg" alt="...">
                             <?php if($msg['status'] == 'terkirim'): ?>
                                 <div class="status-indicator bg-danger"></div>
@@ -299,19 +327,27 @@ if (in_array($role, ['P','TK'])) {
                     </a>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <a class="dropdown-item text-center small text-gray-500" href="#">Tidak ada pesan</a>
+                    <a class="dropdown-item text-center small text-gray-500" href="#">
+                        Tidak ada pesan
+                    </a>
                 <?php endif; ?>
-                <a class="dropdown-item text-center small text-gray-500" href="<?= $baseUrl; ?>/pesan.php">Lihat Semua Pesan</a>
+                <a class="dropdown-item text-center small text-gray-500" href="<?= $baseUrl; ?>/pesan.php">
+                    Lihat Semua Pesan
+                </a>
             </div>
         </li>
         <?php endif; ?>
 
+        <!-- Garis pembatas -->
         <div class="topbar-divider d-none d-sm-block"></div>
 
         <!-- Nav Item - User Information -->
         <li class="nav-item dropdown no-arrow">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="me-2 d-none d-lg-inline text-gray-600 small"><?= htmlspecialchars($nama); ?></span>
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" 
+               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="me-2 d-none d-lg-inline text-gray-600 small">
+                    <?= htmlspecialchars($nama); ?>
+                </span>
                 <img class="img-profile rounded-circle" src="<?= htmlspecialchars($foto); ?>">
             </a>
             <!-- Dropdown - User Information -->
@@ -344,7 +380,9 @@ if (in_array($role, ['P','TK'])) {
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script>
 $(document).ready(function(){
+    // Ketika user klik salah satu item pesan di dropdown
     $('.message-item').on('click', function(e){
+        e.preventDefault();
         var $this = $(this);
         var pesanId = $this.data('id');
         $.ajax({
@@ -354,13 +392,16 @@ $(document).ready(function(){
             dataType: "json",
             success: function(response) {
                 if(response.code === 0){
+                    // Hapus item pesan yang di-klik (karena status terbaca)
                     $this.fadeOut(300, function(){
                         $(this).remove();
-                        var currentCount = parseInt($('.badge-counter').text());
+                        // Update badge unreadCount
+                        var $badge = $('.badge-counter');
+                        var currentCount = parseInt($badge.text());
                         if(!isNaN(currentCount) && currentCount > 1){
-                            $('.badge-counter').text(currentCount - 1);
+                            $badge.text(currentCount - 1);
                         } else {
-                            $('.badge-counter').remove();
+                            $badge.remove();
                         }
                     });
                 }

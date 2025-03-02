@@ -109,6 +109,10 @@ if (!$historyResult) {
         .badge-success { background-color: #28a745; color: #fff; } /* hijau */
         .badge-danger { background-color: #e74a3b; color: #fff; }   /* merah */
         .badge-secondary { background-color: #858796; color: #fff; }
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
     </style>
     <script>
         // Fungsi untuk membuka file lampiran di jendela baru dan otomatis memicu print dialog
@@ -149,9 +153,11 @@ if (!$historyResult) {
 
                 <!-- Tabel Pengajuan Izin Aktif -->
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Daftar Pengajuan Izin (Aktif)</h6>
-                    </div>
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-list"></i> Daftar Pengajuan Izin (Aktif)
+    </h6>
+  </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <!-- Tabel dengan 10 kolom: ID, NIP, Nama, Judul Surat, Tanggal, Pesan, Tipe Ijin, Lampiran, Status Kepala Sekolah, Aksi -->
@@ -233,9 +239,11 @@ if (!$historyResult) {
 
                 <!-- Tabel History Pengajuan Izin -->
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">History Pengajuan Izin</h6>
-                    </div>
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-clock"></i> History Pengajuan Izin
+    </h6>
+  </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <!-- Tabel dengan 11 kolom: ID, NIP, Nama, Judul Surat, Tanggal, Pesan, Tipe Ijin, Lampiran, Status Kepala Sekolah, Status Persetujuan SDM, Aksi -->

@@ -220,6 +220,10 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
         thead th {
             background-color: #343a40;
             color: white;
@@ -304,9 +308,11 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
 
                     <!-- Filter Section -->
                     <div class="card mb-4">
-                        <div class="card-header">
-                            <strong>Filter Detail Rekap Payroll</strong>
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-clipboard-list"></i> Filter Detail Rekap Payroll
+    </h6>
+  </div>
                         <div class="card-body">
                             <form id="filterForm" class="row gy-2 gx-3 align-items-center">
                                 <!-- Filter Bulan -->
@@ -355,9 +361,11 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
 
                     <!-- Tabel Detail Rekap Payroll -->
                     <div class="card shadow mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h3 class="card-title m-0">Daftar Detail Payroll - <?php echo htmlspecialchars($jenjang); ?></h3>
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-clipboard-list"></i> Daftar Detail Payroll - <?php echo htmlspecialchars($jenjang); ?>
+    </h6>
+  </div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table id="rekapPayrollDetailsTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">

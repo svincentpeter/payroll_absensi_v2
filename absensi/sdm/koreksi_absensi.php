@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: koreksi_absensi.php");
                 exit;
             }
-            // Ambil input (tanpa proses sanitasi tambahan, karena sudah dilakukan di helper)
+            // Ambil input (sudah melalui helper)
             $tanggal          = $_POST['tanggal'] ?? '';
             $jadwal           = $_POST['jadwal'] ?? '';
             $jam_kerja        = $_POST['jam_kerja'] ?? '';
@@ -305,7 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $aksi = '
             <div class="dropdown">
-              <button class="btn btn-secondary btn-sm" type="button" id="dropdownMenuButton_'.$row['id'].'" data-bs-toggle="dropdown" aria-expanded="false">
+              <button class="btn btn-sm" type="button" id="dropdownMenuButton_'.$row['id'].'" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-ellipsis-v"></i>
               </button>
               <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_'.$row['id'].'">
@@ -447,6 +447,15 @@ $namaKaryawan = get_nama_karyawan($conn);
             background: #4e73df;
             color: #fff;
         }
+        /* FullCalendar: atur teks kalender agar hitam */
+        .fc .fc-day-top, .fc .fc-day-number, .fc .fc-event-title, .fc .fc-event, .fc-toolbar h2, .fc-day-header {
+            color: #000 !important;
+        }
+
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
     </style>
 </head>
 <body id="page-top">
@@ -500,18 +509,31 @@ $namaKaryawan = get_nama_karyawan($conn);
                     <?php endif; ?>
 
                     <!-- Filter Form -->
-                    <div class="d-flex justify-content-between mb-3">
-                        <form method="GET" class="form-inline">
-                            <label class="me-2" for="bulan"><i class="fas fa-calendar-alt"></i> Pilih Bulan:</label>
-                            <input type="month" name="bulan" id="bulan" class="form-control me-3" value="<?php echo bersihkan_input($bulan); ?>">
-                            <label class="me-2" for="departemen"><i class="fas fa-building"></i> Departemen:</label>
-                            <input type="text" name="departemen" id="departemen" class="form-control me-3" placeholder="Masukkan departemen" value="<?php echo bersihkan_input($departemen); ?>">
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Tampilkan</button>
-                        </form>
-                        <a href="upload_absensi.php" id="btnUploadAbsensi" class="btn btn-success smooth-transition">
+<div class="d-flex justify-content-between mb-3">
+    <form method="GET" class="form-inline">
+        <label for="bulan" class="me-2 text-dark">
+            <i class="fas fa-calendar-alt me-1"></i>Pilih Bulan:
+        </label>
+        <input type="month" name="bulan" id="bulan" class="form-control me-3"
+               value="<?php echo bersihkan_input($bulan); ?>">
+
+        <label for="departemen" class="me-2 text-dark">
+            <i class="fas fa-building me-1"></i>Departemen:
+        </label>
+        <input type="text" name="departemen" id="departemen" class="form-control me-3"
+               placeholder="Masukkan departemen"
+               value="<?php echo bersihkan_input($departemen); ?>">
+
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i> Tampilkan
+        </button>
+    </form>
+
+    <a href="upload_absensi.php" id="btnUploadAbsensi" class="btn btn-success smooth-transition">
         <i class="fas fa-upload"></i> Upload Absensi
     </a>
-                    </div>
+</div>
+
 
                     <!-- Kalender (opsional) -->
                     <div class="mb-4" id="calendar-container">
@@ -520,14 +542,16 @@ $namaKaryawan = get_nama_karyawan($conn);
 
                     <!-- Tabel Absensi (server-side processing) -->
                     <div class="card shadow mb-4">
-                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 font-weight-bold"><i class="fas fa-table"></i> Daftar Absensi</h6>
-                        </div>
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-table"></i> Daftar Absensi
+    </h6>
+  </div>
                         <div class="card-body">
                             <table id="absensiTable" class="table table-sm table-bordered table-striped display nowrap" style="width:100%">
                                 <thead>
                                     <tr>
-                                        <th class="no-column"><i class="fas fa-hashtag"></i> No</th>
+                                        <th class="no-column">No</th>
                                         <th>Tanggal</th>
                                         <th>Jadwal</th>
                                         <th>Jam Kerja</th>
@@ -675,7 +699,7 @@ $namaKaryawan = get_nama_karyawan($conn);
                           <input type="hidden" name="departemen" id="delete_departemen" value="<?php echo htmlspecialchars($departemen); ?>">
                           <input type="hidden" name="bulan" value="<?php echo htmlspecialchars($bulan); ?>">
                           <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                          <div class="modal-header">
+                          <div class="modal-header bg-danger text-white">
                             <h5 class="modal-title" id="modalDeleteLabel"><i class="fas fa-trash-alt"></i> Hapus Absensi</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Tutup Modal"></button>
                           </div>
@@ -713,7 +737,8 @@ $namaKaryawan = get_nama_karyawan($conn);
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/js/sb-admin-2.min.js"></script>
+
     <!-- DataTables & Plugins -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
@@ -730,7 +755,6 @@ $namaKaryawan = get_nama_karyawan($conn);
     <!-- FullCalendar & Moment.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
-
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -792,7 +816,7 @@ $namaKaryawan = get_nama_karyawan($conn);
             ]
         });
 
-        // Inisialisasi FullCalendar (opsional)
+        // Inisialisasi FullCalendar
         $('#calendar').fullCalendar({
             header: {
                 left: 'prev,next today',
@@ -875,8 +899,9 @@ $namaKaryawan = get_nama_karyawan($conn);
             window.location.href = url;
         });
     });
-
-    
     </script>
 </body>
 </html>
+<?php
+$conn->close();
+?>

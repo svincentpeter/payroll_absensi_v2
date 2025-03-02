@@ -645,7 +645,11 @@ function getGajiPokokByRole($conn, $role) {
 
                     <!-- Filter -->
                     <div class="card mb-4">
-                        <div class="card-header">Filter Data Guru/Karyawan</div>
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-search"></i> Filter Data Guru/Karyawan
+                            </h6>
+                            </div>
                         <div class="card-body">
                             <form id="filterForm" method="GET" class="form-inline">
                                 <label class="me-2" for="filterJenjang">Jenjang:</label>

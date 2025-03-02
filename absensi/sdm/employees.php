@@ -849,7 +849,7 @@ if ($resMon) {
     <style>
         body, .text-gray-800 { color: #000 !important; }
         .card-header {
-            background: #4e73df;
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
         #employeeCards {

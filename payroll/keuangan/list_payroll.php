@@ -340,6 +340,10 @@ if ($stmtRole) {
             display: none;
             margin-left: 10px;
         }
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
     </style>
 </head>
 <body id="page-top">
@@ -372,7 +376,12 @@ if ($stmtRole) {
 
                 <!-- Filter Form: Jenjang dan Role (ganti DataTables filter => pakai AJAX load) -->
                 <div class="card mb-4">
-                    <div class="card-header fw-bold"><i class="bi bi-filter-square-fill"></i> Filter Payroll</div>
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-search"></i> Filter Payroll
+    </h6>
+  </div>
+
                     <div class="card-body">
                         <form id="filterForm" class="row align-items-center">
                             <!-- Kita tetap simpan csrf_token di form -->
@@ -423,10 +432,10 @@ if ($stmtRole) {
 
                 <!-- Grid Container -->
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex align-items-center">
-                        <h6 class="m-0 fw-bold text-white">
-                            <i class="fas fa-file-invoice-dollar"></i> Daftar Payroll
-                        </h6>
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-file-invoice-dollar"></i> Daftar Payroll
+    </h6>
                         <div class="spinner-border text-light ms-auto" role="status" id="loadingSpinner">
                             <span class="visually-hidden">Loading...</span>
                         </div>

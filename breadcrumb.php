@@ -20,18 +20,12 @@ $currentUrl = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 */
 $menuStructure = [
     // Grup untuk Kelola Sistem (superadmin)
-    'Kelola Sistem' => [
-         'url' => '/payroll/superadmin/kelola_user.php',
+    'Superadmin' => [
+         'url' => '/payroll/superadmin/dashboard_superadmin.php',
          'items' => [
-              'Backup Database' => '/payroll/superadmin/backup_database.php',
-              'Audit Logs'      => '/payroll/superadmin/logs.php'
-         ]
-    ],
-    // Grup untuk Laporan (superadmin)
-    'Laporan' => [
-         'url' => '/payroll/laporan_gaji.php',
-         'items' => [
-              'Laporan Gaji' => '/payroll/laporan_gaji.php'
+            'Dashboard Superadmin' => '/payroll/superadmin/dashboard_superadmin.php',
+            'Backup Database' => '/payroll/superadmin/backup_database.php',
+            'Audit Logs'      => '/payroll/superadmin/logs.php'
          ]
     ],
     // Grup untuk Role SDM (untuk superadmin dan SDM)

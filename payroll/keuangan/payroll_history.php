@@ -1,34 +1,25 @@
 <?php
 // File: /payroll_absensi_v2/payroll/keuangan/payroll_history.php
 
-// =========================
-// 1. Inisialisasi Session, Keamanan, dan Koneksi Database
-// =========================
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['keuangan', 'superadmin']);  // Pastikan hanya role yang diizinkan yang bisa akses
+authorize(['keuangan', 'superadmin']);  
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
-// Definisikan nonce (atau hapus atribut nonce di tag <script> jika tidak digunakan)
 $nonce = '';
 
-// Koneksi Database
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) {
     ob_end_clean();
 }
 
 // =========================
-// 2. Menangani Permintaan AJAX
+// 1. Handle AJAX
 // =========================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Log data POST (opsional, untuk debugging)
-        error_log("DEBUG: Data POST payroll_history: " . print_r($_POST, true));
-        
-        // Tidak perlu verifikasi CSRF di AJAX ini jika sudah dipakai (atau tambahkan jika diinginkan)
         $case = isset($_POST['case']) ? sanitize_input($_POST['case']) : '';
         switch ($case) {
             case 'LoadingPayrollHistory':
@@ -47,14 +38,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // =========================
-// 3. Fungsi-Fungsi CRUD & Helper untuk Payroll History
+// 2. Fungsi-Fungsi
 // =========================
 
-/**
- * Fungsi LoadingPayrollHistory:
- * Mengambil data payroll history dari tabel payroll_final dan anggota_sekolah
- * dengan dukungan server-side processing untuk DataTables.
- */
 function LoadingPayrollHistory($conn) {
     $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
@@ -64,12 +50,13 @@ function LoadingPayrollHistory($conn) {
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
-    // Dasar query: data diambil dari payroll_final yang sudah final
+    // Query dasar
     $sqlBase = " FROM payroll_final p 
                  JOIN anggota_sekolah a ON p.id_anggota = a.id 
                  WHERE 1=1";
     $params = [];
     $types  = "";
+
     if (!empty($jenjang)) {
         $sqlBase .= " AND a.jenjang = ?";
         $params[] = $jenjang;
@@ -86,18 +73,21 @@ function LoadingPayrollHistory($conn) {
         $types  .= "i";
     }
     if (!empty($search)) {
-        $sqlBase .= " AND (p.id LIKE ? OR a.id LIKE ? OR a.nama LIKE ? OR p.bulan LIKE ? OR p.tahun LIKE ? OR p.gaji_pokok LIKE ? OR p.total_pendapatan LIKE ? OR p.total_potongan LIKE ? OR p.gaji_bersih LIKE ?)";
-        $searchParam = "%" . $search . "%";
+        // Contoh: filter banyak kolom
+        $sqlBase .= " AND (p.id LIKE ? OR a.id LIKE ? OR a.nama LIKE ? OR p.bulan LIKE ? OR p.tahun LIKE ? 
+                           OR p.gaji_pokok LIKE ? OR p.total_pendapatan LIKE ? OR p.total_potongan LIKE ? 
+                           OR p.gaji_bersih LIKE ?)";
+        $searchParam = "%{$search}%";
         for ($i = 0; $i < 9; $i++) {
             $params[] = $searchParam;
             $types  .= "s";
         }
     }
 
-    // Hitung filtered records
+    // Filtered Count
     $sqlFilteredCount = "SELECT COUNT(*) as total " . $sqlBase;
     $stmtFiltered = $conn->prepare($sqlFilteredCount);
-    if ($stmtFiltered === false) {
+    if (!$stmtFiltered) {
         send_response(1, 'Prepare failed: ' . $conn->error);
     }
     if (!empty($params)) {
@@ -109,7 +99,7 @@ function LoadingPayrollHistory($conn) {
     $totalFiltered = $rowFiltered['total'];
     $stmtFiltered->close();
 
-    // Hitung total records tanpa filter
+    // Total Count (tanpa filter)
     $sqlTotal = "SELECT COUNT(*) as total FROM payroll_final";
     $resTotal = $conn->query($sqlTotal);
     if (!$resTotal) {
@@ -118,28 +108,29 @@ function LoadingPayrollHistory($conn) {
     $rowTotal = $resTotal->fetch_assoc();
     $recordsTotal = $rowTotal['total'];
 
-    // Query data utama
-    $sqlData = "SELECT p.id, a.nama, a.jenjang, p.bulan, p.tahun, p.gaji_pokok, p.total_pendapatan, p.total_potongan, p.gaji_bersih " . $sqlBase;
-    
-    // Sorting: kita izinkan sorting berdasarkan kolom-kolom utama
+    // Data utama
+    $sqlData = "SELECT p.id, a.nama, a.jenjang, p.bulan, p.tahun, 
+                       p.gaji_pokok, p.total_pendapatan, p.total_potongan, p.gaji_bersih 
+                " . $sqlBase;
+
+    // ORDER BY
     $orderBy = " ORDER BY p.id DESC";
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $columnIndex = intval($_POST['order'][0]['column']);
-        $allowedColumns = ['id', 'nama', 'jenjang', 'bulan', 'tahun', 'gaji_pokok', 'total_pendapatan', 'total_potongan', 'gaji_bersih'];
-        if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedColumns)) {
+        $allowedCols = ['id','nama','jenjang','bulan','tahun','gaji_pokok','total_pendapatan','total_potongan','gaji_bersih'];
+        if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedCols)) {
             $colData = $_POST['columns'][$columnIndex]['data'];
-            $colSortOrder = (isset($_POST['order'][0]['dir']) && $_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
-            // Mapping kolom agar sesuai dengan alias di query
+            $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
             $mapCol = [
-                'id' => 'p.id',
-                'nama' => 'a.nama',
-                'jenjang' => 'a.jenjang',
-                'bulan' => 'p.bulan',
-                'tahun' => 'p.tahun',
-                'gaji_pokok' => 'p.gaji_pokok',
+                'id'               => 'p.id',
+                'nama'             => 'a.nama',
+                'jenjang'          => 'a.jenjang',
+                'bulan'            => 'p.bulan',
+                'tahun'            => 'p.tahun',
+                'gaji_pokok'       => 'p.gaji_pokok',
                 'total_pendapatan' => 'p.total_pendapatan',
-                'total_potongan' => 'p.total_potongan',
-                'gaji_bersih' => 'p.gaji_bersih'
+                'total_potongan'   => 'p.total_potongan',
+                'gaji_bersih'      => 'p.gaji_bersih'
             ];
             if (isset($mapCol[$colData])) {
                 $orderBy = " ORDER BY " . $mapCol[$colData] . " " . $colSortOrder;
@@ -147,17 +138,17 @@ function LoadingPayrollHistory($conn) {
         }
     }
     $sqlData .= $orderBy;
-    // Paginasi
+
+    // LIMIT
     $limit = " LIMIT ?, ?";
     $paramsData = $params;
-    $typesData  = $types;
+    $typesData  = $types . "ii";
     $paramsData[] = $start;
     $paramsData[] = $length;
-    $typesData   .= "ii";
     $sqlData .= $limit;
 
     $stmtData = $conn->prepare($sqlData);
-    if ($stmtData === false) {
+    if (!$stmtData) {
         send_response(1, 'Prepare failed: ' . $conn->error);
     }
     if (!empty($paramsData)) {
@@ -169,39 +160,46 @@ function LoadingPayrollHistory($conn) {
     $resData = $stmtData->get_result();
     $data = [];
     while ($row = $resData->fetch_assoc()) {
-        // Format nominal menggunakan helper formatNominal()
+        // Format nominal
         $row['gaji_pokok']      = formatNominal($row['gaji_pokok']);
         $row['total_pendapatan'] = formatNominal($row['total_pendapatan']);
         $row['total_potongan']   = formatNominal($row['total_potongan']);
         $row['gaji_bersih']      = formatNominal($row['gaji_bersih']);
-        // Konversi bulan ke nama bulan dalam Bahasa Indonesia
-        $row['bulan'] = getIndonesianMonthName($row['bulan']);
-        // Buat tombol aksi dengan dropdown (lihat detail, misalnya)
+        $row['bulan']            = getIndonesianMonthName($row['bulan']);
+
+        // Tombol aksi
         $aksi = '
-<div class="dropdown">
-  <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" data-bs-toggle="dropdown" aria-expanded="false">
-    <i class="bi bi-three-dots-vertical"></i>
-  </button>
-  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
-    <li><a class="dropdown-item" href="payroll-details.php?id_payroll=' . $row['id'] . '">
-      <i class="fas fa-file-invoice"></i> Lihat Payroll
-    </a></li>
-    <li><a class="dropdown-item btn-view-full-detail" href="javascript:void(0)" data-id="' . htmlspecialchars($row['id']) . '">
-      <i class="fas fa-eye"></i> View Detail
-    </a></li>
-  </ul>
-</div>';
+            <div class="dropdown">
+                <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '" 
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
+                    <li>
+                        <a class="dropdown-item" href="payroll-details.php?id_payroll=' . $row['id'] . '">
+                            <i class="fas fa-file-invoice"></i> Lihat Payroll
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item btn-view-full-detail" href="javascript:void(0)" 
+                           data-id="' . htmlspecialchars($row['id']) . '">
+                            <i class="fas fa-eye"></i> View Detail
+                        </a>
+                    </li>
+                </ul>
+            </div>';
+
         $data[] = [
-            "id"              => htmlspecialchars($row['id']),
-            "nama"            => sanitize_input($row['nama']),
-            "jenjang"         => sanitize_input($row['jenjang']),
-            "bulan"           => $row['bulan'],
-            "tahun"           => $row['tahun'],
-            "gaji_pokok"      => $row['gaji_pokok'],
-            "total_pendapatan"=> $row['total_pendapatan'],
-            "total_potongan"  => $row['total_potongan'],
-            "gaji_bersih"     => $row['gaji_bersih'],
-            "aksi"            => $aksi
+            "id"               => htmlspecialchars($row['id']),
+            "nama"             => sanitize_input($row['nama']),
+            "jenjang"          => sanitize_input($row['jenjang']),
+            "bulan"            => $row['bulan'],
+            "tahun"            => $row['tahun'],
+            "gaji_pokok"       => $row['gaji_pokok'],
+            "total_pendapatan" => $row['total_pendapatan'],
+            "total_potongan"   => $row['total_potongan'],
+            "gaji_bersih"      => $row['gaji_bersih'],
+            "aksi"             => $aksi
         ];
     }
     $stmtData->close();
@@ -215,15 +213,12 @@ function LoadingPayrollHistory($conn) {
     exit();
 }
 
-/**
- * Fungsi ViewPayrollDetail:
- * Mengambil detail lengkap payroll dari payroll_final, termasuk data karyawan dan detail payheads.
- */
 function ViewPayrollDetail($conn) {
     $id_payroll = isset($_POST['id_payroll']) ? intval($_POST['id_payroll']) : 0;
     if ($id_payroll <= 0) {
         send_response(1, 'ID Payroll tidak valid.');
     }
+
     $stmt = $conn->prepare("
         SELECT p.*, 
                a.uid, a.nip, a.nama, a.jenjang, a.role, a.job_title, a.status_kerja, 
@@ -234,7 +229,7 @@ function ViewPayrollDetail($conn) {
         LEFT JOIN salary_indices si ON a.salary_index_id = si.id
         WHERE p.id = ? LIMIT 1
     ");
-    if ($stmt === false) {
+    if (!$stmt) {
         send_response(1, 'Prepare failed: ' . $conn->error);
     }
     $stmt->bind_param("i", $id_payroll);
@@ -248,12 +243,13 @@ function ViewPayrollDetail($conn) {
     $row = $result->fetch_assoc();
     $stmt->close();
 
-    // Format nilai-nilai menggunakan helper formatNominal() dan getIndonesianMonthName()
+    // Format data
     $row['gaji_pokok']      = formatNominal($row['gaji_pokok']);
     $row['total_pendapatan'] = formatNominal($row['total_pendapatan']);
     $row['total_potongan']   = formatNominal($row['total_potongan']);
     $row['gaji_bersih']      = formatNominal($row['gaji_bersih']);
     $row['bulan']            = getIndonesianMonthName($row['bulan']);
+
     $masaKerja = "";
     if ($row['masa_kerja_tahun'] > 0) {
         $masaKerja .= $row['masa_kerja_tahun'] . " Thn ";
@@ -263,9 +259,14 @@ function ViewPayrollDetail($conn) {
     }
     $row['masa_kerja'] = trim($masaKerja) ?: "-";
 
-    // Ambil detail payroll (payheads) dari payroll_detail
-    $stmtPD = $conn->prepare("SELECT pd.*, ph.nama_payhead FROM payroll_detail pd JOIN payheads ph ON pd.id_payhead = ph.id WHERE pd.id_payroll = ?");
-    if ($stmtPD === false) {
+    // Detail payheads
+    $stmtPD = $conn->prepare("
+        SELECT pd.*, ph.nama_payhead 
+        FROM payroll_detail pd 
+        JOIN payheads ph ON pd.id_payhead = ph.id 
+        WHERE pd.id_payroll = ?
+    ");
+    if (!$stmtPD) {
         send_response(1, 'Prepare failed: ' . $conn->error);
     }
     $stmtPD->bind_param("i", $id_payroll);
@@ -294,25 +295,26 @@ function ViewPayrollDetail($conn) {
     <meta charset="UTF-8">
     <title>History Payroll - Payroll Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 5 CSS untuk SB Admin 2 -->
+
+    <!-- Bootstrap 5.3.3 & SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
-    <!-- DataTables CSS untuk Bootstrap 5 -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css">
+
+    <!-- DataTables (Bootstrap 5) -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
     <style>
-        /* Custom styling untuk konsistensi tampilan */
         .card-header {
-            background-color: #4e73df;
-            color: #fff;
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
         }
-        .table-hover tbody tr:hover {
-            background-color: #e2e6ea;
-        }
+        /* Tabel */
         thead th {
             background-color: #343a40;
             color: #fff;
@@ -320,28 +322,25 @@ function ViewPayrollDetail($conn) {
             vertical-align: middle;
             white-space: nowrap;
         }
-        tbody tr:nth-of-type(odd) {
-            background-color: #f9f9f9;
-        }
-        tbody tr:nth-of-type(even) {
-            background-color: #ffffff;
-        }
         #payrollTable th, #payrollTable td {
             font-size: 14px;
             vertical-align: middle;
             white-space: nowrap;
         }
-        .table-responsive {
-            overflow-x: auto;
+        .table-hover tbody tr:hover {
+            background-color: #e2e6ea;
         }
+        /* Perlebar select agar teks tidak terpotong */
+        .form-select {
+            min-width: 160px;
+        }
+        /* Loading Spinner */
         #loadingSpinner {
             display: none;
             position: fixed;
+            top: 50%;
+            left: 50%;
             z-index: 9999;
-            height: 100px;
-            width: 100px;
-            margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
         }
         /* Responsive tambahan untuk form filter */
         @media (max-width: 768px) {
@@ -368,18 +367,25 @@ function ViewPayrollDetail($conn) {
                 <!-- Breadcrumb -->
                 <?php include __DIR__ . '/../../breadcrumb.php'; ?>
 
+                <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-history"></i> History Payroll</h1>
+                    <h1 class="h3 mb-4 text-gray-800">
+                        <i class="fas fa-history"></i> History Payroll
+                    </h1>
 
                     <!-- Filter Section -->
-                    <div class="card mb-4 shadow-sm">
-                        <div class="card-header bg-white">
-                            <strong>Filter Payroll History</strong>
-                        </div>
-                        <div class="card-body">
+                    <div class="card mb-4 shadow">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-search"></i> Filter Payroll History
+    </h6>
+  </div>
+
+                        <div class="card-body" style="background-color: #f8f9fa;">
                             <form id="filterPayrollForm" class="row gy-2 gx-3 align-items-center">
+                                <!-- Jenjang -->
                                 <div class="col-auto">
-                                    <label for="filterJenjang" class="form-label"><strong>Jenjang:</strong></label>
+                                    <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang:</strong></label>
                                     <select class="form-select" id="filterJenjang" name="jenjang">
                                         <option value="">Semua Jenjang</option>
                                         <?php
@@ -395,8 +401,9 @@ function ViewPayrollDetail($conn) {
                                         ?>
                                     </select>
                                 </div>
+                                <!-- Bulan -->
                                 <div class="col-auto">
-                                    <label for="filterBulan" class="form-label"><strong>Bulan:</strong></label>
+                                    <label for="filterBulan" class="form-label mb-0"><strong>Bulan:</strong></label>
                                     <select class="form-select" id="filterBulan" name="bulan">
                                         <option value="">Semua Bulan</option>
                                         <?php
@@ -406,8 +413,9 @@ function ViewPayrollDetail($conn) {
                                         ?>
                                     </select>
                                 </div>
+                                <!-- Tahun -->
                                 <div class="col-auto">
-                                    <label for="filterTahun" class="form-label"><strong>Tahun:</strong></label>
+                                    <label for="filterTahun" class="form-label mb-0"><strong>Tahun:</strong></label>
                                     <select class="form-select" id="filterTahun" name="tahun">
                                         <option value="">Semua Tahun</option>
                                         <?php
@@ -423,8 +431,9 @@ function ViewPayrollDetail($conn) {
                                         ?>
                                     </select>
                                 </div>
-                                <div class="col-auto">
-                                    <button type="button" class="btn btn-primary" id="btnApplyFilterPayroll">
+                                <!-- Tombol -->
+                                <div class="col-auto d-flex align-items-end">
+                                    <button type="button" class="btn btn-primary me-2" id="btnApplyFilterPayroll">
                                         <i class="fas fa-filter"></i> Terapkan Filter
                                     </button>
                                     <button type="button" class="btn btn-secondary" id="btnResetFilterPayroll">
@@ -438,12 +447,17 @@ function ViewPayrollDetail($conn) {
 
                     <!-- Tabel History Payroll -->
                     <div class="card shadow mb-4">
-                        <div class="card-header py-3 bg-primary">
-                            <h6 class="m-0 text-white"><i class="fas fa-clipboard-list"></i> Daftar History Payroll</h6>
-                        </div>
+  <!-- Card Header -->
+  <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-clipboard-list"></i> Daftar History Payroll
+    </h6>
+  </div>
+<!-- End Card Header -->
+
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table id="payrollTable" class="table table-bordered table-striped display nowrap" style="width:100%">
+                                <table id="payrollTable" class="table table-sm table-bordered table-striped table-hover display nowrap" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>ID Payroll</th>
@@ -464,7 +478,14 @@ function ViewPayrollDetail($conn) {
                         </div>
                     </div>
                 </div>
-                <!-- End Container Fluid -->
+                <!-- End Page Content -->
+
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
             </div>
             <!-- End Main Content -->
 
@@ -500,38 +521,32 @@ function ViewPayrollDetail($conn) {
         </div>
     </div>
 
-    <!-- Loading Spinner -->
-    <div id="loadingSpinner">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
-
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
-    <!-- DataTables JS & Extensions -->
-    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.1.1/js/buttons.print.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+
+    <!-- DataTables & Extensions (Bootstrap 5) -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- AutoNumeric -->
+    <!-- AutoNumeric (Opsional) -->
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
 
     <script>
     $(document).ready(function() {
-        // Inisialisasi DataTable untuk Payroll History
+        // Inisialisasi DataTable
         var payrollTable = $('#payrollTable').DataTable({
             processing: true,
             serverSide: true,
@@ -539,10 +554,10 @@ function ViewPayrollDetail($conn) {
                 url: "payroll_history.php?ajax=1",
                 type: "POST",
                 data: function(d) {
-                    d.case = 'LoadingPayrollHistory';
-                    d.jenjang = $('#filterJenjang').val();
-                    d.bulan   = $('#filterBulan').val();
-                    d.tahun   = $('#filterTahun').val();
+                    d.case   = 'LoadingPayrollHistory';
+                    d.jenjang= $('#filterJenjang').val();
+                    d.bulan  = $('#filterBulan').val();
+                    d.tahun  = $('#filterTahun').val();
                 },
                 beforeSend: function() {
                     $('#loadingSpinner').show();
@@ -559,16 +574,16 @@ function ViewPayrollDetail($conn) {
                 }
             },
             columns: [
-                { data: 'id', name: 'id' },
-                { data: 'nama', name: 'nama' },
-                { data: 'jenjang', name: 'jenjang' },
-                { data: 'bulan', name: 'bulan' },
-                { data: 'tahun', name: 'tahun' },
-                { data: 'gaji_pokok', name: 'gaji_pokok' },
+                { data: 'id',               name: 'id' },
+                { data: 'nama',             name: 'nama' },
+                { data: 'jenjang',          name: 'jenjang' },
+                { data: 'bulan',            name: 'bulan' },
+                { data: 'tahun',            name: 'tahun' },
+                { data: 'gaji_pokok',       name: 'gaji_pokok' },
                 { data: 'total_pendapatan', name: 'total_pendapatan' },
-                { data: 'total_potongan', name: 'total_potongan' },
-                { data: 'gaji_bersih', name: 'gaji_bersih' },
-                { data: 'aksi', orderable: false, searchable: false }
+                { data: 'total_potongan',   name: 'total_potongan' },
+                { data: 'gaji_bersih',      name: 'gaji_bersih' },
+                { data: 'aksi', orderable:false, searchable:false }
             ],
             order: [[0, 'desc']],
             language: {
@@ -604,7 +619,7 @@ function ViewPayrollDetail($conn) {
             autoWidth: false
         });
 
-        // Filter Payroll History
+        // Filter
         $('#btnApplyFilterPayroll').on('click', function(){
             payrollTable.ajax.reload();
         });
@@ -613,7 +628,7 @@ function ViewPayrollDetail($conn) {
             payrollTable.ajax.reload();
         });
 
-        // Event: Tampilkan Detail Payroll (modal)
+        // Detail Payroll
         $(document).on('click', '.btn-view-full-detail', function() {
             var idPayroll = $(this).data('id');
             if (idPayroll) {
@@ -660,8 +675,11 @@ function ViewPayrollDetail($conn) {
                             if (earnings.length > 0) {
                                 html += '<div class="row mt-2">';
                                 earnings.forEach(function(ph) {
-                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {minimumFractionDigits:2});
-                                    html += '<div class="col-12 mb-1"><span class="badge bg-success me-2">' + ph.nama_payhead + '</span> <span class="text-success">Rp ' + nominal + '</span></div>';
+                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
+                                    html += '<div class="col-12 mb-1">';
+                                    html += '<span class="badge bg-success me-2">' + ph.nama_payhead + '</span>';
+                                    html += '<span class="text-success">Rp ' + nominal + '</span>';
+                                    html += '</div>';
                                 });
                                 html += '</div>';
                             }
@@ -678,8 +696,11 @@ function ViewPayrollDetail($conn) {
                             if (deductions.length > 0) {
                                 html += '<div class="row mt-2">';
                                 deductions.forEach(function(ph) {
-                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {minimumFractionDigits:2});
-                                    html += '<div class="col-12 mb-1"><span class="badge bg-danger me-2">' + ph.nama_payhead + '</span> <span class="text-danger">Rp ' + nominal + '</span></div>';
+                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
+                                    html += '<div class="col-12 mb-1">';
+                                    html += '<span class="badge bg-danger me-2">' + ph.nama_payhead + '</span>';
+                                    html += '<span class="text-danger">Rp ' + nominal + '</span>';
+                                    html += '</div>';
                                 });
                                 html += '</div>';
                             }

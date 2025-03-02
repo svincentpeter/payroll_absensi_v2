@@ -411,6 +411,10 @@ function DeleteHoliday($conn) {
             margin: auto;
             top: 0; left: 0; bottom: 0; right: 0;
         }
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
     </style>
 </head>
 <body id="page-top">
@@ -426,9 +430,12 @@ function DeleteHoliday($conn) {
 
         <!-- Filter -->
         <div class="card mb-4">
-            <div class="card-header">
-                <strong><i class="fas fa-filter"></i> Filter Hari Libur</strong>
-            </div>
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-filter"></i> Filter Hari Libur
+    </h6>
+  </div>
+
             <div class="card-body">
                 <form id="filterForm" class="form-inline">
                     <button type="button" class="btn btn-primary me-2" id="btnApplyFilter" title="Terapkan Filter">
@@ -446,8 +453,11 @@ function DeleteHoliday($conn) {
 
         <!-- Tabel Data Hari Libur -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-white"><i class="fas fa-list"></i> Daftar Hari Libur</h6>
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+      <i class="fas fa-list"></i> Daftar Hari Libur
+    </h6>
+
                 <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addHolidayModal" title="Tambah Hari Libur">
                     <i class="fas fa-plus-circle"></i> Tambah Hari Libur
                 </button>
