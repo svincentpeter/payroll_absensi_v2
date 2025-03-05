@@ -25,55 +25,6 @@ if (empty($nip)) {
     exit();
 }
 
-/**
- * Fungsi untuk menerjemahkan nama bulan ke Bahasa Indonesia.
- */
-function translate_month_dashboard($month_eng) {
-    $months = [
-        'January'   => 'Januari',
-        'February'  => 'Februari',
-        'March'     => 'Maret',
-        'April'     => 'April',
-        'May'       => 'Mei',
-        'June'      => 'Juni',
-        'July'      => 'Juli',
-        'August'    => 'Agustus',
-        'September' => 'September',
-        'October'   => 'Oktober',
-        'November'  => 'November',
-        'December'  => 'Desember'
-    ];
-    return $months[$month_eng] ?? $month_eng;
-}
-
-/**
- * Fungsi untuk menerjemahkan nama hari ke Bahasa Indonesia.
- */
-function translate_day_dashboard($day_eng) {
-    $days = [
-        'Mon' => 'Senin',
-        'Tue' => 'Selasa',
-        'Wed' => 'Rabu',
-        'Thu' => 'Kamis',
-        'Fri' => 'Jumat',
-        'Sat' => 'Sabtu',
-        'Sun' => 'Minggu'
-    ];
-    return $days[$day_eng] ?? $day_eng;
-}
-
-// Alias agar dapat dipanggil dengan translate_month() dan translate_day()
-if (!function_exists('translate_month')) {
-    function translate_month($month_eng) {
-        return translate_month_dashboard($month_eng);
-    }
-}
-if (!function_exists('translate_day')) {
-    function translate_day($day_eng) {
-        return translate_day_dashboard($day_eng);
-    }
-}
-
 // Ambil nama guru untuk header
 $sql = "SELECT nama FROM anggota_sekolah WHERE nip = ?";
 $stmt = $conn->prepare($sql);
@@ -173,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
         $stmt->close();
         $id_jadwal_tujuan = $data_tujuan ? $data_tujuan['id_jadwal'] : NULL;
         
-        // Ambil tanggal (dan waktu_piket jika perlu) dari jadwal pengaju
+        // Ambil tanggal dari jadwal pengaju
         $sql_jadwal = "SELECT tanggal, waktu_piket FROM jadwal_piket WHERE id_jadwal = ?";
         $stmt = $conn->prepare($sql_jadwal);
         $stmt->bind_param("i", $id_jadwal_pengaju);
@@ -230,7 +181,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
  * Hanya guru tujuan yang boleh merespon.
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_request'])) {
-    // Verifikasi token CSRF
     verify_csrf_token($_POST['csrf_token'] ?? '');
     
     $action = $_POST['action'];
@@ -353,7 +303,8 @@ $result = $stmt->get_result();
 $jadwal = [];
 while ($row = $result->fetch_assoc()) {
     $dateObj = new DateTime($row['tanggal']);
-    $row['day'] = translate_day_dashboard($dateObj->format('D'));
+    // Menggunakan fungsi translate_day() dari helpers.php
+    $row['day'] = translate_day($dateObj->format('D'));
     $jadwal[] = $row;
 }
 $stmt->close();
@@ -414,8 +365,6 @@ if (!empty($jadwal)) {
         .badge-pending { background-color: #ffc107; color: #212529; }
         .badge-tidak-hadir { background-color: #dc3545; color: #fff; }
         .badge-hadir { background-color: #28a745; color: #fff; }
-        .badge-diterima { background-color: #28a745; color: #fff; }
-        .badge-ditolak { background-color: #dc3545; color: #fff; }
         .badge-secondary { background-color: #6c757d; color: #fff; }
         .badge-info { background-color: #17a2b8; color: #fff; }
         th, td { vertical-align: middle !important; white-space: nowrap; }
@@ -475,8 +424,8 @@ if (!empty($jadwal)) {
                                 $months = [];
                                 foreach ($jadwal as $j) {
                                     $dateObj = new DateTime($j['tanggal']);
-                                    $full_month = translate_month_dashboard($dateObj->format('F')) . " " . $dateObj->format('Y');
-                                    $j['day'] = translate_day_dashboard($dateObj->format('D'));
+                                    $full_month = translate_month($dateObj->format('F')) . " " . $dateObj->format('Y');
+                                    $j['day'] = translate_day($dateObj->format('D'));
                                     $months[$full_month][] = $j;
                                 }
                                 ksort($months);

@@ -483,4 +483,70 @@ function getRecommendedSalaryIndex($conn, $joinStart) {
     }
 }
 
+/**
+ * Menerjemahkan nama bulan dari bahasa Inggris ke Bahasa Indonesia.
+ *
+ * Fungsi ini berguna untuk mengonversi string nama bulan (misal "January")
+ * ke dalam format Bahasa Indonesia (misal "Januari").
+ *
+ * @param string $month_eng Nama bulan dalam bahasa Inggris.
+ * @return string Nama bulan dalam bahasa Indonesia.
+ */
+if (!function_exists('translate_month_dashboard')) {
+    function translate_month_dashboard($month_eng) {
+        $months = [
+            'January'   => 'Januari',
+            'February'  => 'Februari',
+            'March'     => 'Maret',
+            'April'     => 'April',
+            'May'       => 'Mei',
+            'June'      => 'Juni',
+            'July'      => 'Juli',
+            'August'    => 'Agustus',
+            'September' => 'September',
+            'October'   => 'Oktober',
+            'November'  => 'November',
+            'December'  => 'Desember'
+        ];
+        return $months[$month_eng] ?? $month_eng;
+    }
+}
+
+/**
+ * Menerjemahkan nama hari dari bahasa Inggris ke Bahasa Indonesia.
+ *
+ * Fungsi ini mengonversi singkatan hari (misal "Mon") ke dalam format Bahasa Indonesia (misal "Senin").
+ *
+ * @param string $day_eng Singkatan hari dalam bahasa Inggris.
+ * @return string Nama hari dalam bahasa Indonesia.
+ */
+if (!function_exists('translate_day_dashboard')) {
+    function translate_day_dashboard($day_eng) {
+        $days = [
+            'Mon' => 'Senin',
+            'Tue' => 'Selasa',
+            'Wed' => 'Rabu',
+            'Thu' => 'Kamis',
+            'Fri' => 'Jumat',
+            'Sat' => 'Sabtu',
+            'Sun' => 'Minggu'
+        ];
+        return $days[$day_eng] ?? $day_eng;
+    }
+}
+
+// Alias agar fungsi mudah dipanggil di seluruh aplikasi
+if (!function_exists('translate_month')) {
+    function translate_month($month_eng) {
+        return translate_month_dashboard($month_eng);
+    }
+}
+
+if (!function_exists('translate_day')) {
+    function translate_day($day_eng) {
+        return translate_day_dashboard($day_eng);
+    }
+}
+
+
 ?>
