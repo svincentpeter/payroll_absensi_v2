@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 27, 2025 at 05:52 AM
+-- Generation Time: Mar 07, 2025 at 11:18 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -68,6 +68,7 @@ CREATE TABLE `anggota_sekolah` (
   `join_start` date DEFAULT NULL,
   `masa_kerja_tahun` int(11) DEFAULT NULL,
   `masa_kerja_bulan` int(11) DEFAULT NULL,
+  `masa_kerja_efektif` decimal(5,2) DEFAULT 0.00,
   `remark` text DEFAULT NULL,
   `jenis_kelamin` enum('L','P') DEFAULT NULL,
   `tanggal_lahir` date DEFAULT NULL,
@@ -86,6 +87,7 @@ CREATE TABLE `anggota_sekolah` (
   `nama_anak_2` varchar(100) NOT NULL DEFAULT '',
   `nama_anak_3` varchar(100) NOT NULL DEFAULT '',
   `salary_index_id` int(11) DEFAULT NULL,
+  `salary_index_level` varchar(10) DEFAULT NULL,
   `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00,
   `foto_profil` varchar(255) DEFAULT 'default.jpg',
   `role` enum('P','TK','M') DEFAULT NULL
@@ -122,7 +124,12 @@ CREATE TABLE `employee_payheads` (
   `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft',
   `remarks` text DEFAULT NULL,
   `support_doc_path` varchar(255) DEFAULT NULL,
-  `upload_file_blob` mediumblob DEFAULT NULL
+  `upload_file_blob` mediumblob DEFAULT NULL,
+  `is_rapel` tinyint(1) DEFAULT 0,
+  `rapel_start_month` int(11) DEFAULT NULL,
+  `rapel_start_year` int(11) DEFAULT NULL,
+  `rapel_monthly_amount` decimal(15,2) DEFAULT 0.00,
+  `rapel_accumulated` decimal(15,2) DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -182,7 +189,8 @@ CREATE TABLE `laporan_surat` (
   `judul` varchar(255) NOT NULL,
   `isi` text NOT NULL,
   `tanggal_keluar` datetime NOT NULL DEFAULT current_timestamp(),
-  `status` enum('terkirim','dibaca') NOT NULL DEFAULT 'terkirim'
+  `status` enum('terkirim','dibaca') NOT NULL DEFAULT 'terkirim',
+  `template_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -312,6 +320,25 @@ CREATE TABLE `permintaan_tukar_jadwal` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `rapel_payroll`
+--
+
+CREATE TABLE `rapel_payroll` (
+  `id` int(11) NOT NULL,
+  `id_anggota` int(11) NOT NULL,
+  `bulan` int(11) NOT NULL,
+  `tahun` int(11) NOT NULL,
+  `nilai_rapel` decimal(15,2) NOT NULL,
+  `keterangan` text DEFAULT NULL,
+  `status` enum('draft','final','revisi') DEFAULT 'draft',
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `rekap_absensi`
 --
 
@@ -340,6 +367,24 @@ CREATE TABLE `salary_indices` (
   `max_years` int(11) DEFAULT NULL,
   `base_salary` decimal(15,2) NOT NULL,
   `description` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_surat`
+--
+
+CREATE TABLE `template_surat` (
+  `id` int(11) NOT NULL,
+  `jenis_surat` varchar(100) NOT NULL,
+  `judul` varchar(255) NOT NULL,
+  `isi` text NOT NULL,
+  `default_penerima` enum('semua','perorangan') NOT NULL DEFAULT 'perorangan',
+  `created_by` int(11) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  `default_penerima_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -384,7 +429,9 @@ ALTER TABLE `holidays`
 -- Indexes for table `laporan_surat`
 --
 ALTER TABLE `laporan_surat`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_laporan_surat_pengirim` (`id_pengirim`),
+  ADD KEY `fk_laporan_surat_penerima` (`id_penerima`);
 
 --
 -- Indexes for table `notifications`
@@ -424,10 +471,18 @@ ALTER TABLE `payroll_final`
   ADD KEY `bulan` (`bulan`,`tahun`);
 
 --
+-- Indexes for table `rapel_payroll`
+--
+ALTER TABLE `rapel_payroll`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_anggota` (`id_anggota`);
+
+--
 -- Indexes for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_rekap_absensi_anggota` (`id_anggota`);
 
 --
 -- Indexes for table `salary_indices`
@@ -435,6 +490,12 @@ ALTER TABLE `rekap_absensi`
 ALTER TABLE `salary_indices`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `level` (`level`);
+
+--
+-- Indexes for table `template_surat`
+--
+ALTER TABLE `template_surat`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -495,10 +556,77 @@ ALTER TABLE `payroll_final`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `rapel_payroll`
+--
+ALTER TABLE `rapel_payroll`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `template_surat`
+--
+ALTER TABLE `template_surat`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `anggota_sekolah`
+--
+ALTER TABLE `anggota_sekolah`
+  ADD CONSTRAINT `fk_anggota_salary_indices` FOREIGN KEY (`salary_index_id`) REFERENCES `salary_indices` (`id`);
+
+--
+-- Constraints for table `employee_payheads`
+--
+ALTER TABLE `employee_payheads`
+  ADD CONSTRAINT `fk_employee_payheads_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`),
+  ADD CONSTRAINT `fk_employee_payheads_payheads` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`);
+
+--
+-- Constraints for table `laporan_surat`
+--
+ALTER TABLE `laporan_surat`
+  ADD CONSTRAINT `fk_laporan_surat_penerima` FOREIGN KEY (`id_penerima`) REFERENCES `anggota_sekolah` (`id`),
+  ADD CONSTRAINT `fk_laporan_surat_pengirim` FOREIGN KEY (`id_pengirim`) REFERENCES `anggota_sekolah` (`id`);
+
+--
+-- Constraints for table `payroll`
+--
+ALTER TABLE `payroll`
+  ADD CONSTRAINT `fk_payroll_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`);
+
+--
+-- Constraints for table `payroll_detail`
+--
+ALTER TABLE `payroll_detail`
+  ADD CONSTRAINT `fk_payroll_detail_payheads` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`),
+  ADD CONSTRAINT `fk_payroll_detail_payroll` FOREIGN KEY (`id_payroll`) REFERENCES `payroll` (`id`);
+
+--
+-- Constraints for table `payroll_final`
+--
+ALTER TABLE `payroll_final`
+  ADD CONSTRAINT `fk_payroll_final_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`);
+
+--
+-- Constraints for table `rapel_payroll`
+--
+ALTER TABLE `rapel_payroll`
+  ADD CONSTRAINT `rapel_payroll_ibfk_1` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`);
+
+--
+-- Constraints for table `rekap_absensi`
+--
+ALTER TABLE `rekap_absensi`
+  ADD CONSTRAINT `fk_rekap_absensi_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
