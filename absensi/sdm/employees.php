@@ -52,12 +52,14 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
 
     // 2) Hitung total earnings & deductions (yang masih berstatus draft/revisi)
     $sqlSum = "
-        SELECT jenis, SUM(amount) as total
-          FROM employee_payheads
-         WHERE id_anggota = ?
-           AND status IN ('draft','revisi')
-        GROUP BY jenis
-    ";
+    SELECT jenis, SUM(amount) as total
+      FROM employee_payheads
+     WHERE id_anggota = ?
+       AND status IN ('draft','revisi')
+       AND IFNULL(is_rapel, 0) = 0
+    GROUP BY jenis
+";
+
     $stmtSum = $conn->prepare($sqlSum);
     $stmtSum->bind_param("i", $id_anggota);
     if (!$stmtSum->execute()) {
@@ -547,30 +549,48 @@ function LoadingEmployees($conn) {
     $role         = sanitize_input($_POST['role'] ?? '');
     $selectedMonth = intval($_POST['selectedMonth'] ?? date('n'));
     $selectedYear  = intval($_POST['selectedYear']  ?? date('Y'));
+
+    // Subquery payroll status
     $subqueryPayrollStatus = "(SELECT p.status FROM payroll p
         WHERE p.id_anggota = a.id
           AND p.bulan = $selectedMonth
           AND p.tahun = $selectedYear
         ORDER BY p.tgl_payroll DESC LIMIT 1) AS payroll_status";
+
+    // Subquery rapel
+    $subqueryRapel = "(SELECT COUNT(*) 
+                         FROM employee_payheads ep
+                        WHERE ep.id_anggota = a.id
+                          AND ep.is_rapel = 1
+                      ) AS has_rapel";
+
+    // Hitung total data
     $sqlTotal = "SELECT COUNT(*) AS total FROM anggota_sekolah";
     $resTotal = $conn->query($sqlTotal);
     $rowTotal = $resTotal->fetch_assoc();
     $recordsTotal = intval($rowTotal['total']);
+
+    // Query utama
     $sql = "SELECT a.id, a.uid, a.nip, a.nama, a.jenjang, a.role,
                    a.job_title, a.status_kerja, a.masa_kerja_tahun,
                    a.masa_kerja_bulan, a.gaji_pokok, a.no_rekening,
                    a.email, si.level AS salary_index_level,
                    si.base_salary AS salary_index_base,
-                   $subqueryPayrollStatus
-            FROM anggota_sekolah a
-            LEFT JOIN salary_indices si ON a.salary_index_id = si.id
-            WHERE 1=1";
+                   $subqueryPayrollStatus,
+                   $subqueryRapel
+              FROM anggota_sekolah a
+         LEFT JOIN salary_indices si ON a.salary_index_id = si.id
+             WHERE 1=1";
+
+    // Filter jenjang
     if (!empty($jenjang)) {
-        $sql .= " AND a.jenjang = '". $conn->real_escape_string($jenjang) ."'";
+        $sql .= " AND a.jenjang = '" . $conn->real_escape_string($jenjang) . "'";
     }
+    // Filter role
     if (!empty($role)) {
-        $sql .= " AND a.role = '". $conn->real_escape_string($role) ."'";
+        $sql .= " AND a.role = '" . $conn->real_escape_string($role) . "'";
     }
+    // Filter search
     if (!empty($search)) {
         $s = $conn->real_escape_string($search);
         $sql .= " AND (
@@ -579,18 +599,26 @@ function LoadingEmployees($conn) {
             OR a.status_kerja LIKE '%$s%' OR a.no_rekening LIKE '%$s%' OR a.email LIKE '%$s%'
         )";
     }
-    $sql .= " ORDER BY a.id DESC";
-    $sql .= " LIMIT $start, $length";
+
+    $sql .= " ORDER BY a.id DESC LIMIT $start, $length";
+
+    // Eksekusi query
     $res = $conn->query($sql);
     if (!$res) {
         send_response(1, 'Gagal query data employees: ' . $conn->error);
     }
+
+    // Loop data
     $data = [];
     while ($row = $res->fetch_assoc()) {
-        $masaKerja = ($row['masa_kerja_tahun'] > 0 ? $row['masa_kerja_tahun'] . ' Thn ' : '')
-                   . ($row['masa_kerja_bulan'] > 0 ? $row['masa_kerja_bulan'] . ' Bln' : '');
-        $masaKerja = trim($masaKerja) ?: '-';
-        $gajiPokokFmt = number_format($row['gaji_pokok'], 2, ',', '.');
+        // Baru di sini kita bisa akses $row
+        $hasRapel       = (intval($row['has_rapel']) > 0);
+        $masaKerja      = ($row['masa_kerja_tahun'] > 0 ? $row['masa_kerja_tahun'].' Thn ' : '')
+                        . ($row['masa_kerja_bulan'] > 0 ? $row['masa_kerja_bulan'].' Bln' : '');
+        $masaKerja      = trim($masaKerja) ?: '-';
+        $gajiPokokFmt   = number_format($row['gaji_pokok'], 2, ',', '.');
+        
+        // Tentukan status payroll
         $statusPayroll = 'Belum Diproses';
         if (!empty($row['payroll_status'])) {
             if ($row['payroll_status'] === 'final') {
@@ -601,6 +629,7 @@ function LoadingEmployees($conn) {
                 $statusPayroll = 'Draft';
             }
         }
+
         $data[] = [
             'id'         => $row['id'],
             'uid'        => $row['uid'],
@@ -617,15 +646,18 @@ function LoadingEmployees($conn) {
             'salary_index_level' => $row['salary_index_level'] ?: '-',
             'salary_index_base'  => floatval($row['salary_index_base'] ?: 0),
             'payroll_status'     => $statusPayroll,
-            "foto_profil"  => getProfilePhotoUrl($row['nama'], $row['jenjang'], $row['role'], $row['id'])
+            'has_rapel'          => $hasRapel,
+            'foto_profil'        => getProfilePhotoUrl($row['nama'], $row['jenjang'], $row['role'], $row['id'])
         ];
     }
+
     echo json_encode([
         'recordsTotal' => $recordsTotal,
         'data'         => $data
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
+
 
 function EditEmployee($conn) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -1561,35 +1593,65 @@ $(document).ready(function(){
     }
 
     function generateCards(data) {
-        let container = $("#employeeCards");
-        container.empty();
-        data.forEach(function(item){
-            // Sematkan status payroll ke dalam atribut data untuk cek nanti
-            let badgeClass = 'default';
-            if (item.payroll_status.toLowerCase() === 'final') badgeClass = 'final';
-            if (item.payroll_status.toLowerCase() === 'draft') badgeClass = 'draft';
-            if (item.payroll_status.toLowerCase() === 'revisi') badgeClass = 'revisi';
-            let photoUrl = (item.foto_profil && item.foto_profil !== '') ? item.foto_profil : '<?= BASE_URL ?>/assets/img/undraw_profile.svg';
-            let cardHtml = `
-              <div class="col">
-                <div class="card shadow-sm p-3 h-100 text-center" data-payroll_status="${item.payroll_status}">
-                  <img src="${photoUrl}" alt="Foto" class="employee-photo mb-2">
-                  <h6 class="mb-0">${item.nama}</h6>
-                  <small class="text-muted">NIP: ${item.nip}</small>
-                  <p class="mt-2 mb-1" style="font-size:0.85rem;">Role: ${item.role} | <strong>${item.jenjang}</strong></p>
-                  <p style="font-size:0.85rem;">Status: <span class="badge-status ${badgeClass}">${item.payroll_status}</span></p>
-                  <div class="d-grid gap-2">
-                    <button class="btn btn-sm btn-primary btnViewDetail" data-id="${item.id}"><i class="bi bi-eye-fill"></i> Detail Data</button>
-                    <button class="btn btn-sm btn-warning btnEdit" data-id="${item.id}"><i class="bi bi-pencil-square"></i> Edit Data</button>
-                    <button class="btn btn-sm btn-info btnAssignPayheads" data-id="${item.id}"><i class="bi bi-cash-stack"></i> Payroll</button>
-                    <button class="btn btn-sm btn-secondary btnRekapAbsensi" data-id="${item.id}" data-role="${item.role}"><i class="bi bi-calendar-check"></i> Rekap Absensi</button>
-                  </div>
-                </div>
-              </div>
-            `;
-            container.append(cardHtml);
-        });
+  let container = $("#employeeCards");
+  container.empty();
+  data.forEach(function(item){
+    // tentukan warna & teks rapel
+    let rapelBadge = '';
+    if (item.has_rapel) {
+      // misalnya badge merah dengan teks hitam
+      rapelBadge = `<span class="badge" style="background-color: red;">Ada</span>`;
+    } else {
+      rapelBadge = `<span class="badge bg-secondary">-</span>`;
     }
+
+    let badgeClass = 'default';
+    if (item.payroll_status.toLowerCase() === 'final') badgeClass = 'final';
+    else if (item.payroll_status.toLowerCase() === 'draft') badgeClass = 'draft';
+    else if (item.payroll_status.toLowerCase() === 'revisi') badgeClass = 'revisi';
+
+    let photoUrl = (item.foto_profil && item.foto_profil !== '')
+                     ? item.foto_profil
+                     : '<?= BASE_URL ?>/assets/img/undraw_profile.svg';
+
+    let cardHtml = `
+      <div class="col">
+        <div class="card shadow-sm p-3 h-100 text-center" data-payroll_status="${item.payroll_status}">
+          <img src="${photoUrl}" alt="Foto" class="employee-photo mb-2">
+          <h6 class="mb-0">${item.nama}</h6>
+          <small class="text-muted">NIP: ${item.nip}</small>
+          <p class="mt-2 mb-1" style="font-size:0.85rem;">
+            Role: ${item.role} | <strong>${item.jenjang}</strong>
+          </p>
+          <p style="font-size:0.85rem;">
+            Status: <span class="badge-status ${badgeClass}">${item.payroll_status}</span>
+          </p>
+          <p style="font-size:0.85rem;">
+            Rapel: ${rapelBadge}
+          </p>
+          <div class="d-grid gap-2">
+            <button class="btn btn-sm btn-primary btnViewDetail" data-id="${item.id}">
+              <i class="bi bi-eye-fill"></i> Detail Data
+            </button>
+            <button class="btn btn-sm btn-warning btnEdit" data-id="${item.id}">
+              <i class="bi bi-pencil-square"></i> Edit Data
+            </button>
+            <button class="btn btn-sm btn-info btnAssignPayheads" data-id="${item.id}">
+              <i class="bi bi-cash-stack"></i> Payroll
+            </button>
+            <button class="btn btn-sm btn-secondary btnRekapAbsensi"
+                    data-id="${item.id}"
+                    data-role="${item.role}">
+              <i class="bi bi-calendar-check"></i> Rekap Absensi
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.append(cardHtml);
+  });
+}
+
 
     function generatePagination(totalRecords) {
         let totalPages = Math.ceil(totalRecords / pageSize);

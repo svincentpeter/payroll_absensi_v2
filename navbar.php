@@ -52,14 +52,15 @@ if (in_array($role, ['sdm', 'superadmin'])) {
     }
 
     $sqlSdm = "
-        SELECT COUNT(*) AS pending
-        FROM anggota_sekolah
-        WHERE id NOT IN (
-            SELECT id_anggota 
-            FROM payroll_final
-            WHERE bulan = ? AND tahun = ?
-        )
-    ";
+    SELECT COUNT(*) AS pending
+    FROM anggota_sekolah
+    WHERE id NOT IN (
+        SELECT id_anggota 
+        FROM payroll_final
+        WHERE bulan = ? AND tahun = ?
+    )
+";
+
     $stmtSdm = $conn->prepare($sqlSdm);
     if ($stmtSdm) {
         $stmtSdm->bind_param("ii", $targetMonth, $targetYear);

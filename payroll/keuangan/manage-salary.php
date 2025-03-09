@@ -408,8 +408,6 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', $detailsLog);
 $timestamp = strtotime($tglPayrollParam);
 $tanggalCetak = date('d', $timestamp) . ' ' . getIndonesianMonthName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
 $periode = getIndonesianMonthName($bulan) . ' ' . $tahun;
-
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -707,7 +705,7 @@ $conn->close();
         <span class="visually-hidden">Loading...</span>
     </div>
 </div>
-
+<?php $conn->close(); ?>
 <!-- JS Dependencies -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
