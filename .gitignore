@@ -30,3 +30,5 @@
 !.gitignore
 !notifikasi.php
 !pesan.php
+!view_pdf.php
+

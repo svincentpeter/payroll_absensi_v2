@@ -2,45 +2,13 @@
 // File: /payroll_absensi_v2/absensi/guru/dashboard_guru.php
 
 // =============================================================================
-// 1. Pengaturan Keamanan, Session, dan CSP
+// 1. Pengaturan Session dan Error Log
 // =============================================================================
-// Atur parameter cookie session sebelum session_start()
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => $_SERVER['HTTP_HOST'],
-    'secure'   => true,      // Hanya lewat HTTPS
-    'httponly' => true,      // Tidak dapat diakses via JavaScript
-    'samesite' => 'Strict'
-]);
-
 require_once __DIR__ . '/../../helpers.php';
-start_session_safe();
+session_start();
 init_error_handling();
-generate_csrf_token();
 
-// Buat nonce untuk Content Security Policy (CSP) dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
-
-// Paksa penggunaan HTTPS jika belum digunakan
-if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    $redirect = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    header('HTTP/1.1 301 Moved Permanently');
-    header('Location: ' . $redirect);
-    exit();
-}
-
-// HSTS header
-header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
-
-// Terapkan Content-Security-Policy (CSP) dengan nonce
-header("Content-Security-Policy: default-src 'self'; 
-    script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://code.jquery.com 'nonce-$nonce'; 
-    style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'nonce-$nonce'; 
-    img-src 'self'; 
-    font-src 'self' https://cdnjs.cloudflare.com; 
-    connect-src 'self'");
+// Audit log akan digunakan nanti, jadi biarkan fungsinya aktif
 
 // =============================================================================
 // 2. Koneksi Database & Inisialisasi
@@ -48,16 +16,14 @@ header("Content-Security-Policy: default-src 'self';
 require_once __DIR__ . '/../../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
-// Ambil data pengguna dari session (minimal nip harus sudah tersimpan)
 $nip = $_SESSION['nip'] ?? '';
-
 if (empty($nip)) {
     echo "NIP tidak ditemukan dalam session.";
     exit();
 }
 
-// Query untuk mendapatkan data pengguna (nama dan role) dari tabel `anggota_sekolah`
-$queryUser = "SELECT nama, role FROM anggota_sekolah WHERE nip = ?";
+// Ambil data pengguna
+$queryUser = "SELECT id, nama, role FROM anggota_sekolah WHERE nip = ?";
 $stmtUser = $conn->prepare($queryUser);
 $stmtUser->bind_param("s", $nip);
 $stmtUser->execute();
@@ -65,7 +31,6 @@ $resultUser = $stmtUser->get_result();
 $userData = $resultUser->fetch_assoc();
 $stmtUser->close();
 
-// Jika data pengguna tidak ditemukan atau role tidak sesuai, tolak akses
 if (!$userData || !in_array($userData['role'], ['P', 'TK'])) {
     header("Location: ../../login.php");
     exit();
@@ -73,108 +38,105 @@ if (!$userData || !in_array($userData['role'], ['P', 'TK'])) {
 
 $nama_pengguna = $userData['nama'] ?? 'Nama Tidak Diketahui';
 $db_role       = $userData['role'];
+$id_anggota    = $userData['id'];
 
-// Jika diperlukan, perbarui nilai role di session untuk konsistensi (opsional)
 $_SESSION['role'] = $db_role;
 
-// Catat audit log bahwa dashboard diakses
-// Menggunakan nip sebagai identitas user
+// Audit log
 add_audit_log($conn, $nip, 'AccessDashboard', 'Mengakses dashboard.');
 
-// Tentukan judul dashboard berdasarkan role dari database
+// Tentukan judul
 $dashboard_title = ($db_role === 'P') ? 'Dashboard Guru' : 'Dashboard Karyawan';
 
 // =============================================================================
-// 3. Data Absensi
+// 3. Data Ringkasan Kehadiran (5 CARD)
 // =============================================================================
-
-// Tentukan jam masuk standar (misalnya: 08:00:00)
-$jam_masuk_standar = '08:00:00';
-
-// Query untuk mendapatkan data absensi pengguna
-$query = "
-    SELECT 
-        COUNT(*) AS total_records,
-        SUM(
-            CASE 
-                WHEN scan_masuk = '0000-00-00 00:00:00' 
-                     AND scan_pulang = '0000-00-00 00:00:00' 
-                THEN 1 
-                ELSE 0 
-            END
-        ) AS total_alpha,
-        SUM(
-            CASE 
-                WHEN TIME(scan_masuk) > '$jam_masuk_standar' 
-                THEN 1 
-                ELSE 0 
-            END
-        ) AS total_terlambat,
-        SUM(
-            CASE 
-                WHEN jenis_absensi = 'izin' 
-                THEN 1 
-                ELSE 0 
-            END
-        ) AS total_izin,
-        SUM(
-            CASE 
-                WHEN scan_masuk != '0000-00-00 00:00:00'
-                     AND scan_pulang != '0000-00-00 00:00:00'
-                     AND TIME(scan_masuk) <= '$jam_masuk_standar' 
-                THEN 1
-                ELSE 0 
-            END
-        ) AS total_hadir
-    FROM absensi 
-    WHERE nip = ? 
-      AND scan_masuk != '0000-00-00 00:00:00'
+$sqlSummary = "
+    SELECT
+        SUM(CASE WHEN status_kehadiran='hadir' THEN 1 ELSE 0 END) AS total_hadir,
+        SUM(CASE WHEN status_kehadiran='izin' THEN 1 ELSE 0 END) AS total_izin,
+        SUM(CASE WHEN status_kehadiran='cuti' THEN 1 ELSE 0 END) AS total_cuti,
+        SUM(CASE WHEN status_kehadiran='tanpa_keterangan' THEN 1 ELSE 0 END) AS total_tanpa_keterangan,
+        SUM(CASE WHEN status_kehadiran='sakit' THEN 1 ELSE 0 END) AS total_sakit
+    FROM absensi
+    WHERE nip = ?
 ";
-$stmt = $conn->prepare($query);
-$stmt->bind_param("s", $nip);
-$stmt->execute();
-$result = $stmt->get_result();
-$attendance_data = $result->fetch_assoc();
-$stmt->close();
+$stmtSum = $conn->prepare($sqlSummary);
+$stmtSum->bind_param("s", $nip);
+$stmtSum->execute();
+$resultSum = $stmtSum->get_result();
+$sumData = $resultSum->fetch_assoc();
+$stmtSum->close();
 
-// Pastikan data absensi tidak null
-$total_alpha     = (int)($attendance_data['total_alpha'] ?? 0);
-$total_terlambat = (int)($attendance_data['total_terlambat'] ?? 0);
-$total_izin      = (int)($attendance_data['total_izin'] ?? 0);
-$total_hadir     = (int)($attendance_data['total_hadir'] ?? 0);
-
-$attendance_json = json_encode([
-    'alpha'     => $total_alpha,
-    'terlambat' => $total_terlambat,
-    'izin'      => $total_izin,
-    'hadir'     => $total_hadir
-]);
+$sumHadir    = (int)($sumData['total_hadir'] ?? 0);
+$sumIzin     = (int)($sumData['total_izin'] ?? 0);
+$sumCuti     = (int)($sumData['total_cuti'] ?? 0);
+$sumTanpaKet = (int)($sumData['total_tanpa_keterangan'] ?? 0);
+$sumSakit    = (int)($sumData['total_sakit'] ?? 0);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <title><?= htmlspecialchars($dashboard_title) ?></title>
-   <!-- Bootstrap 5 CSS dan SB Admin 2 CSS -->
-   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" nonce="<?php echo $nonce; ?>">
-    <!-- Font Awesome untuk icon -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" nonce="<?php echo $nonce; ?>">
-    <!-- Chart.js & Chartjs Plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" nonce="<?php echo $nonce; ?>"></script>
+    <!-- Bootstrap 5 CSS & SB Admin 2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" nonce="<?php echo $nonce; ?>"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" nonce="<?php echo $nonce; ?>"></script>
-   <style nonce="<?= htmlspecialchars($nonce); ?>">
-        /* Perbesar area grafik */
-        #attendanceChart {
-            width: 100% !important;
-            height: 600px !important;
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        
+        body {
+            background-color: #f8f9fc;
         }
         .welcome-message {
             margin-bottom: 20px;
+        }
+        /* Ubah card-header menggunakan gradient */
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
+        /* Kustomisasi Card Statistik */
+        .stat-card .card-body p {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        /* Gradient styling untuk masing-masing kategori */
+        .gradient-hadir {
+            background: linear-gradient(135deg, #e0ffe0 0%, #90ee90 100%);
+            color: #064d06;
+        }
+        .gradient-izin {
+            background: linear-gradient(135deg, #d6f5ff 0%, #80dfff 100%);
+            color: #064b5c;
+        }
+        .gradient-cuti {
+            background: linear-gradient(135deg, #fff8d6 0%, #ffe680 100%);
+            color: #665400;
+        }
+        .gradient-tanpa {
+            background: linear-gradient(135deg, #ffd6d6 0%, #ff9f9f 100%);
+            color: #5e0000;
+        }
+        .gradient-sakit {
+            background: linear-gradient(135deg, #f0f0f0 0%, #dcdcdc 100%);
+            color: #333;
+        }
+        .icon-size {
+            font-size: 1.5rem;
+        }
+        /* Ukuran teks khusus Ringkasan Gaji */
+        .ringkasan-gaji .text-xs {
+            font-size: 0.75rem;
+        }
+        .ringkasan-gaji .h5 {
+            font-size: 1rem;
         }
     </style>
 </head>
@@ -183,7 +145,7 @@ $attendance_json = json_encode([
     <div id="wrapper">
         <!-- Sidebar -->
         <?php include __DIR__ . '/../../sidebar.php'; ?>
-        <!-- End of Sidebar -->
+        <!-- End Sidebar -->
 
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
@@ -191,18 +153,35 @@ $attendance_json = json_encode([
             <div id="content">
                 <!-- Navbar -->
                 <?php include __DIR__ . '/../../navbar.php'; ?>
-                <!-- Breadcrumb -->
+                <!-- End Navbar -->
 
                 <!-- Begin Page Content -->
-                <div class="container-fluid">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h1 class="h3 text-gray-800"><?= htmlspecialchars($dashboard_title) ?></h1>
-                            <p class="mb-0">Selamat datang, <strong><?= htmlspecialchars($nama_pengguna) ?></strong></p>
+                <div class="container-fluid py-3">
+
+                    <!-- Header / Judul Halaman -->
+                    <div class="d-sm-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            <h1 class="h3 text-gray-800 mb-0"><?= htmlspecialchars($dashboard_title) ?></h1>
                         </div>
                     </div>
 
-                    <!-- Tempatkan notifikasi jika ada -->
+                    <!-- Sambutan -->
+                    <div class="welcome-message mb-4">
+                        <div class="card shadow bg-white rounded">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-smile-beam me-2" style="font-size:1.5rem;"></i>
+                                    <div>
+                                        <h5 class="card-title mb-1" style="font-size:1rem;">Selamat Datang</h5>
+                                        <p class="mb-0" style="font-size:0.9rem;">Halo, <strong><?= htmlspecialchars($nama_pengguna) ?></strong>. Semoga hari Anda menyenangkan!</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifikasi Session -->
                     <?php
                     if (isset($_SESSION['success_message'])) {
                         echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>"
@@ -212,105 +191,343 @@ $attendance_json = json_encode([
                     }
                     ?>
 
-                    <!-- Area Grafik Absensi -->
-                    <div class="row justify-content-center">
-                        <div class="col-lg-12">
-                            <canvas id="attendanceChart"></canvas>
+                    <!-- STATISTIK KEHADIRAN (5 CARD) -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <div><i class="fas fa-chart-bar me-2"></i>Statistik Kehadiran</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-5 g-2 justify-content-center text-center">
+                                <!-- Card: Hadir -->
+                                <div class="col">
+                                    <div class="card h-100 border-0 shadow-sm gradient-hadir stat-card p-2">
+                                        <div class="card-body d-flex flex-column align-items-center justify-content-center py-2">
+                                            <i class="fas fa-check-circle icon-size mb-1"></i>
+                                            <h6 class="fw-bold mb-1" style="font-size:0.85rem;">Hadir</h6>
+                                            <p><?= $sumHadir; ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card: Izin -->
+                                <div class="col">
+                                    <div class="card h-100 border-0 shadow-sm gradient-izin stat-card p-2">
+                                        <div class="card-body d-flex flex-column align-items-center justify-content-center py-2">
+                                            <i class="fas fa-user-clock icon-size mb-1"></i>
+                                            <h6 class="fw-bold mb-1" style="font-size:0.85rem;">Izin</h6>
+                                            <p><?= $sumIzin; ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card: Cuti -->
+                                <div class="col">
+                                    <div class="card h-100 border-0 shadow-sm gradient-cuti stat-card p-2">
+                                        <div class="card-body d-flex flex-column align-items-center justify-content-center py-2">
+                                            <i class="fas fa-plane icon-size mb-1"></i>
+                                            <h6 class="fw-bold mb-1" style="font-size:0.85rem;">Cuti</h6>
+                                            <p><?= $sumCuti; ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card: Tanpa Keterangan -->
+                                <div class="col">
+                                    <div class="card h-100 border-0 shadow-sm gradient-tanpa stat-card p-2">
+                                        <div class="card-body d-flex flex-column align-items-center justify-content-center py-2">
+                                            <i class="fas fa-question-circle icon-size mb-1"></i>
+                                            <h6 class="fw-bold mb-1" style="font-size:0.85rem;">Tanpa Keterangan</h6>
+                                            <p><?= $sumTanpaKet; ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Card: Sakit -->
+                                <div class="col">
+                                    <div class="card h-100 border-0 shadow-sm gradient-sakit stat-card p-2">
+                                        <div class="card-body d-flex flex-column align-items-center justify-content-center py-2">
+                                            <i class="fas fa-user-injured icon-size mb-1"></i>
+                                            <h6 class="fw-bold mb-1" style="font-size:0.85rem;">Sakit</h6>
+                                            <p><?= $sumSakit; ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <!-- END STATISTIK KEHADIRAN -->
+
+                    <!-- MENU CEPAT -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <div><i class="fas fa-bars me-2"></i>Menu Cepat</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-6 g-2">
+                                <!-- Contoh Menu: Jadwal Piket -->
+                                <div class="col">
+                                    <a href="../../dashboard_jadwal.php" class="text-decoration-none">
+                                        <div class="card text-center shadow-sm h-100 p-2">
+                                            <div class="card-body">
+                                                <i class="fas fa-calendar-alt" style="font-size:1.5rem;"></i>
+                                                <h6 class="card-title mt-1" style="font-size:0.85rem;">Jadwal Piket</h6>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <!-- Menu lainnya -->
+                                <div class="col">
+                                    <a href="../../laporan_jadwal_piket.php" class="text-decoration-none">
+                                        <div class="card text-center shadow-sm h-100 p-2">
+                                            <div class="card-body">
+                                                <i class="fas fa-table" style="font-size:1.5rem;"></i>
+                                                <h6 class="card-title mt-1" style="font-size:0.85rem;">Laporan Jadwal</h6>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col">
+                                    <a href="../../laporan_surat.php" class="text-decoration-none">
+                                        <div class="card text-center shadow-sm h-100 p-2">
+                                            <div class="card-body">
+                                                <i class="fas fa-envelope" style="font-size:1.5rem;"></i>
+                                                <h6 class="card-title mt-1" style="font-size:0.85rem;">Laporan Surat</h6>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col">
+                                    <a href="../../pengajuan_surat_ijin.php" class="text-decoration-none">
+                                        <div class="card text-center shadow-sm h-100 p-2">
+                                            <div class="card-body">
+                                                <i class="fas fa-file-upload" style="font-size:1.5rem;"></i>
+                                                <h6 class="card-title mt-1" style="font-size:0.85rem;">Pengajuan Izin</h6>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col">
+                                    <a href="../../request_tukar_jadwal.php" class="text-decoration-none">
+                                        <div class="card text-center shadow-sm h-100 p-2">
+                                            <div class="card-body">
+                                                <i class="fas fa-exchange-alt" style="font-size:1.5rem;"></i>
+                                                <h6 class="card-title mt-1" style="font-size:0.85rem;">Tukar Jadwal</h6>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col">
+                                    <a href="../../payroll_overview.php" class="text-decoration-none">
+                                        <div class="card text-center shadow-sm h-100 p-2">
+                                            <div class="card-body">
+                                                <i class="fas fa-money-bill-wave" style="font-size:1.5rem;"></i>
+                                                <h6 class="card-title mt-1" style="font-size:0.85rem;">Payroll</h6>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HARI LIBUR & JADWAL HARI INI -->
+                    <div class="row">
+                        <!-- Hari Libur Mendatang -->
+                        <div class="col-lg-6">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <div><i class="fas fa-calendar-alt me-2"></i>Hari Libur Mendatang</div>
+                                </div>
+                                <div class="card-body p-2" style="font-size:0.85rem;">
+                                    <?php
+                                    $todayDate = date('Y-m-d');
+                                    $queryHolidays = "SELECT * FROM holidays WHERE holiday_date >= ? ORDER BY holiday_date ASC LIMIT 3";
+                                    $stmtHoliday = $conn->prepare($queryHolidays);
+                                    $stmtHoliday->bind_param("s", $todayDate);
+                                    $stmtHoliday->execute();
+                                    $resultHoliday = $stmtHoliday->get_result();
+                                    if ($resultHoliday->num_rows > 0) {
+                                        echo '<ul class="list-group">';
+                                        while ($holiday = $resultHoliday->fetch_assoc()) {
+                                            $holidayDate = date('d M Y', strtotime($holiday['holiday_date']));
+                                            $badgeClass = ($holiday['holiday_type'] == 'wajib') ? 'bg-danger' : 'bg-secondary';
+                                            echo '<li class="list-group-item d-flex justify-content-between align-items-center">'
+                                                 . htmlspecialchars($holiday['holiday_title']) . ' - ' . $holidayDate
+                                                 . '<span class="badge ' . $badgeClass . '">'
+                                                 . ucfirst($holiday['holiday_type']) 
+                                                 . '</span>'
+                                                 . '</li>';
+                                        }
+                                        echo '</ul>';
+                                    } else {
+                                        echo '<p class="mb-0">Tidak ada hari libur mendatang.</p>';
+                                    }
+                                    $stmtHoliday->close();
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Jadwal Hari Ini -->
+                        <div class="col-lg-6">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <div><i class="fas fa-clock me-2"></i>Jadwal Hari Ini</div>
+                                </div>
+                                <div class="card-body p-2" style="font-size:0.85rem;">
+                                    <?php
+                                    $querySchedule = "SELECT * FROM jadwal_piket WHERE nip = ? AND tanggal = ? ORDER BY waktu_piket ASC";
+                                    $stmtSchedule = $conn->prepare($querySchedule);
+                                    $stmtSchedule->bind_param("ss", $nip, $todayDate);
+                                    $stmtSchedule->execute();
+                                    $resultSchedule = $stmtSchedule->get_result();
+                                    if ($resultSchedule->num_rows > 0) {
+                                        echo '<table class="table table-sm table-bordered">';
+                                        echo '<thead class="table-light"><tr><th>Waktu Piket</th><th>Status</th></tr></thead><tbody>';
+                                        while ($schedule = $resultSchedule->fetch_assoc()) {
+                                            echo '<tr><td>' . htmlspecialchars($schedule['waktu_piket']) . '</td><td>' 
+                                                 . htmlspecialchars(ucfirst($schedule['status'])) . '</td></tr>';
+                                        }
+                                        echo '</tbody></table>';
+                                    } else {
+                                        echo '<p class="mb-0">Tidak ada jadwal untuk hari ini.</p>';
+                                    }
+                                    $stmtSchedule->close();
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RINGKASAN GAJI (Dikecilkan) -->
+                    <div class="card shadow mb-4 ringkasan-gaji">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <div><i class="fas fa-money-check-alt me-2"></i>Ringkasan Gaji</div>
+                        </div>
+                        <div class="card-body p-2">
+                            <?php
+                            $queryPayroll = "SELECT * FROM payroll_final WHERE id_anggota = ? ORDER BY finalized_at DESC LIMIT 1";
+                            $stmtPayroll = $conn->prepare($queryPayroll);
+                            $stmtPayroll->bind_param("i", $id_anggota);
+                            $stmtPayroll->execute();
+                            $resultPayroll = $stmtPayroll->get_result();
+                            if ($resultPayroll->num_rows > 0) {
+                                $payroll = $resultPayroll->fetch_assoc();
+                                ?>
+                                <div class="row text-center">
+                                    <!-- Gaji Pokok -->
+                                    <div class="col-sm-3 mb-2">
+                                        <div class="card border-left-primary shadow-sm h-100 py-2">
+                                            <div class="card-body p-2">
+                                                <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                                                    Gaji Pokok
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                    Rp <?= number_format($payroll['gaji_pokok'], 2) ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Total Pendapatan -->
+                                    <div class="col-sm-3 mb-2">
+                                        <div class="card border-left-info shadow-sm h-100 py-2">
+                                            <div class="card-body p-2">
+                                                <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                                                    Total Pendapatan
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                    Rp <?= number_format($payroll['total_pendapatan'], 2) ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Total Potongan -->
+                                    <div class="col-sm-3 mb-2">
+                                        <div class="card border-left-warning shadow-sm h-100 py-2">
+                                            <div class="card-body p-2">
+                                                <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                                                    Total Potongan
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                    Rp <?= number_format($payroll['total_potongan'], 2) ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Gaji Bersih -->
+                                    <div class="col-sm-3 mb-2">
+                                        <div class="card border-left-success shadow-sm h-100 py-2">
+                                            <div class="card-body p-2">
+                                                <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                                                    Gaji Bersih
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                    Rp <?= number_format($payroll['gaji_bersih'], 2) ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-center">
+                                    Payroll terakhir diproses pada: <?= date('d M Y H:i', strtotime($payroll['tgl_payroll'])); ?>
+                                </p>
+                                <?php
+                            } else {
+                                echo '<p class="text-center">Payroll belum diproses.</p>';
+                            }
+                            $stmtPayroll->close();
+                            ?>
+                        </div>
+                    </div>
+                    <!-- END RINGKASAN GAJI -->
+
+                    <!-- NOTIFIKASI -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <div><i class="fas fa-bell me-2"></i>Notifikasi</div>
+                        </div>
+                        <div class="card-body p-2" style="font-size:0.85rem;">
+                            <?php
+                            $queryNotif = "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5";
+                            $stmtNotif = $conn->prepare($queryNotif);
+                            $stmtNotif->bind_param("i", $id_anggota);
+                            $stmtNotif->execute();
+                            $resultNotif = $stmtNotif->get_result();
+                            if ($resultNotif->num_rows > 0) {
+                                echo '<ul class="list-group">';
+                                while ($notif = $resultNotif->fetch_assoc()) {
+                                    echo '<li class="list-group-item d-flex justify-content-between align-items-center">'
+                                         . htmlspecialchars($notif['message'])
+                                         . '<span class="small text-muted">' . date('d M Y H:i', strtotime($notif['created_at'])) . '</span>'
+                                         . '</li>';
+                                }
+                                echo '</ul>';
+                            } else {
+                                echo '<p class="mb-0">Tidak ada notifikasi baru.</p>';
+                            }
+                            $stmtNotif->close();
+                            ?>
+                        </div>
+                    </div>
+
                 </div>
                 <!-- End Page Content -->
             </div>
             <!-- End Main Content -->
 
             <!-- Footer -->
-            <footer class="sticky-footer bg-white">
+            <footer class="sticky-footer bg-white mt-auto">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
                         <span>&copy; <?= date("Y"); ?> Payroll Management System</span>
                     </div>
                 </div>
             </footer>
+            <!-- End Footer -->
         </div>
         <!-- End Content Wrapper -->
     </div>
     <!-- End Page Wrapper -->
 
     <!-- JavaScript Dependencies -->
-    <!-- JS Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js" nonce="<?php echo $nonce; ?>"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js" nonce="<?php echo $nonce; ?>"></script>
-    
-    <!-- Script untuk Chart.js -->
-    <script nonce="<?= htmlspecialchars($nonce); ?>">
-        // Data absensi dari PHP
-        const attendanceData = <?= $attendance_json; ?>;
-        
-        const ctx = document.getElementById('attendanceChart').getContext('2d');
-        const attendanceChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Hadir', 'Terlambat', 'Izin', 'Alpha'],
-                datasets: [{
-                    label: 'Jumlah Kehadiran',
-                    data: [
-                        attendanceData.hadir, 
-                        attendanceData.terlambat, 
-                        attendanceData.izin, 
-                        attendanceData.alpha
-                    ],
-                    backgroundColor: [
-                        'rgba(75, 192, 192, 0.6)',
-                        'rgba(255, 206, 86, 0.6)',
-                        'rgba(54, 162, 235, 0.6)',
-                        'rgba(255, 99, 132, 0.6)'
-                    ],
-                    borderColor: [
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 99, 132, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    datalabels: {
-                        anchor: 'end',
-                        align: 'end',
-                        color: '#444',
-                        font: {
-                            weight: 'bold',
-                            size: 14
-                        },
-                        formatter: function(value) {
-                            return value;
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: 'Statistik Kehadiran'
-                    },
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        }
-                    }
-                }
-            },
-            plugins: [ChartDataLabels]
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
 </body>
 </html>
 <?php

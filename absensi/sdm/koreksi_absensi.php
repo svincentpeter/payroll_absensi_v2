@@ -517,12 +517,19 @@ $namaKaryawan = get_nama_karyawan($conn);
         <input type="month" name="bulan" id="bulan" class="form-control me-3"
                value="<?php echo bersihkan_input($bulan); ?>">
 
-        <label for="departemen" class="me-2 text-dark">
-            <i class="fas fa-building me-1"></i>Departemen:
-        </label>
-        <input type="text" name="departemen" id="departemen" class="form-control me-3"
-               placeholder="Masukkan departemen"
-               value="<?php echo bersihkan_input($departemen); ?>">
+               <label for="departemen" class="me-2 text-dark">
+    <i class="fas fa-building me-1"></i>Departemen:
+</label>
+<select name="departemen" id="departemen" class="form-control me-3">
+    <option value="">Semua</option>
+    <option value="TK" <?php if($departemen === 'TK') echo 'selected'; ?>>TK</option>
+    <option value="SD" <?php if($departemen === 'SD') echo 'selected'; ?>>SD</option>
+    <option value="SMP" <?php if($departemen === 'SMP') echo 'selected'; ?>>SMP</option>
+    <option value="SMA" <?php if($departemen === 'SMA') echo 'selected'; ?>>SMA</option>
+    <option value="SMK 1" <?php if($departemen === 'SMK 1') echo 'selected'; ?>>SMK 1</option>
+    <option value="SMK 2" <?php if($departemen === 'SMK 2') echo 'selected'; ?>>SMK 2</option>
+    <option value="STIFERA" <?php if($departemen === 'STIFERA') echo 'selected'; ?>>STIFERA</option>
+</select>
 
         <button type="submit" class="btn btn-primary">
             <i class="fas fa-search"></i> Tampilkan

@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../koneksi.php';
 
 // Hanya user dengan role 'keuangan' dan 'superadmin' yang diizinkan
 authorize(['keuangan','superadmin'], '/payroll_absensi_v2/login.php');
-
+$jenjangList = getOrderedJenjang();
 // Panggil fungsi updateSalaryIndexForAll agar data salary index selalu terupdate
 updateSalaryIndexForAll($conn);
 
@@ -390,18 +390,19 @@ if ($stmtRole) {
                             <!-- (Optional) Kita bisa simpan month/year di hidden input, 
                                  tapi di contoh ini kita passing via JavaScript saja -->
                             
-                            <div class="form-group mb-2 col-auto">
-                                <label for="filterJenjang" class="me-2">Jenjang Pendidikan:</label>
-                                <select class="form-control" id="filterJenjang">
-                                    <option value="">Semua Jenjang</option>
-                                    <?php foreach ($jenjangOptions as $jenjang): ?>
-                                        <option value="<?= htmlspecialchars($jenjang); ?>"
-                                            <?= ($filterJenjang === $jenjang) ? 'selected' : ''; ?>>
-                                            <?= htmlspecialchars($jenjang); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                                 <div class="form-group mb-2 col-auto">
+                <label for="filterJenjang" class="me-2">Jenjang Pendidikan:</label>
+                <select class="form-control" id="filterJenjang" name="jenjang">
+                    <option value="">Semua Jenjang</option>
+                    <?php
+                    // Ambil daftar jenjang yang telah didefinisikan di helper
+                    $jenjangList = getOrderedJenjang();
+                    foreach ($jenjangList as $jenjang) {
+                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                    }
+                    ?>
+                </select>
+            </div>
                             <div class="form-group mb-2 col-auto">
                                 <label for="filterRole" class="me-2">Role:</label>
                                 <select class="form-control" id="filterRole">

@@ -6,22 +6,35 @@ require_once __DIR__ . '/koneksi.php';
 
 start_session_safe();
 
+// Jika ada request POST untuk menandai backup alert dismissed, proses dan keluar.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dismissed'])) {
+    $_SESSION['backup_alert_dismissed'] = true;
+    echo json_encode(["code" => 0, "message" => "Backup alert dismissed."]);
+    exit();
+}
+
+// Variabel global notifikasi
+$sdmNotificationMsg = "";
+$keuNotificationMsg = "";
+$backupAlertMsg     = "";
+// Penanda apakah notifikasi muncul (bisa digunakan untuk badge)
+$sdmCount    = 0;
+$keuCount    = 0;
+$backupCount = 0;
+
 // Ambil role user
 $userRole = $_SESSION['role'] ?? '';
 
-// Ambil hari/bulan/tahun saat ini untuk penentuan default
+// Ambil hari, bulan, dan tahun saat ini
 $currentDay   = (int) date('d');
 $currentMonth = (int) date('n');
 $currentYear  = (int) date('Y');
 
-/**
- * Untuk SDM/Superadmin: 
- *   Hitung berapa anggota yang belum final di `payroll_final` 
- *   (mirip notifikasi sdm).
- */
-$sdmNotificationMsg = '';
-if (in_array($userRole, ['sdm','superadmin'])) {
-    // Jika tanggal >= 24, asumsikan bulan berikut
+// --------------------------------------------------------------------------
+// 1. Notifikasi untuk SDM/Superadmin
+// --------------------------------------------------------------------------
+if (in_array($userRole, ['sdm', 'superadmin'])) {
+    // Jika tanggal >= 24, asumsikan target bulan berikutnya
     if ($currentDay >= 24) {
         if ($currentMonth == 12) {
             $targetMonth = 1;
@@ -34,8 +47,7 @@ if (in_array($userRole, ['sdm','superadmin'])) {
         $targetMonth = $currentMonth;
         $targetYear  = $currentYear;
     }
-
-    // Cek anggota yang belum masuk payroll_final
+    // Cek anggota yang belum final di payroll_final
     $sqlSdm = "
         SELECT COUNT(*) AS pending
         FROM anggota_sekolah
@@ -55,26 +67,21 @@ if (in_array($userRole, ['sdm','superadmin'])) {
 
         if ($pendingCountSdm > 0) {
             $monthName = getIndonesianMonthName($targetMonth);
-            $sdmNotificationMsg = "Payroll Bulan {$monthName} Terdapat {$pendingCountSdm} Anggota Belum Dibayar";
+            $sdmNotificationMsg = "Payroll Bulan {$monthName} terdapat {$pendingCountSdm} anggota belum dibayar";
+            $sdmCount = 1;
         }
     } else {
         error_log("Gagal statement notifikasi SDM: " . $conn->error);
     }
 }
 
-/**
- * Untuk Keuangan/Superadmin:
- *   Hitung data `draft` di tabel `payroll` 
- *   (yang belum final di `payroll_final`), mirip list_payroll.
- */
-$keuNotificationMsg = '';
-if (in_array($userRole, ['keuangan','superadmin'])) {
-    // Misal kita asumsikan user keuangan selalu memantau "bulan & tahun saat ini" 
-    // atau sesuai logika tertentu. Di sini contoh paling sederhana:
+// --------------------------------------------------------------------------
+// 2. Notifikasi untuk Keuangan/Superadmin
+// --------------------------------------------------------------------------
+if (in_array($userRole, ['keuangan', 'superadmin'])) {
     $targetMonth = $currentMonth;
     $targetYear  = $currentYear;
-
-    // Cek payroll status draft, belum ada di payroll_final
+    // Cek payroll status draft yang belum final di payroll_final
     $sqlKeu = "
         SELECT COUNT(*) AS pending
         FROM payroll p
@@ -99,50 +106,81 @@ if (in_array($userRole, ['keuangan','superadmin'])) {
 
         if ($pendingCountKeu > 0) {
             $monthName = getIndonesianMonthName($targetMonth);
-            $keuNotificationMsg = "Payroll Bulan {$monthName} (Status Draft) Terdapat {$pendingCountKeu} Anggota Belum Final";
+            $keuNotificationMsg = "Payroll Bulan {$monthName} (Draft) terdapat {$pendingCountKeu} anggota belum final";
+            $keuCount = 1;
         }
     } else {
         error_log("Gagal statement notifikasi keuangan: " . $conn->error);
     }
 }
 
-// Tutup koneksi
+// --------------------------------------------------------------------------
+// 3. Alert Backup Database untuk Superadmin (Tampilkan jika tanggal 1)
+// --------------------------------------------------------------------------
+if ($userRole === 'superadmin' && $currentDay === 1) {
+    if (empty($_SESSION['backup_alert_dismissed'])) {
+        $backupAlertMsg = "Ingat untuk Backup Database hari ini.";
+        $backupCount = 1;
+    }
+}
+
+// --------------------------------------------------------------------------
+// 4. Hitung total alert
+// --------------------------------------------------------------------------
+$totalAlerts = $sdmCount + $keuCount + $backupCount;
+
+// Bungkus semua notifikasi ke dalam array agar dapat di-include
+$NOTIF = [
+    'sdmNotificationMsg' => $sdmNotificationMsg,
+    'sdmCount'           => $sdmCount,
+    'keuNotificationMsg' => $keuNotificationMsg,
+    'keuCount'           => $keuCount,
+    'backupAlertMsg'     => $backupAlertMsg,
+    'backupCount'        => $backupCount,
+    'totalAlerts'        => $totalAlerts
+];
+
 $conn->close();
 ?>
-<!-- 
-  Bagian tampilan: 
-  Kita buat 2 card notifikasi (SDM & Keuangan) 
-  yang akan muncul hanya jika user termasuk role tsb. 
--->
-
+<!-- Bagian tampilan notifikasi -->
 <div class="container my-4">
-
-  <!-- Notifikasi untuk SDM / superadmin -->
+  <!-- Notifikasi untuk SDM / Superadmin -->
   <?php if (in_array($userRole, ['sdm','superadmin'])): ?>
-    <?php if (!empty($sdmNotificationMsg)): ?>
+    <?php if (!empty($NOTIF['sdmNotificationMsg'])): ?>
       <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
         <i class="fas fa-exclamation-triangle me-2"></i>
-        <div><?= htmlspecialchars($sdmNotificationMsg); ?></div>
+        <div><?= htmlspecialchars($NOTIF['sdmNotificationMsg']); ?></div>
       </div>
     <?php else: ?>
       <div class="alert alert-success mb-3">
-        <i class="bi bi-check-circle-fill"></i> 
-        Tidak ada anggota belum dibayar (SDM).
+        <i class="bi bi-check-circle-fill"></i> Tidak ada anggota belum dibayar (SDM).
       </div>
     <?php endif; ?>
   <?php endif; ?>
 
-  <!-- Notifikasi untuk Keuangan / superadmin -->
+  <!-- Notifikasi untuk Keuangan / Superadmin -->
   <?php if (in_array($userRole, ['keuangan','superadmin'])): ?>
-    <?php if (!empty($keuNotificationMsg)): ?>
-      <div class="alert alert-info d-flex align-items-center" role="alert">
+    <?php if (!empty($NOTIF['keuNotificationMsg'])): ?>
+      <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
         <i class="fas fa-info-circle me-2"></i>
-        <div><?= htmlspecialchars($keuNotificationMsg); ?></div>
+        <div><?= htmlspecialchars($NOTIF['keuNotificationMsg']); ?></div>
       </div>
     <?php else: ?>
-      <div class="alert alert-success">
-        <i class="bi bi-check-circle-fill"></i> 
-        Tidak ada data payroll draft untuk keuangan.
+      <div class="alert alert-success mb-3">
+        <i class="bi bi-check-circle-fill"></i> Tidak ada payroll draft untuk keuangan.
+      </div>
+    <?php endif; ?>
+  <?php endif; ?>
+
+  <!-- Notifikasi Alert Backup Database untuk Superadmin -->
+  <?php if ($userRole === 'superadmin'): ?>
+    <?php if (!empty($NOTIF['backupAlertMsg'])): ?>
+      <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="fas fa-database me-2"></i>
+        <div>
+          <?= htmlspecialchars($NOTIF['backupAlertMsg']); ?>
+          <a href="/payroll_absensi_v2/payroll/superadmin/backup_database.php" class="alert-link backup-dismiss">[Backup Sekarang]</a>
+        </div>
       </div>
     <?php endif; ?>
   <?php endif; ?>

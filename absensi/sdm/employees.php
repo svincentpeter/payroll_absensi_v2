@@ -10,6 +10,7 @@ $csrf_token = $_SESSION['csrf_token'];
 
 require_once __DIR__ . '/../../koneksi.php';
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+$jenjangList = getOrderedJenjang();
 
 /*
  |---------------------------------------------------------------------
@@ -947,30 +948,24 @@ if ($resMon) {
                 <h1 class="h3 mb-4 text-gray-800"><i class="bi bi-people-fill"></i> Payroll Anggota</h1>
                 <div id="alert-placeholder"></div>
                 <!-- Filter Anggota -->
-                <div class="card mb-4">
-                    <div class="card-header fw-bold"><i class="bi bi-filter-square-fill"></i> Filter Anggota</div>
-                    <div class="card-body">
-                        <form id="filterForm" class="row align-items-center">
-                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-                            <div class="form-group mb-2 col-auto">
-                                <label for="filterJenjang" class="me-2">Jenjang Pendidikan:</label>
-                                <select class="form-control" id="filterJenjang" name="jenjang">
-                                    <option value="">Semua Jenjang</option>
-                                    <?php
-                                    $stmtJenjang = $conn->prepare("SELECT DISTINCT jenjang FROM anggota_sekolah WHERE jenjang IS NOT NULL AND jenjang != '' ORDER BY jenjang ASC");
-                                    if ($stmtJenjang) {
-                                        $stmtJenjang->execute();
-                                        $resJenjang = $stmtJenjang->get_result();
-                                        while ($row = $resJenjang->fetch_assoc()){
-                                            echo '<option value="' . htmlspecialchars($row['jenjang']) . '">' . htmlspecialchars($row['jenjang']) . '</option>';
-                                        }
-                                        $stmtJenjang->close();
-                                    } else {
-                                        echo '<option value="">Tidak ada data</option>';
-                                    }
-                                    ?>
-                                </select>
-                            </div>
+<div class="card mb-4">
+    <div class="card-header fw-bold"><i class="bi bi-filter-square-fill"></i> Filter Anggota</div>
+    <div class="card-body">
+        <form id="filterForm" class="row align-items-center">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+            <div class="form-group mb-2 col-auto">
+                <label for="filterJenjang" class="me-2">Jenjang Pendidikan:</label>
+                <select class="form-control" id="filterJenjang" name="jenjang">
+                    <option value="">Semua Jenjang</option>
+                    <?php
+                    // Ambil daftar jenjang yang telah didefinisikan di helper
+                    $jenjangList = getOrderedJenjang();
+                    foreach ($jenjangList as $jenjang) {
+                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                    }
+                    ?>
+                </select>
+            </div>
                             <div class="form-group mb-2 col-auto">
                                 <label for="filterRole" class="me-2">Role:</label>
                                 <select class="form-control" id="filterRole" name="role">
@@ -1695,46 +1690,69 @@ $(document).ready(function(){
     tbody.empty();
 
     payheads.forEach(function(ph, index) {
-        const payheadId = ph.id_payhead;
-        let badgeHTML = '';
-        const payheadType = (ph.jenis_payhead || '').toLowerCase();
+        // Ambil data payhead
+        const payheadId    = ph.id_payhead;
+        const payheadType  = (ph.jenis_payhead || '').toLowerCase();
+        const defaultAmt   = ph.amount || "0";
+        const remarksVal   = ph.remarks || '';
+        const isRapel      = (ph.is_rapel == 1); // 1 => rapel, 0 => bukan
 
-        if (payheadType === 'earnings' || payheadType === 'pendapatan') {
-            badgeHTML = '<span class="badge bg-success text-white me-1">Pendapatan</span>';
-        } else {
-            badgeHTML = '<span class="badge bg-danger text-white me-1">Potongan</span>';
-        }
+        // Tentukan badge earnings/potongan
+        let badgeHTML = (payheadType === 'earnings')
+          ? '<span class="badge bg-success text-white me-1">Pendapatan</span>'
+          : '<span class="badge bg-danger text-white me-1">Potongan</span>';
 
-        const payheadNameWithBadge = badgeHTML + ph.nama_payhead;
-        const defaultAmt = ph.amount || "0";
-        const isRapel = ph.is_rapel && (ph.is_rapel == 1);
+        // Checkbox rapel
         const rapelChecked = isRapel ? "checked" : "";
-        
-        // Jika opsi rapel aktif, disable input nominal, hilangkan tombol hapus, dan set remarks ke "Rapel"
+
+        // Jika rapel, form di‐disabled?
         const disabledAttr = isRapel ? "disabled" : "";
-        const removeButtonHtml = isRapel ? "" : '<button type="button" class="btn btn-danger btn-sm btnRemoveRow"><i class="bi bi-dash"></i></button>';
-        const remarksVal = isRapel ? "Rapel" : (ph.remarks || "");
 
-        const rapelCheckbox = `<input type="checkbox" name="rapel[${payheadId}]" class="rapel-checkbox" ${rapelChecked}>`;
+        // Jika rapel, tombol remove disembunyikan
+        const removeButtonHtml = isRapel ? "" : `
+          <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
+            <i class="bi bi-dash"></i>
+          </button>
+        `;
 
+        // Keterangan diisi “Rapel” jika isRapel
+        const finalRemarks = isRapel ? "Rapel" : remarksVal;
+
+        // Susun baris HTML
         const rowHtml = `
           <tr data-id="${payheadId}" data-type="${ph.jenis_payhead}">
             <td>${index + 1}</td>
-            <td>${payheadNameWithBadge}</td>
+            <td>${badgeHTML}${ph.nama_payhead}</td>
             <td>
-              <input type="text" name="pay_amounts[${payheadId}]" class="form-control currency-input" value="${defaultAmt}" ${disabledAttr} required>
+              <input type="text" name="pay_amounts[${payheadId}]"
+                     class="form-control currency-input"
+                     value="${defaultAmt}"
+                     ${disabledAttr} required>
             </td>
             <td>
-              <textarea name="remarks[${payheadId}]" class="form-control" ${disabledAttr}>${remarksVal}</textarea>
+              <textarea name="remarks[${payheadId}]"
+                        class="form-control"
+                        ${disabledAttr}>${finalRemarks}</textarea>
             </td>
             <td>
-              ${rapelCheckbox}
+              <input type="checkbox" name="rapel[${payheadId}]"
+                     class="rapel-checkbox"
+                     ${rapelChecked}>
             </td>
             <td>
               <div class="input-group">
-                <input type="file" id="upload_file_${payheadId}" name="upload_file[${payheadId}]" class="file-input d-none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                <label for="upload_file_${payheadId}" class="btn btn-sm btn-info file-label me-2">Pilih File</label>
-                <button type="button" class="btn btn-sm btn-danger btn-clear-file">Hapus</button>
+                <input type="file" name="upload_file[${payheadId}]"
+                       class="file-input d-none"
+                       id="upload_file_${payheadId}"
+                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                <label for="upload_file_${payheadId}"
+                       class="btn btn-sm btn-info file-label me-2">
+                  Pilih File
+                </label>
+                <button type="button"
+                        class="btn btn-sm btn-danger btn-clear-file">
+                  Hapus
+                </button>
               </div>
             </td>
             <td>
@@ -1742,9 +1760,12 @@ $(document).ready(function(){
             </td>
           </tr>
         `;
+
+        // Tambahkan ke tbody
         tbody.append(rowHtml);
     });
 
+    // Setelah ter‐render, inisialisasi AutoNumeric & jalankan recalc
     AutoNumeric.multiple('.currency-input', {
         digitGroupSeparator: '.',
         decimalCharacter: ',',
@@ -1755,6 +1776,44 @@ $(document).ready(function(){
 }
 
 
+// Tangani event ketika user centang/uncentang checkbox rapel
+$(document).on('change', '.rapel-checkbox', function() {
+    let $row       = $(this).closest('tr');
+    let isChecked  = $(this).prop('checked');
+    let $nominal   = $row.find('input.currency-input');
+    let $remarks   = $row.find('textarea');
+    let $removeBtn = $row.find('.btnRemoveRow'); // tombol hapus
+
+    // Ambil nilai sekarang
+    let currentNominal = $nominal.val();
+    let currentRemarks = $remarks.val();
+
+    if (isChecked) {
+        // Simpan old values ke data tr
+        $row.data('oldNominalVal', currentNominal);
+        $row.data('oldRemarksVal', currentRemarks);
+
+        // Nonaktifkan input
+        $nominal.prop('disabled', true);
+        $remarks.val('Rapel').prop('disabled', true);
+
+        // Sembunyikan tombol remove
+        $removeBtn.hide();
+    } else {
+        // Kembalikan ke kondisi sebelum rapel
+        let oldNominal = $row.data('oldNominalVal') || currentNominal;
+        let oldRemarks = $row.data('oldRemarksVal') || '';
+
+        $nominal.val(oldNominal).prop('disabled', false);
+        $remarks.val(oldRemarks).prop('disabled', false);
+
+        // Tampilkan lagi tombol remove
+        $removeBtn.show();
+    }
+
+    // Recalc
+    recalcPayheadsTotals();
+});
 
 
     $(document).on('change', '.file-input', function() {

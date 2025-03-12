@@ -548,5 +548,22 @@ if (!function_exists('translate_day')) {
     }
 }
 
+/**
+ * Mendapatkan daftar jenjang (fixed) dengan urutan tertentu
+ * 
+ * @return array
+ */
+function getOrderedJenjang(): array
+{
+    return [
+        'TK',
+        'SD',
+        'SMP',
+        'SMA',
+        'SMK 1',
+        'SMK 2',
+        'STIFERA'
+    ];
+}
 
 ?>

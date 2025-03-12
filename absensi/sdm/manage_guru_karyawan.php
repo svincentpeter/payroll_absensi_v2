@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
 authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+$jenjangList = getOrderedJenjang();
 require_once __DIR__ . '/../../koneksi.php';
 
 // Hasilkan CSRF token
@@ -653,20 +654,17 @@ function getGajiPokokByRole($conn, $role) {
                         <div class="card-body">
                             <form id="filterForm" method="GET" class="form-inline">
                                 <label class="me-2" for="filterJenjang">Jenjang:</label>
-                                <select class="form-control me-2" id="filterJenjang" name="jenjang">
-                                    <option value="">Semua Jenjang</option>
-                                    <?php
-                                    // Buat filter jenjang dari DB
-                                    $sqlJenjang = "SELECT DISTINCT jenjang FROM anggota_sekolah ORDER BY jenjang ASC";
-                                    $resJ = $conn->query($sqlJenjang);
-                                    if ($resJ && $resJ->num_rows > 0) {
-                                        while ($rowJ = $resJ->fetch_assoc()) {
-                                            $selected = (isset($_GET['jenjang']) && $_GET['jenjang'] === $rowJ['jenjang']) ? 'selected' : '';
-                                            echo '<option value="' . htmlspecialchars($rowJ['jenjang']) . '" ' . $selected . '>' . htmlspecialchars($rowJ['jenjang']) . '</option>';
-                                        }
-                                    }
-                                    ?>
-                                </select>
+                                <select class="form-control" id="filterJenjang" name="jenjang">
+                    <option value="">Semua Jenjang</option>
+                    <?php
+                    // Ambil daftar jenjang yang telah didefinisikan di helper
+                    $jenjangList = getOrderedJenjang();
+                    foreach ($jenjangList as $jenjang) {
+                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                    }
+                    ?>
+                </select>
+
                                 <label class="me-2" for="filterRole">Role:</label>
                                 <select class="form-control me-2" id="filterRole" name="role">
                                     <option value="">Semua Role</option>
@@ -1511,7 +1509,6 @@ function getGajiPokokByRole($conn, $role) {
                     <h6 class="mb-0">${item.nama}</h6>
                     <p class="text-muted" style="font-size:0.9rem;">NIP: ${item.nip}</p>
                     <p style="font-size:0.85rem;">
-                      <strong>Tgl Bergabung:</strong> ${item.join_start || '-'}<br>
                       <strong>Masa Kerja:</strong> ${item.masa_kerja || '0 Thn'}<br>
                       <strong>Pendidikan:</strong> ${item.pendidikan || '-'}<br>
                       <strong>Role:</strong> ${item.role} | ${getStatusBadge(item.status_kerja)}

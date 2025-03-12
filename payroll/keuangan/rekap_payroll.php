@@ -406,22 +406,18 @@ function ViewRekapPayrollDetail($conn) {
                                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                 <!-- Jenjang -->
                                 <div class="col-auto">
-                                    <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang:</strong></label>
-                                    <select class="form-select" id="filterJenjang" name="jenjang">
-                                        <option value="">Semua Jenjang</option>
-                                        <?php
-                                        $stmtJenjang = $conn->prepare("SELECT DISTINCT jenjang FROM anggota_sekolah ORDER BY jenjang ASC");
-                                        if ($stmtJenjang) {
-                                            $stmtJenjang->execute();
-                                            $resJenjang = $stmtJenjang->get_result();
-                                            while ($row = $resJenjang->fetch_assoc()) {
-                                                echo '<option value="' . htmlspecialchars($row['jenjang']) . '">' . htmlspecialchars($row['jenjang']) . '</option>';
-                                            }
-                                            $stmtJenjang->close();
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
+                                <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang Pendidikan:</strong></strong></label>
+                <select class="form-control" id="filterJenjang" name="jenjang">
+                    <option value="">Semua Jenjang</option>
+                    <?php
+                    // Ambil daftar jenjang yang telah didefinisikan di helper
+                    $jenjangList = getOrderedJenjang();
+                    foreach ($jenjangList as $jenjang) {
+                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                    }
+                    ?>
+                </select>
+            </div>
                                 <!-- Bulan -->
                                 <div class="col-auto">
                                     <label for="filterBulan" class="form-label mb-0"><strong>Bulan:</strong></label>
