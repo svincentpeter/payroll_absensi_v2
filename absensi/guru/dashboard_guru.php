@@ -5,15 +5,19 @@
 // 1. Pengaturan Session dan Error Log
 // =============================================================================
 require_once __DIR__ . '/../../helpers.php';
-session_start();
+start_session_safe();
 init_error_handling();
-
-// Audit log akan digunakan nanti, jadi biarkan fungsinya aktif
 
 // =============================================================================
 // 2. Koneksi Database & Inisialisasi
 // =============================================================================
 require_once __DIR__ . '/../../koneksi.php';
+
+// Pastikan koneksi valid
+if (!$conn) {
+    die("Koneksi database gagal.");
+}
+
 if (ob_get_length()) ob_end_clean();
 
 $nip = $_SESSION['nip'] ?? '';
@@ -22,7 +26,7 @@ if (empty($nip)) {
     exit();
 }
 
-// Ambil data pengguna
+// Ambil data pengguna berdasarkan NIP
 $queryUser = "SELECT id, nama, role FROM anggota_sekolah WHERE nip = ?";
 $stmtUser = $conn->prepare($queryUser);
 $stmtUser->bind_param("s", $nip);
@@ -31,8 +35,9 @@ $resultUser = $stmtUser->get_result();
 $userData = $resultUser->fetch_assoc();
 $stmtUser->close();
 
+// Jika data tidak ditemukan atau role bukan 'P' (pendidik) atau 'TK' (tenaga kependidikan), redirect ke halaman login
 if (!$userData || !in_array($userData['role'], ['P', 'TK'])) {
-    header("Location: ../../login.php");
+    header("Location: " . getBaseUrl() . "/login.php");
     exit();
 }
 
@@ -40,16 +45,17 @@ $nama_pengguna = $userData['nama'] ?? 'Nama Tidak Diketahui';
 $db_role       = $userData['role'];
 $id_anggota    = $userData['id'];
 
+// Simpan role di session
 $_SESSION['role'] = $db_role;
 
-// Audit log
+// Catat audit log untuk akses dashboard
 add_audit_log($conn, $nip, 'AccessDashboard', 'Mengakses dashboard.');
 
-// Tentukan judul
+// Tentukan judul dashboard
 $dashboard_title = ($db_role === 'P') ? 'Dashboard Guru' : 'Dashboard Karyawan';
 
 // =============================================================================
-// 3. Data Ringkasan Kehadiran (5 CARD)
+// 3. Data Ringkasan Kehadiran (STATISTIK)
 // =============================================================================
 $sqlSummary = "
     SELECT
@@ -84,30 +90,25 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
-    <!-- jQuery -->
+    <!-- jQuery & SweetAlert2 -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        
         body {
             background-color: #f8f9fc;
         }
         .welcome-message {
             margin-bottom: 20px;
         }
-        /* Ubah card-header menggunakan gradient */
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
-        /* Kustomisasi Card Statistik */
         .stat-card .card-body p {
             font-size: 1.2rem;
             font-weight: 600;
             margin: 0;
         }
-        /* Gradient styling untuk masing-masing kategori */
         .gradient-hadir {
             background: linear-gradient(135deg, #e0ffe0 0%, #90ee90 100%);
             color: #064d06;
@@ -131,7 +132,6 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
         .icon-size {
             font-size: 1.5rem;
         }
-        /* Ukuran teks khusus Ringkasan Gaji */
         .ringkasan-gaji .text-xs {
             font-size: 0.75rem;
         }
@@ -262,7 +262,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                             <div class="row row-cols-2 row-cols-sm-3 row-cols-md-6 g-2">
                                 <!-- Contoh Menu: Jadwal Piket -->
                                 <div class="col">
-                                    <a href="../../dashboard_jadwal.php" class="text-decoration-none">
+                                    <a href="<?= getBaseUrl(); ?>/absensi/guru/dashboard_jadwal.php" class="text-decoration-none">
                                         <div class="card text-center shadow-sm h-100 p-2">
                                             <div class="card-body">
                                                 <i class="fas fa-calendar-alt" style="font-size:1.5rem;"></i>
@@ -273,7 +273,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                 </div>
                                 <!-- Menu lainnya -->
                                 <div class="col">
-                                    <a href="../../laporan_jadwal_piket.php" class="text-decoration-none">
+                                    <a href="<?= getBaseUrl(); ?>/absensi/guru/laporan_jadwal_piket.php" class="text-decoration-none">
                                         <div class="card text-center shadow-sm h-100 p-2">
                                             <div class="card-body">
                                                 <i class="fas fa-table" style="font-size:1.5rem;"></i>
@@ -283,7 +283,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                     </a>
                                 </div>
                                 <div class="col">
-                                    <a href="../../laporan_surat.php" class="text-decoration-none">
+                                    <a href="<?= getBaseUrl(); ?>/absensi/guru/laporan_surat.php" class="text-decoration-none">
                                         <div class="card text-center shadow-sm h-100 p-2">
                                             <div class="card-body">
                                                 <i class="fas fa-envelope" style="font-size:1.5rem;"></i>
@@ -293,7 +293,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                     </a>
                                 </div>
                                 <div class="col">
-                                    <a href="../../pengajuan_surat_ijin.php" class="text-decoration-none">
+                                    <a href="<?= getBaseUrl(); ?>/absensi/guru/pengajuan_surat_ijin.php" class="text-decoration-none">
                                         <div class="card text-center shadow-sm h-100 p-2">
                                             <div class="card-body">
                                                 <i class="fas fa-file-upload" style="font-size:1.5rem;"></i>
@@ -303,7 +303,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                     </a>
                                 </div>
                                 <div class="col">
-                                    <a href="../../request_tukar_jadwal.php" class="text-decoration-none">
+                                    <a href="<?= getBaseUrl(); ?>/absensi/guru/request_tukar_jadwal.php" class="text-decoration-none">
                                         <div class="card text-center shadow-sm h-100 p-2">
                                             <div class="card-body">
                                                 <i class="fas fa-exchange-alt" style="font-size:1.5rem;"></i>
@@ -313,7 +313,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                     </a>
                                 </div>
                                 <div class="col">
-                                    <a href="../../payroll_overview.php" class="text-decoration-none">
+                                    <a href="<?= getBaseUrl(); ?>/absensi/guru/payroll_overview.php" class="text-decoration-none">
                                         <div class="card text-center shadow-sm h-100 p-2">
                                             <div class="card-body">
                                                 <i class="fas fa-money-bill-wave" style="font-size:1.5rem;"></i>
@@ -350,7 +350,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                             echo '<li class="list-group-item d-flex justify-content-between align-items-center">'
                                                  . htmlspecialchars($holiday['holiday_title']) . ' - ' . $holidayDate
                                                  . '<span class="badge ' . $badgeClass . '">'
-                                                 . ucfirst($holiday['holiday_type']) 
+                                                 . ucfirst($holiday['holiday_type'])
                                                  . '</span>'
                                                  . '</li>';
                                         }
@@ -394,7 +394,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                         </div>
                     </div>
 
-                    <!-- RINGKASAN GAJI (Dikecilkan) -->
+                    <!-- RINGKASAN GAJI -->
                     <div class="card shadow mb-4 ringkasan-gaji">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
                             <div><i class="fas fa-money-check-alt me-2"></i>Ringkasan Gaji</div>
@@ -410,7 +410,6 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                 $payroll = $resultPayroll->fetch_assoc();
                                 ?>
                                 <div class="row text-center">
-                                    <!-- Gaji Pokok -->
                                     <div class="col-sm-3 mb-2">
                                         <div class="card border-left-primary shadow-sm h-100 py-2">
                                             <div class="card-body p-2">
@@ -423,7 +422,6 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- Total Pendapatan -->
                                     <div class="col-sm-3 mb-2">
                                         <div class="card border-left-info shadow-sm h-100 py-2">
                                             <div class="card-body p-2">
@@ -436,7 +434,6 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- Total Potongan -->
                                     <div class="col-sm-3 mb-2">
                                         <div class="card border-left-warning shadow-sm h-100 py-2">
                                             <div class="card-body p-2">
@@ -449,7 +446,6 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- Gaji Bersih -->
                                     <div class="col-sm-3 mb-2">
                                         <div class="card border-left-success shadow-sm h-100 py-2">
                                             <div class="card-body p-2">
@@ -475,35 +471,6 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                         </div>
                     </div>
                     <!-- END RINGKASAN GAJI -->
-
-                    <!-- NOTIFIKASI -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <div><i class="fas fa-bell me-2"></i>Notifikasi</div>
-                        </div>
-                        <div class="card-body p-2" style="font-size:0.85rem;">
-                            <?php
-                            $queryNotif = "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5";
-                            $stmtNotif = $conn->prepare($queryNotif);
-                            $stmtNotif->bind_param("i", $id_anggota);
-                            $stmtNotif->execute();
-                            $resultNotif = $stmtNotif->get_result();
-                            if ($resultNotif->num_rows > 0) {
-                                echo '<ul class="list-group">';
-                                while ($notif = $resultNotif->fetch_assoc()) {
-                                    echo '<li class="list-group-item d-flex justify-content-between align-items-center">'
-                                         . htmlspecialchars($notif['message'])
-                                         . '<span class="small text-muted">' . date('d M Y H:i', strtotime($notif['created_at'])) . '</span>'
-                                         . '</li>';
-                                }
-                                echo '</ul>';
-                            } else {
-                                echo '<p class="mb-0">Tidak ada notifikasi baru.</p>';
-                            }
-                            $stmtNotif->close();
-                            ?>
-                        </div>
-                    </div>
 
                 </div>
                 <!-- End Page Content -->

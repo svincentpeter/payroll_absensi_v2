@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 10, 2025 at 05:55 AM
+-- Generation Time: Mar 13, 2025 at 11:50 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -312,7 +312,21 @@ INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_
 (662, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-10 03:55:33'),
 (663, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-10 04:05:17'),
 (664, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-10 04:05:28'),
-(665, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-10 04:05:54');
+(665, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-10 04:05:54'),
+(666, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-11 01:55:54'),
+(667, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 02:36:53'),
+(668, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:09:41'),
+(669, '300001', 'Login', 'Pengguna dengan NIP \'300001\' berhasil login sebagai kepala_sekolah.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:10:07'),
+(670, '100004', 'Login', 'Pengguna dengan NIP \'100004\' berhasil login sebagai guru.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:10:21'),
+(671, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:10:21'),
+(672, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:15:53'),
+(673, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:16:28'),
+(674, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:21:44'),
+(675, '100004', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:21:51'),
+(676, '300001', 'Login', 'Pengguna dengan NIP \'300001\' berhasil login sebagai kepala_sekolah.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:57:39'),
+(677, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 06:33:21'),
+(678, '300001', 'Login', 'Pengguna dengan NIP \'300001\' berhasil login sebagai M dengan job_title \'Kepala Sekolah\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 06:54:22'),
+(679, '300002', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login sebagai M dengan job_title \'Keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 07:26:06');
 
 -- --------------------------------------------------------
 
@@ -450,18 +464,16 @@ CREATE TABLE `notifications` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `role_target` enum('keuangan','superadmin','sdm','all') NOT NULL DEFAULT 'all',
+  `title` varchar(255) NOT NULL,
   `message` text NOT NULL,
+  `notification_type` enum('info','warning','success','error') DEFAULT 'info',
+  `link` varchar(255) DEFAULT NULL,
+  `priority` int(11) DEFAULT 5 COMMENT 'Nilai prioritas; semakin kecil nilainya semakin tinggi prioritasnya',
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `read_at` datetime DEFAULT NULL,
+  `created_by` varchar(50) DEFAULT 'system' COMMENT 'Pengirim atau pembuat notifikasi, misalnya sistem atau admin',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `notifications`
---
-
-INSERT INTO `notifications` (`id`, `user_id`, `role_target`, `message`, `is_read`, `created_at`) VALUES
-(1, 2, 'sdm', 'Gaji bulan Januari telah diproses.', 0, '2025-01-31 12:00:00'),
-(2, 11, 'all', 'Data absensi telah diperbarui.', 1, '2025-01-20 09:00:00');
 
 -- --------------------------------------------------------
 
@@ -721,7 +733,8 @@ CREATE TABLE `pengajuan_ijin` (
 --
 
 INSERT INTO `pengajuan_ijin` (`id`, `nip`, `nama`, `judul_surat`, `tanggal`, `pesan`, `tipe_ijin`, `status_kepalasekolah`, `status`) VALUES
-(2, '200002', 'Slamet Wijaya', 'Cuti Tahunan', '2025-02-10', 'Mengajukan cuti selama 5 hari', 'Cuti Biasa', 'Diterima', 'Pending');
+(2, '200002', 'Slamet Wijaya', 'Cuti Tahunan', '2025-02-10', 'Mengajukan cuti selama 5 hari', 'Cuti Biasa', 'Diterima', 'Pending'),
+(0, '100004', 'Rina Sari', 'Surat Izin', '2025-03-13', 'Sakit', 'Sakit', 'Pending', 'Pending');
 
 -- --------------------------------------------------------
 
@@ -811,6 +824,31 @@ INSERT INTO `salary_indices` (`id`, `level`, `min_years`, `max_years`, `base_sal
 (3, 'Level 2', 6, 10, 5000000.00, 'Gaji untuk 6-10 tahun masa kerja'),
 (4, 'Level 3', 11, 14, 6000000.00, 'Gaji untuk di atas 10 tahun masa kerja'),
 (5, 'Level 4', 15, NULL, 7000000.00, 'Gaji untuk di atas 15 tahun masa kerja');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_surat`
+--
+
+CREATE TABLE `template_surat` (
+  `id` int(11) NOT NULL,
+  `jenis_surat` varchar(100) NOT NULL,
+  `judul` varchar(255) NOT NULL,
+  `isi` text NOT NULL,
+  `default_penerima` enum('semua','perorangan') NOT NULL DEFAULT 'perorangan',
+  `created_by` int(11) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  `default_penerima_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `template_surat`
+--
+
+INSERT INTO `template_surat` (`id`, `jenis_surat`, `judul`, `isi`, `default_penerima`, `created_by`, `created_at`, `updated_at`, `default_penerima_id`) VALUES
+(1, 'Ulang Tahun', 'Ulang Tahun', 'Selamat Ulang Tahun, semoga mimpi-mimpi di tahun ini tercapai dan terealisasikan semua.', 'perorangan', 14, '2025-03-11 10:05:11', NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -930,6 +968,12 @@ ALTER TABLE `salary_indices`
   ADD UNIQUE KEY `level` (`level`);
 
 --
+-- Indexes for table `template_surat`
+--
+ALTER TABLE `template_surat`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -943,7 +987,7 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=666;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=680;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -961,7 +1005,7 @@ ALTER TABLE `laporan_surat`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payheads`
@@ -998,6 +1042,12 @@ ALTER TABLE `payroll_final`
 --
 ALTER TABLE `rekap_absensi`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+
+--
+-- AUTO_INCREMENT for table `template_surat`
+--
+ALTER TABLE `template_surat`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables

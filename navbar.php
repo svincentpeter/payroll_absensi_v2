@@ -1,56 +1,49 @@
 <?php
 // File: navbar.php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-if (!isset($conn)) {
-    require_once __DIR__ . '/koneksi.php';
-}
+// Pastikan session sudah dimulai secara aman
 require_once __DIR__ . '/helpers.php';
+start_session_safe();
 
-/**
- * Fungsi untuk mendapatkan base URL secara dinamis.
- * Jika aplikasi berada di root domain, tidak perlu menambahkan path.
- * Jika berada di subfolder, tambahkan path subfolder-nya.
- */
-function getBaseUrl() {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ||
-                 $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-    $host = $_SERVER['HTTP_HOST'];
-    // Sesuaikan subfolder jika aplikasi Anda berada di subfolder, misal: '/gaji.nusaputera.id'
-    $subfolder = ''; // kosong jika domain sudah mengarah langsung ke folder aplikasi
-    return $protocol . $host . $subfolder;
-}
+require_once __DIR__ . '/koneksi.php';
 
 // Ambil data dari session
 $role     = $_SESSION['role'] ?? '';
 $username = $_SESSION['username'] ?? '';
 $nama     = $_SESSION['nama'] ?? $username;
-$nip      = $_SESSION['nip'] ?? '';
+$userId   = $_SESSION['id'] ?? 0;
 $baseUrl  = getBaseUrl();
 
 // Foto profil default
-$foto = $_SESSION['foto_profil'] ?? $baseUrl . '/assets/img/undraw_profile.svg';
+$foto = $_SESSION['foto_profil'] ?? getBaseUrl() . '/assets/img/undraw_profile.svg';
 if (empty($foto)) {
-    $foto = $baseUrl . '/assets/img/undraw_profile.svg';
+    $foto = getBaseUrl() . '/assets/img/undraw_profile.svg';
 }
 
-// ---------------------------------------------------------------------------
-// 1. NOTIFIKASI SDM / SUPERADMIN
-// ---------------------------------------------------------------------------
-$sdmNotification  = "";
-$sdmCount         = 0;
-$ijinNotification = "";
-$ijinCount        = 0;
+/* ===============================
+   PERHITUNGAN NOTIFIKASI ALERT
+   =============================== */
 
+// --- Variabel notifikasi utama ---
+$sdmNotification    = "";
+$sdmCount           = 0;
+$keuNotification    = "";
+$keuCount           = 0;
+$guruNotification   = "";
+$guruCount          = 0;
+$kepsekNotification = "";
+$kepsekCount        = 0;
+$backupAlert        = "";
+$backupAlertCount   = 0;
+
+// Ambil hari, bulan, dan tahun saat ini
+$currentDay   = (int) date('d');
+$currentMonth = (int) date('n');
+$currentYear  = (int) date('Y');
+
+/* --- 1. Notifikasi untuk SDM / Superadmin --- */
 if (in_array($role, ['sdm', 'superadmin'])) {
-    $currentDay   = (int) date('d');
-    $currentMonth = (int) date('n');
-    $currentYear  = (int) date('Y');
-
-    // Logika payroll bulanan: jika >= 24, target bulan berikut
+    // Jika tanggal >= 24, target payroll adalah bulan berikutnya
     if ($currentDay >= 24) {
         if ($currentMonth == 12) {
             $targetMonth = 1;
@@ -69,8 +62,7 @@ if (in_array($role, ['sdm', 'superadmin'])) {
         SELECT COUNT(*) AS pending
         FROM anggota_sekolah
         WHERE id NOT IN (
-            SELECT id_anggota 
-            FROM payroll_final
+            SELECT id_anggota FROM payroll_final
             WHERE bulan = ? AND tahun = ?
         )
     ";
@@ -82,50 +74,28 @@ if (in_array($role, ['sdm', 'superadmin'])) {
         $rowSdm = $resSdm->fetch_assoc();
         $pendingSdm = intval($rowSdm['pending'] ?? 0);
         $stmtSdm->close();
-
         if ($pendingSdm > 0) {
             $monthName = getIndonesianMonthName($targetMonth);
-            $sdmNotification = "Payroll Bulan {$monthName} Terdapat {$pendingSdm} Anggota Belum Dibayar";
+            $sdmNotification = "Payroll Bulan {$monthName} terdapat {$pendingSdm} anggota belum dibayar";
             $sdmCount = 1;
         }
     } else {
-        error_log("Gagal statement notifikasi sdm: " . $conn->error);
+        error_log("Gagal statement notifikasi SDM: " . $conn->error);
     }
 
-    // Cek pengajuan ijin (status kepsek=diterima, status=Pending)
-    $sqlIjin = "
-        SELECT COUNT(*) AS jml
-        FROM pengajuan_ijin
-        WHERE status_kepalasekolah = 'Diterima'
-          AND status = 'Pending'
-    ";
-    $stmtIjin = $conn->prepare($sqlIjin);
-    if ($stmtIjin) {
-        $stmtIjin->execute();
-        $resIjin = $stmtIjin->get_result();
-        $rowIjin = $resIjin->fetch_assoc();
-        $countIjin = intval($rowIjin['jml'] ?? 0);
-        $stmtIjin->close();
-
-        if ($countIjin > 0) {
-            $ijinNotification = "Terdapat {$countIjin} Pengajuan Izin Baru (Menunggu SDM)";
-            $ijinCount = 1;
-        }
-    } else {
-        error_log("Gagal statement notifikasi ijin SDM: " . $conn->error);
+    // Opsional: Pengingat deadline finalisasi payroll
+    if ($currentDay >= 20 && $currentDay < 24) {
+        $daysLeft = 24 - $currentDay;
+        $sdmNotification .= ($sdmNotification ? " | " : "") . 
+                            "Finalisasi payroll akan berakhir dalam {$daysLeft} hari";
+        $sdmCount = 1;
     }
 }
 
-// ---------------------------------------------------------------------------
-// 2. NOTIFIKASI KEUANGAN / SUPERADMIN
-// ---------------------------------------------------------------------------
-$keuNotification = "";
-$keuCount        = 0;
-
+/* --- 2. Notifikasi untuk Keuangan / Superadmin --- */
 if (in_array($role, ['keuangan', 'superadmin'])) {
-    $thisMonth = (int) date('n');
-    $thisYear  = (int) date('Y');
-
+    $thisMonth = $currentMonth;
+    $thisYear  = $currentYear;
     $sqlKeu = "
         SELECT COUNT(*) AS pending
         FROM payroll p
@@ -147,84 +117,111 @@ if (in_array($role, ['keuangan', 'superadmin'])) {
         $rowKeu = $resKeu->fetch_assoc();
         $pendingKeu = intval($rowKeu['pending'] ?? 0);
         $stmtKeu->close();
-
         if ($pendingKeu > 0) {
             $monthName = getIndonesianMonthName($thisMonth);
-            $keuNotification = "Payroll Bulan {$monthName} (Draft) Terdapat {$pendingKeu} Anggota Belum Final";
+            $keuNotification = "Payroll Bulan {$monthName} (Draft) terdapat {$pendingKeu} anggota belum final";
             $keuCount = 1;
         }
     } else {
-        error_log("Gagal menyiapkan statement notifikasi keuangan: " . $conn->error);
+        error_log("Gagal statement notifikasi keuangan: " . $conn->error);
     }
 }
 
-// ---------------------------------------------------------------------------
-// 3. ALERT BACKUP DATABASE untuk SUPERADMIN di TGL 1
-// ---------------------------------------------------------------------------
-$backupAlert      = "";
-$backupAlertCount = 0;
+/* --- 3. Notifikasi untuk Guru (role P atau TK) --- */
+if (in_array($role, ['P','TK','guru'])) {
+    $sqlGuru = "SELECT COUNT(*) AS pending 
+                FROM pengajuan_ijin 
+                WHERE nip = ? 
+                  AND status IN ('Diterima','Ditolak') 
+                  AND notified = 0";
+    try {
+        $stmtGuru = $conn->prepare($sqlGuru);
+        if ($stmtGuru) {
+            $nip = $_SESSION['nip'] ?? '';
+            $stmtGuru->bind_param("s", $nip);
+            $stmtGuru->execute();
+            $resultGuru = $stmtGuru->get_result();
+            $rowGuru = $resultGuru->fetch_assoc();
+            $pendingGuru = intval($rowGuru['pending'] ?? 0);
+            $stmtGuru->close();
+            if ($pendingGuru > 0) {
+                $guruNotification = "Terdapat {$pendingGuru} pengajuan izin yang telah diproses";
+                $guruCount = 1;
+            }
+        } else {
+            $pendingGuru = 0;
+            error_log("Gagal statement notifikasi Guru: " . $conn->error);
+        }
+    } catch (Exception $e) {
+        $pendingGuru = 0;
+        error_log("Exception pada notifikasi Guru: " . $e->getMessage());
+    }
+}
 
-// Tanggal 1
+
+/* --- 4. Notifikasi untuk Kepala Sekolah (role M/kepalasekolah) --- */
+if (in_array($role, ['kepalasekolah','M'])) {
+    $sqlKepsek = "SELECT COUNT(*) AS pending 
+                  FROM pengajuan_ijin 
+                  WHERE status_kepalasekolah = 'Pending'";
+    $stmtKepsek = $conn->prepare($sqlKepsek);
+    if ($stmtKepsek) {
+         $stmtKepsek->execute();
+         $resultKepsek = $stmtKepsek->get_result();
+         $rowKepsek = $resultKepsek->fetch_assoc();
+         $pendingKepsek = intval($rowKepsek['pending'] ?? 0);
+         $stmtKepsek->close();
+         if ($pendingKepsek > 0) {
+             $kepsekNotification = "Terdapat {$pendingKepsek} pengajuan izin yang perlu ditinjau";
+             $kepsekCount = 1;
+         }
+    } else {
+         error_log("Gagal statement notifikasi Kepala Sekolah: " . $conn->error);
+    }
+}
+
+/* --- 5. Alert Backup Database untuk Superadmin --- */
 $todayDay = (int) date('j');
 if ($role === 'superadmin' && $todayDay === 1) {
     if (empty($_SESSION['backup_alert_dismissed'])) {
-        $backupAlert      = "Ingat untuk Backup Database hari ini.";
+        $backupAlert = "Ingat untuk Backup Database hari ini.";
         $backupAlertCount = 1;
     }
 }
 
-// ---------------------------------------------------------------------------
-// 4. Hitung total alert
-// ---------------------------------------------------------------------------
-$totalAlerts = $sdmCount + $ijinCount + $keuCount + $backupAlertCount;
-
-// Fungsi pembantu menampilkan badge
-function formatBadge($count) {
-    return ($count < 1) ? "" : (($count === 1) ? "1" : ($count . "+"));
+/* --- 6. Ambil Manual Notifications dari Tabel `notifications` --- */
+$manualNotifications = [];
+if (!empty($role) && !empty($userId)) {
+    $targetRoleForManual = strtolower($role);
+    $sqlManual = "SELECT * FROM notifications
+                  WHERE role_target IN (?, 'all')
+                    AND user_id = ?
+                    AND is_read = 0
+                  ORDER BY priority ASC, created_at DESC";
+    $stmtManual = $conn->prepare($sqlManual);
+    if ($stmtManual) {
+        $stmtManual->bind_param("si", $targetRoleForManual, $userId);
+        $stmtManual->execute();
+        $resManual = $stmtManual->get_result();
+        while ($row = $resManual->fetch_assoc()) {
+            $manualNotifications[] = $row;
+        }
+        $stmtManual->close();
+    }
 }
 
-// ---------------------------------------------------------------------------
-// 5. NOTIFIKASI PESAN (Role P, TK)
-// ---------------------------------------------------------------------------
-$messages    = [];
-$unreadCount = 0;
-if (in_array($role, ['P','TK'])) {
-    $stmtMsg = $conn->prepare("
-        SELECT ls.id, ls.judul, ls.isi, ls.tanggal_keluar, ls.status, sender.nama AS sender_name 
-        FROM laporan_surat ls 
-        LEFT JOIN anggota_sekolah sender ON ls.id_pengirim = sender.id 
-        WHERE ls.id_penerima = ? 
-        ORDER BY ls.tanggal_keluar DESC 
-        LIMIT 5
-    ");
-    if ($stmtMsg) {
-        $stmtMsg->bind_param("i", $_SESSION['id']);
-        $stmtMsg->execute();
-        $resultMsg = $stmtMsg->get_result();
-        while ($row = $resultMsg->fetch_assoc()) {
-            $messages[] = $row;
-        }
-        $stmtMsg->close();
-    }
-    $stmtUnread = $conn->prepare("
-        SELECT COUNT(*) as unread 
-        FROM laporan_surat 
-        WHERE id_penerima = ? 
-          AND status = 'terkirim'
-    ");
-    if ($stmtUnread) {
-        $stmtUnread->bind_param("i", $_SESSION['id']);
-        $stmtUnread->execute();
-        $resultUnread = $stmtUnread->get_result();
-        $rowUnread = $resultUnread->fetch_assoc();
-        $unreadCount = intval($rowUnread['unread'] ?? 0);
-        $stmtUnread->close();
-    }
+// Hitung total alerts
+$totalAlerts = $sdmCount + $keuCount + $guruCount + $kepsekCount + $backupAlertCount + count($manualNotifications);
+
+// Helper function untuk menampilkan badge
+function formatBadge($count) {
+    if ($count < 1) return "";
+    return ($count === 1) ? "1" : ($count . "+");
 }
 ?>
 
 <style>
-/* Sedikit penyesuaian tinggi navbar & item */
+/* Penyesuaian tinggi navbar & item */
 .navbar-nav .nav-item .nav-link {
     height: 50px; 
     display: flex;
@@ -273,11 +270,8 @@ if (in_array($role, ['P','TK'])) {
                 <?php endif; ?>
             </a>
             <!-- Dropdown - Alerts -->
-            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" 
-                 aria-labelledby="alertsDropdown">
+            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="alertsDropdown">
                 <h6 class="dropdown-header">Alerts Center</h6>
-
-                <!-- Alert SDM -->
                 <?php if (!empty($sdmNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -291,23 +285,6 @@ if (in_array($role, ['P','TK'])) {
                         </div>
                     </a>
                 <?php endif; ?>
-
-                <!-- Ijin -->
-                <?php if (!empty($ijinNotification)): ?>
-                    <a class="dropdown-item d-flex align-items-center" href="#">
-                        <div class="me-3">
-                            <div class="icon-circle bg-success">
-                                <i class="fas fa-envelope text-white"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
-                            <span class="fw-bold"><?= htmlspecialchars($ijinNotification); ?></span>
-                        </div>
-                    </a>
-                <?php endif; ?>
-
-                <!-- Keuangan -->
                 <?php if (!empty($keuNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -321,9 +298,33 @@ if (in_array($role, ['P','TK'])) {
                         </div>
                     </a>
                 <?php endif; ?>
-
-                <!-- Backup Alert Superadmin -->
-                <?php if (!empty($backupAlert)): ?>
+                <?php if (!empty($guruNotification)): ?>
+                    <a class="dropdown-item d-flex align-items-center" href="#">
+                        <div class="me-3">
+                            <div class="icon-circle bg-secondary">
+                                <i class="fas fa-envelope-open text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
+                            <span class="fw-bold"><?= htmlspecialchars($guruNotification); ?></span>
+                        </div>
+                    </a>
+                <?php endif; ?>
+                <?php if (!empty($kepsekNotification)): ?>
+                    <a class="dropdown-item d-flex align-items-center" href="#">
+                        <div class="me-3">
+                            <div class="icon-circle bg-primary">
+                                <i class="fas fa-user-tie text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="small text-gray-500"><?= date('F d, Y'); ?></div>
+                            <span class="fw-bold"><?= htmlspecialchars($kepsekNotification); ?></span>
+                        </div>
+                    </a>
+                <?php endif; ?>
+                <?php if (!empty($backupAlert) && $role === 'superadmin'): ?>
                     <a class="dropdown-item d-flex align-items-center backup-alert-item" 
                        href="<?= getBaseUrl(); ?>/payroll/superadmin/backup_database.php">
                         <div class="me-3">
@@ -337,73 +338,50 @@ if (in_array($role, ['P','TK'])) {
                         </div>
                     </a>
                 <?php endif; ?>
-
-                <!-- Jika semua notifikasi kosong -->
-                <?php if (empty($sdmNotification) && empty($ijinNotification) && empty($keuNotification) && empty($backupAlert)): ?>
+                <?php if (!empty($manualNotifications)): ?>
+                    <?php foreach ($manualNotifications as $mn): 
+                        switch ($mn['notification_type'] ?? 'info') {
+                            case 'warning': $alertClass = 'alert-warning'; break;
+                            case 'success': $alertClass = 'alert-success'; break;
+                            case 'error':   $alertClass = 'alert-danger'; break;
+                            default:        $alertClass = 'alert-info'; break;
+                        }
+                    ?>
+                    <a class="dropdown-item d-flex align-items-center" href="<?= htmlspecialchars($mn['link'] ?? '#'); ?>">
+                        <div class="me-3">
+                            <div class="icon-circle <?= $alertClass; ?>">
+                                <i class="fas fa-bell text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="small text-gray-500">
+                                <?= date('F d, Y', strtotime($mn['created_at'] ?? 'now')); ?>
+                            </div>
+                            <span class="fw-bold"><?= htmlspecialchars($mn['title'] ?? 'Notifikasi'); ?></span><br>
+                            <span><?= htmlspecialchars($mn['message']); ?></span>
+                        </div>
+                    </a>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                <?php if (
+                    empty($sdmNotification) && 
+                    empty($keuNotification) &&
+                    empty($guruNotification) &&
+                    empty($kepsekNotification) &&
+                    empty($backupAlert) &&
+                    empty($manualNotifications)
+                ): ?>
                     <a class="dropdown-item text-center small text-gray-500" href="#">
                         No alerts available
                     </a>
                 <?php endif; ?>
-
                 <a class="dropdown-item text-center small text-gray-500" href="#">
                     Show All Alerts
                 </a>
             </div>
         </li>
 
-        <!-- Nav Item - Messages (role P, TK) -->
-        <?php if (in_array($role, ['P','TK'])): ?>
-        <li class="nav-item dropdown no-arrow mx-1">
-            <a class="nav-link dropdown-toggle position-relative" href="#" id="messagesDropdown" 
-               role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-envelope fa-fw"></i>
-                <?php if ($unreadCount > 0): ?>
-                    <span class="badge bg-danger badge-counter"><?= $unreadCount; ?></span>
-                <?php endif; ?>
-            </a>
-            <!-- Dropdown - Messages -->
-            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" 
-                 aria-labelledby="messagesDropdown">
-                <h6 class="dropdown-header">Message Center</h6>
-                <?php if (!empty($messages)): ?>
-                    <?php foreach ($messages as $msg): 
-                        $isiRingkas = mb_strimwidth(strip_tags($msg['isi']), 0, 100, "...");
-                        $tgl = date('d M Y H:i', strtotime($msg['tanggal_keluar']));
-                        $pengirim = htmlspecialchars($msg['sender_name'] ?? 'SDM/Superadmin');
-                    ?>
-                    <a class="dropdown-item d-flex align-items-center message-item" href="pesan_detail.php?id=<?= $msg['id']; ?>"
-                       data-id="<?= $msg['id']; ?>"
-                       data-judul="<?= htmlspecialchars($msg['judul']); ?>"
-                       data-isi="<?= htmlspecialchars($msg['isi']); ?>"
-                       data-pengirim="<?= $pengirim; ?>"
-                       data-tanggal="<?= $tgl; ?>">
-                        <div class="dropdown-list-image me-3 position-relative">
-                            <img class="rounded-circle" src="<?= getBaseUrl(); ?>/assets/img/undraw_profile_1.svg" alt="...">
-                            <?php if($msg['status'] == 'terkirim'): ?>
-                                <div class="status-indicator bg-danger"></div>
-                            <?php else: ?>
-                                <div class="status-indicator bg-success"></div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="fw-bold">
-                            <div class="text-truncate"><?= htmlspecialchars($msg['judul']); ?></div>
-                            <div class="small text-gray-500"><?= $pengirim; ?> · <?= $tgl; ?></div>
-                        </div>
-                    </a>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <a class="dropdown-item text-center small text-gray-500" href="#">
-                        Tidak ada pesan
-                    </a>
-                <?php endif; ?>
-                <a class="dropdown-item text-center small text-gray-500" href="<?= getBaseUrl(); ?>/pesan.php">
-                    Lihat Semua Pesan
-                </a>
-            </div>
-        </li>
-        <?php endif; ?>
-
-        <!-- Garis pembatas -->
+        <!-- Divider -->
         <div class="topbar-divider d-none d-sm-block"></div>
 
         <!-- Nav Item - User Information -->
@@ -447,19 +425,10 @@ if (in_array($role, ['P','TK'])) {
 $(document).ready(function(){
     // 1) Backup alert, superadmin
     $('.backup-alert-item').on('click', function(){
-        // Ajax POST ke file ini sendiri, menandai backup_alert_dismissed
         $.post("<?= getBaseUrl(); ?>/navbar.php", { dismissed: 1 }, function(resp){
             console.log("Backup alert dismissed =>", resp);
         });
     });
-
-    // Jika request POST "dismissed=1" diterima, set session
-    <?php
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dismissed'])) {
-        $_SESSION['backup_alert_dismissed'] = true;
-        echo 'console.log("Session backup_alert_dismissed set to true");';
-    }
-    ?>
 
     // 2) Update status pesan
     $('.message-item').on('click', function(e){

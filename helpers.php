@@ -1,9 +1,6 @@
 <?php
 // File: helpers.php
 
-// Definisikan BASE_URL untuk digunakan di seluruh aplikasi
-define('BASE_URL', '/payroll_absensi_v2');
-
 /**
  * Memulai session dengan aman jika belum dimulai.
  *
@@ -245,23 +242,56 @@ function getBadgeStatusKerja($status) {
     }
 }
 
-/**
- * Memeriksa apakah pengguna memiliki akses berdasarkan role.
- *
- * @param string|array $allowedRoles Role yang diizinkan.
- * @param string $redirectUrl URL tujuan jika tidak memiliki akses.
- */
-function authorize($allowedRoles, $redirectUrl = BASE_URL . '/login.php') {
+function authorize($allowedRoles, $redirectUrl = null) {
+    // Pastikan session sudah berjalan
     start_session_safe();
-    $userRole = $_SESSION['role'] ?? '';
+    
+    $userRole     = $_SESSION['role'] ?? '';
+    $userJobTitle = $_SESSION['job_title'] ?? '';
+
     if (!is_array($allowedRoles)) {
         $allowedRoles = [$allowedRoles];
     }
-    if (!in_array($userRole, $allowedRoles)) {
+    $allowed = false;
+
+    foreach ($allowedRoles as $allowedRole) {
+        // 1) Cek jika allowedRole sama dengan userRole
+        if ($allowedRole === $userRole) {
+            $allowed = true;
+            break;
+        }
+
+        // 2) Cek format "M:xxx"
+        if ($userRole === 'M' && strpos($allowedRole, 'M:') === 0) {
+            // Ambil detail setelah "M:"
+            $allowedDetail = trim(substr($allowedRole, 2)); 
+            // Normalisasi
+            $allowedDetailNormalized = strtolower(str_replace('_', ' ', $allowedDetail));
+            $userJobTitleNormalized = strtolower(str_replace('_', ' ', trim($userJobTitle)));
+
+            if ($allowedDetailNormalized === $userJobTitleNormalized) {
+                $allowed = true;
+                break;
+            }
+        }
+
+        // 3) Jika allowedRole hanya "M" => semua user role M diizinkan
+        if ($allowedRole === 'M' && $userRole === 'M') {
+            $allowed = true;
+            break;
+        }
+    }
+
+    // 4) Redirect jika tidak diizinkan
+    if (!$allowed) {
+        if ($redirectUrl === null) {
+            $redirectUrl = getBaseUrl() . '/login.php';
+        }
         header("Location: " . $redirectUrl);
         exit();
     }
 }
+
 
 /**
  * Mendapatkan URL foto profil berdasarkan nama, jenjang, role, dan ID.
@@ -278,10 +308,12 @@ function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
               . '_' . strtolower($role)
               . '_' . $id . '.jpg';
     $filePath = __DIR__ . '/uploads/profile_pics/' . $fileName;
+
+    // Cek apakah file foto profil ada di folder uploads
     if (file_exists($filePath)) {
-        return BASE_URL . '/uploads/profile_pics/' . $fileName;
+        return getBaseUrl() . '/uploads/profile_pics/' . $fileName;
     } else {
-        return BASE_URL . '/assets/img/undraw_profile.svg';
+        return getBaseUrl() . '/assets/img/undraw_profile.svg';
     }
 }
 
@@ -302,7 +334,9 @@ function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
  */
 function updateSalaryIndexForUser($conn, $userId) {
     // Ambil join_start beserta masa kerja
-    $stmt = $conn->prepare("SELECT join_start, masa_kerja_tahun, masa_kerja_bulan FROM anggota_sekolah WHERE id = ?");
+    $stmt = $conn->prepare("SELECT join_start, masa_kerja_tahun, masa_kerja_bulan 
+                            FROM anggota_sekolah 
+                            WHERE id = ?");
     if (!$stmt) {
         error_log("Prepare error (masa kerja): " . $conn->error);
         return false;
@@ -332,7 +366,10 @@ function updateSalaryIndexForUser($conn, $userId) {
     }
     
     // Cek apakah ada SP untuk user tersebut
-    $stmt2 = $conn->prepare("SELECT COUNT(*) as spCount FROM laporan_surat WHERE id_penerima = ? AND jenis_surat = 'peringatan'");
+    $stmt2 = $conn->prepare("SELECT COUNT(*) as spCount 
+                             FROM laporan_surat 
+                             WHERE id_penerima = ? 
+                               AND jenis_surat = 'peringatan'");
     if (!$stmt2) {
         error_log("Prepare error (SP): " . $conn->error);
         return false;
@@ -358,11 +395,12 @@ function updateSalaryIndexForUser($conn, $userId) {
     error_log("DEBUG MasaKerja: userId=$userId, masaKerjaAktual=$masaKerjaAktual, penalty=$penalty, effectiveYears=$effectiveYearsForIndex");
 
     // Cari salary index yang sesuai dengan masa kerja efektif
-    $stmt3 = $conn->prepare("SELECT id, base_salary FROM salary_indices 
-                              WHERE min_years <= ? 
-                                AND (max_years IS NULL OR ? <= max_years)
-                              ORDER BY min_years DESC
-                              LIMIT 1");
+    $stmt3 = $conn->prepare("SELECT id, base_salary 
+                             FROM salary_indices 
+                             WHERE min_years <= ? 
+                               AND (max_years IS NULL OR ? <= max_years)
+                             ORDER BY min_years DESC
+                             LIMIT 1");
     if (!$stmt3) {
         error_log("Prepare error (salary_indices): " . $conn->error);
         return false;
@@ -378,7 +416,11 @@ function updateSalaryIndexForUser($conn, $userId) {
     $stmt3->close();
     
     // Update data anggota_sekolah dengan salary_index_id, gaji_pokok, dan masa_kerja_efektif
-    $stmt4 = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, gaji_pokok = ?, masa_kerja_efektif = ? WHERE id = ?");
+    $stmt4 = $conn->prepare("UPDATE anggota_sekolah 
+                             SET salary_index_id = ?, 
+                                 gaji_pokok = ?, 
+                                 masa_kerja_efektif = ? 
+                             WHERE id = ?");
     if (!$stmt4) {
         error_log("Prepare error (update anggota): " . $conn->error);
         return false;
@@ -391,7 +433,6 @@ function updateSalaryIndexForUser($conn, $userId) {
     $stmt4->close();
     return $result;
 }
-
 
 /**
  * Update salary index untuk semua anggota dengan role P atau TK.
@@ -451,9 +492,9 @@ function getRecommendedSalaryIndex($conn, $joinStart) {
         ];
     }
 
-    // Cari salary_index yang cocok, 
-    // misalnya cari min_years <= masaKerjaTahun <= max_years
-    $sql = "SELECT id, level FROM salary_indices
+    // Cari salary_index yang cocok
+    $sql = "SELECT id, level 
+            FROM salary_indices
             WHERE min_years <= ?
               AND (max_years IS NULL OR ? <= max_years)
             ORDER BY min_years DESC
@@ -488,9 +529,6 @@ function getRecommendedSalaryIndex($conn, $joinStart) {
  *
  * Fungsi ini berguna untuk mengonversi string nama bulan (misal "January")
  * ke dalam format Bahasa Indonesia (misal "Januari").
- *
- * @param string $month_eng Nama bulan dalam bahasa Inggris.
- * @return string Nama bulan dalam bahasa Indonesia.
  */
 if (!function_exists('translate_month_dashboard')) {
     function translate_month_dashboard($month_eng) {
@@ -516,9 +554,6 @@ if (!function_exists('translate_month_dashboard')) {
  * Menerjemahkan nama hari dari bahasa Inggris ke Bahasa Indonesia.
  *
  * Fungsi ini mengonversi singkatan hari (misal "Mon") ke dalam format Bahasa Indonesia (misal "Senin").
- *
- * @param string $day_eng Singkatan hari dalam bahasa Inggris.
- * @return string Nama hari dalam bahasa Indonesia.
  */
 if (!function_exists('translate_day_dashboard')) {
     function translate_day_dashboard($day_eng) {
@@ -553,8 +588,7 @@ if (!function_exists('translate_day')) {
  * 
  * @return array
  */
-function getOrderedJenjang(): array
-{
+function getOrderedJenjang(): array {
     return [
         'TK',
         'SD',
@@ -566,4 +600,23 @@ function getOrderedJenjang(): array
     ];
 }
 
-?>
+/**
+ * Fungsi untuk mendapatkan base URL secara dinamis.
+ * Jika aplikasi berada di subfolder, tentukan path subfolder di sini.
+ * Contoh: '/payroll_absensi_v2' atau '/payroll_ujicoba_2'.
+ */
+if (!function_exists('getBaseUrl')) {
+    function getBaseUrl() {
+        // Deteksi protokol
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
+                     || $_SERVER['SERVER_PORT'] == 443)
+                    ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'];
+
+        // Ganti ini dengan folder subdirektori aplikasi Anda:
+        // Misal: '/payroll_absensi_v2' jika memang foldernya bernama payroll_absensi_v2
+        $subfolder = '/payroll_absensi_v2';
+
+        return $protocol . $host . $subfolder;
+    }
+}

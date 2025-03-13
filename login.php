@@ -31,6 +31,21 @@ if (isset($_SESSION['role'])) {
         case 'kepala_sekolah':
             header("Location: absensi/kepalasekolah/dashboard_kepala_sekolah.php");
             exit();
+        case 'M':  // Jika sudah login sebagai manajerial, arahkan ke halaman sesuai job_title
+            // Redirect sesuai job_title yang telah disimpan di session
+            $jobTitle = strtolower($_SESSION['job_title'] ?? '');
+            if (strpos($jobTitle, 'superadmin') !== false) {
+                header("Location: payroll/superadmin/dashboard_superadmin.php");
+            } elseif (strpos($jobTitle, 'sdm') !== false) {
+                header("Location: absensi/sdm/dashboard_sdm.php");
+            } elseif (strpos($jobTitle, 'keuangan') !== false) {
+                header("Location: payroll/keuangan/dashboard_keuangan.php");
+            } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
+                header("Location: absensi/kepalasekolah/dashboard_kepala_sekolah.php");
+            } else {
+                header("Location: logout.php");
+            }
+            exit();
         default:
             header("Location: logout.php");
             exit();
@@ -66,29 +81,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['nip']  = $row['nip'];
                 $_SESSION['nama'] = $row['nama'];
                 
-                // Tentukan dashboard berdasarkan job_title dan role
+                // Tentukan role dan simpan job_title
                 $jobTitle    = strtolower($row['job_title'] ?? '');
                 $anggotaRole = $row['role'] ?? '';
 
-                if ($anggotaRole === 'M') { // Role managerial
+                if ($anggotaRole === 'M') { // User manajerial
+                    // Tetap simpan role sebagai 'M' dan simpan job_title asli
+                    $_SESSION['role']      = 'M';
+                    $_SESSION['job_title'] = $row['job_title'];
+                    
+                    add_audit_log($conn, $row['nip'], 'Login',
+                        "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai M dengan job_title '{$row['job_title']}'."
+                    );
+                    // Redirect berdasarkan job_title tanpa mengubah role
                     if (strpos($jobTitle, 'superadmin') !== false) {
-                        $_SESSION['role'] = 'superadmin';
-                        add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai superadmin.");
                         header("Location: payroll/superadmin/dashboard_superadmin.php");
                         exit();
                     } elseif (strpos($jobTitle, 'sdm') !== false) {
-                        $_SESSION['role'] = 'sdm';
-                        add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai sdm.");
                         header("Location: absensi/sdm/dashboard_sdm.php");
                         exit();
                     } elseif (strpos($jobTitle, 'keuangan') !== false) {
-                        $_SESSION['role'] = 'keuangan';
-                        add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai keuangan.");
                         header("Location: payroll/keuangan/dashboard_keuangan.php");
                         exit();
                     } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
-                        $_SESSION['role'] = 'kepala_sekolah';
-                        add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai kepala_sekolah.");
                         header("Location: absensi/kepalasekolah/dashboard_kepala_sekolah.php");
                         exit();
                     } else {
@@ -97,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 } elseif (
                     strpos($jobTitle, 'guru') !== false ||
-                    strpos($jobTitle, 'karyawan') !== false ||
+                    strpos($jobTitle, 'wali') !== false ||
                     $anggotaRole === 'P' ||
                     $anggotaRole === 'TK'
                 ) {
@@ -155,14 +170,12 @@ ob_end_flush(); // Akhiri output buffering
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: 'Arial', sans-serif;
             min-height: 100vh;
             display: flex;
             overflow-x: hidden;
         }
-
         /* SPLIT SCREEN LAYOUT */
         .left {
             flex: 1;
@@ -187,7 +200,6 @@ ob_end_flush(); // Akhiri output buffering
             line-height: 1.6;
             opacity: 0.9;
         }
-
         .right {
             flex: 1;
             background: #f8f9fc;
@@ -196,7 +208,6 @@ ob_end_flush(); // Akhiri output buffering
             justify-content: center;
             padding: 2rem;
         }
-
         /* LOGIN FORM CARD */
         .login-form {
             width: 100%;
@@ -210,12 +221,10 @@ ob_end_flush(); // Akhiri output buffering
             overflow: hidden;
             transition: box-shadow 0.4s ease, transform 0.3s ease;
         }
-
         .login-form:hover {
             box-shadow: 0 8px 30px rgba(0,0,0,0.1), 0 0 15px rgba(78,115,223,0.5);
             transform: translateY(-3px);
         }
-
         /* Efek animasi radial background */
         .login-form::before {
             content: "";
@@ -228,7 +237,6 @@ ob_end_flush(); // Akhiri output buffering
             animation: rotateGradient 6s linear infinite;
             z-index: -1;
         }
-
         @keyframes rotateGradient {
             0% {
                 transform: rotate(0deg);
@@ -237,7 +245,6 @@ ob_end_flush(); // Akhiri output buffering
                 transform: rotate(360deg);
             }
         }
-
         /* Logo & Tagline */
         .logo-container {
             margin-bottom: 1rem;
@@ -251,7 +258,6 @@ ob_end_flush(); // Akhiri output buffering
             color: #666;
             margin-top: 0.5rem;
         }
-
         /* Judul */
         .login-form h2 {
             font-size: 1.6rem;
@@ -259,7 +265,6 @@ ob_end_flush(); // Akhiri output buffering
             color: #333;
             font-weight: 700;
         }
-
         /* ALERT ERROR */
         .alert-danger {
             color: #fff;
@@ -270,11 +275,10 @@ ob_end_flush(); // Akhiri output buffering
             border-radius: 5px;
             padding: 0.75rem 1rem;
         }
-
         /* FORM GROUP */
         .form-group {
             text-align: left;
-            margin-bottom: 1.5rem; /* Spasi bawah antar field */
+            margin-bottom: 1.5rem;
         }
         .form-group label {
             font-weight: 600;
@@ -282,12 +286,6 @@ ob_end_flush(); // Akhiri output buffering
             margin-bottom: 0.5rem;
             display: inline-block;
         }
-
-        /*
-          PENTING:
-          Di bawah ini adalah kunci pendekatan Flex 
-          untuk ikon di sisi kiri input
-        */
         .icon-input-container {
             display: flex;
             align-items: center;
@@ -295,31 +293,23 @@ ob_end_flush(); // Akhiri output buffering
             border-radius: 5px;
             background-color: #fff;
             height: 45px;
-            padding: 0 10px; /* Ruang kiri & kanan */
+            padding: 0 10px;
         }
-
-        /* Style ikon */
         .icon-input-container i {
             color: #888;
             font-size: 1rem;
-            margin-right: 8px; /* Jarak antara ikon & input */
+            margin-right: 8px;
         }
-
-        /* Style input agar menyatu dengan container */
         .icon-input-container .form-control {
             border: none;
             box-shadow: none;
             height: 100%;
-            padding: 0; /* Hilangkan padding default */
+            padding: 0;
         }
-
-        /* Efek fokus: highlight border container */
         .icon-input-container:focus-within {
             border-color: #4e73df;
             box-shadow: 0 0 5px rgba(78,115,223,0.3);
         }
-
-        /* BUTTON */
         .btn-login {
             width: 100%;
             height: 45px;
@@ -338,24 +328,10 @@ ob_end_flush(); // Akhiri output buffering
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transform: translateY(-2px);
         }
-
-        /* RESPONSIVE DESIGN */
         @media(max-width: 768px) {
-            /* Sembunyikan bagian kiri */
-            .left {
-                display: none;
-            }
-            /* Buat bagian kanan memenuhi lebar */
-            .right {
-                flex: unset;
-                width: 100%;
-                height: auto;
-                padding: 1rem;
-            }
-            .login-form {
-                margin: 0 auto;
-                max-width: 400px;
-            }
+            .left { display: none; }
+            .right { flex: unset; width: 100%; height: auto; padding: 1rem; }
+            .login-form { margin: 0 auto; max-width: 400px; }
         }
     </style>
 </head>
@@ -384,7 +360,7 @@ ob_end_flush(); // Akhiri output buffering
 
             <h2>Login</h2>
 
-            <!-- Contoh jika ada error -->
+            <!-- Tampilan error -->
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger">
                     <?= htmlspecialchars($error); ?>
@@ -393,38 +369,23 @@ ob_end_flush(); // Akhiri output buffering
 
             <!-- Form Login -->
             <form action="login.php" method="POST">
-                <!-- NIP -->
                 <div class="form-group">
                     <label for="username">NIP</label>
                     <div class="icon-input-container">
                         <i class="fas fa-user"></i>
-                        <input 
-                            type="text" 
-                            class="form-control" 
-                            id="username" 
-                            name="username" 
-                            required
-                            value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
-                        >
+                        <input type="text" class="form-control" id="username" name="username" required
+                               value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>">
                     </div>
                 </div>
 
-                <!-- Password -->
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="icon-input-container">
                         <i class="fas fa-lock"></i>
-                        <input 
-                            type="password" 
-                            class="form-control" 
-                            id="password" 
-                            name="password" 
-                            required
-                        >
+                        <input type="password" class="form-control" id="password" name="password" required>
                     </div>
                 </div>
 
-                <!-- Tombol Submit -->
                 <button type="submit" class="btn-login">Login</button>
             </form>
         </div>

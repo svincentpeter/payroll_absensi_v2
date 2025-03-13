@@ -12,8 +12,7 @@ require_once __DIR__ . '/../../helpers.php';
 init_error_handling(); // Hanya sistem error log yang dipertahankan
 
 // Pastikan hanya role SDM yang dapat mengakses halaman ini
-// (Anda juga bisa menambahkan superadmin jika diinginkan, misalnya: authorize(['sdm','superadmin'], ...))
-authorize('sdm', '/payroll_absensi_v2/login.php');
+authorize('M:SDM', '/payroll_absensi_v2/login.php');
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';

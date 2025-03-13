@@ -1,17 +1,21 @@
 <?php
 require_once __DIR__ . '/helpers.php';
 
-// Mulai session (aman) jika belum berjalan
+// Mulai session secara aman jika belum berjalan
 start_session_safe();
 
-// Pastikan pengguna sudah login dan memiliki role yang diizinkan
-authorize(['P', 'TK', 'M', 'sdm', 'keuangan','superadmin']);
+// Pastikan pengguna sudah login (boleh semua role)
+authorize(['P', 'TK', 'M', 'sdm', 'keuangan', 'superadmin']);
 
 // Koneksi ke database
 require_once __DIR__ . '/koneksi.php';
 
-// Ambil nip dari session sebagai identitas unik user
+// Ambil NIP dari session sebagai identitas unik user
 $userNip = $_SESSION['nip'] ?? '';
+if (empty($userNip)) {
+    echo "NIP tidak ditemukan dalam session.";
+    exit();
+}
 
 // ================ BAGIAN AJAX UNTUK UPDATE PROFIL ================
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
@@ -102,7 +106,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             // Simpan gambar sebagai JPEG (quality 90)
             if (imagejpeg($image, $destPath, 90)) {
                 imagedestroy($image);
-                $foto_profil_path = BASE_URL . '/uploads/profile_pics/' . $newName;
+                $foto_profil_path = getBaseUrl() . '/uploads/profile_pics/' . $newName;
             } else {
                 imagedestroy($image);
                 send_response(1, 'Gagal mengonversi gambar ke format JPG.');
@@ -208,7 +212,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 }
 
 // ============= BAGIAN HALAMAN (BUKAN AJAX) =============
-// Ambil data profil user dari tabel anggota_sekolah menggunakan nip dari session
+// Ambil data profil user dari tabel anggota_sekolah menggunakan NIP dari session
 $sqlProfile = "SELECT * FROM anggota_sekolah WHERE nip=? LIMIT 1";
 $stmt = $conn->prepare($sqlProfile);
 if (!$stmt) {
@@ -235,7 +239,7 @@ if (!empty($profile['tanggal_lahir']) && $profile['tanggal_lahir'] !== '0000-00-
 // Siapkan path foto profil (gunakan default jika kosong)
 $foto_profil = $profile['foto_profil'];
 if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
-    $foto_profil = BASE_URL . '/assets/img/placeholder_foto_profil.svg';
+    $foto_profil = getBaseUrl() . '/assets/img/placeholder_foto_profil.svg';
 }
 ?>
 <!DOCTYPE html>
@@ -268,7 +272,6 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                 height: 140px;
             }
         }
-        /* Spasi antar baris data profil */
         .profile-data-row {
             margin-bottom: 0.75rem;
         }
@@ -318,17 +321,15 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                                     <img src="<?= htmlspecialchars($foto_profil); ?>" 
                                          alt="Foto Profil" 
                                          class="img-fluid rounded-circle profile-img mb-3">
-                                    <!-- Bisa tambah nama di bawah foto -->
                                     <h5 class="text-primary"><?= htmlspecialchars($profile['nama']); ?></h5>
                                     <span class="text-muted"><?= htmlspecialchars($profile['job_title'] ?: ''); ?></span>
                                 </div>
 
-                                <!-- Data Profil: Bagian Kiri & Kanan (Grid 2 Kolom) -->
+                                <!-- Data Profil -->
                                 <div class="col-md-8">
                                     <div class="row">
                                         <!-- Kolom Kiri -->
                                         <div class="col-md-6">
-                                            <!-- Identitas Pribadi -->
                                             <h6 class="mb-2 text-primary">
                                                 <i class="fas fa-id-card me-1"></i>Identitas Pribadi
                                             </h6>
@@ -365,7 +366,6 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
 
                                             <hr class="my-3">
 
-                                            <!-- Kontak & Alamat -->
                                             <h6 class="mb-2 text-primary">
                                                 <i class="fas fa-address-book me-1"></i>Kontak & Alamat
                                             </h6>
@@ -397,7 +397,6 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
 
                                         <!-- Kolom Kanan -->
                                         <div class="col-md-6">
-                                            <!-- Informasi Profesional -->
                                             <h6 class="mb-2 text-primary">
                                                 <i class="fas fa-briefcase me-1"></i>Informasi Profesional
                                             </h6>
@@ -444,7 +443,6 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
 
                                             <hr class="my-3">
 
-                                            <!-- Informasi Keluarga -->
                                             <h6 class="mb-2 text-primary">
                                                 <i class="fas fa-user-friends me-1"></i>Informasi Keluarga
                                             </h6>
@@ -487,25 +485,23 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
 
                                             <hr class="my-3">
 
-                                            <!-- Grup: Gaji & Role -->
-<h6 class="mb-2 text-primary">
-  <i class="fas fa-money-bill-wave me-2"></i>Gaji & Role
-</h6>
-<div class="row profile-data-row">
-  <div class="col-sm-4 fw-bold">Gaji Pokok:</div>
-  <div class="col-sm-8">Rp <?= number_format($profile['gaji_pokok'], 2, ',', '.'); ?></div>
-</div>
-<div class="row profile-data-row text-nowrap">
-  <div class="col-sm-4 fw-bold">Salary Index:</div>
-  <div class="col-sm-8">
-    <?= htmlspecialchars($profile['salary_index_level'] ?? '-'); ?>
-  </div>
-</div>
-
-<div class="row profile-data-row">
-  <div class="col-sm-4 fw-bold">Role:</div>
-  <div class="col-sm-8"><?= htmlspecialchars($profile['role']); ?></div>
-</div>
+                                            <h6 class="mb-3 text-primary">
+                                                <i class="fas fa-money-bill-wave me-2"></i>Gaji & Role
+                                            </h6>
+                                            <div class="row profile-data-row">
+                                                <div class="col-sm-4 fw-bold">Gaji Pokok:</div>
+                                                <div class="col-sm-8">Rp <?= number_format($profile['gaji_pokok'], 2, ',', '.'); ?></div>
+                                            </div>
+                                            <div class="row profile-data-row text-nowrap">
+                                                <div class="col-sm-4 fw-bold">Salary Index:</div>
+                                                <div class="col-sm-8">
+                                                    <?= htmlspecialchars($profile['salary_index_level'] ?? '-'); ?>
+                                                </div>
+                                            </div>
+                                            <div class="row profile-data-row">
+                                                <div class="col-sm-4 fw-bold">Role:</div>
+                                                <div class="col-sm-8"><?= htmlspecialchars($profile['role']); ?></div>
+                                            </div>
 
                                         </div>
                                     </div><!-- End row -->
@@ -586,12 +582,8 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                 </div>
                 <div class="row mb-3">
                   <div class="col-12">
-                  <label for="editAlamatDomisili" class="form-label">Alamat Domisili</label>
-<textarea name="alamat_domisili" id="editAlamatDomisili" rows="2" 
-          class="form-control" style="color: #000;"><?=
-    htmlspecialchars($profile['alamat_domisili'] ?? '');
-?></textarea>
-
+                    <label for="editAlamatDomisili" class="form-label">Alamat Domisili</label>
+<textarea name="alamat_domisili" id="editAlamatDomisili" rows="2" class="form-control" style="color: #000;"><?= htmlspecialchars($profile['alamat_domisili'] ?? ''); ?></textarea>
                   </div>
                 </div>
                 <div class="row mb-3">
@@ -625,14 +617,12 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                   <div class="col-md-6">
                     <label for="join_start" class="form-label">Bergabung Sejak</label>
                     <input type="text" id="join_start" class="form-control" 
-                           value="<?= !empty($profile['join_start']) ? date('d F Y', strtotime($profile['join_start'])) : '-'; ?>" 
-                           readonly style="color: #000;">
+                           value="<?= !empty($profile['join_start']) ? date('d F Y', strtotime($profile['join_start'])) : '-'; ?>" readonly style="color: #000;">
                   </div>
                   <div class="col-md-6">
                     <label for="masa_kerja" class="form-label">Masa Kerja</label>
                     <input type="text" id="masa_kerja" class="form-control" 
-                           value="<?= $profile['masa_kerja_tahun'] . ' tahun ' . $profile['masa_kerja_bulan'] . ' bulan'; ?>" 
-                           readonly style="color: #000;">
+                           value="<?= $profile['masa_kerja_tahun'] . ' tahun ' . $profile['masa_kerja_bulan'] . ' bulan'; ?>" readonly style="color: #000;">
                   </div>
                 </div>
                 <hr>
@@ -645,39 +635,39 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                   <div class="col-md-6">
                     <label for="pendidikan" class="form-label">Pendidikan</label>
                     <input type="text" id="pendidikan" class="form-control" 
-                           value="<?= htmlspecialchars($profile['pendidikan']); ?>" 
-                           readonly style="color: #000;">
+                           value="<?= htmlspecialchars($profile['pendidikan']); ?>" readonly style="color: #000;">
                     <input type="hidden" name="pendidikan" value="<?= htmlspecialchars($profile['pendidikan']); ?>">
                   </div>
                   <div class="col-md-6">
                     <label for="status_perkawinan" class="form-label">Status Pernikahan</label>
                     <input type="text" id="status_perkawinan" class="form-control" 
-                           value="<?= htmlspecialchars($profile['status_perkawinan']); ?>" 
-                           readonly style="color: #000;">
+                           value="<?= htmlspecialchars($profile['status_perkawinan']); ?>" readonly style="color: #000;">
                     <input type="hidden" name="status_perkawinan" value="<?= htmlspecialchars($profile['status_perkawinan']); ?>">
                   </div>
                 </div>
                 <hr>
 
                 <!-- Grup: Gaji & Role -->
-<h5 class="mb-3 text-primary">
-  <i class="fas fa-money-bill-wave me-2"></i>Gaji & Role
-</h5>
-<div class="row mb-3">
-  <div class="col-md-4">
-    <label for="gaji_pokok" class="form-label">Gaji Pokok</label>
-    <input type="text" id="gaji_pokok" class="form-control" value="Rp <?= number_format($profile['gaji_pokok'], 2, ',', '.'); ?>" readonly style="color: #000;">
-  </div>
-  <div class="col-md-4">
-    <label for="salary_index_level" class="form-label">Salary Index Level</label>
-    <input type="text" id="salary_index_level" class="form-control" value="<?= htmlspecialchars($profile['salary_index_level'] ?? '-'); ?>" readonly style="color: #000;">
-  </div>
-  <div class="col-md-4">
-    <label for="role" class="form-label">Role</label>
-    <input type="text" id="role" class="form-control" value="<?= htmlspecialchars($profile['role']); ?>" readonly style="color: #000;">
-  </div>
-</div>
-
+                <h5 class="mb-3 text-primary">
+                  <i class="fas fa-money-bill-wave me-2"></i>Gaji & Role
+                </h5>
+                <div class="row mb-3">
+                  <div class="col-md-4">
+                    <label for="gaji_pokok" class="form-label">Gaji Pokok</label>
+                    <input type="text" id="gaji_pokok" class="form-control" 
+                           value="Rp <?= number_format($profile['gaji_pokok'], 2, ',', '.'); ?>" readonly style="color: #000;">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="salary_index_level" class="form-label">Salary Index Level</label>
+                    <input type="text" id="salary_index_level" class="form-control" 
+                           value="<?= htmlspecialchars($profile['salary_index_level'] ?? '-'); ?>" readonly style="color: #000;">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="role" class="form-label">Role</label>
+                    <input type="text" id="role" class="form-control" 
+                           value="<?= htmlspecialchars($profile['role']); ?>" readonly style="color: #000;">
+                  </div>
+                </div>
                 <hr>
 
                 <!-- Grup: Ubah Password & Foto Profil -->
@@ -715,7 +705,6 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
     </div>
 
     <!-- JS Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -778,3 +767,6 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
     </script>
 </body>
 </html>
+<?php
+$conn->close();
+?>

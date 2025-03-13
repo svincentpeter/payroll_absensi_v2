@@ -1,8 +1,12 @@
 <?php
 // logout.php
-session_start();
+
+// Mulai session secara aman
+require_once __DIR__ . '/helpers.php';
+start_session_safe();
+
+// Sertakan koneksi database
 require_once __DIR__ . '/koneksi.php';
-require_once __DIR__ . '/helpers.php'; // Pastikan helpers.php terinklusi
 
 // Mendapatkan informasi pengguna sebelum logout
 $user_id = NULL;
@@ -24,7 +28,7 @@ if (isset($_SESSION['role'])) {
     }
 }
 
-// **Audit Log untuk Logout**
+// Catat Audit Log untuk Logout jika role tidak kosong
 if (!empty($role)) {
     add_audit_log($conn, $user_id, 'Logout', "Pengguna '{$username}' dengan role '{$role}' berhasil logout.");
 }
@@ -34,7 +38,7 @@ $_SESSION = [];
 session_unset();
 session_destroy();
 
-// Redirect ke halaman login
-header("Location: /payroll_absensi_v2/login.php");
+// Redirect ke halaman login menggunakan getBaseUrl()
+header("Location: " . getBaseUrl() . "/login.php");
 exit();
 ?>

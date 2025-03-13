@@ -10,7 +10,7 @@ init_error_handling();
 require_once __DIR__ . '/../../koneksi.php';
 
 // Otorisasi pengguna (hanya role sdm & superadmin)
-authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 
 // Pastikan CSRF token telah di-generate
 generate_csrf_token();
@@ -22,9 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // Verifikasi CSRF Token
     verify_csrf_token($_POST['csrf_token'] ?? '');
-
-    // Otorisasi ulang (opsional)
-    authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
 
     $action = $_POST['action'];
 

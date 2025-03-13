@@ -232,12 +232,11 @@ function getRoleIcon($role) {
 
                     <!-- Preview Audit Logs (5 data terbaru) -->
                     <div class="card mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-    <h6 class="m-0 fw-bold text-white">
-      <i class="fas fa-clock"></i> Recent Audit Logs
-    </h6>
-  </div>
-
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-clock"></i> Recent Audit Logs
+                            </h6>
+                        </div>
                         <div class="card-body">
                             <div class="vertical-timeline">
                                 <?php
@@ -297,6 +296,8 @@ function getRoleIcon($role) {
 </body>
 </html>
 <?php
-// Tutup koneksi database
-$conn->close();
+// Tutup koneksi database dengan aman
+if (isset($conn) && $conn instanceof mysqli) {
+    $conn->close();
+}
 ?>
