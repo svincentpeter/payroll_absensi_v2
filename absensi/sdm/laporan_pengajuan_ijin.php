@@ -9,7 +9,7 @@ require_once '../../helpers.php';
 session_start();
 require_once '../../koneksi.php';
 
-authorize(['sdm', 'superadmin']); // Hanya role sdm dan superadmin yang diizinkan
+authorize(['M:SDM', 'M:Superadmin']); // Hanya role sdm dan superadmin yang diizinkan
 
 /*
   PROSES UPDATE STATUS PENGAJUAN IZIN OLEH SDM

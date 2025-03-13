@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../helpers.php';
 init_error_handling(); // Hanya sistem error log yang dipertahankan
 
 // Pastikan hanya keuangan yang dapat mengakses halaman ini
-authorize('keuangan', '/payroll_absensi_v2/login.php');
+authorize('M:keuangan', '/payroll_absensi_v2/login.php');
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';

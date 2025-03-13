@@ -4,7 +4,7 @@
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['keuangan', 'superadmin']);
+authorize(['M:Keuangan', 'M:Superadmin']);
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 

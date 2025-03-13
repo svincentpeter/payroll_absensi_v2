@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/helpers.php';
 
 // Ambil informasi pengguna dari session
-$role      = $_SESSION['role'] ?? '';        // 'M', 'P', 'TK', dsb.
+$role      = $_SESSION['role'] ?? '';
 $username  = $_SESSION['username'] ?? '';
 $nama      = $_SESSION['nama'] ?? '';
 $nip       = $_SESSION['nip'] ?? '';
@@ -32,9 +32,16 @@ if (empty($job_title) && !empty($nip)) {
  * Menentukan apakah link aktif atau tidak berdasarkan URL saat ini.
  */
 function isActive($menuUrl) {
+    // Ambil path yang sedang diakses, misal "/absensi/guru/dashboard_guru.php"
     $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    $fullMenuUrl = getBaseUrl() . $menuUrl;
-    return (strpos($currentPath, $fullMenuUrl) === 0) ? 'active' : '';
+
+    // Pastikan baseUrl hanya path juga (misal "/payroll_absensi_v2")
+    // Lalu gabungkan dengan $menuUrl
+    $basePath = parse_url(getBaseUrl(), PHP_URL_PATH);
+    $targetPath = rtrim($basePath, '/') . $menuUrl;
+
+    // Cek apakah currentPath diawali targetPath
+    return (strpos($currentPath, $targetPath) === 0) ? 'active' : '';
 }
 
 /**
@@ -60,7 +67,9 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     echo '    <div class="bg-white py-2 collapse-inner rounded">';
     foreach ($items as $label => $url) {
         $itemActive = isActive($url);
-        echo '      <a class="collapse-item ' . $itemActive . '" href="' . getBaseUrl() . htmlspecialchars($url) . '">' . htmlspecialchars($label) . '</a>';
+        echo '      <a class="collapse-item ' . $itemActive . '" href="' . getBaseUrl() . htmlspecialchars($url) . '">';
+        echo '        ' . htmlspecialchars($label);
+        echo '      </a>';
     }
     echo '    </div>';
     echo '  </div>';
@@ -68,26 +77,44 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 }
 ?>
 <style>
-    /* Style tambahan untuk sidebar */
+    /* Style tambahan untuk sidebar agar lebih rapi */
     .sidebar {
         font-size: 0.9rem;
     }
     .sidebar .nav-item .nav-link {
-        padding: 0.75rem 1rem;
+        padding: 0.65rem 1rem; /* Sedikit kurangi padding agar lebih ringkas */
+        transition: background-color 0.2s ease;
+    }
+    .sidebar .nav-item .nav-link i {
+        margin-right: 6px; /* jarak kecil di antara icon dan label */
     }
     .sidebar .nav-item.active > .nav-link,
     .sidebar .nav-item.active > .nav-link:hover {
         background-color: #4e73df;
         color: #fff;
+        font-weight: 600; /* buat teks sedikit lebih tebal */
     }
     .sidebar .collapse-inner a.collapse-item {
         padding: 0.5rem 1rem;
         font-size: 0.85rem;
     }
-    .sidebar-heading {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        padding: 0.75rem 1rem;
+
+    .sidebar-divider {
+        margin: 0.5rem 0;
+    }
+
+    /* Panel informasi pengguna */
+    .sidebar-user-info {
+        color: #fff;                /* Warna teks putih */
+        font-weight: 600;           /* Teks lebih tebal */
+        text-align: center;         /* Rata tengah */
+        padding: 0.75rem;           /* Ruang di sekitar konten */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3); /* Garis bawah tipis */
+        margin-bottom: 0.5rem;      /* Jarak dengan elemen berikutnya */
+    }
+    .sidebar-user-info small {
+        font-weight: normal;        /* Boleh normal agar berbeda dengan nama */
+        display: block;            /* Set agar tiap info (job_title, NIP) di baris baru */
     }
 </style>
 
@@ -98,28 +125,27 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         <div class="sidebar-brand-icon">
             <img src="<?= getBaseUrl(); ?>/assets/img/logo.png" alt="Logo Sistem" class="img-fluid" style="max-width: 50px;">
         </div>
-        <div class="sidebar-brand-text mx-3">Sistem Sekolah Nusaputera</div>
+        <div class="sidebar-brand-text mx-2" style="font-size:0.8rem; line-height:1.2;">
+            Sistem Sekolah <br>Nusaputera
+        </div>
     </a>
 
     <!-- Divider -->
     <hr class="sidebar-divider my-0">
 
     <!-- Panel Informasi Pengguna -->
-    <div class="sidebar-heading text-center">
+    <div class="sidebar-user-info">
         <?php
-        // Jika role M, P, TK, dsb, tampilkan info pengguna
         if (in_array($role, ['M', 'P', 'TK'])) {
-            echo '<strong>' . htmlspecialchars($nama ?: $username) . '</strong><br>';
-            echo '<small>' . htmlspecialchars($job_title) . '</small><br>';
+            echo '<strong>' . htmlspecialchars($nama ?: $username) . '</strong>';
+            echo '<small>' . htmlspecialchars($job_title) . '</small>';
             echo '<small>NIP: ' . htmlspecialchars($nip) . '</small>';
         } else {
-            // Jika di luar definisi, bisa kita treat sebagai unknown
-            echo '<strong>Pengguna</strong><br>';
+            echo '<strong>Pengguna</strong>';
             echo '<small>Unknown</small>';
         }
         ?>
     </div>
-
     <!-- Divider -->
     <hr class="sidebar-divider">
 
@@ -135,38 +161,36 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
      */
 
     // 1. Jika role bukan 'M', tapi misal 'P', 'TK' => tampilkan menu Guru/TK
-    //    Jika bukan salah satu, kita set role tidak dikenal
     if ($role !== 'M') {
         if (in_array($role, ['P', 'TK'])) {
-            // Menu Guru & Tenaga Kependidikan
             ?>
             <li class="nav-item <?= isActive('/absensi/guru/dashboard_guru.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/dashboard_guru.php">
-                    <i class="fas fa-home fa-fw"></i>
+                    <i class="fas fa-home"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
             <li class="nav-item <?= isActive('/absensi/guru/pengajuan_surat_ijin.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/pengajuan_surat_ijin.php">
-                    <i class="fas fa-paper-plane fa-fw"></i>
-                    <span>Ajukan Permohonan Ijin</span>
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Ajukan Ijin</span>
                 </a>
             </li>
             <li class="nav-item <?= isActive('/absensi/guru/laporan_surat.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/laporan_surat.php">
-                    <i class="fas fa-paper-plane fa-fw"></i>
+                    <i class="fas fa-file-alt"></i>
                     <span>Laporan Surat</span>
                 </a>
             </li>
             <li class="nav-item <?= isActive('/absensi/guru/list_hari_libur.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/list_hari_libur.php">
-                    <i class="fas fa-calendar-alt fa-fw"></i>
-                    <span>List Hari Libur</span>
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Hari Libur</span>
                 </a>
             </li>
             <li class="nav-item <?= isActive('/absensi/guru/dashboard_jadwal.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/dashboard_jadwal.php">
-                    <i class="fas fa-calendar-check fa-fw"></i>
+                    <i class="fas fa-calendar-check"></i>
                     <span>Jadwal Piket</span>
                 </a>
             </li>
@@ -176,24 +200,23 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             ?>
             <li class="nav-item">
                 <a class="nav-link" href="#">
-                    <i class="fas fa-question-circle fa-fw"></i>
+                    <i class="fas fa-question-circle"></i>
                     <span>Role tidak dikenal</span>
                 </a>
             </li>
             <?php
         }
     }
-    // 2. Jika role === 'M', cek sub-role dari job_title
+    // 2. Jika role === 'M' => cek sub-role di job_title
     else {
-        // Normalisasi job_title
         $normalizedJobTitle = strtolower($job_title);
 
-        // M:superadmin => menampilkan menu dalam bentuk collapse (Kelola Sistem, Role SDM, Role Keuangan)
+        // M:superadmin => menampilkan menu collapse (Kelola Sistem, Role SDM, Role Keuangan)
         if (strpos($normalizedJobTitle, 'superadmin') !== false) {
             ?>
             <li class="nav-item <?= isActive('/payroll/superadmin/dashboard_superadmin.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/superadmin/dashboard_superadmin.php">
-                    <i class="fas fa-tachometer-alt fa-fw"></i>
+                    <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard M:Superadmin</span>
                 </a>
             </li>
@@ -203,7 +226,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 'Backup Database' => '/payroll/superadmin/backup_database.php',
                 'Audit Logs'      => '/payroll/superadmin/logs.php'
             ];
-            renderCollapseMenu('collapseKelolaSistem', 'fas fa-user-shield fa-fw', 'Kelola Sistem', $kelolaSistemItems);
+            renderCollapseMenu('collapseKelolaSistem', 'fas fa-user-shield', 'Kelola Sistem', $kelolaSistemItems);
 
             // Role SDM (Collapse)
             $sdmItems = [
@@ -217,7 +240,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 'Audit Logs SDM'       => '/absensi/sdm/audit_logs_sdm.php',
                 'Notifikasi SDM'       => '/absensi/sdm/notifikasi_sdm.php'
             ];
-            renderCollapseMenu('collapseSDM', 'fas fa-users-cog fa-fw', 'Role SDM', $sdmItems);
+            renderCollapseMenu('collapseSDM', 'fas fa-users-cog', 'Role SDM', $sdmItems);
 
             // Role Keuangan (Collapse)
             $keuanganItems = [
@@ -228,106 +251,106 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 'Audit Logs Keuangan' => '/payroll/keuangan/audit_logs_keuangan.php',
                 'Notifikasi Keuangan' => '/payroll/keuangan/notifikasi_keuangan.php'
             ];
-            renderCollapseMenu('collapseKeuangan', 'fas fa-wallet fa-fw', 'Role Keuangan', $keuanganItems);
+            renderCollapseMenu('collapseKeuangan', 'fas fa-wallet', 'Role Keuangan', $keuanganItems);
         }
-        // M:keuangan => top-level (tidak collapse)
+        // M:keuangan => top-level
         elseif (strpos($normalizedJobTitle, 'keuangan') !== false) {
             ?>
             <li class="nav-item <?= isActive('/payroll/keuangan/dashboard_keuangan.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/dashboard_keuangan.php">
-                <i class="fas fa-chart-line fa-fw"></i>
-                <span>Dashboard Keuangan</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/payroll/keuangan/list_payroll.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/list_payroll.php">
-                <i class="fas fa-list-ul fa-fw"></i>
-                <span>List Payroll</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/payroll/keuangan/payroll_history.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/payroll_history.php">
-                <i class="fas fa-history fa-fw"></i>
-                <span>History Payroll</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/payroll/keuangan/rekap_payroll.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/rekap_payroll.php">
-                <i class="fas fa-file-invoice-dollar fa-fw"></i>
-                <span>Rekap Payroll</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/payroll/keuangan/notifikasi_keuangan.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/notifikasi_keuangan.php">
-                <i class="fas fa-bell fa-fw"></i>
-                <span>Notifikasi Keuangan</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/payroll/keuangan/audit_logs_keuangan.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/audit_logs_keuangan.php">
-                <i class="fas fa-history fa-fw"></i>
-                <span>Audit Logs Keuangan</span>
-            </a>
-        </li>
+                <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/dashboard_keuangan.php">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard Keuangan</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/payroll/keuangan/list_payroll.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/list_payroll.php">
+                    <i class="fas fa-list-ul"></i>
+                    <span>List Payroll</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/payroll/keuangan/payroll_history.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/payroll_history.php">
+                    <i class="fas fa-history"></i>
+                    <span>History Payroll</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/payroll/keuangan/rekap_payroll.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/rekap_payroll.php">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Rekap Payroll</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/payroll/keuangan/notifikasi_keuangan.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/notifikasi_keuangan.php">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifikasi Keuangan</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/payroll/keuangan/audit_logs_keuangan.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/keuangan/audit_logs_keuangan.php">
+                    <i class="fas fa-history"></i>
+                    <span>Audit Logs Keuangan</span>
+                </a>
+            </li>
             <?php
         }
-        // M:sdm => top-level (atau boleh di-collapse, terserah)
+        // M:sdm => top-level
         elseif (strpos($normalizedJobTitle, 'sdm') !== false) {
             ?>
             <li class="nav-item <?= isActive('/absensi/sdm/dashboard_sdm.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/dashboard_sdm.php">
-                <i class="fas fa-tachometer-alt fa-fw"></i>
-                <span>Dashboard SDM</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/absensi/sdm/koreksi_absensi.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/koreksi_absensi.php">
-                <i class="fas fa-edit fa-fw"></i>
-                <span>Koreksi Absensi</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/absensi/sdm/manage_guru_karyawan.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/manage_guru_karyawan.php">
-                <i class="fas fa-users-cog fa-fw"></i>
-                <span>Kelola Guru/Karyawan</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/absensi/sdm/employees.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/employees.php">
-                <i class="fas fa-money-check-alt fa-fw"></i>
-                <span>Payroll Anggota</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/absensi/sdm/payheads.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/payheads.php">
-                <i class="fas fa-layer-group fa-fw"></i>
-                <span>Payheads</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/absensi/sdm/laporan_pengajuan_ijin.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/laporan_pengajuan_ijin.php">
-                <i class="fas fa-envelope-open-text fa-fw"></i>
-                <span>Laporan Surat Ijin</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/absensi/sdm/pembuatan_surat.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/pembuatan_surat.php">
-                <i class="fas fa-envelope-open-text fa-fw"></i>
-                <span>Pembuatan Surat</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/absensi/sdm/audit_logs_sdm.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/audit_logs_sdm.php">
-                <i class="fas fa-history fa-fw"></i>
-                <span>Audit Logs SDM</span>
-            </a>
-        </li>
-        <li class="nav-item <?= isActive('/absensi/sdm/notifikasi_sdm.php'); ?>">
-            <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/notifikasi_sdm.php">
-                <i class="fas fa-bell fa-fw"></i>
-                <span>Notifikasi SDM</span>
-            </a>
-        </li>
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/dashboard_sdm.php">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard SDM</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/koreksi_absensi.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/koreksi_absensi.php">
+                    <i class="fas fa-edit"></i>
+                    <span>Koreksi Absensi</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/manage_guru_karyawan.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/manage_guru_karyawan.php">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Kelola Guru/Karyawan</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/employees.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/employees.php">
+                    <i class="fas fa-money-check-alt"></i>
+                    <span>Payroll Anggota</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/payheads.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/payheads.php">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Payheads</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/laporan_pengajuan_ijin.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/laporan_pengajuan_ijin.php">
+                    <i class="fas fa-envelope-open-text"></i>
+                    <span>Laporan Surat Ijin</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/pembuatan_surat.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/pembuatan_surat.php">
+                    <i class="fas fa-envelope"></i>
+                    <span>Pembuatan Surat</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/audit_logs_sdm.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/audit_logs_sdm.php">
+                    <i class="fas fa-history"></i>
+                    <span>Audit Logs SDM</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/notifikasi_sdm.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/notifikasi_sdm.php">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifikasi SDM</span>
+                </a>
+            </li>
             <?php
         }
         // M:kepala sekolah => top-level
@@ -335,71 +358,37 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             ?>
             <li class="nav-item <?= isActive('/absensi/kepalasekolah/dashboard_kepala_sekolah.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/kepalasekolah/dashboard_kepala_sekolah.php">
-                    <i class="fas fa-home fa-fw"></i>
-                    <span>Dashboard M:Kepala Sekolah</span>
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard Kepala</span>
                 </a>
             </li>
             <li class="nav-item <?= isActive('/absensi/kepalasekolah/laporan_ijin_ke_kepalasekolah.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/kepalasekolah/laporan_ijin_ke_kepalasekolah.php">
-                    <i class="fas fa-envelope fa-fw"></i>
-                    <span>Laporan Surat Ijin</span>
+                    <i class="fas fa-envelope"></i>
+                    <span>Laporan Ijin</span>
                 </a>
             </li>
             <?php
-        }
-        // Jika job_title manajerial tapi tidak sesuai 4 sub-role di atas
-        elseif (in_array($role, ['P', 'TK'])) {
-            // Menu untuk Guru & Tenaga Kependidikan
-            ?>
-            <li class="nav-item <?= isActive('/absensi/guru/dashboard_guru.php'); ?>">
-                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/dashboard_guru.php">
-                    <i class="fas fa-home fa-fw"></i>
-                    <span>Dashboard</span>
-                </a>
-            </li>
-            <li class="nav-item <?= isActive('/absensi/guru/pengajuan_surat_ijin.php'); ?>">
-                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/pengajuan_surat_ijin.php">
-                    <i class="fas fa-paper-plane fa-fw"></i>
-                    <span>Ajukan Permohonan Ijin</span>
-                </a>
-            </li>
-            <li class="nav-item <?= isActive('/absensi/guru/laporan_surat.php'); ?>">
-                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/laporan_surat.php">
-                    <i class="fas fa-paper-plane fa-fw"></i>
-                    <span>Laporan Surat</span>
-                </a>
-            </li>
-            <li class="nav-item <?= isActive('/absensi/guru/list_hari_libur.php'); ?>">
-                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/list_hari_libur.php">
-                    <i class="fas fa-calendar-alt fa-fw"></i>
-                    <span>List Hari Libur</span>
-                </a>
-            </li>
-            <li class="nav-item <?= isActive('/absensi/guru/dashboard_jadwal.php'); ?>">
-                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/guru/dashboard_jadwal.php">
-                    <i class="fas fa-calendar-check fa-fw"></i>
-                    <span>Jadwal Piket</span>
-                </a>
-            </li>
-            <?php
-        } else {
-            // Jika role tidak dikenali
+        } 
+        else {
+            // Role manajerial tidak dikenali
+            echo '<div class="sidebar-heading">Status</div>';
             ?>
             <li class="nav-item">
                 <a class="nav-link" href="#">
-                    <i class="fas fa-question-circle fa-fw"></i>
-                    <span>Role tidak dikenal</span>
+                    <i class="fas fa-question-circle"></i>
+                    <span>Menu Manajerial Tidak Dikenal</span>
                 </a>
             </li>
             <?php
         }
     }
-        ?>
+    ?>
 
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">
 
-    <!-- Sidebar Toggler -->
+    <!-- Sidebar Toggler (opsional) -->
     <div class="text-center d-none d-md-inline">
         <button class="rounded-circle border-0" id="sidebarToggle"></button>
     </div>

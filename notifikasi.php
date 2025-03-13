@@ -4,16 +4,44 @@
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/koneksi.php';
 
+// Pastikan session sudah dimulai
 start_session_safe();
 
-// Jika ada request POST untuk menandai backup alert dismissed, proses dan keluar.
+/**
+ * Fungsi pembantu untuk mengonversi (role, job_title) menjadi "full role".
+ * Misalnya, (M, 'Keuangan') => M:keuangan, (M, 'Superadmin') => M:superadmin, dsb.
+ */
+function getFullRole() {
+    $userRole     = $_SESSION['role'] ?? '';
+    $userJobTitle = $_SESSION['job_title'] ?? '';
+
+    // Jika role bukan 'M', maka langsung return role (misal P, TK)
+    if ($userRole !== 'M') {
+        return $userRole;
+    }
+    // Jika role = 'M', cek sub-role di job_title
+    $normalized = strtolower(trim($userJobTitle));
+    if (strpos($normalized, 'superadmin') !== false)      return 'M:superadmin';
+    if (strpos($normalized, 'sdm') !== false)             return 'M:sdm';
+    if (strpos($normalized, 'keuangan') !== false)        return 'M:keuangan';
+    if (strpos($normalized, 'kepala sekolah') !== false)  return 'M:kepala sekolah';
+
+    // Jika tidak cocok empat di atas, fallback ke 'M' saja
+    return 'M';
+}
+
+// --------------------------------------------
+// BAGIAN 1: PROSES DISMISS BACKUP ALERT
+// --------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dismissed'])) {
     $_SESSION['backup_alert_dismissed'] = true;
     echo json_encode(["code" => 0, "message" => "Backup alert dismissed."]);
     exit();
 }
 
-// Inisialisasi variabel notifikasi untuk setiap peran
+// --------------------------------------------
+// BAGIAN 2: INISIALISASI NOTIFIKASI
+// --------------------------------------------
 $guruNotificationMsg       = "";
 $kepsekNotificationMsg     = "";
 $sdmNotificationMsg        = "";
@@ -21,7 +49,6 @@ $keuNotificationMsg        = "";
 $backupAlertMsg            = "";
 $systemAlertMsg            = ""; // untuk notifikasi error / audit
 
-// Penanda notifikasi (untuk badge)
 $guruCount   = 0;
 $kepsekCount = 0;
 $sdmCount    = 0;
@@ -29,45 +56,43 @@ $keuCount    = 0;
 $backupCount = 0;
 $systemCount = 0;
 
-// Ambil role user dan user_id (misal: NIP) dari session
-$userRole = $_SESSION['role'] ?? '';
-$userId   = $_SESSION['user_id'] ?? 0;
+// Ambil user ID (atau nip) dan full role
+$userId        = $_SESSION['user_id'] ?? 0;
+$nip           = $_SESSION['nip'] ?? '';
+$fullRole      = getFullRole(); // inilah 'M:superadmin', 'M:keuangan', 'P', 'TK', dsb.
 
 // Ambil hari, bulan, dan tahun saat ini
 $currentDay   = (int) date('d');
 $currentMonth = (int) date('n');
 $currentYear  = (int) date('Y');
 
-// --------------------------------------------------------------------------
-// 1. Notifikasi untuk Guru
-//    (Contoh: status pengajuan izin, permintaan tukar jadwal, dan konfirmasi upload absensi)
-// --------------------------------------------------------------------------
-if ($userRole === 'P' || $userRole === 'TK') {
+// --------------------------------------------
+// BAGIAN 3: NOTIFIKASI UNTUK GURU (P, TK)
+// --------------------------------------------
+if (in_array($fullRole, ['P', 'TK'])) {
     // Contoh: cek apakah ada pengajuan izin yang statusnya telah diupdate
     $sqlGuruIzin = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE nip = ? AND status <> 'Pending'";
     $stmtGuru = $conn->prepare($sqlGuruIzin);
     if ($stmtGuru) {
-        $stmtGuru->bind_param("s", $_SESSION['nip']);
+        $stmtGuru->bind_param("s", $nip);
         $stmtGuru->execute();
         $resGuru = $stmtGuru->get_result();
         $rowGuru = $resGuru->fetch_assoc();
-        $pendingIzin = intval($rowGuru['cnt'] ?? 0);
+        $processedIzin = intval($rowGuru['cnt'] ?? 0);
         $stmtGuru->close();
-        if ($pendingIzin > 0) {
-            $guruNotificationMsg = "Anda memiliki {$pendingIzin} pengajuan izin yang telah diproses.";
+        if ($processedIzin > 0) {
+            $guruNotificationMsg = "Anda memiliki {$processedIzin} pengajuan izin yang telah diproses.";
             $guruCount = 1;
         }
     }
-    // Tambahan: Notifikasi untuk permintaan tukar jadwal dan konfirmasi upload absensi
-    // (Query dapat ditambahkan sesuai dengan struktur tabel yang digunakan.)
+    // Tambahan notifikasi lainnya (permintaan tukar jadwal, dsb.) dapat ditambahkan di sini
 }
 
-// --------------------------------------------------------------------------
-// 2. Notifikasi untuk Kepala Sekolah
-//    (Contoh: ada pengajuan izin masuk yang perlu di-approve dan laporan yang perlu ditinjau)
-// --------------------------------------------------------------------------
-if ($userRole === 'M' && isset($_SESSION['jabatan']) && $_SESSION['jabatan'] === 'kepala_sekolah') {
-    // Hitung pengajuan izin baru yang masih Pending untuk kepala sekolah
+// --------------------------------------------
+// BAGIAN 4: NOTIFIKASI UNTUK M:kepala sekolah
+// --------------------------------------------
+if ($fullRole === 'M:kepala sekolah') {
+    // Hitung pengajuan izin baru yang masih 'Pending' untuk kepsek
     $sqlKepsek = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE status_kepalasekolah = 'Pending'";
     $stmtKepsek = $conn->prepare($sqlKepsek);
     if ($stmtKepsek) {
@@ -81,14 +106,13 @@ if ($userRole === 'M' && isset($_SESSION['jabatan']) && $_SESSION['jabatan'] ===
             $kepsekCount = 1;
         }
     }
-    // Tambahan: cek laporan yang belum ditinjau jika diperlukan.
 }
 
-// --------------------------------------------------------------------------
-// 3. Notifikasi untuk SDM/Superadmin (Payroll anggota yang belum final & koreksi absensi)
-// --------------------------------------------------------------------------
-if (in_array($userRole, ['sdm', 'superadmin'])) {
-    // Target bulan: jika hari >= 24, asumsikan target bulan berikutnya
+// --------------------------------------------
+// BAGIAN 5: NOTIFIKASI UNTUK M:sdm & M:superadmin
+// --------------------------------------------
+if (in_array($fullRole, ['M:sdm', 'M:superadmin'])) {
+    // Tentukan target bulan payroll
     if ($currentDay >= 24) {
         if ($currentMonth == 12) {
             $targetMonth = 1;
@@ -101,6 +125,7 @@ if (in_array($userRole, ['sdm', 'superadmin'])) {
         $targetMonth = $currentMonth;
         $targetYear  = $currentYear;
     }
+
     // Cek anggota yang belum final di payroll_final
     $sqlSdm = "
         SELECT COUNT(*) AS pending
@@ -124,7 +149,7 @@ if (in_array($userRole, ['sdm', 'superadmin'])) {
             $sdmCount = 1;
         }
     }
-    // Cek data absensi yang perlu dikoreksi (misalnya, data validasi gagal)
+    // Cek data absensi yang perlu dikoreksi
     $sqlKoreksi = "SELECT COUNT(*) AS cnt FROM absensi WHERE valid = 0 AND tanggal = CURDATE()";
     $stmtKoreksi = $conn->prepare($sqlKoreksi);
     if ($stmtKoreksi) {
@@ -138,21 +163,22 @@ if (in_array($userRole, ['sdm', 'superadmin'])) {
             $sdmCount = 1;
         }
     }
-    // Reminder deadline finalisasi payroll (misalnya, 3 hari sebelum akhir bulan)
+    // Reminder deadline finalisasi payroll
     $lastDayOfMonth = (int) date("t");
     if (($lastDayOfMonth - $currentDay) <= 3) {
-        $sdmNotificationMsg .= " Segera finalisasi payroll bulan ini, tinggal " . ($lastDayOfMonth - $currentDay) . " hari tersisa.";
+        $sdmNotificationMsg .= " Segera finalisasi payroll, tinggal " . ($lastDayOfMonth - $currentDay) . " hari tersisa.";
         $sdmCount = 1;
     }
 }
 
-// --------------------------------------------------------------------------
-// 4. Notifikasi untuk Keuangan/Superadmin (Payroll draft dan error/inconsistency)
-// --------------------------------------------------------------------------
-if (in_array($userRole, ['keuangan', 'superadmin'])) {
+// --------------------------------------------
+// BAGIAN 6: NOTIFIKASI UNTUK M:keuangan & M:superadmin
+// --------------------------------------------
+if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])) {
     $targetMonth = $currentMonth;
     $targetYear  = $currentYear;
-    // Cek payroll dengan status 'draft' yang belum final
+
+    // Cek payroll status 'draft'
     $sqlKeu = "
         SELECT COUNT(*) AS pending
         FROM payroll p
@@ -180,7 +206,7 @@ if (in_array($userRole, ['keuangan', 'superadmin'])) {
             $keuCount = 1;
         }
     }
-    // Cek error atau ketidaksesuaian data pada payroll (misalnya, selisih perhitungan)
+    // Cek error perhitungan payroll
     $sqlError = "SELECT COUNT(*) AS cnt FROM payroll WHERE ABS(total_pendapatan - total_potongan - gaji_bersih) > 1000";
     $stmtError = $conn->prepare($sqlError);
     if ($stmtError) {
@@ -196,21 +222,20 @@ if (in_array($userRole, ['keuangan', 'superadmin'])) {
     }
 }
 
-// --------------------------------------------------------------------------
-// 5. Notifikasi Backup Database untuk Superadmin
-// --------------------------------------------------------------------------
-if ($userRole === 'superadmin' && $currentDay === 1) {
+// --------------------------------------------
+// BAGIAN 7: Notifikasi Backup Database -> HANYA M:superadmin
+// --------------------------------------------
+if ($fullRole === 'M:superadmin' && $currentDay === 1) {
     if (empty($_SESSION['backup_alert_dismissed'])) {
         $backupAlertMsg = "Ingat untuk Backup Database hari ini. ";
         $backupCount = 1;
     }
 }
 
-// --------------------------------------------------------------------------
-// 6. Notifikasi Sistem / Audit untuk Superadmin
-//    (Misalnya, notifikasi jika terdapat aktivitas mencurigakan atau log error penting)
-// --------------------------------------------------------------------------
-if ($userRole === 'superadmin') {
+// --------------------------------------------
+// BAGIAN 8: Notifikasi Sistem / Audit -> HANYA M:superadmin
+// --------------------------------------------
+if ($fullRole === 'M:superadmin') {
     $sqlSys = "SELECT COUNT(*) AS cnt FROM audit_logs WHERE action LIKE '%error%' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)";
     $stmtSys = $conn->prepare($sqlSys);
     if ($stmtSys) {
@@ -226,16 +251,16 @@ if ($userRole === 'superadmin') {
     }
 }
 
-// --------------------------------------------------------------------------
-// 7. Ambil Notifikasi Manual dari Tabel notifications
-//    (Menggunakan struktur tabel yang telah diimprove)
-// --------------------------------------------------------------------------
+// --------------------------------------------
+// BAGIAN 9: Notifikasi Manual dari Tabel notifications
+// --------------------------------------------
 $manualNotifications = [];
 $sqlManual = "SELECT * FROM notifications WHERE role_target IN (?, 'all') AND user_id = ? AND is_read = 0 ORDER BY priority ASC, created_at DESC";
 $stmtManual = $conn->prepare($sqlManual);
 if ($stmtManual) {
-    // Role target disesuaikan: misal 'keuangan', 'sdm', atau untuk guru (sesuaikan dengan nilai userRole)
-    $targetRoleForManual = strtolower($userRole);
+    // role_target di tabel notifications: misal "m:keuangan", "p", "tk", "m:sdm", dsb.
+    // Konversi $fullRole menjadi lowercase untuk disamakan
+    $targetRoleForManual = strtolower($fullRole);
     $stmtManual->bind_param("si", $targetRoleForManual, $userId);
     $stmtManual->execute();
     $resManual = $stmtManual->get_result();
@@ -245,15 +270,16 @@ if ($stmtManual) {
     $stmtManual->close();
 }
 
-// Total Alerts dihitung dari semua count di atas
+// Hitung total notifikasi
 $totalAlerts = $guruCount + $kepsekCount + $sdmCount + $keuCount + $backupCount + $systemCount + count($manualNotifications);
 
+// Tutup koneksi
 $conn->close();
 ?>
 <!-- Bagian tampilan notifikasi -->
 <div class="container my-4">
-  <!-- Notifikasi untuk Guru -->
-  <?php if ($userRole === 'P' || $userRole === 'TK'): ?>
+  <!-- Notifikasi untuk Guru (P, TK) -->
+  <?php if (in_array($fullRole, ['P', 'TK'])): ?>
     <?php if (!empty($guruNotificationMsg)): ?>
       <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
         <i class="fas fa-envelope-open-text me-2"></i>
@@ -266,8 +292,8 @@ $conn->close();
     <?php endif; ?>
   <?php endif; ?>
 
-  <!-- Notifikasi untuk Kepala Sekolah -->
-  <?php if ($userRole === 'M' && isset($_SESSION['jabatan']) && $_SESSION['jabatan'] === 'kepala_sekolah'): ?>
+  <!-- Notifikasi untuk M:kepala sekolah -->
+  <?php if ($fullRole === 'M:kepala sekolah'): ?>
     <?php if (!empty($kepsekNotificationMsg)): ?>
       <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
         <i class="fas fa-chalkboard-teacher me-2"></i>
@@ -280,8 +306,8 @@ $conn->close();
     <?php endif; ?>
   <?php endif; ?>
 
-  <!-- Notifikasi untuk SDM -->
-  <?php if (in_array($userRole, ['sdm', 'superadmin'])): ?>
+  <!-- Notifikasi untuk M:sdm & M:superadmin -->
+  <?php if (in_array($fullRole, ['M:sdm', 'M:superadmin'])): ?>
     <?php if (!empty($sdmNotificationMsg)): ?>
       <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
         <i class="fas fa-user-cog me-2"></i>
@@ -294,8 +320,8 @@ $conn->close();
     <?php endif; ?>
   <?php endif; ?>
 
-  <!-- Notifikasi untuk Keuangan -->
-  <?php if (in_array($userRole, ['keuangan', 'superadmin'])): ?>
+  <!-- Notifikasi untuk M:keuangan & M:superadmin -->
+  <?php if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])): ?>
     <?php if (!empty($keuNotificationMsg)): ?>
       <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
         <i class="fas fa-calculator me-2"></i>
@@ -308,8 +334,8 @@ $conn->close();
     <?php endif; ?>
   <?php endif; ?>
 
-  <!-- Notifikasi Backup Database untuk Superadmin -->
-  <?php if ($userRole === 'superadmin' && !empty($backupAlertMsg)): ?>
+  <!-- Notifikasi Backup Database untuk M:superadmin -->
+  <?php if ($fullRole === 'M:superadmin' && !empty($backupAlertMsg)): ?>
     <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
       <i class="fas fa-database me-2"></i>
       <div>
@@ -319,8 +345,8 @@ $conn->close();
     </div>
   <?php endif; ?>
 
-  <!-- Notifikasi Sistem / Audit untuk Superadmin -->
-  <?php if ($userRole === 'superadmin' && !empty($systemAlertMsg)): ?>
+  <!-- Notifikasi Sistem / Audit untuk M:superadmin -->
+  <?php if ($fullRole === 'M:superadmin' && !empty($systemAlertMsg)): ?>
     <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
       <i class="fas fa-exclamation-circle me-2"></i>
       <div><?= htmlspecialchars($systemAlertMsg); ?></div>

@@ -5,7 +5,7 @@ require_once __DIR__ . '/helpers.php';
 start_session_safe();
 
 // Pastikan pengguna sudah login (boleh semua role)
-authorize(['P', 'TK', 'M', 'sdm', 'keuangan', 'superadmin']);
+authorize(['P', 'TK', 'M']);
 
 // Koneksi ke database
 require_once __DIR__ . '/koneksi.php';

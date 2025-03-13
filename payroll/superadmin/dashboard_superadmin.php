@@ -15,7 +15,7 @@ $_SESSION['csp_nonce'] = $nonce;
 require_once __DIR__ . '/../../koneksi.php';
 
 // Pastikan hanya superadmin yang dapat mengakses halaman ini
-authorize('superadmin', '/payroll_absensi_v2/login.php');
+authorize('M:superadmin', '/payroll_absensi_v2/login.php');
 
 // 2. Query Audit Logs untuk Preview (5 data terbaru)
 $sqlLogs = "SELECT a.*, u.nama AS username, u.role 

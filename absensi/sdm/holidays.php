@@ -13,7 +13,7 @@ generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 // Pengecekan role (hanya untuk sdm dan superadmin)
-authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 
 // =========================
 // 2. Koneksi ke Database

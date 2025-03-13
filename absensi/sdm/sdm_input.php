@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
 // Batasi akses hanya untuk role "sdm" (Anda dapat menambahkan role lain jika diperlukan)
-authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 
 // Sertakan koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';

@@ -9,7 +9,7 @@ start_session_safe();
 init_error_handling();
 
 // Hanya role sdm & superadmin yang boleh mengakses
-authorize(['sdm', 'superadmin']);
+authorize(['M:SDM', 'M:Superadmin']);
 
 require_once __DIR__ . '/../../koneksi.php';
 

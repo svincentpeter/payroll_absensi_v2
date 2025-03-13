@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 
 // Hanya untuk user dengan role keuangan / superadmin
-authorize(['keuangan', 'superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 
 // Inisialisasi variabel filter (bulan & tahun)
 $filterMonth = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : date('n');

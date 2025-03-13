@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
 // Hanya superadmin yang boleh akses halaman ini
-authorize(['superadmin']);
+authorize(['M:superadmin']);
 
 require_once __DIR__ . '/../../koneksi.php';
 require_once __DIR__ . '/../../vendor/autoload.php';

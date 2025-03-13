@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['M:keuangan', 'superadmin']); // Hanya role keuangan dan superadmin yang diizinkan
+authorize(['M:keuangan', 'M:superadmin']); // Hanya role keuangan dan superadmin yang diizinkan
 require_once __DIR__ . '/../../koneksi.php';
 
 // Hapus output buffering jika ada

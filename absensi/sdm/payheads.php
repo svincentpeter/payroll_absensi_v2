@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['sdm', 'superadmin']);
+authorize(['M:SDM', 'M:Superadmin']);
 
 require_once __DIR__ . '/../../koneksi.php';
 

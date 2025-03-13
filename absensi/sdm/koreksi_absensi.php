@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['sdm', 'superadmin']); // Hanya role sdm dan superadmin yang boleh mengakses
+authorize(['M:SDM', 'M:Superadmin']); // Hanya role sdm dan superadmin yang boleh mengakses
 require_once __DIR__ . '/../../koneksi.php';
 
 // Hasilkan CSRF token

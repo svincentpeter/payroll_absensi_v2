@@ -1,30 +1,56 @@
 <?php
 // File: navbar.php
 
-// Pastikan session sudah dimulai secara aman
 require_once __DIR__ . '/helpers.php';
-start_session_safe();
-
 require_once __DIR__ . '/koneksi.php';
 
+start_session_safe();
+
+/**
+ * Fungsi untuk mengembalikan role penuh (M:sdm, M:keuangan, dsb.) 
+ * berdasarkan session['role'] dan session['job_title'].
+ */
+function getFullRoleNavbar() {
+    $userRole     = $_SESSION['role'] ?? '';
+    $userJobTitle = $_SESSION['job_title'] ?? '';
+
+    if ($userRole !== 'M') {
+        // Bukan manajerial, langsung kembalikan
+        return $userRole; // misal 'P', 'TK', 'guru', 'superadmin' (jika Anda masih pakai 'superadmin' langsung)
+    }
+
+    // Jika role = 'M', cek job_title
+    $normalized = strtolower(trim($userJobTitle));
+    if (strpos($normalized, 'superadmin') !== false)     return 'M:superadmin';
+    if (strpos($normalized, 'sdm') !== false)            return 'M:sdm';
+    if (strpos($normalized, 'keuangan') !== false)       return 'M:keuangan';
+    if (strpos($normalized, 'kepala sekolah') !== false) return 'M:kepala sekolah';
+
+    // fallback ke 'M' jika tidak dikenali sub-rolenya
+    return 'M';
+}
+
 // Ambil data dari session
-$role     = $_SESSION['role'] ?? '';
-$username = $_SESSION['username'] ?? '';
-$nama     = $_SESSION['nama'] ?? $username;
-$userId   = $_SESSION['id'] ?? 0;
-$baseUrl  = getBaseUrl();
+$role       = $_SESSION['role'] ?? '';
+$username   = $_SESSION['username'] ?? '';
+$nama       = $_SESSION['nama'] ?? $username;
+$userId     = $_SESSION['id'] ?? 0;
+$baseUrl    = getBaseUrl();
+$nip        = $_SESSION['nip'] ?? '';
+
+$fullRole   = getFullRoleNavbar(); // inilah 'M:superadmin', 'M:sdm', 'M:keuangan', 'P', 'TK', dll.
 
 // Foto profil default
-$foto = $_SESSION['foto_profil'] ?? getBaseUrl() . '/assets/img/undraw_profile.svg';
+$foto = $_SESSION['foto_profil'] ?? ($baseUrl . '/assets/img/undraw_profile.svg');
 if (empty($foto)) {
-    $foto = getBaseUrl() . '/assets/img/undraw_profile.svg';
+    $foto = $baseUrl . '/assets/img/undraw_profile.svg';
 }
 
 /* ===============================
    PERHITUNGAN NOTIFIKASI ALERT
    =============================== */
 
-// --- Variabel notifikasi utama ---
+// Variabel notifikasi utama
 $sdmNotification    = "";
 $sdmCount           = 0;
 $keuNotification    = "";
@@ -41,8 +67,8 @@ $currentDay   = (int) date('d');
 $currentMonth = (int) date('n');
 $currentYear  = (int) date('Y');
 
-/* --- 1. Notifikasi untuk SDM / Superadmin --- */
-if (in_array($role, ['sdm', 'superadmin'])) {
+/* --- 1. Notifikasi untuk M:sdm & M:superadmin --- */
+if (in_array($fullRole, ['M:sdm', 'M:superadmin'])) {
     // Jika tanggal >= 24, target payroll adalah bulan berikutnya
     if ($currentDay >= 24) {
         if ($currentMonth == 12) {
@@ -87,13 +113,13 @@ if (in_array($role, ['sdm', 'superadmin'])) {
     if ($currentDay >= 20 && $currentDay < 24) {
         $daysLeft = 24 - $currentDay;
         $sdmNotification .= ($sdmNotification ? " | " : "") . 
-                            "Finalisasi payroll akan berakhir dalam {$daysLeft} hari";
+                            "Finalisasi payroll berakhir dalam {$daysLeft} hari";
         $sdmCount = 1;
     }
 }
 
-/* --- 2. Notifikasi untuk Keuangan / Superadmin --- */
-if (in_array($role, ['keuangan', 'superadmin'])) {
+/* --- 2. Notifikasi untuk M:keuangan & M:superadmin --- */
+if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])) {
     $thisMonth = $currentMonth;
     $thisYear  = $currentYear;
     $sqlKeu = "
@@ -127,8 +153,9 @@ if (in_array($role, ['keuangan', 'superadmin'])) {
     }
 }
 
-/* --- 3. Notifikasi untuk Guru (role P atau TK) --- */
-if (in_array($role, ['P','TK','guru'])) {
+/* --- 3. Notifikasi untuk Guru (P, TK, guru) --- */
+if (in_array($fullRole, ['P','TK','guru'])) {
+    // Misalnya, cek pengajuan izin yang sudah diproses
     $sqlGuru = "SELECT COUNT(*) AS pending 
                 FROM pengajuan_ijin 
                 WHERE nip = ? 
@@ -137,7 +164,6 @@ if (in_array($role, ['P','TK','guru'])) {
     try {
         $stmtGuru = $conn->prepare($sqlGuru);
         if ($stmtGuru) {
-            $nip = $_SESSION['nip'] ?? '';
             $stmtGuru->bind_param("s", $nip);
             $stmtGuru->execute();
             $resultGuru = $stmtGuru->get_result();
@@ -149,40 +175,37 @@ if (in_array($role, ['P','TK','guru'])) {
                 $guruCount = 1;
             }
         } else {
-            $pendingGuru = 0;
             error_log("Gagal statement notifikasi Guru: " . $conn->error);
         }
     } catch (Exception $e) {
-        $pendingGuru = 0;
-        error_log("Exception pada notifikasi Guru: " . $e->getMessage());
+        error_log("Exception notifikasi Guru: " . $e->getMessage());
     }
 }
 
-
-/* --- 4. Notifikasi untuk Kepala Sekolah (role M/kepalasekolah) --- */
-if (in_array($role, ['kepalasekolah','M'])) {
+/* --- 4. Notifikasi untuk M:kepala sekolah (bisa saja or 'kepala_sekolah') --- */
+if ($fullRole === 'M:kepala sekolah') {
     $sqlKepsek = "SELECT COUNT(*) AS pending 
                   FROM pengajuan_ijin 
                   WHERE status_kepalasekolah = 'Pending'";
     $stmtKepsek = $conn->prepare($sqlKepsek);
     if ($stmtKepsek) {
-         $stmtKepsek->execute();
-         $resultKepsek = $stmtKepsek->get_result();
-         $rowKepsek = $resultKepsek->fetch_assoc();
-         $pendingKepsek = intval($rowKepsek['pending'] ?? 0);
-         $stmtKepsek->close();
-         if ($pendingKepsek > 0) {
-             $kepsekNotification = "Terdapat {$pendingKepsek} pengajuan izin yang perlu ditinjau";
-             $kepsekCount = 1;
-         }
+        $stmtKepsek->execute();
+        $resultKepsek = $stmtKepsek->get_result();
+        $rowKepsek = $resultKepsek->fetch_assoc();
+        $pendingKepsek = intval($rowKepsek['pending'] ?? 0);
+        $stmtKepsek->close();
+        if ($pendingKepsek > 0) {
+            $kepsekNotification = "Terdapat {$pendingKepsek} pengajuan izin yang perlu ditinjau";
+            $kepsekCount = 1;
+        }
     } else {
-         error_log("Gagal statement notifikasi Kepala Sekolah: " . $conn->error);
+        error_log("Gagal statement notifikasi Kepala Sekolah: " . $conn->error);
     }
 }
 
-/* --- 5. Alert Backup Database untuk Superadmin --- */
+/* --- 5. Alert Backup Database -> M:superadmin (bukan superadmin langsung) --- */
 $todayDay = (int) date('j');
-if ($role === 'superadmin' && $todayDay === 1) {
+if ($fullRole === 'M:superadmin' && $todayDay === 1) {
     if (empty($_SESSION['backup_alert_dismissed'])) {
         $backupAlert = "Ingat untuk Backup Database hari ini.";
         $backupAlertCount = 1;
@@ -191,8 +214,9 @@ if ($role === 'superadmin' && $todayDay === 1) {
 
 /* --- 6. Ambil Manual Notifications dari Tabel `notifications` --- */
 $manualNotifications = [];
-if (!empty($role) && !empty($userId)) {
-    $targetRoleForManual = strtolower($role);
+$userIdSession = $_SESSION['id'] ?? 0;
+if (!empty($fullRole) && !empty($userIdSession)) {
+    $targetRoleForManual = strtolower($fullRole);
     $sqlManual = "SELECT * FROM notifications
                   WHERE role_target IN (?, 'all')
                     AND user_id = ?
@@ -200,7 +224,7 @@ if (!empty($role) && !empty($userId)) {
                   ORDER BY priority ASC, created_at DESC";
     $stmtManual = $conn->prepare($sqlManual);
     if ($stmtManual) {
-        $stmtManual->bind_param("si", $targetRoleForManual, $userId);
+        $stmtManual->bind_param("si", $targetRoleForManual, $userIdSession);
         $stmtManual->execute();
         $resManual = $stmtManual->get_result();
         while ($row = $resManual->fetch_assoc()) {
@@ -213,7 +237,6 @@ if (!empty($role) && !empty($userId)) {
 // Hitung total alerts
 $totalAlerts = $sdmCount + $keuCount + $guruCount + $kepsekCount + $backupAlertCount + count($manualNotifications);
 
-// Helper function untuk menampilkan badge
 function formatBadge($count) {
     if ($count < 1) return "";
     return ($count === 1) ? "1" : ($count . "+");
@@ -237,7 +260,6 @@ function formatBadge($count) {
 
 <!-- Topbar -->
 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-
     <!-- Tombol toggle sidebar (hanya muncul di layar kecil) -->
     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle me-3">
         <i class="fa fa-bars"></i>
@@ -272,6 +294,7 @@ function formatBadge($count) {
             <!-- Dropdown - Alerts -->
             <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="alertsDropdown">
                 <h6 class="dropdown-header">Alerts Center</h6>
+
                 <?php if (!empty($sdmNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -285,6 +308,7 @@ function formatBadge($count) {
                         </div>
                     </a>
                 <?php endif; ?>
+
                 <?php if (!empty($keuNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -298,6 +322,7 @@ function formatBadge($count) {
                         </div>
                     </a>
                 <?php endif; ?>
+
                 <?php if (!empty($guruNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -311,6 +336,7 @@ function formatBadge($count) {
                         </div>
                     </a>
                 <?php endif; ?>
+
                 <?php if (!empty($kepsekNotification)): ?>
                     <a class="dropdown-item d-flex align-items-center" href="#">
                         <div class="me-3">
@@ -324,7 +350,8 @@ function formatBadge($count) {
                         </div>
                     </a>
                 <?php endif; ?>
-                <?php if (!empty($backupAlert) && $role === 'superadmin'): ?>
+
+                <?php if (!empty($backupAlert) && $fullRole === 'M:superadmin'): ?>
                     <a class="dropdown-item d-flex align-items-center backup-alert-item" 
                        href="<?= getBaseUrl(); ?>/payroll/superadmin/backup_database.php">
                         <div class="me-3">
@@ -338,6 +365,7 @@ function formatBadge($count) {
                         </div>
                     </a>
                 <?php endif; ?>
+
                 <?php if (!empty($manualNotifications)): ?>
                     <?php foreach ($manualNotifications as $mn): 
                         switch ($mn['notification_type'] ?? 'info') {
@@ -347,22 +375,23 @@ function formatBadge($count) {
                             default:        $alertClass = 'alert-info'; break;
                         }
                     ?>
-                    <a class="dropdown-item d-flex align-items-center" href="<?= htmlspecialchars($mn['link'] ?? '#'); ?>">
-                        <div class="me-3">
-                            <div class="icon-circle <?= $alertClass; ?>">
-                                <i class="fas fa-bell text-white"></i>
+                        <a class="dropdown-item d-flex align-items-center" href="<?= htmlspecialchars($mn['link'] ?? '#'); ?>">
+                            <div class="me-3">
+                                <div class="icon-circle <?= $alertClass; ?>">
+                                    <i class="fas fa-bell text-white"></i>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <div class="small text-gray-500">
-                                <?= date('F d, Y', strtotime($mn['created_at'] ?? 'now')); ?>
+                            <div>
+                                <div class="small text-gray-500">
+                                    <?= date('F d, Y', strtotime($mn['created_at'] ?? 'now')); ?>
+                                </div>
+                                <span class="fw-bold"><?= htmlspecialchars($mn['title'] ?? 'Notifikasi'); ?></span><br>
+                                <span><?= htmlspecialchars($mn['message']); ?></span>
                             </div>
-                            <span class="fw-bold"><?= htmlspecialchars($mn['title'] ?? 'Notifikasi'); ?></span><br>
-                            <span><?= htmlspecialchars($mn['message']); ?></span>
-                        </div>
-                    </a>
+                        </a>
                     <?php endforeach; ?>
                 <?php endif; ?>
+
                 <?php if (
                     empty($sdmNotification) && 
                     empty($keuNotification) &&
@@ -375,6 +404,7 @@ function formatBadge($count) {
                         No alerts available
                     </a>
                 <?php endif; ?>
+
                 <a class="dropdown-item text-center small text-gray-500" href="#">
                     Show All Alerts
                 </a>
@@ -423,7 +453,7 @@ function formatBadge($count) {
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script>
 $(document).ready(function(){
-    // 1) Backup alert, superadmin
+    // 1) Backup alert, M:superadmin
     $('.backup-alert-item').on('click', function(){
         $.post("<?= getBaseUrl(); ?>/navbar.php", { dismissed: 1 }, function(resp){
             console.log("Backup alert dismissed =>", resp);

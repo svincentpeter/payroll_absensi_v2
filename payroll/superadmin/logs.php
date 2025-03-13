@@ -11,7 +11,7 @@ generate_csrf_token();
 generate_csrf_token();
 
 // Pastikan hanya superadmin yang dapat mengakses halaman ini
-authorize('superadmin', '/payroll_absensi_v2/login.php');
+authorize('M:superadmin', '/payroll_absensi_v2/login.php');
 
 // Koneksi ke database
 require_once __DIR__ . '/../../koneksi.php';

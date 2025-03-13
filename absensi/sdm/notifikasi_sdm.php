@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../helpers.php';     // Pastikan path helpers sesuai
 start_session_safe();
 
 // Hanya untuk user tertentu, misalnya sdm / superadmin
-authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 
 // Inisialisasi variabel filter
 $filterMonth = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : date('n');

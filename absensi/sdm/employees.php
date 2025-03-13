@@ -9,7 +9,7 @@ generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 require_once __DIR__ . '/../../koneksi.php';
-authorize(['sdm', 'superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 $jenjangList = getOrderedJenjang();
 
 /*
