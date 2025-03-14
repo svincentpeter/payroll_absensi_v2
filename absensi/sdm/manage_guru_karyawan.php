@@ -1489,14 +1489,17 @@ function getGajiPokokByRole($conn, $role) {
             });
         }
 
+        // Dapatkan baseUrl dari PHP
+    let baseUrl = "<?= getBaseUrl(); ?>";
+    
         function generateCards(data) {
             let container = $('#employeeCards');
             container.empty();
 
             data.forEach(item => {
-                let photoUrl = (item.foto_profil && item.foto_profil !== '')
-                    ? item.foto_profil
-                    : '<?= BASE_URL ?>/assets/img/undraw_profile.svg';
+                let photoUrl = item.foto_profil && item.foto_profil !== ''
+                         ? item.foto_profil
+                         : baseUrl + "/assets/img/undraw_profile.svg";
 
                 // Tambahkan baris Tanggal Bergabung, Masa Kerja, Pendidikan di card
                 let cardHtml = `

@@ -26,7 +26,7 @@ function getFullRole() {
     if (strpos($normalized, 'keuangan') !== false)        return 'M:keuangan';
     if (strpos($normalized, 'kepala sekolah') !== false)  return 'M:kepala sekolah';
 
-    // Jika tidak cocok empat di atas, fallback ke 'M' saja
+    // Jika tidak cocok empat di atas, fallback ke 'M'
     return 'M';
 }
 
@@ -49,6 +49,11 @@ $keuNotificationMsg        = "";
 $backupAlertMsg            = "";
 $systemAlertMsg            = ""; // untuk notifikasi error / audit
 
+// Tambahan notifikasi baru:
+$guruExtraMsg              = ""; // Untuk Guru: jadwal piket, absensi terlambat, izin mendekati tanggal mulai, slip gaji final.
+$sdmExtraMsg               = ""; // Untuk SDM: izin baru, karyawan baru belum update, ketidakhadiran berulang.
+$keuExtraMsg               = ""; // Untuk Keuangan: adjustment rapel pending, jadwal pembayaran.
+
 $guruCount   = 0;
 $kepsekCount = 0;
 $sdmCount    = 0;
@@ -57,20 +62,26 @@ $backupCount = 0;
 $systemCount = 0;
 
 // Ambil user ID (atau nip) dan full role
-$userId        = $_SESSION['user_id'] ?? 0;
-$nip           = $_SESSION['nip'] ?? '';
-$fullRole      = getFullRole(); // inilah 'M:superadmin', 'M:keuangan', 'P', 'TK', dsb.
+$userId   = $_SESSION['user_id'] ?? 0;
+$nip      = $_SESSION['nip'] ?? '';
+$fullRole = getFullRole(); // misalnya 'M:superadmin', 'M:keuangan', 'P', 'TK', dsb.
 
 // Ambil hari, bulan, dan tahun saat ini
 $currentDay   = (int) date('d');
 $currentMonth = (int) date('n');
 $currentYear  = (int) date('Y');
 
-// --------------------------------------------
-// BAGIAN 3: NOTIFIKASI UNTUK GURU (P, TK)
-// --------------------------------------------
+// Fungsi bantu untuk konversi bulan ke nama bulan Indonesia
+function getIndonesianMonthName($month) {
+    $months = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+    return $months[$month] ?? $month;
+}
+
+// =====================================================
+// NOTIFIKASI UNTUK GURU / KARYAWAN (ROLE P, TK)
+// =====================================================
 if (in_array($fullRole, ['P', 'TK'])) {
-    // Contoh: cek apakah ada pengajuan izin yang statusnya telah diupdate
+    // 1. Pengajuan Izin yang telah diproses
     $sqlGuruIzin = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE nip = ? AND status <> 'Pending'";
     $stmtGuru = $conn->prepare($sqlGuruIzin);
     if ($stmtGuru) {
@@ -82,37 +93,174 @@ if (in_array($fullRole, ['P', 'TK'])) {
         $stmtGuru->close();
         if ($processedIzin > 0) {
             $guruNotificationMsg = "Anda memiliki {$processedIzin} pengajuan izin yang telah diproses.";
-            $guruCount = 1;
+            $guruCount++;
         }
     }
-    // Tambahan notifikasi lainnya (permintaan tukar jadwal, dsb.) dapat ditambahkan di sini
-}
-
-// --------------------------------------------
-// BAGIAN 4: NOTIFIKASI UNTUK M:kepala sekolah
-// --------------------------------------------
-if ($fullRole === 'M:kepala sekolah') {
-    // Hitung pengajuan izin baru yang masih 'Pending' untuk kepsek
-    $sqlKepsek = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE status_kepalasekolah = 'Pending'";
-    $stmtKepsek = $conn->prepare($sqlKepsek);
-    if ($stmtKepsek) {
-        $stmtKepsek->execute();
-        $resKepsek = $stmtKepsek->get_result();
-        $rowKepsek = $resKepsek->fetch_assoc();
-        $pendingIzinKepsek = intval($rowKepsek['cnt'] ?? 0);
-        $stmtKepsek->close();
-        if ($pendingIzinKepsek > 0) {
-            $kepsekNotificationMsg = "Terdapat {$pendingIzinKepsek} pengajuan izin baru untuk ditinjau.";
-            $kepsekCount = 1;
+    // 2. Jadwal Piket Hari Ini (dari tabel jadwal_piket)
+    $sqlPiket = "SELECT waktu_piket FROM jadwal_piket WHERE nip = ? AND tanggal = CURDATE()";
+    $stmtPiket = $conn->prepare($sqlPiket);
+    if ($stmtPiket) {
+        $stmtPiket->bind_param("s", $nip);
+        $stmtPiket->execute();
+        $resPiket = $stmtPiket->get_result();
+        if ($rowPiket = $resPiket->fetch_assoc()) {
+            $waktu = $rowPiket['waktu_piket'];
+            $guruExtraMsg .= "Hari ini Anda memiliki jadwal piket pada jam {$waktu}. ";
+            $guruCount++;
         }
+        $stmtPiket->close();
+    }
+    // 3. Teguran Absensi Terlambat: Jika terlambat ≥ 3 kali bulan ini
+    $sqlTerlambat = "SELECT COUNT(*) AS cnt FROM absensi WHERE nip = ? AND terlambat = 1 AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?";
+    $stmtTerlambat = $conn->prepare($sqlTerlambat);
+    if ($stmtTerlambat) {
+        $stmtTerlambat->bind_param("sii", $nip, $currentMonth, $currentYear);
+        $stmtTerlambat->execute();
+        $resTerlambat = $stmtTerlambat->get_result();
+        $rowTerlambat = $resTerlambat->fetch_assoc();
+        $countTerlambat = intval($rowTerlambat['cnt'] ?? 0);
+        $stmtTerlambat->close();
+        if ($countTerlambat >= 3) {
+            $guruExtraMsg .= "Anda telah terlambat sebanyak {$countTerlambat} kali bulan ini. ";
+            $guruCount++;
+        }
+    }
+    // 4. Pengajuan Izin Mendekati Tanggal Mulai (jika disetujui dan 1 hari sebelum tanggal efektif)
+    // Pastikan kolom tanggal di pengajuan_ijin disimpan dalam format DATE atau dapat dikonversi.
+    $sqlIzinBesok = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE nip = ? AND status = 'Diterima' AND DATEDIFF(STR_TO_DATE(tanggal, '%Y-%m-%d'), CURDATE()) = 1";
+    $stmtIzinBesok = $conn->prepare($sqlIzinBesok);
+    if ($stmtIzinBesok) {
+        $stmtIzinBesok->bind_param("s", $nip);
+        $stmtIzinBesok->execute();
+        $resIzinBesok = $stmtIzinBesok->get_result();
+        $rowIzinBesok = $resIzinBesok->fetch_assoc();
+        $izinBesok = intval($rowIzinBesok['cnt'] ?? 0);
+        $stmtIzinBesok->close();
+        if ($izinBesok > 0) {
+            $guruExtraMsg .= "Pengajuan izin Anda akan mulai besok. ";
+            $guruCount++;
+        }
+    }
+    // 5. Slip Gaji Final Tersedia (cek di payroll_final)
+    $sqlSlipGaji = "SELECT COUNT(*) AS cnt FROM payroll_final pf JOIN anggota_sekolah a ON pf.id_anggota = a.id WHERE a.nip = ? AND pf.tahun = ? AND pf.bulan = ?";
+    // Misal, notifikasi untuk bulan sebelumnya (atau sesuai kebijakan)
+    $targetMonthSlip = ($currentMonth == 1) ? 12 : $currentMonth - 1;
+    $targetYearSlip = ($currentMonth == 1) ? $currentYear - 1 : $currentYear;
+    $stmtSlipGaji = $conn->prepare($sqlSlipGaji);
+    if ($stmtSlipGaji) {
+        $stmtSlipGaji->bind_param("sii", $nip, $targetYearSlip, $targetMonthSlip);
+        $stmtSlipGaji->execute();
+        $resSlipGaji = $stmtSlipGaji->get_result();
+        $rowSlipGaji = $resSlipGaji->fetch_assoc();
+        $slipCount = intval($rowSlipGaji['cnt'] ?? 0);
+        $stmtSlipGaji->close();
+        if ($slipCount > 0) {
+            $bulanNama = getIndonesianMonthName($targetMonthSlip);
+            $guruExtraMsg .= "Slip gaji bulan {$bulanNama} sudah tersedia. ";
+            $guruCount++;
+        }
+    }
+    // Gabungkan pesan notifikasi untuk guru
+    if (!empty($guruExtraMsg)) {
+        $guruNotificationMsg .= " " . $guruExtraMsg;
     }
 }
 
-// --------------------------------------------
-// BAGIAN 5: NOTIFIKASI UNTUK M:sdm & M:superadmin
-// --------------------------------------------
+// =====================================================
+// NOTIFIKASI UNTUK SDM (M:sdm)
+// =====================================================
+if ($fullRole === 'M:sdm') {
+    // 1. Izin Baru dari Guru (yang status masih Pending)
+    $sqlIzinBaru = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE status = 'Pending'";
+    $stmtIzinBaru = $conn->prepare($sqlIzinBaru);
+    if ($stmtIzinBaru) {
+        $stmtIzinBaru->execute();
+        $resIzinBaru = $stmtIzinBaru->get_result();
+        $rowIzinBaru = $resIzinBaru->fetch_assoc();
+        $izinBaru = intval($rowIzinBaru['cnt'] ?? 0);
+        $stmtIzinBaru->close();
+        if ($izinBaru > 0) {
+            $sdmNotificationMsg .= "Terdapat {$izinBaru} pengajuan izin baru. ";
+            $sdmCount++;
+        }
+    }
+    // 2. Karyawan Baru Belum Diperbarui (cek anggota_sekolah dengan join_start 7 hari terakhir dan salary_index_id IS NULL)
+    $sqlKaryawanBaru = "SELECT COUNT(*) AS cnt FROM anggota_sekolah WHERE join_start >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND salary_index_id IS NULL";
+    $stmtKaryawanBaru = $conn->prepare($sqlKaryawanBaru);
+    if ($stmtKaryawanBaru) {
+        $stmtKaryawanBaru->execute();
+        $resKaryawanBaru = $stmtKaryawanBaru->get_result();
+        $rowKaryawanBaru = $resKaryawanBaru->fetch_assoc();
+        $baruCount = intval($rowKaryawanBaru['cnt'] ?? 0);
+        $stmtKaryawanBaru->close();
+        if ($baruCount > 0) {
+            $sdmNotificationMsg .= "Terdapat {$baruCount} karyawan baru yang belum diupdate data salary-nya. ";
+            $sdmCount++;
+        }
+    }
+    // 3. Ketidakhadiran Berulang (misalnya, absensi 'tanpa_keterangan' ≥ 3 kali bulan ini)
+    $sqlBolos = "SELECT COUNT(DISTINCT tanggal) AS cnt FROM absensi WHERE nip IN (SELECT nip FROM anggota_sekolah WHERE role IN ('P','TK')) AND status_kehadiran = 'tanpa_keterangan' AND MONTH(tanggal)=? AND YEAR(tanggal)=?";
+    $stmtBolos = $conn->prepare($sqlBolos);
+    if ($stmtBolos) {
+        // Untuk SDM, cek seluruh guru/karyawan; misalnya total unik tanggal di mana setidaknya 1 guru bolos.
+        $stmtBolos->bind_param("ii", $currentMonth, $currentYear);
+        $stmtBolos->execute();
+        $resBolos = $stmtBolos->get_result();
+        $rowBolos = $resBolos->fetch_assoc();
+        $bolosCount = intval($rowBolos['cnt'] ?? 0);
+        $stmtBolos->close();
+        if ($bolosCount >= 3) {
+            $sdmNotificationMsg .= "Terdapat sejumlah hari ketidakhadiran berulang (bolos/tanpa keterangan). ";
+            $sdmCount++;
+        }
+    }
+    // (Notifikasi Payroll dan Absensi SDM sudah ada pada BAGIAN 5 di file asli.)
+    // Kita biarkan notifikasi payroll dan absensi yang belum final tetap berjalan.
+}
+
+// =====================================================
+// NOTIFIKASI UNTUK KEUANGAN (M:keuangan)
+// =====================================================
+if ($fullRole === 'M:keuangan') {
+    // 1. Adjustment Rapel Pending: Cek employee_payheads dengan is_rapel = 1 dan status 'draft'
+    $sqlRapel = "SELECT COUNT(*) AS cnt FROM employee_payheads WHERE is_rapel = 1 AND status = 'draft'";
+    $stmtRapel = $conn->prepare($sqlRapel);
+    if ($stmtRapel) {
+        $stmtRapel->execute();
+        $resRapel = $stmtRapel->get_result();
+        $rowRapel = $resRapel->fetch_assoc();
+        $rapelCount = intval($rowRapel['cnt'] ?? 0);
+        $stmtRapel->close();
+        if ($rapelCount > 0) {
+            $keuExtraMsg .= "Terdapat {$rapelCount} adjustment rapel pending. ";
+            $keuCount++;
+        }
+    }
+    // 2. Pengingat Jadwal Pembayaran: Cek payroll_final yang tgl_payroll kurang dari 3 hari dari hari ini
+    $sqlBayar = "SELECT COUNT(*) AS cnt FROM payroll_final WHERE DATEDIFF(tgl_payroll, CURDATE()) BETWEEN 0 AND 3";
+    $stmtBayar = $conn->prepare($sqlBayar);
+    if ($stmtBayar) {
+        $stmtBayar->execute();
+        $resBayar = $stmtBayar->get_result();
+        $rowBayar = $resBayar->fetch_assoc();
+        $bayarCount = intval($rowBayar['cnt'] ?? 0);
+        $stmtBayar->close();
+        if ($bayarCount > 0) {
+            $keuExtraMsg .= "Perhatian: ada {$bayarCount} payroll final mendekati jadwal pembayaran. ";
+            $keuCount++;
+        }
+    }
+    // 3. (Notifikasi error perhitungan payroll sudah ada.)
+    if (!empty($keuExtraMsg)) {
+        $keuNotificationMsg .= " " . $keuExtraMsg;
+    }
+}
+
+// ==============================================
+// BAGIAN 5 & 6: NOTIFIKASI UNTUK M:sdm & M:keuangan & M:superadmin
+// (Kode aslinya untuk payroll, absensi, backup, sistem audit)
+// ==============================================
 if (in_array($fullRole, ['M:sdm', 'M:superadmin'])) {
-    // Tentukan target bulan payroll
     if ($currentDay >= 24) {
         if ($currentMonth == 12) {
             $targetMonth = 1;
@@ -125,8 +273,6 @@ if (in_array($fullRole, ['M:sdm', 'M:superadmin'])) {
         $targetMonth = $currentMonth;
         $targetYear  = $currentYear;
     }
-
-    // Cek anggota yang belum final di payroll_final
     $sqlSdm = "
         SELECT COUNT(*) AS pending
         FROM anggota_sekolah
@@ -145,11 +291,10 @@ if (in_array($fullRole, ['M:sdm', 'M:superadmin'])) {
         $stmtSdm->close();
         if ($pendingCountSdm > 0) {
             $monthName = getIndonesianMonthName($targetMonth);
-            $sdmNotificationMsg = "Payroll Bulan {$monthName} terdapat {$pendingCountSdm} anggota belum dibayar.";
-            $sdmCount = 1;
+            $sdmNotificationMsg .= "Payroll Bulan {$monthName} terdapat {$pendingCountSdm} anggota belum dibayar. ";
+            $sdmCount++;
         }
     }
-    // Cek data absensi yang perlu dikoreksi
     $sqlKoreksi = "SELECT COUNT(*) AS cnt FROM absensi WHERE valid = 0 AND tanggal = CURDATE()";
     $stmtKoreksi = $conn->prepare($sqlKoreksi);
     if ($stmtKoreksi) {
@@ -159,26 +304,19 @@ if (in_array($fullRole, ['M:sdm', 'M:superadmin'])) {
         $pendingKoreksi = intval($rowKoreksi['cnt'] ?? 0);
         $stmtKoreksi->close();
         if ($pendingKoreksi > 0) {
-            $sdmNotificationMsg .= " Selain itu, terdapat {$pendingKoreksi} data absensi yang perlu dikoreksi.";
-            $sdmCount = 1;
+            $sdmNotificationMsg .= "Selain itu, terdapat {$pendingKoreksi} data absensi yang perlu dikoreksi. ";
+            $sdmCount++;
         }
     }
-    // Reminder deadline finalisasi payroll
     $lastDayOfMonth = (int) date("t");
     if (($lastDayOfMonth - $currentDay) <= 3) {
-        $sdmNotificationMsg .= " Segera finalisasi payroll, tinggal " . ($lastDayOfMonth - $currentDay) . " hari tersisa.";
-        $sdmCount = 1;
+        $sdmNotificationMsg .= "Segera finalisasi payroll, tinggal " . ($lastDayOfMonth - $currentDay) . " hari tersisa. ";
+        $sdmCount++;
     }
 }
-
-// --------------------------------------------
-// BAGIAN 6: NOTIFIKASI UNTUK M:keuangan & M:superadmin
-// --------------------------------------------
 if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])) {
     $targetMonth = $currentMonth;
     $targetYear  = $currentYear;
-
-    // Cek payroll status 'draft'
     $sqlKeu = "
         SELECT COUNT(*) AS pending
         FROM payroll p
@@ -202,11 +340,10 @@ if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])) {
         $stmtKeu->close();
         if ($pendingCountKeu > 0) {
             $monthName = getIndonesianMonthName($targetMonth);
-            $keuNotificationMsg = "Payroll Bulan {$monthName} (Draft) terdapat {$pendingCountKeu} anggota belum final.";
-            $keuCount = 1;
+            $keuNotificationMsg .= "Payroll Bulan {$monthName} (Draft) terdapat {$pendingCountKeu} anggota belum final. ";
+            $keuCount++;
         }
     }
-    // Cek error perhitungan payroll
     $sqlError = "SELECT COUNT(*) AS cnt FROM payroll WHERE ABS(total_pendapatan - total_potongan - gaji_bersih) > 1000";
     $stmtError = $conn->prepare($sqlError);
     if ($stmtError) {
@@ -216,8 +353,8 @@ if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])) {
         $errorCount = intval($rowError['cnt'] ?? 0);
         $stmtError->close();
         if ($errorCount > 0) {
-            $keuNotificationMsg .= " Terjadi {$errorCount} error pada perhitungan payroll.";
-            $keuCount = 1;
+            $keuNotificationMsg .= "Terjadi {$errorCount} error pada perhitungan payroll. ";
+            $keuCount++;
         }
     }
 }
@@ -228,7 +365,7 @@ if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])) {
 if ($fullRole === 'M:superadmin' && $currentDay === 1) {
     if (empty($_SESSION['backup_alert_dismissed'])) {
         $backupAlertMsg = "Ingat untuk Backup Database hari ini. ";
-        $backupCount = 1;
+        $backupCount++;
     }
 }
 
@@ -245,8 +382,8 @@ if ($fullRole === 'M:superadmin') {
         $errorLogs = intval($rowSys['cnt'] ?? 0);
         $stmtSys->close();
         if ($errorLogs > 0) {
-            $systemAlertMsg = "Terdapat {$errorLogs} log error dalam 24 jam terakhir. Silakan periksa logs untuk detail.";
-            $systemCount = 1;
+            $systemAlertMsg = "Terdapat {$errorLogs} log error dalam 24 jam terakhir. Silakan periksa logs untuk detail. ";
+            $systemCount++;
         }
     }
 }
@@ -258,8 +395,6 @@ $manualNotifications = [];
 $sqlManual = "SELECT * FROM notifications WHERE role_target IN (?, 'all') AND user_id = ? AND is_read = 0 ORDER BY priority ASC, created_at DESC";
 $stmtManual = $conn->prepare($sqlManual);
 if ($stmtManual) {
-    // role_target di tabel notifications: misal "m:keuangan", "p", "tk", "m:sdm", dsb.
-    // Konversi $fullRole menjadi lowercase untuk disamakan
     $targetRoleForManual = strtolower($fullRole);
     $stmtManual->bind_param("si", $targetRoleForManual, $userId);
     $stmtManual->execute();
@@ -306,8 +441,8 @@ $conn->close();
     <?php endif; ?>
   <?php endif; ?>
 
-  <!-- Notifikasi untuk M:sdm & M:superadmin -->
-  <?php if (in_array($fullRole, ['M:sdm', 'M:superadmin'])): ?>
+  <!-- Notifikasi untuk SDM (M:sdm) -->
+  <?php if ($fullRole === 'M:sdm'): ?>
     <?php if (!empty($sdmNotificationMsg)): ?>
       <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
         <i class="fas fa-user-cog me-2"></i>
@@ -315,13 +450,13 @@ $conn->close();
       </div>
     <?php else: ?>
       <div class="alert alert-success mb-3">
-        <i class="bi bi-check-circle-fill"></i> Tidak ada notifikasi untuk SDM.
+        <i class="bi bi-check-circle-fill"></i> Tidak ada notifikasi baru untuk SDM.
       </div>
     <?php endif; ?>
   <?php endif; ?>
 
-  <!-- Notifikasi untuk M:keuangan & M:superadmin -->
-  <?php if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])): ?>
+  <!-- Notifikasi untuk Keuangan (M:keuangan) -->
+  <?php if ($fullRole === 'M:keuangan'): ?>
     <?php if (!empty($keuNotificationMsg)): ?>
       <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
         <i class="fas fa-calculator me-2"></i>
@@ -329,7 +464,7 @@ $conn->close();
       </div>
     <?php else: ?>
       <div class="alert alert-success mb-3">
-        <i class="bi bi-check-circle-fill"></i> Tidak ada notifikasi untuk keuangan.
+        <i class="bi bi-check-circle-fill"></i> Tidak ada notifikasi baru untuk keuangan.
       </div>
     <?php endif; ?>
   <?php endif; ?>
@@ -356,7 +491,6 @@ $conn->close();
   <!-- Notifikasi Manual dari Tabel notifications -->
   <?php if (!empty($manualNotifications)): ?>
     <?php foreach ($manualNotifications as $notif): 
-          // Tentukan alert class berdasarkan tipe notifikasi
           switch ($notif['notification_type']) {
               case 'warning': $alertClass = 'alert-warning'; break;
               case 'success': $alertClass = 'alert-success'; break;

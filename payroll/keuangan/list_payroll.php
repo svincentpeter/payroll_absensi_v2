@@ -581,24 +581,29 @@ $(document).ready(function(){
         });
     }
 
-    // Fungsi men-generate card
+    // Dapatkan baseUrl dari PHP
+    let baseUrl = "<?= getBaseUrl(); ?>";
+
+    // Fungsi generate card
     function generateCards(data) {
         let container = $("#payrollCards");
         container.empty();
 
         data.forEach(function(item){
-            let statusBadge = 'default';
-            let st = (item.status || '').toLowerCase();
-            if(st === 'draft')  statusBadge = 'draft';
-            if(st === 'final')  statusBadge = 'final';
-            if(st === 'revisi') statusBadge = 'revisi';
+            let statusClass = 'default';
+            let stLower     = (item.status || '').toLowerCase();
+            if(stLower === 'draft')  statusClass = 'draft';
+            else if(stLower === 'final')  statusClass = 'final';
+            else if(stLower === 'revisi') statusClass = 'revisi';
 
-            let photoUrl = (item.foto_profil && item.foto_profil !== '')
-                    ? item.foto_profil
-                    : '<?= BASE_URL ?>/assets/img/undraw_profile.svg';
+            // Gunakan item.foto_profil (sudah di-return full URL oleh getProfilePhotoUrl)
+            let photoUrl = item.foto_profil && item.foto_profil !== ''
+                         ? item.foto_profil
+                         : baseUrl + "/assets/img/undraw_profile.svg";
 
-            // Link "Review" diarahkan ke manage-salary.php
-            let reviewUrl = `manage-salary.php?id_anggota=${item.id_anggota}&bulan=${item.bulan}&tahun=${item.tahun}`;
+            // Link "Review" -> sebaiknya prefix path subfolder
+            let reviewUrl = baseUrl + "/payroll/keuangan/manage-salary.php"
+                            + `?id_anggota=${item.id_anggota}&bulan=${item.bulan}&tahun=${item.tahun}`;
 
             let cardHtml = `
               <div class="col">
@@ -609,10 +614,10 @@ $(document).ready(function(){
                   <p class="mt-2 mb-1" style="font-size:0.85rem;">
                     Role: ${item.role} | <strong>${item.jenjang}</strong>
                   </p>
-                  <p style="font-size:0.85rem;">Status: 
-                     <span class="badge-status ${statusBadge}">
-                        ${item.status}
-                     </span>
+                  <p style="font-size:0.85rem;">
+                    Status: <span class="badge-status ${statusClass}">
+                                ${item.status}
+                            </span>
                   </p>
                   <p style="font-size:0.8rem;">
                     Periode: ${item.bulan}/${item.tahun}
@@ -626,6 +631,7 @@ $(document).ready(function(){
             container.append(cardHtml);
         });
     }
+
 
     // Fungsi generate pagination
     function generatePagination(totalRecords) {

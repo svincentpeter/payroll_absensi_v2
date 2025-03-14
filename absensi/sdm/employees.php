@@ -26,41 +26,25 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
 
    function ProcessPayroll($conn) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    $id_anggota   = intval($_POST['id_anggota'] ?? 0);
-    $bulan        = intval($_POST['selectedMonth'] ?? 0);
-    $tahun        = intval($_POST['selectedYear']  ?? 0);
+    $id_anggota = intval($_POST['id_anggota'] ?? 0);
+    $bulan      = intval($_POST['selectedMonth'] ?? 0);
+    $tahun      = intval($_POST['selectedYear'] ?? 0);
 
     if ($id_anggota <= 0 || $bulan <= 0 || $tahun <= 0) {
         send_response(1, 'Parameter tidak valid untuk proses payroll.');
     }
 
-    // 1) LOGIC RAPEL (opsional): Jika mau menambah amount rapel
-    $stmtUpdateRapel = $conn->prepare("
-        UPDATE employee_payheads ep
-        JOIN payheads ph ON ep.id_payhead = ph.id
-           SET ep.amount = ep.amount + ph.nominal
-         WHERE ep.id_anggota = ?
-           AND ep.is_rapel = 1
-           AND ep.status IN ('draft','revisi')
-    ");
-    $stmtUpdateRapel->bind_param("i", $id_anggota);
-    if (!$stmtUpdateRapel->execute()) {
-        $stmtUpdateRapel->close();
-        send_response(1, 'Gagal update payhead rapel: '.$stmtUpdateRapel->error);
-    }
-    $stmtUpdateRapel->close();
-    // (Catatan: Kita biarkan status payheads tetap 'draft'/'revisi', TIDAK di-set 'final'.)
+    // [Tidak ada lagi penambahan rapel otomatis di sini]
 
-    // 2) Hitung total earnings & deductions (yang masih berstatus draft/revisi)
+    // 1) Hitung total earnings & deductions (draft/revisi), KECUALI is_rapel
     $sqlSum = "
-    SELECT jenis, SUM(amount) as total
-      FROM employee_payheads
-     WHERE id_anggota = ?
-       AND status IN ('draft','revisi')
-       AND IFNULL(is_rapel, 0) = 0
-    GROUP BY jenis
-";
-
+        SELECT jenis, SUM(amount) AS total
+          FROM employee_payheads
+         WHERE id_anggota = ?
+           AND status IN ('draft','revisi')
+           AND IFNULL(is_rapel, 0) = 0
+        GROUP BY jenis
+    ";
     $stmtSum = $conn->prepare($sqlSum);
     $stmtSum->bind_param("i", $id_anggota);
     if (!$stmtSum->execute()) {
@@ -71,7 +55,7 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
 
     $totalEarnings   = 0;
     $totalDeductions = 0;
-    while($row = $resSum->fetch_assoc()) {
+    while ($row = $resSum->fetch_assoc()) {
         if ($row['jenis'] === 'earnings') {
             $totalEarnings = floatval($row['total']);
         } else {
@@ -80,7 +64,7 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
     }
     $stmtSum->close();
 
-    // Pastikan salary index terupdate
+    // 2) Pastikan salary index terupdate
     updateSalaryIndexForUser($conn, $id_anggota);
 
     // 3) Ambil data anggota (gaji_pokok, no_rekening, dsb)
@@ -129,12 +113,10 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
     $gajiPokok  = $gajiPokokEmployee + $salaryIndexBase;
     $gajiBersih = $gajiPokok + $totalEarnings - $totalDeductions;
 
-    // Tanggal payroll = sekarang
+    // 5) Insert payroll => status draft
     $tglPayroll   = date('Y-m-d H:i:s');
-    $catatan      = '';   // Kosong dulu, bisa diisi kalau mau
-    $statusPayroll= 'draft'; // => TABEL `payroll` => status 'draft'
-
-    // 5) Insert ke tabel payroll
+    $catatan      = '';
+    $statusPayroll= 'draft';
     $stmtPayroll = $conn->prepare("
         INSERT INTO payroll
             (id_anggota, bulan, tahun, tgl_payroll,
@@ -191,6 +173,7 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
     // 8) Kembalikan respon
     send_response(0, 'Payroll berhasil diproses (status draft).');
 }
+
 
 function CheckPayrollCompletion($conn) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -719,6 +702,7 @@ function ViewEmployeeDetail($conn) {
             FROM employee_payheads ep
             JOIN payheads ph ON ep.id_payhead = ph.id
             WHERE ep.id_anggota = ?
+            AND IFNULL(ep.is_rapel, 0) = 0
         ");
         if (!$stmtPH) {
             send_response(1, 'Prepare failed (payheads): ' . $conn->error);
@@ -1587,6 +1571,9 @@ $(document).ready(function(){
         });
     }
 
+    // Dapatkan baseUrl dari PHP
+    let baseUrl = "<?= getBaseUrl(); ?>";
+    
     function generateCards(data) {
   let container = $("#employeeCards");
   container.empty();
@@ -1605,9 +1592,9 @@ $(document).ready(function(){
     else if (item.payroll_status.toLowerCase() === 'draft') badgeClass = 'draft';
     else if (item.payroll_status.toLowerCase() === 'revisi') badgeClass = 'revisi';
 
-    let photoUrl = (item.foto_profil && item.foto_profil !== '')
-                     ? item.foto_profil
-                     : '<?= BASE_URL ?>/assets/img/undraw_profile.svg';
+    let photoUrl = item.foto_profil && item.foto_profil !== ''
+                         ? item.foto_profil
+                         : baseUrl + "/assets/img/undraw_profile.svg";
 
     let cardHtml = `
       <div class="col">

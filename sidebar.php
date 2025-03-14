@@ -134,18 +134,24 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     <hr class="sidebar-divider my-0">
 
     <!-- Panel Informasi Pengguna -->
-    <div class="sidebar-user-info">
-        <?php
-        if (in_array($role, ['M', 'P', 'TK'])) {
-            echo '<strong>' . htmlspecialchars($nama ?: $username) . '</strong>';
-            echo '<small>' . htmlspecialchars($job_title) . '</small>';
-            echo '<small>NIP: ' . htmlspecialchars($nip) . '</small>';
-        } else {
-            echo '<strong>Pengguna</strong>';
-            echo '<small>Unknown</small>';
-        }
-        ?>
-    </div>
+<div class="sidebar-user-info">
+    <?php
+    // Tampilkan user info + role
+    if (in_array($role, ['M', 'P', 'TK'])) {
+        // Nama atau username
+        echo '<strong>' . htmlspecialchars($nama ?: $username) . '</strong>';
+        // Tampilkan job_title
+        echo '<small>' . htmlspecialchars($job_title) . '</small>';
+        // Tampilkan NIP
+        echo '<small>NIP: ' . htmlspecialchars($nip) . '</small>';
+        echo '<small>Role: ' . htmlspecialchars($role) . '</small>';
+    } else {
+        echo '<strong>Pengguna</strong>';
+        echo '<small>Unknown</small>';
+    }
+    ?>
+</div>
+
     <!-- Divider -->
     <hr class="sidebar-divider">
 
@@ -217,7 +223,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
             <li class="nav-item <?= isActive('/payroll/superadmin/dashboard_superadmin.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/payroll/superadmin/dashboard_superadmin.php">
                     <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard M:Superadmin</span>
+                    <span>Dashboard Superadmin</span>
                 </a>
             </li>
             <?php

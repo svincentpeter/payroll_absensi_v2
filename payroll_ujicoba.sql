@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 13, 2025 at 11:50 AM
+-- Generation Time: Mar 14, 2025 at 08:36 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -124,7 +124,7 @@ INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`
 (10, 'K-003', '200003', 'e10adc3949ba59abbe56e057f20f883e', 'Rizki Pratama', 'SMP', 'Tenaga Kependidikan Umum', 'Kontrak', '2022-01-01', 3, 1, 3.17, 'Staff pendukung operasional', 'L', '1998-11-12', 27, 'Islam', 'Jl. Sudirman No. 8', 'Jl. Sudirman No. 8', '889900', '081237889900', '', 'Belum Menikah', 'rizki.pratama@example.com', '', 0, '', '', '', 2, 'Level 1', 4000000.00, 'default.jpg', 'TK'),
 (11, 'M-001', '300001', 'e10adc3949ba59abbe56e057f20f883e', 'Andini Permata', 'SMA', 'Kepala Sekolah', 'Tetap', '2014-01-27', 11, 1, 11.08, 'Memimpin sekolah dengan visi', 'P', '1978-04-22', 47, 'Islam', 'Jl. Merdeka No. 10', 'Jl. Merdeka No. 10', '990011', '081290990011', 'S2 Kesenian', 'Menikah', 'andini.permata@example.com', 'Budi Permata', 2, 'Tina', 'Rina', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'M'),
 (12, 'M-002', '300002', 'e10adc3949ba59abbe56e057f20f883e', 'Sie, Vincent Peter S.', 'SMA', 'Keuangan', 'Tetap', '2008-07-01', 16, 7, 16.67, 'Mengelola keuangan dengan transparansi', 'L', '1965-06-21', 60, 'Islam', 'Jl. Pendidikan No. 9', 'Jl. Pendidikan No. 9', '112233', '081298112233', 'S2 Teknologi Informasi', 'Menikah', 'joko.widodo@example.com', 'Iriana Widodo', 3, 'Gibran', 'Khalifah', 'Puan', 5, 'Level 4', 7000000.00, 'default.jpg', 'M'),
-(13, 'M-003', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Sari Utami', 'SMK', 'SDM', 'Tetap', '2012-11-11', 12, 3, 12.25, 'Mengelola SDM dengan profesionalisme', 'P', '1982-02-28', 43, 'Kristen', 'Jl. Simpang Lima No. 5', 'Jl. Simpang Lima No. 5', '445577', '081298445577', 'S1 Akuntansi', 'Menikah', 'sari.utami@example.com', 'Agus Utomo', 2, 'Dina', 'Rini', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'M'),
+(13, 'M-003', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Sari Utami', 'SMK', 'SDM', 'Tetap', '2012-11-11', 12, 3, 12.33, 'Mengelola SDM dengan profesionalisme', 'P', '1982-02-28', 43, 'Kristen', 'Jl. Simpang Lima No. 5', 'Jl. Simpang Lima No. 5', '445577', '081298445577', 'S1 Akuntansi', 'Menikah', 'sari.utami@example.com', 'Agus Utomo', 2, 'Dina', 'Rini', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'M'),
 (14, 'M-004', '300004', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hartono', 'SMA', 'Superadmin', 'Tetap', '2010-01-01', 15, 0, 15.17, 'Administrator sistem IT sekolah', 'L', '1970-12-12', 54, 'Islam', 'Jl. Veteran No. 3', 'Jl. Veteran No. 3', '556644', '081298556644', '', 'Menikah', 'rudi.hartono@example.com', '', 0, '', '', '', 5, 'Level 3', 7000000.00, 'default.jpg', 'M');
 
 -- --------------------------------------------------------
@@ -326,7 +326,63 @@ INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_
 (676, '300001', 'Login', 'Pengguna dengan NIP \'300001\' berhasil login sebagai kepala_sekolah.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 04:57:39'),
 (677, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai superadmin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 06:33:21'),
 (678, '300001', 'Login', 'Pengguna dengan NIP \'300001\' berhasil login sebagai M dengan job_title \'Kepala Sekolah\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 06:54:22'),
-(679, '300002', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login sebagai M dengan job_title \'Keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 07:26:06');
+(679, '300002', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login sebagai M dengan job_title \'Keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-13 07:26:06'),
+(680, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai M dengan job_title \'Superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 01:26:47'),
+(681, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 01:34:37'),
+(682, '300002', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login sebagai M dengan job_title \'Keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 01:34:57'),
+(683, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 01:34:59'),
+(684, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 01:50:56'),
+(685, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:15:55'),
+(686, '300002', 'SelectPayrollMonth', 'User dengan NIP 300002 memilih bulan payroll: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:15:58'),
+(687, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:15:58'),
+(688, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:17:00'),
+(689, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:17:05'),
+(690, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:17:11'),
+(691, '300003', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login sebagai M dengan job_title \'SDM\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:17:35'),
+(692, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:34:21'),
+(693, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:34:23'),
+(694, '100001', 'Login', 'Pengguna dengan NIP \'100001\' berhasil login sebagai guru.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:41:41'),
+(695, '100001', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 02:41:41'),
+(696, '100001', 'Login', 'Pengguna dengan NIP \'100001\' berhasil login sebagai guru.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 03:30:51'),
+(697, '100001', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 03:30:51'),
+(698, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 04:12:19'),
+(699, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 04:12:21'),
+(700, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 04:12:22'),
+(701, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 05:00:21'),
+(702, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:17:16'),
+(703, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:18:30'),
+(704, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:18:34'),
+(705, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:18:40');
+INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
+(706, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:18:44'),
+(707, '300002', 'SelectPayrollMonth', 'User dengan NIP 300002 memilih bulan payroll: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:18:44'),
+(708, '300002', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 13 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:18:45'),
+(709, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login sebagai M dengan job_title \'Superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:20:57'),
+(710, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 13 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:21:36'),
+(711, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 13 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:22:10'),
+(712, '100001', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:41:19'),
+(713, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 12 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:52:44'),
+(714, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 13 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:52:51'),
+(715, '300004', 'ProcessPayroll', 'SDM memproses payroll => draft, anggota ID = 13, oleh 300004.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:52:55'),
+(716, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:01'),
+(717, '300004', 'SelectPayrollMonth', 'User dengan NIP 300004 memilih bulan payroll: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:04'),
+(718, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:04'),
+(719, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 13 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:06'),
+(720, '300004', 'InsertPayroll', 'Finalisasi Payroll untuk Anggota 13 periode 2-2025. Pendapatan: Rp 0,00, Potongan: Rp 150.000,00, Gaji Bersih: Rp 11.850.000,00', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:13'),
+(721, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 12 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:34'),
+(722, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 12 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:39'),
+(723, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 11 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:43'),
+(724, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 11 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:46'),
+(725, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 11 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:50'),
+(726, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 11 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:53'),
+(727, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 11 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:53:57'),
+(728, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 11 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:54:01'),
+(729, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 11 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 06:55:18'),
+(730, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 11 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 07:01:49'),
+(731, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 3/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 07:11:04'),
+(732, '300004', 'SelectPayrollMonth', 'User dengan NIP 300004 memilih bulan payroll: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 07:11:08'),
+(733, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 2/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 07:11:08'),
+(734, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 8 pada bulan 2 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-14 07:11:09');
 
 -- --------------------------------------------------------
 
@@ -515,6 +571,7 @@ CREATE TABLE `payroll` (
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
+  `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT 0.00,
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `tgl_payroll` datetime NOT NULL DEFAULT current_timestamp(),
@@ -527,50 +584,52 @@ CREATE TABLE `payroll` (
 -- Dumping data for table `payroll`
 --
 
-INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
-(1, 1, NULL, 2, 2025, 4500000.00, 600000.00, 300000.00, 4800000.00, '2025-02-28 03:00:00', '2025-02-28 09:50:00', '1234567890', 'Gaji Februari Final', 'final'),
-(2, 2, NULL, 2, 2025, 4800000.00, 700000.00, 350000.00, 5150000.00, '2025-02-28 03:05:00', '2025-02-28 10:00:00', '0987654321', 'Gaji Februari Draft', 'draft'),
-(3, 3, NULL, 2, 2025, 5200000.00, 800000.00, 400000.00, 5600000.00, '2025-02-28 03:10:00', '2025-02-28 10:05:00', '1122334455', 'Gaji Februari Revisi', 'revisi'),
-(4, 4, NULL, 2, 2025, 4700000.00, 500000.00, 200000.00, 5000000.00, '2025-02-28 03:15:00', '2025-02-28 10:10:00', '2233445566', 'Gaji Februari Final', 'final'),
-(5, 5, NULL, 2, 2025, 4400000.00, 400000.00, 250000.00, 4550000.00, '2025-02-28 03:20:00', '2025-02-28 10:15:00', '3344556677', 'Gaji Februari Draft', 'draft'),
-(6, 6, NULL, 2, 2025, 4600000.00, 350000.00, 150000.00, 4800000.00, '2025-02-28 03:25:00', '2025-02-28 10:20:00', '4455667788', 'Gaji Februari Final', 'final'),
-(7, 7, NULL, 2, 2025, 4800000.00, 600000.00, 300000.00, 5100000.00, '2025-02-28 03:30:00', '2025-02-28 10:25:00', '5566778899', 'Gaji Februari Revisi', 'revisi'),
-(8, 8, NULL, 2, 2025, 4000000.00, 450000.00, 250000.00, 4200000.00, '2025-02-28 03:35:00', '2025-02-28 10:30:00', '6677889900', 'Gaji Februari Draft', 'draft'),
-(9, 9, NULL, 2, 2025, 4200000.00, 500000.00, 200000.00, 4500000.00, '2025-02-28 03:40:00', '2025-02-28 10:35:00', '7788990011', 'Gaji Februari Final', 'final'),
-(10, 10, NULL, 2, 2025, 3800000.00, 300000.00, 150000.00, 3950000.00, '2025-02-28 03:45:00', '2025-02-28 10:40:00', '8899001122', 'Gaji Februari Draft', 'draft'),
-(11, 11, NULL, 2, 2025, 7500000.00, 900000.00, 400000.00, 8000000.00, '2025-02-28 03:50:00', '2025-02-28 10:45:00', '9900112233', 'Gaji Februari Revisi', 'revisi'),
-(12, 12, NULL, 2, 2025, 14000000.00, 1200000.00, 600000.00, 14600000.00, '2025-02-28 03:55:00', '2025-02-28 10:50:00', '1122334455', 'Gaji Februari Final', 'final'),
-(13, 13, NULL, 2, 2025, 12300000.00, 1100000.00, 500000.00, 12900000.00, '2025-02-28 04:00:00', '2025-02-28 10:55:00', '4455667788', 'Gaji Februari Draft', 'draft'),
-(14, 14, NULL, 2, 2025, 14500000.00, 1500000.00, 700000.00, 15300000.00, '2025-02-28 04:05:00', '2025-02-28 11:00:00', '5566778899', 'Gaji Februari Final', 'final'),
-(18, 11, NULL, 2, 2025, 12500000.00, 900000.00, 400000.00, 13000000.00, '2025-02-23 08:18:13', '2025-02-23 15:18:13', '990011', '', 'draft'),
-(19, 7, NULL, 2, 2025, 8800000.00, 600000.00, 300000.00, 9100000.00, '2025-02-23 08:26:44', '2025-02-23 15:26:44', '334455', '', 'draft'),
-(20, 11, NULL, 1, 2025, 12500000.00, 1000000.00, 400000.00, 13100000.00, '2025-02-23 14:32:17', '2025-02-23 21:32:17', '990011', '', 'draft'),
-(21, 12, NULL, 5, 2025, 14000000.00, 400000.00, 375000.00, 14025000.00, '2025-03-08 05:41:13', '2025-03-08 12:41:13', '112233', '', 'draft'),
-(23, 12, 12, 5, 2025, 14000000.00, 100000.00, 375000.00, 13725000.00, '2025-03-08 05:45:45', '2025-03-08 12:41:00', '112233', '', 'final'),
-(24, 12, NULL, 5, 2025, 14000000.00, 400000.00, 375000.00, 14025000.00, '2025-03-08 06:36:03', '2025-03-08 13:36:03', '112233', '', 'draft'),
-(25, 11, NULL, 5, 2025, 12000000.00, 200000.00, 0.00, 12200000.00, '2025-03-08 06:36:32', '2025-03-08 13:36:32', '990011', '', 'draft'),
-(27, 11, 13, 5, 2025, 12000000.00, 0.00, 0.00, 12000000.00, '2025-03-08 06:37:54', '2025-03-08 13:36:00', '990011', '', 'final'),
-(28, 14, NULL, 5, 2025, 14000000.00, 150000.00, 300000.00, 13850000.00, '2025-03-08 06:46:45', '2025-03-08 13:46:45', '556644', '', 'revisi'),
-(29, 14, NULL, 5, 2025, 14000000.00, 150000.00, 300000.00, 13850000.00, '2025-03-08 06:47:08', '2025-03-08 13:47:08', '556644', '', 'draft'),
-(30, 14, 14, 5, 2025, 14000000.00, 150000.00, 0.00, 14150000.00, '2025-03-08 06:47:19', '2025-03-08 13:47:00', '556644', '', 'final'),
-(31, 13, NULL, 5, 2025, 12000000.00, 0.00, 0.00, 12000000.00, '2025-03-08 08:19:44', '2025-03-08 15:19:44', '445577', '', 'revisi'),
-(32, 13, NULL, 5, 2025, 12000000.00, 0.00, 0.00, 12000000.00, '2025-03-08 08:20:01', '2025-03-08 15:20:01', '445577', '', 'draft'),
-(33, 13, 15, 5, 2025, 12000000.00, 0.00, 150000.00, 11850000.00, '2025-03-08 08:20:11', '2025-03-08 15:20:00', '445577', '', 'final'),
-(34, 10, NULL, 5, 2025, 8000000.00, 0.00, 550000.00, 7450000.00, '2025-03-08 08:24:00', '2025-03-08 15:24:00', '889900', '', 'final'),
-(35, 9, NULL, 5, 2025, 10000000.00, 0.00, 0.00, 10000000.00, '2025-03-08 08:27:34', '2025-03-08 15:27:34', '778899', '', 'draft'),
-(36, 9, 16, 5, 2025, 0.00, 0.00, 0.00, 0.00, '2025-03-08 08:27:46', '0000-00-00 00:00:00', '', '', 'final'),
-(37, 8, NULL, 5, 2025, 6000000.00, 0.00, 0.00, 6000000.00, '2025-03-08 08:43:22', '2025-03-08 15:43:22', '556677', '', 'draft'),
-(38, 8, 17, 5, 2025, 0.00, 0.00, 0.00, 0.00, '2025-03-08 08:43:38', '0000-00-00 00:00:00', '', '', 'final'),
-(39, 7, NULL, 5, 2025, 10000000.00, 0.00, 0.00, 10000000.00, '2025-03-08 08:44:42', '2025-03-08 15:44:42', '334455', '', 'draft'),
-(40, 7, 18, 5, 2025, 0.00, 0.00, 0.00, 0.00, '2025-03-08 08:44:51', '0000-00-00 00:00:00', '', '', 'final'),
-(41, 6, NULL, 5, 2025, 10000000.00, 0.00, 0.00, 10000000.00, '2025-03-08 08:47:44', '2025-03-08 15:47:44', '223344', '', 'draft'),
-(42, 6, 19, 5, 2025, 0.00, 0.00, 0.00, 0.00, '2025-03-08 08:47:56', '0000-00-00 00:00:00', '', '', 'final'),
-(43, 5, NULL, 5, 2025, 10000000.00, 0.00, 0.00, 10000000.00, '2025-03-08 08:57:39', '2025-03-08 15:57:39', '667788', '', 'draft'),
-(44, 14, NULL, 3, 2025, 14000000.00, 0.00, 0.00, 14000000.00, '2025-03-08 09:15:33', '2025-03-08 16:15:33', '556644', '', 'draft'),
-(45, 14, 20, 3, 2025, 14000000.00, 150000.00, 0.00, 14150000.00, '2025-03-08 09:19:08', '2025-03-08 16:19:00', '556644', '', 'final'),
-(46, 13, NULL, 3, 2025, 12000000.00, 0.00, 0.00, 12000000.00, '2025-03-09 04:22:15', '2025-03-09 11:22:15', '445577', '', 'draft'),
-(47, 13, 21, 3, 2025, 12000000.00, 0.00, 150000.00, 11850000.00, '2025-03-09 04:32:39', '2025-03-09 11:32:00', '445577', '', 'final'),
-(48, 13, NULL, 2, 2025, 12000000.00, 0.00, 0.00, 12000000.00, '2025-03-10 03:28:41', '2025-03-10 10:28:41', '445577', '', 'draft');
+INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
+(1, 1, NULL, 2, 2025, 4500000.00, 600000.00, 300000.00, 0.00, 4800000.00, '2025-02-28 03:00:00', '2025-02-28 09:50:00', '1234567890', 'Gaji Februari Final', 'final'),
+(2, 2, NULL, 2, 2025, 4800000.00, 700000.00, 350000.00, 0.00, 5150000.00, '2025-02-28 03:05:00', '2025-02-28 10:00:00', '0987654321', 'Gaji Februari Draft', 'draft'),
+(3, 3, NULL, 2, 2025, 5200000.00, 800000.00, 400000.00, 0.00, 5600000.00, '2025-02-28 03:10:00', '2025-02-28 10:05:00', '1122334455', 'Gaji Februari Revisi', 'revisi'),
+(4, 4, NULL, 2, 2025, 4700000.00, 500000.00, 200000.00, 0.00, 5000000.00, '2025-02-28 03:15:00', '2025-02-28 10:10:00', '2233445566', 'Gaji Februari Final', 'final'),
+(5, 5, NULL, 2, 2025, 4400000.00, 400000.00, 250000.00, 0.00, 4550000.00, '2025-02-28 03:20:00', '2025-02-28 10:15:00', '3344556677', 'Gaji Februari Draft', 'draft'),
+(6, 6, NULL, 2, 2025, 4600000.00, 350000.00, 150000.00, 0.00, 4800000.00, '2025-02-28 03:25:00', '2025-02-28 10:20:00', '4455667788', 'Gaji Februari Final', 'final'),
+(7, 7, NULL, 2, 2025, 4800000.00, 600000.00, 300000.00, 0.00, 5100000.00, '2025-02-28 03:30:00', '2025-02-28 10:25:00', '5566778899', 'Gaji Februari Revisi', 'revisi'),
+(8, 8, NULL, 2, 2025, 4000000.00, 450000.00, 250000.00, 0.00, 4200000.00, '2025-02-28 03:35:00', '2025-02-28 10:30:00', '6677889900', 'Gaji Februari Draft', 'draft'),
+(9, 9, NULL, 2, 2025, 4200000.00, 500000.00, 200000.00, 0.00, 4500000.00, '2025-02-28 03:40:00', '2025-02-28 10:35:00', '7788990011', 'Gaji Februari Final', 'final'),
+(10, 10, NULL, 2, 2025, 3800000.00, 300000.00, 150000.00, 0.00, 3950000.00, '2025-02-28 03:45:00', '2025-02-28 10:40:00', '8899001122', 'Gaji Februari Draft', 'draft'),
+(11, 11, NULL, 2, 2025, 7500000.00, 900000.00, 400000.00, 0.00, 8000000.00, '2025-02-28 03:50:00', '2025-02-28 10:45:00', '9900112233', 'Gaji Februari Revisi', 'revisi'),
+(12, 12, NULL, 2, 2025, 14000000.00, 1200000.00, 600000.00, 0.00, 14600000.00, '2025-02-28 03:55:00', '2025-02-28 10:50:00', '1122334455', 'Gaji Februari Final', 'final'),
+(13, 13, NULL, 2, 2025, 12300000.00, 1100000.00, 500000.00, 0.00, 12900000.00, '2025-02-28 04:00:00', '2025-02-28 10:55:00', '4455667788', 'Gaji Februari Draft', 'draft'),
+(14, 14, NULL, 2, 2025, 14500000.00, 1500000.00, 700000.00, 0.00, 15300000.00, '2025-02-28 04:05:00', '2025-02-28 11:00:00', '5566778899', 'Gaji Februari Final', 'final'),
+(18, 11, NULL, 2, 2025, 12500000.00, 900000.00, 400000.00, 0.00, 13000000.00, '2025-02-23 08:18:13', '2025-02-23 15:18:13', '990011', '', 'draft'),
+(19, 7, NULL, 2, 2025, 8800000.00, 600000.00, 300000.00, 0.00, 9100000.00, '2025-02-23 08:26:44', '2025-02-23 15:26:44', '334455', '', 'draft'),
+(20, 11, NULL, 1, 2025, 12500000.00, 1000000.00, 400000.00, 0.00, 13100000.00, '2025-02-23 14:32:17', '2025-02-23 21:32:17', '990011', '', 'draft'),
+(21, 12, NULL, 5, 2025, 14000000.00, 400000.00, 375000.00, 0.00, 14025000.00, '2025-03-08 05:41:13', '2025-03-08 12:41:13', '112233', '', 'draft'),
+(23, 12, 12, 5, 2025, 14000000.00, 100000.00, 375000.00, 0.00, 13725000.00, '2025-03-08 05:45:45', '2025-03-08 12:41:00', '112233', '', 'final'),
+(24, 12, NULL, 5, 2025, 14000000.00, 400000.00, 375000.00, 0.00, 14025000.00, '2025-03-08 06:36:03', '2025-03-08 13:36:03', '112233', '', 'draft'),
+(25, 11, NULL, 5, 2025, 12000000.00, 200000.00, 0.00, 0.00, 12200000.00, '2025-03-08 06:36:32', '2025-03-08 13:36:32', '990011', '', 'draft'),
+(27, 11, 13, 5, 2025, 12000000.00, 0.00, 0.00, 0.00, 12000000.00, '2025-03-08 06:37:54', '2025-03-08 13:36:00', '990011', '', 'final'),
+(28, 14, NULL, 5, 2025, 14000000.00, 150000.00, 300000.00, 0.00, 13850000.00, '2025-03-08 06:46:45', '2025-03-08 13:46:45', '556644', '', 'revisi'),
+(29, 14, NULL, 5, 2025, 14000000.00, 150000.00, 300000.00, 0.00, 13850000.00, '2025-03-08 06:47:08', '2025-03-08 13:47:08', '556644', '', 'draft'),
+(30, 14, 14, 5, 2025, 14000000.00, 150000.00, 0.00, 0.00, 14150000.00, '2025-03-08 06:47:19', '2025-03-08 13:47:00', '556644', '', 'final'),
+(31, 13, NULL, 5, 2025, 12000000.00, 0.00, 0.00, 0.00, 12000000.00, '2025-03-08 08:19:44', '2025-03-08 15:19:44', '445577', '', 'revisi'),
+(32, 13, NULL, 5, 2025, 12000000.00, 0.00, 0.00, 0.00, 12000000.00, '2025-03-08 08:20:01', '2025-03-08 15:20:01', '445577', '', 'draft'),
+(33, 13, 15, 5, 2025, 12000000.00, 0.00, 150000.00, 0.00, 11850000.00, '2025-03-08 08:20:11', '2025-03-08 15:20:00', '445577', '', 'final'),
+(34, 10, NULL, 5, 2025, 8000000.00, 0.00, 550000.00, 0.00, 7450000.00, '2025-03-08 08:24:00', '2025-03-08 15:24:00', '889900', '', 'final'),
+(35, 9, NULL, 5, 2025, 10000000.00, 0.00, 0.00, 0.00, 10000000.00, '2025-03-08 08:27:34', '2025-03-08 15:27:34', '778899', '', 'draft'),
+(36, 9, 16, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, '2025-03-08 08:27:46', '0000-00-00 00:00:00', '', '', 'final'),
+(37, 8, NULL, 5, 2025, 6000000.00, 0.00, 0.00, 0.00, 6000000.00, '2025-03-08 08:43:22', '2025-03-08 15:43:22', '556677', '', 'draft'),
+(38, 8, 17, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, '2025-03-08 08:43:38', '0000-00-00 00:00:00', '', '', 'final'),
+(39, 7, NULL, 5, 2025, 10000000.00, 0.00, 0.00, 0.00, 10000000.00, '2025-03-08 08:44:42', '2025-03-08 15:44:42', '334455', '', 'draft'),
+(40, 7, 18, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, '2025-03-08 08:44:51', '0000-00-00 00:00:00', '', '', 'final'),
+(41, 6, NULL, 5, 2025, 10000000.00, 0.00, 0.00, 0.00, 10000000.00, '2025-03-08 08:47:44', '2025-03-08 15:47:44', '223344', '', 'draft'),
+(42, 6, 19, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, '2025-03-08 08:47:56', '0000-00-00 00:00:00', '', '', 'final'),
+(43, 5, NULL, 5, 2025, 10000000.00, 0.00, 0.00, 0.00, 10000000.00, '2025-03-08 08:57:39', '2025-03-08 15:57:39', '667788', '', 'draft'),
+(44, 14, NULL, 3, 2025, 14000000.00, 0.00, 0.00, 0.00, 14000000.00, '2025-03-08 09:15:33', '2025-03-08 16:15:33', '556644', '', 'draft'),
+(45, 14, 20, 3, 2025, 14000000.00, 150000.00, 0.00, 0.00, 14150000.00, '2025-03-08 09:19:08', '2025-03-08 16:19:00', '556644', '', 'final'),
+(46, 13, NULL, 3, 2025, 12000000.00, 0.00, 0.00, 0.00, 12000000.00, '2025-03-09 04:22:15', '2025-03-09 11:22:15', '445577', '', 'draft'),
+(47, 13, 21, 3, 2025, 12000000.00, 0.00, 150000.00, 0.00, 11850000.00, '2025-03-09 04:32:39', '2025-03-09 11:32:00', '445577', '', 'final'),
+(48, 13, NULL, 2, 2025, 12000000.00, 0.00, 0.00, 0.00, 12000000.00, '2025-03-10 03:28:41', '2025-03-10 10:28:41', '445577', '', 'draft'),
+(49, 13, NULL, 2, 2025, 12000000.00, 0.00, 0.00, 0.00, 12000000.00, '2025-03-14 06:52:55', '2025-03-14 13:52:55', '445577', '', 'draft'),
+(50, 13, 8, 2, 2025, 12000000.00, 0.00, 150000.00, 0.00, 11850000.00, '2025-03-14 06:53:13', '2025-03-14 13:53:00', '445577', '', 'final');
 
 -- --------------------------------------------------------
 
@@ -633,7 +692,9 @@ INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_payhead`, `jenis`, `amount
 (45, 45, 5, 'deductions', 300000.00),
 (46, 45, 1, 'earnings', 150000.00),
 (47, 47, 3, 'earnings', 200000.00),
-(48, 47, 5, 'deductions', 150000.00);
+(48, 47, 5, 'deductions', 150000.00),
+(49, 50, 3, 'earnings', 200000.00),
+(50, 50, 5, 'deductions', 150000.00);
 
 -- --------------------------------------------------------
 
@@ -663,7 +724,8 @@ INSERT INTO `payroll_detail_final` (`id`, `id_payroll_final`, `id_payhead`, `nam
 (8, 10, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
 (9, 11, 5, 'Koperasi', 'deductions', 150000.00, 0),
 (10, 16, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
-(11, 17, 5, 'Koperasi', 'deductions', 150000.00, 0);
+(11, 17, 5, 'Koperasi', 'deductions', 150000.00, 0),
+(12, 18, 5, 'Koperasi', 'deductions', 150000.00, 0);
 
 -- --------------------------------------------------------
 
@@ -680,6 +742,7 @@ CREATE TABLE `payroll_final` (
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
+  `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT 0.00,
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
   `tgl_payroll` datetime NOT NULL,
   `no_rekening` varchar(50) DEFAULT NULL,
@@ -692,23 +755,24 @@ CREATE TABLE `payroll_final` (
 -- Dumping data for table `payroll_final`
 --
 
-INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
-(1, 1, NULL, 2, 2025, 4500000.00, 600000.00, 300000.00, 4800000.00, '2025-02-28 09:50:00', '1234567890', 'Gaji Februari Final', '2025-02-28 05:00:00', NULL),
-(2, 4, NULL, 2, 2025, 4700000.00, 500000.00, 200000.00, 5000000.00, '2025-02-28 10:10:00', '2233445566', 'Gaji Februari Final', '2025-02-28 05:05:00', NULL),
-(3, 6, NULL, 2, 2025, 4600000.00, 350000.00, 150000.00, 4800000.00, '2025-02-28 10:20:00', '4455667788', 'Gaji Februari Final', '2025-02-28 05:10:00', NULL),
-(4, 9, NULL, 2, 2025, 4200000.00, 500000.00, 200000.00, 4500000.00, '2025-02-28 10:35:00', '7788990011', 'Gaji Februari Final', '2025-02-28 05:15:00', NULL),
-(5, 12, NULL, 2, 2025, 14000000.00, 1200000.00, 600000.00, 14600000.00, '2025-02-28 10:50:00', '1122334455', 'Gaji Februari Final', '2025-02-28 05:20:00', NULL),
-(6, 14, NULL, 2, 2025, 14500000.00, 1500000.00, 700000.00, 15300000.00, '2025-02-28 11:00:00', '5566778899', 'Gaji Februari Final', '2025-02-28 05:25:00', NULL),
-(7, 12, 12, 5, 2025, 14000000.00, 100000.00, 375000.00, 13725000.00, '2025-03-08 12:41:00', '112233', '', '2025-03-08 05:45:45', 23),
-(9, 11, 13, 5, 2025, 12000000.00, 0.00, 0.00, 12000000.00, '2025-03-08 13:36:00', '990011', '', '2025-03-08 06:37:54', 27),
-(10, 14, 14, 5, 2025, 14000000.00, 150000.00, 0.00, 14150000.00, '2025-03-08 13:47:00', '556644', '', '2025-03-08 06:47:19', 30),
-(11, 13, 15, 5, 2025, 12000000.00, 0.00, 150000.00, 11850000.00, '2025-03-08 15:20:00', '445577', '', '2025-03-08 08:20:11', 33),
-(12, 9, 16, 5, 2025, 0.00, 0.00, 0.00, 0.00, '0000-00-00 00:00:00', '', '', '2025-03-08 08:27:46', 36),
-(13, 8, 17, 5, 2025, 0.00, 0.00, 0.00, 0.00, '0000-00-00 00:00:00', '', '', '2025-03-08 08:43:38', 38),
-(14, 7, 18, 5, 2025, 0.00, 0.00, 0.00, 0.00, '0000-00-00 00:00:00', '', '', '2025-03-08 08:44:51', 40),
-(15, 6, 19, 5, 2025, 0.00, 0.00, 0.00, 0.00, '0000-00-00 00:00:00', '', '', '2025-03-08 08:47:56', 42),
-(16, 14, 20, 3, 2025, 14000000.00, 150000.00, 0.00, 14150000.00, '2025-03-08 16:19:00', '556644', '', '2025-03-08 09:19:08', 45),
-(17, 13, 21, 3, 2025, 12000000.00, 0.00, 150000.00, 11850000.00, '2025-03-09 11:32:00', '445577', '', '2025-03-09 04:32:39', 47);
+INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
+(1, 1, NULL, 2, 2025, 4500000.00, 600000.00, 300000.00, 0.00, 4800000.00, '2025-02-28 09:50:00', '1234567890', 'Gaji Februari Final', '2025-02-28 05:00:00', NULL),
+(2, 4, NULL, 2, 2025, 4700000.00, 500000.00, 200000.00, 0.00, 5000000.00, '2025-02-28 10:10:00', '2233445566', 'Gaji Februari Final', '2025-02-28 05:05:00', NULL),
+(3, 6, NULL, 2, 2025, 4600000.00, 350000.00, 150000.00, 0.00, 4800000.00, '2025-02-28 10:20:00', '4455667788', 'Gaji Februari Final', '2025-02-28 05:10:00', NULL),
+(4, 9, NULL, 2, 2025, 4200000.00, 500000.00, 200000.00, 0.00, 4500000.00, '2025-02-28 10:35:00', '7788990011', 'Gaji Februari Final', '2025-02-28 05:15:00', NULL),
+(5, 12, NULL, 2, 2025, 14000000.00, 1200000.00, 600000.00, 0.00, 14600000.00, '2025-02-28 10:50:00', '1122334455', 'Gaji Februari Final', '2025-02-28 05:20:00', NULL),
+(6, 14, NULL, 2, 2025, 14500000.00, 1500000.00, 700000.00, 0.00, 15300000.00, '2025-02-28 11:00:00', '5566778899', 'Gaji Februari Final', '2025-02-28 05:25:00', NULL),
+(7, 12, 12, 5, 2025, 14000000.00, 100000.00, 375000.00, 0.00, 13725000.00, '2025-03-08 12:41:00', '112233', '', '2025-03-08 05:45:45', 23),
+(9, 11, 13, 5, 2025, 12000000.00, 0.00, 0.00, 0.00, 12000000.00, '2025-03-08 13:36:00', '990011', '', '2025-03-08 06:37:54', 27),
+(10, 14, 14, 5, 2025, 14000000.00, 150000.00, 0.00, 0.00, 14150000.00, '2025-03-08 13:47:00', '556644', '', '2025-03-08 06:47:19', 30),
+(11, 13, 15, 5, 2025, 12000000.00, 0.00, 150000.00, 0.00, 11850000.00, '2025-03-08 15:20:00', '445577', '', '2025-03-08 08:20:11', 33),
+(12, 9, 16, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, '0000-00-00 00:00:00', '', '', '2025-03-08 08:27:46', 36),
+(13, 8, 17, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, '0000-00-00 00:00:00', '', '', '2025-03-08 08:43:38', 38),
+(14, 7, 18, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, '0000-00-00 00:00:00', '', '', '2025-03-08 08:44:51', 40),
+(15, 6, 19, 5, 2025, 0.00, 0.00, 0.00, 0.00, 0.00, '0000-00-00 00:00:00', '', '', '2025-03-08 08:47:56', 42),
+(16, 14, 20, 3, 2025, 14000000.00, 150000.00, 0.00, 0.00, 14150000.00, '2025-03-08 16:19:00', '556644', '', '2025-03-08 09:19:08', 45),
+(17, 13, 21, 3, 2025, 12000000.00, 0.00, 150000.00, 0.00, 11850000.00, '2025-03-09 11:32:00', '445577', '', '2025-03-09 04:32:39', 47),
+(18, 13, 8, 2, 2025, 12000000.00, 0.00, 150000.00, 0.00, 11850000.00, '2025-03-14 13:53:00', '445577', '', '2025-03-14 06:53:13', 50);
 
 -- --------------------------------------------------------
 
@@ -784,7 +848,7 @@ INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`
 (5, 8, 2, 2025, 21, 0, 1, 2, 0),
 (6, 6, 2, 2025, 0, 0, 0, 0, 0),
 (7, 14, 2, 2025, 15, 0, 0, 0, 0),
-(8, 13, 2, 2025, 0, 0, 0, 0, 0),
+(8, 13, 2, 2025, 0, 1, 2, 0, 0),
 (9, 12, 2, 2025, 0, 0, 0, 0, 0),
 (10, 12, 1, 2025, 21, 5, 0, 0, 0),
 (11, 5, 2, 2025, 20, 0, 0, 0, 0),
@@ -987,7 +1051,7 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=680;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=735;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -1017,25 +1081,25 @@ ALTER TABLE `payheads`
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail_final`
 --
 ALTER TABLE `payroll_detail_final`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `rekap_absensi`

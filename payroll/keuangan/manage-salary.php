@@ -141,10 +141,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     $total_deductions = floatval($_POST['total_deductions'] ?? 0);
     $catatan          = sanitize_input($_POST['inputDescription'] ?? '');
     $tgl_payroll      = sanitize_input($_POST['tgl_payroll'] ?? date('Y-m-d H:i:s'));
+    
+    // === ADDED FOR POTONGAN KOPERASI ===
+    $potongan_koperasi = floatval($_POST['potongan_koperasi'] ?? 0);
 
     // Jika tidak ada payhead yang dipilih, pastikan nilai total earnings & deductions = 0
     if (!isset($_POST['payheads_ids']) || empty($_POST['payheads_ids'])) {
-        $total_earnings = 0;
+        $total_earnings   = 0;
         $total_deductions = 0;
     }
 
@@ -167,23 +170,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         }
         $stmtToFinal->close();
 
-        // 2) Hitung gaji bersih (jika tidak ada payhead, maka gaji bersih = gaji pokok)
-        $gaji_bersih = $gaji_pokok + $total_earnings - $total_deductions;
-        
+        // 2) Hitung gaji bersih => Gaji pokok + total pendapatan - total potongan - potongan koperasi
+        $gaji_bersih = $gaji_pokok + $total_earnings - $total_deductions - $potongan_koperasi;
+
         // 3) Insert data ke tabel payroll dengan status final
         $status = 'final';
         $stmtPayroll = $conn->prepare("
             INSERT INTO payroll
             (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok,
-             total_pendapatan, total_potongan, gaji_bersih,
-             no_rekening, catatan, id_rekap_absensi, status)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+             total_pendapatan, total_potongan, potongan_koperasi, 
+             gaji_bersih, no_rekening, catatan, id_rekap_absensi, status)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
         ");
+        if (!$stmtPayroll) {
+            throw new Exception("Prepare failed (insert payroll): ".$conn->error);
+        }
         $stmtPayroll->bind_param(
-            "iiisddddssis",
-            $id_anggota, $bulan_int, $tahun, $tgl_payroll,
-            $gaji_pokok, $total_earnings, $total_deductions, $gaji_bersih,
-            $no_rekening, $catatan, $id_rekap_absensi, $status
+            "iiisdddddssis",
+            $id_anggota, 
+            $bulan_int, 
+            $tahun, 
+            $tgl_payroll,
+            $gaji_pokok,
+            $total_earnings, 
+            $total_deductions, 
+            $potongan_koperasi, // potongan koperasi
+            $gaji_bersih,
+            $no_rekening,
+            $catatan,
+            $id_rekap_absensi,
+            $status
         );
         if (!$stmtPayroll->execute()) {
             throw new Exception("Gagal insert payroll: " . $stmtPayroll->error);
@@ -197,6 +213,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
                 INSERT INTO payroll_detail (id_payroll, id_payhead, jenis, amount)
                 VALUES (?,?,?,?)
             ");
+            if (!$stmtDetail) {
+                throw new Exception("Prepare failed (insert payroll_detail): ".$conn->error);
+            }
             foreach ($_POST['payheads_ids'] as $i => $ph_id) {
                 $ph_id_int = intval($ph_id);
                 $jenis  = sanitize_input($_POST['payheads_jenis'][$i] ?? '');
@@ -213,15 +232,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         $stmtPayrollFinal = $conn->prepare("
             INSERT INTO payroll_final
             (id_payroll_asal, id_anggota, bulan, tahun, tgl_payroll,
-             gaji_pokok, total_pendapatan, total_potongan, gaji_bersih,
-             no_rekening, catatan, id_rekap_absensi)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+             gaji_pokok, total_pendapatan, total_potongan, potongan_koperasi,
+             gaji_bersih, no_rekening, catatan, id_rekap_absensi)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
         ");
+        if (!$stmtPayrollFinal) {
+            throw new Exception("Prepare failed (insert payroll_final): ".$conn->error);
+        }
         $stmtPayrollFinal->bind_param(
-            "iiiisddddssi",
-            $id_payroll, $id_anggota, $bulan_int, $tahun, $tgl_payroll,
-            $gaji_pokok, $total_earnings, $total_deductions, $gaji_bersih,
-            $no_rekening, $catatan, $id_rekap_absensi
+            "iiiisdddddssi",
+            $id_payroll, 
+            $id_anggota, 
+            $bulan_int, 
+            $tahun, 
+            $tgl_payroll,
+            $gaji_pokok,
+            $total_earnings,
+            $total_deductions,
+            $potongan_koperasi, // potongan koperasi
+            $gaji_bersih,
+            $no_rekening,
+            $catatan,
+            $id_rekap_absensi
         );
         if (!$stmtPayrollFinal->execute()) {
             throw new Exception("Gagal insert payroll_final: " . $stmtPayrollFinal->error);
@@ -247,6 +279,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
             WHERE pd.id_payroll = ?
               AND IFNULL(ep.is_rapel,0) = 0
         ");
+        if (!$stmtDetailSnapshot) {
+            throw new Exception("Prepare failed (snapshot detail): ".$conn->error);
+        }
         $stmtDetailSnapshot->bind_param("iii", $id_payroll_final, $id_anggota, $id_payroll);
         if (!$stmtDetailSnapshot->execute()) {
             throw new Exception("Gagal insert payroll_detail_final: " . $stmtDetailSnapshot->error);
@@ -258,6 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         $user_nip = $_SESSION['nip'] ?? '';
         $details  = "Finalisasi Payroll untuk Anggota $id_anggota periode $bulan_int-$tahun. Pendapatan: " 
                     . formatNominal($total_earnings) . ", Potongan: " . formatNominal($total_deductions)
+                    . ", Pot. Koperasi: " . formatNominal($potongan_koperasi)
                     . ", Gaji Bersih: " . formatNominal($gaji_bersih);
         add_audit_log($conn, $user_nip, 'InsertPayroll', $details);
 
@@ -400,15 +436,16 @@ $namaKaryawan = $karyawan['nama'] ?? '';
 $noRek = $karyawan['no_rekening'] ?? '';
 $catatan = '';
 
-$user_nip = $_SESSION['nip'] ?? '';
+$user_nip   = $_SESSION['nip'] ?? '';
 $detailsLog = "Mengakses Review Payroll untuk Anggota ID $id_anggota pada bulan $bulan tahun $tahun.";
 add_audit_log($conn, $user_nip, 'ViewPayroll', $detailsLog);
 
 // Format tanggal cetak dan periode
-$timestamp = strtotime($tglPayrollParam);
-$tanggalCetak = date('d', $timestamp) . ' ' . getIndonesianMonthName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
-$periode = getIndonesianMonthName($bulan) . ' ' . $tahun;
+$timestamp     = strtotime($tglPayrollParam);
+$tanggalCetak  = date('d', $timestamp) . ' ' . getIndonesianMonthName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
+$periode       = getIndonesianMonthName($bulan) . ' ' . $tahun;
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -498,27 +535,37 @@ $periode = getIndonesianMonthName($bulan) . ' ' . $tahun;
                                 <h5 class="card-title mb-0">Perhitungan Payroll</h5>
                             </div>
                             <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="inputGajiPokok">Gaji Pokok</label>
-                                    <input type="text" id="inputGajiPokok" class="form-control currency-input"
-                                           value="<?= htmlspecialchars($gaji_pokok); ?>" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Total Pendapatan (Payheads)</label>
-                                    <input type="text" id="inputTotalEarnings" class="form-control currency-input"
-                                           value="<?= htmlspecialchars($total_earnings); ?>" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Total Potongan</label>
-                                    <input type="text" id="inputTotalDeductions" class="form-control currency-input"
-                                           value="<?= htmlspecialchars($total_deductions); ?>" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Estimasi Gaji Bersih</label>
-                                    <input type="text" id="inputNetSalary" class="form-control currency-input"
-                                           value="<?= htmlspecialchars($gaji_bersih); ?>" readonly>
-                                </div>
-                            </div>
+    <div class="mb-3">
+        <label for="inputGajiPokok">Gaji Pokok</label>
+        <input type="text" id="inputGajiPokok" class="form-control currency-input"
+               value="<?= htmlspecialchars($gaji_pokok); ?>" readonly>
+    </div>
+    <div class="mb-3">
+        <label>Total Pendapatan (Payheads)</label>
+        <input type="text" id="inputTotalEarnings" class="form-control currency-input"
+               value="<?= htmlspecialchars($total_earnings); ?>" readonly>
+    </div>
+    <div class="mb-3">
+        <label>Total Potongan</label>
+        <input type="text" id="inputTotalDeductions" class="form-control currency-input"
+               value="<?= htmlspecialchars($total_deductions); ?>" readonly>
+    </div>
+
+    <!-- Tambahkan ini -->
+    <div class="mb-3">
+        <label>Potongan Koperasi</label>
+        <input type="text" id="inputPotonganKoperasi" class="form-control currency-input"
+               value="0"
+    </div>
+    <!-- End potongan Koperasi -->
+
+    <div class="mb-3">
+        <label>Estimasi Gaji Bersih</label>
+        <input type="text" id="inputNetSalary" class="form-control currency-input"
+               value="<?= htmlspecialchars($gaji_bersih); ?>" readonly>
+    </div>
+</div>
+
                         </div>
                         <div class="card shadow mb-4">
                             <div class="card-header">
@@ -625,6 +672,8 @@ $periode = getIndonesianMonthName($bulan) . ' ' . $tahun;
                             <input type="hidden" name="gaji_pokok" id="fieldGajiPokok" value="">
                             <input type="hidden" name="total_earnings" id="fieldTotalEarnings" value="">
                             <input type="hidden" name="total_deductions" id="fieldTotalDeductions" value="">
+<input type="hidden" name="potongan_koperasi" id="fieldPotonganKoperasi" value="0">
+
                             <input type="hidden" name="inputDescription" id="fieldDescription" value="">
                             <input type="hidden" name="tgl_payroll" id="fieldTglPayroll" value="">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
@@ -724,12 +773,43 @@ $(document).ready(function() {
     });
 
     // Inisialisasi AutoNumeric untuk modal edit
-    const anEditAmount = new AutoNumeric('#edit_amount', {
+    const anEditAmount = new AutoNumeric('#edit_amount', '#inputPotonganKoperasi' , {
         digitGroupSeparator: '.',
         decimalCharacter: ',',
         decimalPlaces: 2,
         unformatOnSubmit: true
     });
+
+
+    // Pastikan sudah inisialisasi AutoNumeric di #inputPotonganKoperasi
+const anPotKop = new AutoNumeric('#inputPotonganKoperasi', {
+    digitGroupSeparator: '.',
+    decimalCharacter: ',',
+    decimalPlaces: 2,
+    unformatOnSubmit: true
+});
+
+function recalcNetSalary() {
+    // Ambil nilai dari input
+    let gajiPokok       = parseFloat(AutoNumeric.getNumber('#inputGajiPokok'))       || 0;
+    let totalEarnings   = parseFloat(AutoNumeric.getNumber('#inputTotalEarnings'))   || 0;
+    let totalDeductions = parseFloat(AutoNumeric.getNumber('#inputTotalDeductions')) || 0;
+    let potKoperasi     = parseFloat(AutoNumeric.getNumber('#inputPotonganKoperasi'))|| 0;
+
+    // Hitung
+    let netSalary = gajiPokok + totalEarnings - totalDeductions - potKoperasi;
+
+    // Set ke #inputNetSalary
+    AutoNumeric.set('#inputNetSalary', netSalary);
+}
+
+// Panggil recalc saat #inputPotonganKoperasi diubah
+$('#inputPotonganKoperasi').on('input', function(){
+    recalcNetSalary();
+});
+
+// Atau panggil recalc di awal (misalnya menyesuaikan data existing)
+recalcNetSalary();
 
     // Event: Edit Payhead
     $(document).on('click', '.btn-edit-payhead', function(){
@@ -870,13 +950,18 @@ $(document).ready(function() {
 
     // Salin nilai input tampilan ke field tersembunyi sebelum submit form finalisasi
     $('#formPayroll').on('submit', function(){
-        $('#fieldNoRek').val($('#inputNoRek').val());
-        $('#fieldGajiPokok').val($('#inputGajiPokok').val());
-        $('#fieldTotalEarnings').val($('#inputTotalEarnings').val());
-        $('#fieldTotalDeductions').val($('#inputTotalDeductions').val());
-        $('#fieldDescription').val($('#inputDescription').val());
-        $('#fieldTglPayroll').val($('#inputTanggalPayroll').val());
-    });
+    $('#fieldNoRek').val($('#inputNoRek').val());
+    $('#fieldGajiPokok').val($('#inputGajiPokok').val());
+    $('#fieldTotalEarnings').val($('#inputTotalEarnings').val());
+    $('#fieldTotalDeductions').val($('#inputTotalDeductions').val());
+    $('#fieldDescription').val($('#inputDescription').val());
+    $('#fieldTglPayroll').val($('#inputTanggalPayroll').val());
+
+    // Ambil potongan koperasi
+    let potKoperasiNum = anPotKop.getNumber(); 
+    $('#fieldPotonganKoperasi').val(potKoperasiNum); 
+});
+
 });
 </script>
 </body>
