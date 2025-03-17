@@ -1,219 +1,203 @@
 <?php
 // File: /payroll_absensi_v2/absensi/sdm/notifikasi_sdm.php
 
-require_once __DIR__ . '/../../koneksi.php';    // Pastikan path koneksi sesuai
-require_once __DIR__ . '/../../helpers.php';     // Pastikan path helpers sesuai
+require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../../koneksi.php';
 
 start_session_safe();
 
-// Hanya untuk user tertentu, misalnya sdm / superadmin
-authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+// Hanya SDM atau Superadmin
+authorize(['M:sdm', 'M:superadmin'], '/payroll_absensi_v2/login.php');
 
-// Inisialisasi variabel filter
-$filterMonth = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : date('n');
-$filterYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date('Y');
+$currentDay   = (int) date('d');
+$currentMonth = (int) date('n');
+$currentYear  = (int) date('Y');
+$sdmNotifications = [];
 
-// Query: Ambil data anggota yang belum final di payroll_final,
-// dikelompokkan berdasarkan jenjang, dan hitung total per role
-$sql = "
-    SELECT 
-        a.jenjang,
-        SUM(CASE WHEN a.role = 'P'  THEN 1 ELSE 0 END) AS p_count,
-        SUM(CASE WHEN a.role = 'TK' THEN 1 ELSE 0 END) AS tk_count,
-        SUM(CASE WHEN a.role = 'M'  THEN 1 ELSE 0 END) AS m_count
-    FROM anggota_sekolah a
-    WHERE a.id NOT IN (
-        SELECT pf.id_anggota 
-        FROM payroll_final pf
-        WHERE pf.bulan = ? AND pf.tahun = ?
-    )
-    GROUP BY a.jenjang
-    ORDER BY a.jenjang ASC
+/** Fungsi bantu */
+function getIndonesianMonthName($m) {
+    $arr = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',
+            7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+    return $arr[$m] ?? $m;
+}
+
+// --- A) Pengajuan Izin Pending ---
+$sqlIzinBaru = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE status = 'Pending'";
+$stmtIzinBaru = $conn->prepare($sqlIzinBaru);
+if ($stmtIzinBaru) {
+    $stmtIzinBaru->execute();
+    $resIzinBaru = $stmtIzinBaru->get_result();
+    $rowIzinBaru = $resIzinBaru->fetch_assoc();
+    $stmtIzinBaru->close();
+    $izinBaru = intval($rowIzinBaru['cnt'] ?? 0);
+    if ($izinBaru > 0) {
+        $sdmNotifications[] = [
+            'title'   => 'Pengajuan Izin Pending',
+            'message' => "Terdapat {$izinBaru} pengajuan izin (guru/karyawan) berstatus Pending.",
+            'icon'    => 'fas fa-user-clock text-primary'
+        ];
+    }
+}
+
+// --- B) Karyawan Baru Belum Update ---
+$sqlKaryawanBaru = "
+    SELECT COUNT(*) AS cnt
+    FROM anggota_sekolah
+    WHERE join_start >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+      AND salary_index_id IS NULL
 ";
+$stmtKaryawanBaru = $conn->prepare($sqlKaryawanBaru);
+if ($stmtKaryawanBaru) {
+    $stmtKaryawanBaru->execute();
+    $resKaryawanBaru = $stmtKaryawanBaru->get_result();
+    $rowKaryawanBaru = $resKaryawanBaru->fetch_assoc();
+    $stmtKaryawanBaru->close();
+    $baruCount = intval($rowKaryawanBaru['cnt'] ?? 0);
+    if ($baruCount > 0) {
+        $sdmNotifications[] = [
+            'title'   => 'Karyawan Baru Belum Diupdate',
+            'message' => "Ada {$baruCount} karyawan baru (7 hari terakhir) tanpa update salary.",
+            'icon'    => 'fas fa-user-plus text-warning'
+        ];
+    }
+}
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("ii", $filterMonth, $filterYear);
-$stmt->execute();
-$res = $stmt->get_result();
-$groupedData = $res->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+// --- C) Ketidakhadiran Berulang (tanpa keterangan) ---
+$sqlBolos = "
+    SELECT COUNT(DISTINCT tanggal) AS cnt
+    FROM absensi
+    WHERE nip IN (
+        SELECT nip FROM anggota_sekolah WHERE role IN ('P','TK')
+    )
+      AND status_kehadiran = 'tanpa_keterangan'
+      AND MONTH(tanggal) = ?
+      AND YEAR(tanggal)  = ?
+";
+$stmtBolos = $conn->prepare($sqlBolos);
+if ($stmtBolos) {
+    $stmtBolos->bind_param("ii", $currentMonth, $currentYear);
+    $stmtBolos->execute();
+    $resBolos = $stmtBolos->get_result();
+    $rowBolos = $resBolos->fetch_assoc();
+    $stmtBolos->close();
+    $bolosCount = intval($rowBolos['cnt'] ?? 0);
+    if ($bolosCount >= 3) {
+        $sdmNotifications[] = [
+            'title'   => 'Ketidakhadiran Berulang',
+            'message' => "Terdapat {$bolosCount} hari dengan absensi tanpa keterangan.",
+            'icon'    => 'fas fa-user-times text-danger'
+        ];
+    }
+}
 
-// Untuk tampilan judul filter
-$monthName = getIndonesianMonthName($filterMonth);
+// --- D) Payroll Belum Final (mirip Bagian 5 & 6 di notifikasi) ---
+if ($currentDay >= 24) {
+    if ($currentMonth == 12) {
+        $targetMonth = 1;
+        $targetYear  = $currentYear + 1;
+    } else {
+        $targetMonth = $currentMonth + 1;
+        $targetYear  = $currentYear;
+    }
+} else {
+    $targetMonth = $currentMonth;
+    $targetYear  = $currentYear;
+}
+$sqlSdm = "
+    SELECT COUNT(*) AS pending
+    FROM anggota_sekolah
+    WHERE id NOT IN (
+        SELECT id_anggota FROM payroll_final
+        WHERE bulan = ? AND tahun = ?
+    )
+";
+$stmtSdm = $conn->prepare($sqlSdm);
+if ($stmtSdm) {
+    $stmtSdm->bind_param("ii", $targetMonth, $targetYear);
+    $stmtSdm->execute();
+    $resSdm = $stmtSdm->get_result();
+    $rowSdm = $resSdm->fetch_assoc();
+    $stmtSdm->close();
+    $pendingCountSdm = intval($rowSdm['pending'] ?? 0);
+    if ($pendingCountSdm > 0) {
+        $monthName = getIndonesianMonthName($targetMonth);
+        $sdmNotifications[] = [
+            'title'   => 'Payroll Belum Final',
+            'message' => "Payroll bulan {$monthName} - {$targetYear}: {$pendingCountSdm} anggota belum final.",
+            'icon'    => 'fas fa-money-check-alt text-info'
+        ];
+    }
+}
+
+// --- E) Absensi Invalid (valid=0) hari ini ---
+$sqlKoreksi = "SELECT COUNT(*) AS cnt FROM absensi WHERE valid = 0 AND tanggal = CURDATE()";
+$stmtKoreksi = $conn->prepare($sqlKoreksi);
+if ($stmtKoreksi) {
+    $stmtKoreksi->execute();
+    $resKoreksi = $stmtKoreksi->get_result();
+    $rowKoreksi = $resKoreksi->fetch_assoc();
+    $stmtKoreksi->close();
+    $pendingKoreksi = intval($rowKoreksi['cnt'] ?? 0);
+    if ($pendingKoreksi > 0) {
+        $sdmNotifications[] = [
+            'title'   => 'Absensi Belum Valid',
+            'message' => "Ada {$pendingKoreksi} data absensi hari ini yang perlu koreksi (valid=0).",
+            'icon'    => 'fas fa-exclamation-circle text-danger'
+        ];
+    }
+}
+
+// --- F) Deadline Finalisasi Payroll (sisa <= 3 hari di bulan ini)
+$lastDayOfMonth = (int) date("t");
+$daysLeft = $lastDayOfMonth - $currentDay;
+if ($daysLeft <= 3 && $daysLeft >= 0) {
+    $sdmNotifications[] = [
+        'title'   => 'Deadline Finalisasi Payroll',
+        'message' => "Sisa {$daysLeft} hari sampai akhir bulan. Harap finalisasi payroll segera!",
+        'icon'    => 'fas fa-hourglass-half text-warning'
+    ];
+}
+
+$conn->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Alert Center</title>
+  <title>Notifikasi SDM</title>
   <!-- SB Admin 2 + Bootstrap 5.3.3 CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
 <body id="page-top">
 
-  <!-- Page Wrapper -->
-  <div id="wrapper">
+<div class="container my-4">
+  <h1 class="h3 mb-4 text-gray-800">
+    <i class="fas fa-bell"></i> Notifikasi SDM
+  </h1>
 
-    <!-- Sidebar -->
-    <?php include __DIR__ . '/../../sidebar.php'; ?>
-    <!-- End of Sidebar -->
-
-    <!-- Content Wrapper -->
-    <div id="content-wrapper" class="d-flex flex-column">
-    <?php 
-                // Jika punya breadcrumb.php, sertakan
-                include __DIR__ . '/../../breadcrumb.php'; 
-                ?>
-      <!-- Main Content -->
-      <div id="content">
-
-
-        <!-- Begin Page Content -->
-        <div class="container-fluid">
-
-          <!-- Page Heading -->
-          <h1 class="h3 mb-4 text-gray-800">
-            <i class="fas fa-bell"></i> Alert Center
-          </h1>
-
-          <!-- Card Filter -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <i class="bi bi-funnel-fill"></i> Filter Alerts
-            </div>
-            <div class="card-body">
-              <form method="GET" class="row g-3 align-items-end">
-                <div class="col-auto">
-                  <label for="filterMonth" class="form-label fw-bold">Bulan</label>
-                  <select name="filterMonth" id="filterMonth" class="form-select">
-                    <?php
-                    // Tampilkan opsi bulan 1-12
-                    for ($m=1; $m<=12; $m++):
-                      $selected = ($m == $filterMonth) ? 'selected' : '';
-                      echo "<option value='{$m}' {$selected}>" . getIndonesianMonthName($m) . "</option>";
-                    endfor;
-                    ?>
-                  </select>
-                </div>
-                <div class="col-auto">
-                  <label for="filterYear" class="form-label fw-bold">Tahun</label>
-                  <select name="filterYear" id="filterYear" class="form-select">
-                    <?php
-                    // Tampilkan range tahun -2 hingga +2 dari tahun berjalan
-                    $currentY = date('Y');
-                    for ($y = $currentY - 2; $y <= $currentY + 2; $y++):
-                      $selected = ($y == $filterYear) ? 'selected' : '';
-                      echo "<option value='{$y}' {$selected}>{$y}</option>";
-                    endfor;
-                    ?>
-                  </select>
-                </div>
-                <div class="col-auto">
-                  <button type="submit" class="btn btn-primary mt-2">
-                    <i class="fas fa-filter"></i> Terapkan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-          <!-- End Card Filter -->
-
-          <!-- Info Periode -->
-          <div class="alert alert-info">
-            <strong>Periode:</strong> <?= $monthName . " " . $filterYear; ?>
-          </div>
-
-          <!-- Notifikasi List -->
-          <?php if (!empty($groupedData)): ?>
-
-            <?php foreach ($groupedData as $group): ?>
-              <?php 
-                $jenjang = $group['jenjang'] ?: 'Tidak Diketahui';
-
-                $p_count  = (int) $group['p_count'];
-                $tk_count = (int) $group['tk_count'];
-                $m_count  = (int) $group['m_count'];
-
-                $total = $p_count + $tk_count + $m_count;
-              ?>
-
-              <!-- Card Notifikasi -->
-              <div class="card mb-3 shadow-sm">
-                <div class="card-body d-flex">
-                  <!-- Ikon di sisi kiri -->
-                  <div class="flex-shrink-0 me-3">
-                    <div class="icon-circle bg-warning text-center" style="width:48px; height:48px; border-radius:50%;">
-                      <i class="fas fa-exclamation-triangle text-white" style="line-height:48px;"></i>
-                    </div>
-                  </div>
-
-                  <!-- Isi Notifikasi -->
-                  <div class="flex-grow-1">
-                    <!-- Header Jenjang & Waktu -->
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                      <div>
-                        <span class="badge bg-warning text-dark me-2">Jenjang: <?= htmlspecialchars($jenjang); ?></span>
-                        <strong><?= $total; ?> Anggota belum final</strong>
-                      </div>
-                      <small class="text-muted">
-                        <i class="bi bi-calendar-check"></i>
-                        <?= htmlspecialchars($monthName . " " . $filterYear); ?>
-                      </small>
-                    </div>
-
-                    <!-- Info per role -->
-                    <div class="text-muted small">
-                      Role: 
-                      <strong>P = <?= $p_count; ?></strong>;
-                      <strong>TK = <?= $tk_count; ?></strong>;
-                      <strong>M = <?= $m_count; ?></strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- End Card Notifikasi -->
-
-            <?php endforeach; ?>
-
-          <?php else: ?>
-            <div class="alert alert-success">
-              <i class="bi bi-check-circle-fill"></i> Tidak ada anggota yang belum final di periode ini!
-            </div>
-          <?php endif; ?>
-          <!-- End Notifikasi List -->
-
-        </div>
-        <!-- End Page Content -->
-
-      </div>
-      <!-- End Main Content -->
-
-      <!-- Footer -->
-      <footer class="sticky-footer bg-white">
-        <div class="container my-auto">
-          <div class="copyright text-center my-auto">
-            <span>&copy; <?= date('Y'); ?> - Your School/Company</span>
-          </div>
-        </div>
-      </footer>
-      <!-- End Footer -->
-
+  <?php if (empty($sdmNotifications)): ?>
+    <div class="alert alert-success">
+      <i class="bi bi-check-circle-fill"></i> Tidak ada notifikasi SDM saat ini.
     </div>
-    <!-- End Content Wrapper -->
+  <?php else: ?>
+    <?php foreach ($sdmNotifications as $notif): ?>
+      <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+        <!-- Ikon custom -->
+        <i class="<?= $notif['icon'] ?? 'fas fa-info-circle'; ?> me-3" style="font-size:1.5rem;"></i>
+        <div>
+          <strong><?= htmlspecialchars($notif['title']); ?></strong><br>
+          <?= htmlspecialchars($notif['message']); ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
 
-  </div>
-  <!-- End Page Wrapper -->
+</div>
 
-  <!-- Bootstrap 5.3.3 + SB Admin 2 JS -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+<!-- Optional JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-<?php
-$conn->close();
-?>

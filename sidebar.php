@@ -242,6 +242,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 'Payroll Anggota'      => '/absensi/sdm/employees.php',
                 'Payheads'             => '/absensi/sdm/payheads.php',
                 'Laporan Surat Ijin'   => '/absensi/sdm/laporan_pengajuan_ijin.php',
+                'Laporan Jadwal Piket'   => '/absensi/sdm/laporan_jadwal_piket.php',
                 'Pembuatan Surat'      => '/absensi/sdm/pembuatan_surat.php',
                 'Audit Logs SDM'       => '/absensi/sdm/audit_logs_sdm.php',
                 'Notifikasi SDM'       => '/absensi/sdm/notifikasi_sdm.php'
@@ -337,6 +338,12 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/laporan_pengajuan_ijin.php">
                     <i class="fas fa-envelope-open-text"></i>
                     <span>Laporan Surat Ijin</span>
+                </a>
+            </li>
+            <li class="nav-item <?= isActive('/absensi/sdm/laporan_jadwal_piket.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/absensi/sdm/laporan_jadwal_piket.php">
+                    <i class="fas fa-envelope-open-text"></i>
+                    <span>Laporan Jadwal Piket</span>
                 </a>
             </li>
             <li class="nav-item <?= isActive('/absensi/sdm/pembuatan_surat.php'); ?>">

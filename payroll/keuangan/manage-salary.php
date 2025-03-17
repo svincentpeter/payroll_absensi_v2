@@ -461,15 +461,59 @@ $periode       = getIndonesianMonthName($bulan) . ' ' . $tahun;
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        .card-header { background-color: #4e73df; color: #fff; }
-        .currency-input { text-align: right; }
-        @media (max-width: 576px) { .card { margin-bottom: 1rem; } }
-        #loadingSpinner {
-            display: none; position: fixed; z-index: 9999;
-            height: 100px; width: 100px; margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
-        }
-    </style>
+/* Contoh: umumkan font-size global lebih kecil */
+body {
+  font-size: 0.9rem; /* atau 14px */
+}
+
+/* Perkecil padding pada card, form, dsb. */
+.card .card-body,
+.card .card-header {
+  padding: 0.5rem 1rem !important;
+  margin: 0;
+}
+
+.card-header {
+  background: linear-gradient(45deg, #0d47a1, #42a5f5);
+  color: white;
+}
+
+.card-title,
+.card-header h5,
+.h3,
+h1, h2, h3, h4, h5 {
+  font-size: 1rem !important; /* sesuaikan */
+  margin: 0.5rem 0;
+}
+
+.form-control,
+.table,
+.btn {
+  font-size: 0.9rem !important;
+  padding: 0.375rem 0.5rem !important;
+  /* sesuaikan sesuai kebutuhan */
+}
+
+.table th, .table td {
+  padding: 0.3rem 0.5rem !important;
+}
+
+/* Kurangi margin antar-row */
+.row {
+  margin-bottom: 0.5rem !important;
+}
+
+#content {
+  margin-top: 10px; 
+}
+
+/* Tambahkan: buat semua label bold */
+label {
+  font-weight: bold !important;
+}
+</style>
+
+
     <script>
         const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
         const EMPLOYEE_ID = <?= htmlspecialchars($id_anggota); ?>;
@@ -479,19 +523,16 @@ $periode       = getIndonesianMonthName($bulan) . ' ' . $tahun;
 </head>
 <body id="page-top">
 <div id="wrapper">
-    <?php include __DIR__ . '/../../sidebar.php'; ?>
     <div id="content-wrapper" class="d-flex flex-column">
         <div id="content">
-            <?php include __DIR__ . '/../../navbar.php'; ?>
-            <?php include __DIR__ . '/../../breadcrumb.php'; ?>
             <div class="container-fluid">
                 <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-file-invoice-dollar me-2"></i>Review Payroll</h1>
                 <div class="row">
                     <!-- Informasi Umum -->
                     <div class="col-lg-6 mb-4">
                         <div class="card shadow mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Informasi Umum</h5>
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0"><strong>Informasi Umum</strong></h5>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
@@ -531,8 +572,8 @@ $periode       = getIndonesianMonthName($bulan) . ' ' . $tahun;
                     <!-- Perhitungan Payroll & Detail Payheads -->
                     <div class="col-lg-6 mb-4">
                         <div class="card shadow mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Perhitungan Payroll</h5>
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0"> <strong>Perhitungan Payroll</strong></h5>
                             </div>
                             <div class="card-body">
     <div class="mb-3">
@@ -553,7 +594,7 @@ $periode       = getIndonesianMonthName($bulan) . ' ' . $tahun;
 
     <!-- Tambahkan ini -->
     <div class="mb-3">
-        <label>Potongan Koperasi</label>
+        <label>Potongan Koperasi (Wajib Diisi) </label>
         <input type="text" id="inputPotonganKoperasi" class="form-control currency-input"
                value="0"
     </div>
@@ -568,8 +609,8 @@ $periode       = getIndonesianMonthName($bulan) . ' ' . $tahun;
 
                         </div>
                         <div class="card shadow mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Detail Payheads</h5>
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0"> <strong>Detail Payheads</strong></h5>
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
@@ -688,13 +729,6 @@ $periode       = getIndonesianMonthName($bulan) . ' ' . $tahun;
                 </div>
             </div><!-- /container-fluid -->
         </div><!-- /#content -->
-        <footer class="sticky-footer bg-white">
-            <div class="container my-auto">
-                <div class="copyright text-center my-auto">
-                    <span>&copy; <?= date("Y") ?> Payroll Management System | Developed By [Nama Anda]</span>
-                </div>
-            </div>
-        </footer>
     </div><!-- /#content-wrapper -->
 </div><!-- /#wrapper -->
 
@@ -748,12 +782,7 @@ $periode       = getIndonesianMonthName($bulan) . ' ' . $tahun;
     </div>
 </div>
 
-<!-- Loading Spinner -->
-<div id="loadingSpinner">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-</div>
+
 <?php $conn->close(); ?>
 <!-- JS Dependencies -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -966,6 +995,3 @@ recalcNetSalary();
 </script>
 </body>
 </html>
-<?php
-$conn->close();
-?>
