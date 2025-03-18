@@ -3,13 +3,25 @@
 # Perbolehkan folder vendor dan isinya
 !vendor/
 !vendor/**
-# Perbolehkan folder absensi dan isinya
-!absensi/
-!absensi/**
-# Perbolehkan folder payroll dan isinya
-!payroll/
-!payroll/**
-# Perbolehkan folder payroll dan isinya
+# Perbolehkan folder assets dan isinya
+!assets/
+!assets/**
+# Perbolehkan folder guru dan isinya
+!guru/
+!guru/**
+# Perbolehkan folder sdm dan isinya
+!sdm/
+!sdm/**
+# Perbolehkan folder keuangan dan isinya
+!keuangan/
+!keuangan/**
+# Perbolehkan folder superadmin dan isinya
+!superadmin/
+!superadmin/**
+# Perbolehkan folder kepala sekolah dan isinya
+!kepalasekolah/
+!kepalasekolah/**
+# Perbolehkan folder uploads dan isinya
 !uploads/
 !uploads/**
 # Perbolehkan file lain yang kamu butuhkan
