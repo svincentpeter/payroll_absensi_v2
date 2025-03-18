@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 10, 2025 at 05:56 AM
+-- Generation Time: Mar 18, 2025 at 07:28 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -202,8 +202,14 @@ CREATE TABLE `notifications` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `role_target` enum('keuangan','superadmin','sdm','all') NOT NULL DEFAULT 'all',
+  `title` varchar(255) NOT NULL,
   `message` text NOT NULL,
+  `notification_type` enum('info','warning','success','error') DEFAULT 'info',
+  `link` varchar(255) DEFAULT NULL,
+  `priority` int(11) DEFAULT 5 COMMENT 'Nilai prioritas; semakin kecil nilainya semakin tinggi prioritasnya',
   `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `read_at` datetime DEFAULT NULL,
+  `created_by` varchar(50) DEFAULT 'system' COMMENT 'Pengirim atau pembuat notifikasi, misalnya sistem atau admin',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -236,6 +242,7 @@ CREATE TABLE `payroll` (
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
+  `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT 0.00,
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `tgl_payroll` datetime NOT NULL DEFAULT current_timestamp(),
@@ -253,9 +260,11 @@ CREATE TABLE `payroll` (
 CREATE TABLE `payroll_detail` (
   `id` int(11) NOT NULL,
   `id_payroll` int(11) NOT NULL,
+  `id_anggota` int(11) NOT NULL,
   `id_payhead` int(11) NOT NULL,
   `jenis` enum('earnings','deductions') NOT NULL,
-  `amount` decimal(15,2) NOT NULL DEFAULT 0.00
+  `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -289,6 +298,7 @@ CREATE TABLE `payroll_final` (
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
+  `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT 0.00,
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
   `tgl_payroll` datetime NOT NULL,
   `no_rekening` varchar(50) DEFAULT NULL,
@@ -364,6 +374,24 @@ CREATE TABLE `salary_indices` (
   `max_years` int(11) DEFAULT NULL,
   `base_salary` decimal(15,2) NOT NULL,
   `description` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `template_surat`
+--
+
+CREATE TABLE `template_surat` (
+  `id` int(11) NOT NULL,
+  `jenis_surat` varchar(100) NOT NULL,
+  `judul` varchar(255) NOT NULL,
+  `isi` text NOT NULL,
+  `default_penerima` enum('semua','perorangan') NOT NULL DEFAULT 'perorangan',
+  `created_by` int(11) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  `default_penerima_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -484,6 +512,12 @@ ALTER TABLE `salary_indices`
   ADD UNIQUE KEY `level` (`level`);
 
 --
+-- Indexes for table `template_surat`
+--
+ALTER TABLE `template_surat`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -551,6 +585,12 @@ ALTER TABLE `payroll_final`
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `template_surat`
+--
+ALTER TABLE `template_surat`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
