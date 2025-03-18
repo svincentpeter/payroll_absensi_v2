@@ -14,34 +14,34 @@ $error = '';
 if (isset($_SESSION['role'])) {
     switch ($_SESSION['role']) {
         case 'superadmin':
-            header("Location: payroll/superadmin/dashboard_superadmin.php");
+            header("Location: superadmin/dashboard_superadmin.php");
             exit();
         case 'sdm':
-            header("Location: absensi/sdm/dashboard_sdm.php");
+            header("Location: sdm/dashboard_sdm.php");
             exit();
         case 'keuangan':
-            header("Location: payroll/keuangan/dashboard_keuangan.php");
+            header("Location: keuangan/dashboard_keuangan.php");
             exit();
         case 'guru':
-            header("Location: absensi/guru/dashboard_guru.php");
+            header("Location: guru/dashboard_guru.php");
             exit();
         case 'karyawan':
-            header("Location: absensi/karyawan/dashboard_karyawan.php");
+            header("Location: karyawan/dashboard_karyawan.php");
             exit();
         case 'kepala_sekolah':
-            header("Location: absensi/kepalasekolah/dashboard_kepala_sekolah.php");
+            header("Location: kepalasekolah/dashboard_kepala_sekolah.php");
             exit();
         case 'M':  // Jika sudah login sebagai manajerial, arahkan ke halaman sesuai job_title
             // Redirect sesuai job_title yang telah disimpan di session
             $jobTitle = strtolower($_SESSION['job_title'] ?? '');
             if (strpos($jobTitle, 'superadmin') !== false) {
-                header("Location: payroll/superadmin/dashboard_superadmin.php");
+                header("Location: superadmin/dashboard_superadmin.php");
             } elseif (strpos($jobTitle, 'sdm') !== false) {
-                header("Location: absensi/sdm/dashboard_sdm.php");
+                header("Location: sdm/dashboard_sdm.php");
             } elseif (strpos($jobTitle, 'keuangan') !== false) {
-                header("Location: payroll/keuangan/dashboard_keuangan.php");
+                header("Location: keuangan/dashboard_keuangan.php");
             } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
-                header("Location: absensi/kepalasekolah/dashboard_kepala_sekolah.php");
+                header("Location: kepalasekolah/dashboard_kepala_sekolah.php");
             } else {
                 header("Location: logout.php");
             }
@@ -95,16 +95,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     );
                     // Redirect berdasarkan job_title tanpa mengubah role
                     if (strpos($jobTitle, 'superadmin') !== false) {
-                        header("Location: payroll/superadmin/dashboard_superadmin.php");
+                        header("Location: superadmin/dashboard_superadmin.php");
                         exit();
                     } elseif (strpos($jobTitle, 'sdm') !== false) {
-                        header("Location: absensi/sdm/dashboard_sdm.php");
+                        header("Location: sdm/dashboard_sdm.php");
                         exit();
                     } elseif (strpos($jobTitle, 'keuangan') !== false) {
-                        header("Location: payroll/keuangan/dashboard_keuangan.php");
+                        header("Location: keuangan/dashboard_keuangan.php");
                         exit();
                     } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
-                        header("Location: absensi/kepalasekolah/dashboard_kepala_sekolah.php");
+                        header("Location: kepalasekolah/dashboard_kepala_sekolah.php");
                         exit();
                     } else {
                         $error = "Role managerial tidak dikenali.";
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ) {
                     $_SESSION['role'] = 'guru';
                     add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai guru.");
-                    header("Location: absensi/guru/dashboard_guru.php");
+                    header("Location: guru/dashboard_guru.php");
                     exit();
                 } else {
                     $error = "Role anggota_sekolah tidak dikenali.";
