@@ -5,7 +5,11 @@ require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
 authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+
+// Koneksi ke database
 require_once __DIR__ . '/../koneksi.php';
+
+// Generate CSRF token
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
@@ -14,7 +18,7 @@ if (ob_get_length()) {
     ob_end_clean();
 }
 
-// 2. Ambil Parameter Periode
+// Ambil Parameter Periode (bulan & tahun)
 $bulanVal = 0;
 $tahunVal = 0;
 if (isset($_GET['bulan'])) {
@@ -28,13 +32,14 @@ if (isset($_GET['tahun'])) {
     $tahunVal = intval($_GET['tahun']);
 }
 if ($bulanVal <= 0 || $tahunVal <= 0) {
-    // Jika tidak tersedia, gunakan bulan dan tahun sekarang
+    // Default ke bulan & tahun sekarang
     $bulanVal = date("n");
     $tahunVal = date("Y");
 }
 
 /**
  * BAGIAN 1: AJAX HANDLER
+ * Menangani UpdatePayhead, RejectPayroll, DeletePayhead
  */
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -45,7 +50,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     
     switch ($case) {
         case 'UpdatePayhead':
-            // UPDATE di payroll_detail, gunakan PAYROLL_ID yang dikirim via AJAX
             $id_payhead = intval($_POST['id_payhead'] ?? 0);
             $amount     = floatval($_POST['amount'] ?? 0);
             $payroll_id = intval($_POST['payroll_id'] ?? 0);
@@ -76,8 +80,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             if ($id_anggota <= 0 || $bulanFromAjax <= 0 || $tahunFromAjax <= 0) {
                 send_response(1, 'Parameter tidak valid (RejectPayroll).');
             }
-            // Update status payroll_detail untuk payheads (opsional: update employee_payheads juga jika perlu)
-            // Ubah status payroll menjadi 'revisi'
+            // Ubah status payroll => 'revisi'
             $stmtPayrollReject = $conn->prepare("UPDATE payroll SET status = 'revisi' WHERE id_anggota = ? AND bulan = ? AND tahun = ?");
             $stmtPayrollReject->bind_param("iii", $id_anggota, $bulanFromAjax, $tahunFromAjax);
             if (!$stmtPayrollReject->execute()) {
@@ -89,7 +92,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             break;
             
         case 'DeletePayhead':
-            // Hapus payhead di payroll_detail
             $id_payhead = intval($_POST['id_payhead'] ?? 0);
             $payroll_id = intval($_POST['payroll_id'] ?? 0);
             if ($payroll_id <= 0 || $id_payhead <= 0) {
@@ -120,7 +122,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
 /**
  * BAGIAN 2: Proses POST Finalisasi Payroll (status final)
- * (Sama seperti sebelumnya, proses finalisasi payroll)
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -130,16 +131,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     $tahun            = intval($_POST['tahun'] ?? 0);
     $id_rekap_absensi = intval($_POST['id_rekap_absensi'] ?? 0);
     $no_rekening      = sanitize_input($_POST['no_rekening'] ?? '');
-    // Sesudah (hilangkan dulu semua titik pemisah ribuan sebelum floatval()):
-$gaji_pokok       = floatval(str_replace('.', '', $_POST['gaji_pokok'] ?? '0'));
-$total_earnings   = floatval(str_replace('.', '', $_POST['total_earnings'] ?? '0'));
-$total_deductions = floatval(str_replace('.', '', $_POST['total_deductions'] ?? '0'));
-$potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?? '0'));
+
+    // Hilangkan pemisah ribuan
+    $gaji_pokok       = floatval(str_replace('.', '', $_POST['gaji_pokok'] ?? '0'));
+    $total_earnings   = floatval(str_replace('.', '', $_POST['total_earnings'] ?? '0'));
+    $total_deductions = floatval(str_replace('.', '', $_POST['total_deductions'] ?? '0'));
+    $potongan_koperasi= floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?? '0'));
 
     $catatan          = sanitize_input($_POST['inputDescription'] ?? '');
     $tgl_payroll      = sanitize_input($_POST['tgl_payroll'] ?? date('Y-m-d H:i:s'));
     
-
     if (!isset($_POST['payheads_ids']) || empty($_POST['payheads_ids'])) {
         $total_earnings   = 0;
         $total_deductions = 0;
@@ -151,8 +152,7 @@ $potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?
 
     $conn->begin_transaction();
     try {
-        // 1) Update status payroll_detail menjadi 'final'
-        //    Pastikan kolom 'status' benar-benar ada di tabel 'payroll_detail'
+        // 1) Update status payroll_detail => 'final'
         $stmtToFinal = $conn->prepare("
             UPDATE payroll_detail
                SET status = 'final'
@@ -167,7 +167,7 @@ $potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?
         }
         $stmtToFinal->close();
     
-        // 2) Hitung gaji bersih => Gaji pokok + total pendapatan - total potongan - potongan koperasi
+        // 2) Hitung gaji bersih
         $stmtSum = $conn->prepare("
             SELECT 
               SUM(CASE WHEN pd.jenis='earnings' THEN pd.amount ELSE 0 END) AS total_earnings,
@@ -188,9 +188,9 @@ $potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?
     
         $total_earnings   = floatval($rowSum['total_earnings'] ?? 0);
         $total_deductions = floatval($rowSum['total_deductions'] ?? 0);
-        $gaji_bersih = $gaji_pokok + $total_earnings - $total_deductions - $potongan_koperasi;
+        $gaji_bersih      = $gaji_pokok + $total_earnings - $total_deductions - $potongan_koperasi;
     
-        // 3) Insert data ke tabel payroll dengan status final
+        // 3) Insert ke tabel payroll
         $status = 'final';
         $stmtPayroll = $conn->prepare("
             INSERT INTO payroll
@@ -225,8 +225,7 @@ $potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?
         $newPayrollId = $stmtPayroll->insert_id;
         $stmtPayroll->close();
     
-        // 4) Insert detail payhead ke payroll_detail (menggunakan data dari hidden field).
-        //    Perhatikan bahwa tabel payroll_detail memiliki kolom: id_payroll, id_anggota, id_payhead, jenis, amount, status
+        // 4) Insert detail payhead => payroll_detail (dari hidden field)
         if (!empty($_POST['payheads_ids'])) {
             $stmtDetail = $conn->prepare("
                 INSERT INTO payroll_detail
@@ -238,15 +237,9 @@ $potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?
             }
             foreach ($_POST['payheads_ids'] as $i => $ph_id) {
                 $ph_id_int = intval($ph_id);
-                $jenis  = sanitize_input($_POST['payheads_jenis'][$i] ?? '');
-                $amount = floatval($_POST['payheads_amount'][$i] ?? 0);
+                $jenis     = sanitize_input($_POST['payheads_jenis'][$i] ?? '');
+                $amount    = floatval($_POST['payheads_amount'][$i] ?? 0);
     
-                // Bind 5 parameter => (i i i s d):
-                //   1) $newPayrollId  -> int
-                //   2) $id_anggota    -> int
-                //   3) $ph_id_int     -> int
-                //   4) $jenis         -> string (earnings/deductions)
-                //   5) $amount        -> double
                 $stmtDetail->bind_param("iiisd", $newPayrollId, $id_anggota, $ph_id_int, $jenis, $amount);
                 if (!$stmtDetail->execute()) {
                     throw new Exception("Gagal insert payroll_detail: " . $stmtDetail->error);
@@ -288,7 +281,7 @@ $potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?
         $id_payroll_final = $stmtPayrollFinal->insert_id;
         $stmtPayrollFinal->close();
     
-        // 6) Salin snapshot detail ke payroll_detail_final (skip payhead rapel)
+        // 6) Snapshot detail => payroll_detail_final
         $stmtDetailSnapshot = $conn->prepare("
             INSERT INTO payroll_detail_final
             (id_payroll_final, id_payhead, nama_payhead, jenis, amount)
@@ -315,17 +308,19 @@ $potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?
         }
         $stmtDetailSnapshot->close();
     
-        // Commit transaksi
+        // Commit
         $conn->commit();
     
         // Audit log
         $user_nip = $_SESSION['nip'] ?? '';
-        $details  = "Finalisasi Payroll untuk Anggota $id_anggota periode $bulan_int-$tahun. Pendapatan: " 
-                    . formatNominal($total_earnings) . ", Potongan: " . formatNominal($total_deductions)
-                    . ", Pot. Koperasi: " . formatNominal($potongan_koperasi)
-                    . ", Gaji Bersih: " . formatNominal($gaji_bersih);
+        $details  = "Finalisasi Payroll untuk Anggota $id_anggota periode $bulan_int-$tahun. "
+                  . "Pendapatan: " . formatNominal($total_earnings)
+                  . ", Potongan: " . formatNominal($total_deductions)
+                  . ", Pot. Koperasi: " . formatNominal($potongan_koperasi)
+                  . ", Gaji Bersih: " . formatNominal($gaji_bersih);
         add_audit_log($conn, $user_nip, 'InsertPayroll', $details);
     
+        // Redirect ke detail payroll final
         header("Location: payroll-details.php?id_payroll=$id_payroll_final");
         exit();
     
@@ -333,10 +328,13 @@ $potongan_koperasi = floatval(str_replace('.', '', $_POST['potongan_koperasi'] ?
         $conn->rollback();
         die("Terjadi kesalahan: " . $e->getMessage());
     }
-}    
+}
+
 /**
  * BAGIAN 3: GET -> Tampilkan Review Payroll
  */
+
+// Ambil parameter GET
 $id_anggota      = intval($_GET['id_anggota'] ?? 0);
 $bulanParam      = sanitize_input($_GET['bulan'] ?? '');
 $tahunStr        = sanitize_input($_GET['tahun'] ?? '');
@@ -360,7 +358,7 @@ if ($bulan <= 0 || $tahun <= 0) {
 // Pastikan salary index update
 updateSalaryIndexForUser($conn, $id_anggota);
 
-// Cek apakah sudah ada payroll (draft/revisi/final)
+// Cek payroll
 $stmtCheck = $conn->prepare("SELECT id, status FROM payroll WHERE id_anggota=? AND bulan=? AND tahun=? LIMIT 1");
 $stmtCheck->bind_param("iii", $id_anggota, $bulan, $tahun);
 $stmtCheck->execute();
@@ -372,7 +370,7 @@ if ($resCheck->num_rows > 0) {
         header("Location: payroll-details.php?id_payroll=" . $payroll['id']);
         exit();
     }
-    // Gunakan payroll_id dari record ini untuk mengambil detail
+    // Gunakan payroll_id
     $id_payroll = $payroll['id'];
 } else {
     $stmtCheck->close();
@@ -388,7 +386,10 @@ if ($resRekap->num_rows > 0) {
     $rowRekap = $resRekap->fetch_assoc();
     $id_rekap_absensi = $rowRekap['id'];
 } else {
-    $stmtIns = $conn->prepare("INSERT INTO rekap_absensi (id_anggota, bulan, tahun, total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit) VALUES (?,?,?,0,0,0,0,0)");
+    $stmtIns = $conn->prepare("
+        INSERT INTO rekap_absensi (id_anggota, bulan, tahun, total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit) 
+        VALUES (?,?,?,0,0,0,0,0)
+    ");
     $stmtIns->bind_param("iii", $id_anggota, $bulan, $tahun);
     if (!$stmtIns->execute()) {
         die("Gagal insert rekap_absensi: " . $stmtIns->error);
@@ -398,10 +399,10 @@ if ($resRekap->num_rows > 0) {
 }
 $stmtRekap->close();
 
-// *** Ambil data detail payheads dari payroll_detail berdasarkan id_payroll ***
+// Ambil data detail payheads
 $stmtPH = $conn->prepare("
   SELECT 
-    ph.id AS id_payhead,  -- aliasnya HARUS 'id_payhead'
+    ph.id AS id_payhead,
     ph.nama_payhead,
     ph.jenis,
     pd.amount,
@@ -417,7 +418,6 @@ $stmtPH = $conn->prepare("
        ON pd.id_payhead = ph.id
       AND pd.id_payroll = ?
 ");
-
 $stmtPH->bind_param("ii", $id_anggota, $id_payroll);
 $stmtPH->execute();
 $resPH = $stmtPH->get_result();
@@ -428,7 +428,7 @@ $totalPotongan   = 0;
 
 while ($r = $resPH->fetch_assoc()) {
     $payheads[] = $r;
-    // Jika rapel => skip penambahan ke total
+    // Jika rapel => skip
     if (!empty($r['is_rapel']) && $r['is_rapel'] == 1) {
         continue;
     }
@@ -474,13 +474,13 @@ $gaji_pokok = $gaji_pokok_employee + $salary_index_amount;
 $gaji_kotor  = $gaji_pokok + $totalPendapatan;
 $gaji_bersih = $gaji_kotor - $totalPotongan;
 
-$masa_kerja = ((int)($karyawan['masa_kerja_tahun'] ?? 0)) . " Tahun, " . ((int)($karyawan['masa_kerja_bulan'] ?? 0)) . " Bulan";
+$masa_kerja   = ((int)($karyawan['masa_kerja_tahun'] ?? 0)) . " Tahun, " . ((int)($karyawan['masa_kerja_bulan'] ?? 0)) . " Bulan";
 $namaKaryawan = $karyawan['nama'] ?? '';
-$noRek = $karyawan['no_rekening'] ?? '';
-$catatan = '';
+$noRek        = $karyawan['no_rekening'] ?? '';
+$catatan      = '';
 
-$user_nip   = $_SESSION['nip'] ?? '';
-$detailsLog = "Mengakses Review Payroll untuk Anggota ID $id_anggota pada bulan $bulan tahun $tahun.";
+$user_nip     = $_SESSION['nip'] ?? '';
+$detailsLog   = "Mengakses Review Payroll untuk Anggota ID $id_anggota pada bulan $bulan tahun $tahun.";
 add_audit_log($conn, $user_nip, 'ViewPayroll', $detailsLog);
 
 $timestamp    = strtotime($tglPayrollParam);
@@ -491,528 +491,592 @@ $periode      = getIndonesianMonthName($bulan) . ' ' . $tahun;
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Review Payroll - <?= htmlspecialchars($namaKaryawan ?? ''); ?></title>
+    <title>Review Payroll - <?= htmlspecialchars($namaKaryawan); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap 5 & SB Admin 2 -->
+    <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        /* Beberapa penyesuaian tampilan */
-        body { font-size: 0.9rem; }
-        .card-header { background: linear-gradient(45deg, #0d47a1, #42a5f5); color: white; }
-        .employee-photo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px; }
-        .badge-status { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 0.8rem; }
-        .badge-status.final { background-color: #28a745; color: #fff; }
-        .badge-status.draft { background-color: #17a2b8; color: #fff; }
-        .badge-status.revisi { background-color: #ffc107; color: #000; }
-        .badge-status.default { background-color: #6c757d; color: #fff; }
-        .spinner-border { display: none; margin-left: 5px; }
+        /* Ukuran font sedikit diperkecil */
+        body {
+            font-size: 0.8rem;
+        }
+        #main-content {
+            transition: opacity 0.3s ease;
+        }
+        .btn {
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
+        .spinner-border {
+            display: none;
+            margin-left: 5px;
+        }
+
+        /* Kecilkan jarak padding card & table */
+        .card {
+            margin-bottom: 0.5rem; 
+        }
+        .card-body, .card-header {
+            padding: 0.75rem; 
+        }
+        .table thead th, .table tbody td {
+            padding: 0.2rem;
+            text-align: center; /* Teks tabel di tengah */
+            vertical-align: middle; /* Agar konten badge/tombol tepat di tengah sel */
+        }
+        .table-sm td, .table-sm th {
+            padding: 0.2rem;
+        }
+
+        /* Kolom non-editable -> warna lebih gelap */
+        .non-editable {
+            background-color: #f0f0f0; /* atau sesuaikan warna yang diinginkan */
+        }
     </style>
     <script>
-        const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token ?? ''); ?>';
-        const EMPLOYEE_ID = <?= json_encode($id_anggota ?? 0); ?>;
-        // Pastikan mengirimkan payroll_id ke JS agar update/delete payhead bisa berjalan
-        const PAYROLL_ID = <?= json_encode($id_payroll ?? 0); ?>;
+        const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
+        const EMPLOYEE_ID = <?= json_encode($id_anggota); ?>;
+        const PAYROLL_ID = <?= json_encode($id_payroll); ?>;
         const TOTAL_EARNINGS = <?= $totalPendapatan; ?>;
         const TOTAL_DEDUCTIONS = <?= $totalPotongan; ?>;
     </script>
 </head>
-<body id="page-top">
-<div id="wrapper">
-    <?php include __DIR__ . '/../sidebar.php'; ?>
-    <div id="content-wrapper" class="d-flex flex-column">
-        <div id="content">
-            <?php include __DIR__ . '/../navbar.php'; ?>
-            <?php include __DIR__ . '/../breadcrumb.php'; ?>
-            <div class="container-fluid">
-                <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-file-invoice-dollar me-2"></i>Review Payroll</h1>
-                <div class="row">
-                    <!-- Informasi Umum -->
-                    <div class="col-lg-6 mb-4">
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0"><strong>Informasi Umum</strong></h5>
+<body>
+    <!-- Container Utama Tanpa Sidebar & Navbar -->
+    <div class="container" id="main-content">
+        <h1 class="h3 mb-4 text-dark"><i class="fas fa-file-invoice-dollar me-2"></i>Review Payroll</h1>
+
+        <div class="row">
+            <!-- Informasi Umum -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h5 class="card-title mb-0"><strong>Informasi Umum</strong></h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Baris 1: Nama Karyawan & Periode -->
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Nama Karyawan</strong></label>
+                                <input type="text" class="form-control non-editable"
+                                       value="<?= htmlspecialchars($namaKaryawan); ?>"
+                                       readonly>
                             </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label>Nama Karyawan</label>
-                                    <input type="text" class="form-control" value="<?= htmlspecialchars($namaKaryawan ?? ''); ?>" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Periode</label>
-                                    <input type="text" class="form-control" value="<?= htmlspecialchars(($bulanName ?? '') . ' ' . ($tahun ?? '')); ?>" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Masa Kerja</label>
-                                    <input type="text" class="form-control" value="<?= htmlspecialchars($masa_kerja ?? ''); ?>" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="inputLevelIndeks">Level Indeks</label>
-                                    <input type="text" id="inputLevelIndeks" class="form-control"
-                                           value="<?= htmlspecialchars($salary_index_level 
-                                                ? $salary_index_level . ' (Rp ' . number_format($salary_index_amount ?? 0, 2, ',', '.') . ')' 
-                                                : 'Belum ada'); ?>"
-                                           readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label>No. Rekening</label>
-                                    <input type="text" id="inputNoRek" class="form-control" value="<?= htmlspecialchars($noRek ?? ''); ?>">
-                                </div>
-                                <div class="mb-3">
-                                    <label>Tanggal Payroll</label>
-                                    <input type="datetime-local" id="inputTanggalPayroll" class="form-control"
-                                           value="<?= htmlspecialchars(date('Y-m-d\TH:i', strtotime($tglPayrollParam))); ?>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Catatan / Deskripsi Payroll</label>
-                                    <textarea id="inputDescription" class="form-control" rows="3" placeholder="Tambah catatan jika perlu..."></textarea>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Periode</strong></label>
+                                <input type="text" class="form-control non-editable"
+                                       value="<?= htmlspecialchars($bulanName . ' ' . $tahun); ?>"
+                                       readonly>
                             </div>
                         </div>
-                    </div>
-                    <!-- Perhitungan Payroll & Detail Payheads -->
-                    <div class="col-lg-6 mb-4">
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0"><strong>Perhitungan Payroll</strong></h5>
+
+                        <!-- Baris 2: Masa Kerja & No. Rekening -->
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Masa Kerja</strong></label>
+                                <input type="text" class="form-control non-editable"
+                                       value="<?= htmlspecialchars($masa_kerja); ?>"
+                                       readonly>
                             </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="inputGajiPokok">Gaji Pokok</label>
-                                    <input type="text" id="inputGajiPokok" class="form-control currency-input"
-                                           value="<?= htmlspecialchars($gaji_pokok); ?>" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Total Pendapatan (Payheads)</label>
-                                    <input type="text" id="inputTotalEarnings" class="form-control currency-input"
-                                           value="<?= htmlspecialchars($totalPendapatan); ?>" readonly>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Total Potongan</label>
-                                    <input type="text" id="inputTotalDeductions" class="form-control currency-input"
-                                           value="<?= htmlspecialchars($totalPotongan); ?>" readonly>
-                                </div>
-                                <!-- Potongan Koperasi -->
-                                <div class="mb-3">
-                                    <label>Potongan Koperasi (Wajib Diisi)</label>
-                                    <input type="text" id="inputPotonganKoperasi" class="form-control currency-input"
-                                           value="0">
-                                </div>
-                                <div class="mb-3">
-                                    <label>Estimasi Gaji Bersih</label>
-                                    <input type="text" id="inputNetSalary" class="form-control currency-input"
-                                           value="<?= htmlspecialchars($gaji_bersih); ?>" readonly>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>No. Rekening</strong></label>
+                                <input type="text" id="inputNoRek" class="form-control"
+                                       value="<?= htmlspecialchars($noRek); ?>">
                             </div>
                         </div>
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h5 class="card-title mb-0"><strong>Detail Payheads</strong></h5>
+
+                        <!-- Baris 3: Level Indeks & Tanggal Payroll -->
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Level Indeks</strong></label>
+                                <input type="text" id="inputLevelIndeks" class="form-control non-editable"
+                                       value="<?= htmlspecialchars($salary_index_level
+                                            ? $salary_index_level . ' (Rp ' . number_format($salary_index_amount, 2, ',', '.') . ')'
+                                            : 'Belum ada'); ?>"
+                                       readonly>
                             </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table id="payheadsTable" class="table table-bordered table-striped">
-                                        <thead>
-                                        <tr>
-                                            <th>Nama Payhead</th>
-                                            <th>Jenis</th>
-                                            <th>Nominal</th>
-                                            <th>Status</th>
-                                            <th>Keterangan</th>
-                                            <th>Dokumen</th>
-                                            <th class="text-end">Aksi</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <?php if (empty($payheads)): ?>
-                                            <tr>
-                                                <td colspan="7" class="text-center"><em>Belum ada payhead</em></td>
-                                            </tr>
-                                        <?php else: ?>
-                                            <?php foreach ($payheads as $ph): ?>
-                                                <tr>
-                                                    <td><?= htmlspecialchars($ph['nama_payhead'] ?? ''); ?></td>
-                                                    <td><?= htmlspecialchars(ucfirst($ph['jenis'] ?? '')); ?></td>
-                                                    <td><?= number_format($ph['amount'] ?? 0, 2, ',', '.'); ?></td>
-                                                    <td><?= htmlspecialchars($ph['status'] ?? ''); ?></td>
-                                                    <td>
-                                                        <?php if (!empty($ph['remarks'])): ?>
-                                                            <small><em><?= htmlspecialchars($ph['remarks'] ?? ''); ?></em></small>
-                                                        <?php else: ?>
-                                                            <small><em>-</em></small>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                    <td>
-                                                        <?php if (!empty($ph['support_doc_path'])):
-                                                            $ext = pathinfo($ph['support_doc_path'], PATHINFO_EXTENSION);
-                                                            $cleanPayheadName = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $ph['nama_payhead'] ?? '');
-                                                            $cleanPayheadName = str_replace(' ', '_', trim($cleanPayheadName));
-                                                            $downloadName = $nip . '_' . $bulanVal . '_' . $cleanPayheadName . '.' . $ext;
-                                                        ?>
-                                                            <a class="btn btn-sm btn-info" href="<?= '/payroll_absensi_v2/uploads/payhead_support/' . basename($ph['support_doc_path']); ?>" download="<?= $downloadName; ?>">
-                                                                <i class="bi bi-download"></i> Download Dokumen
-                                                            </a>
-                                                        <?php else: ?>
-                                                            <em>-</em>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <?php if (!empty($ph['is_rapel']) && $ph['is_rapel'] == 1): ?>
-                                                            <span class="badge bg-secondary">Rapel</span>
-                                                        <?php else: ?>
-                                                            <div class="btn-group btn-group-sm">
-                                                                <button class="btn btn-info btn-edit-payhead"
-                                                                        data-idpayhead="<?= htmlspecialchars($ph['id_payhead'] ?? ''); ?>"
-                                                                        data-amount="<?= htmlspecialchars($ph['amount'] ?? 0); ?>"
-                                                                        data-jenis="<?= htmlspecialchars($ph['jenis'] ?? ''); ?>">
-                                                                    <i class="fas fa-pen"></i>
-                                                                </button>
-                                                                <button class="btn btn-danger btn-delete-payhead"
-                                                                        data-idpayhead="<?= htmlspecialchars($ph['id_payhead'] ?? ''); ?>">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            </div>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Tanggal Payroll</strong></label>
+                                <input type="datetime-local" id="inputTanggalPayroll" class="form-control"
+                                       value="<?= htmlspecialchars(date('Y-m-d\TH:i', strtotime($tglPayrollParam))); ?>"
+                                       required>
                             </div>
                         </div>
+
+                        <!-- Baris 4: Catatan -->
+                        <div class="mt-3">
+                            <label class="form-label"><strong>Catatan / Deskripsi Payroll</strong></label>
+                            <textarea id="inputDescription" class="form-control" rows="3"
+                                      placeholder="Tambah catatan jika perlu..."></textarea>
+                        </div>
                     </div>
-                </div>
-                <!-- Tombol Aksi -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <a href="/payroll_absensi_v2/keuangan/list_payroll.php" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Cancel
-                        </a>
-                        <form id="formPayroll" action="" method="POST" class="d-inline">
-                            <input type="hidden" name="id_anggota" value="<?= htmlspecialchars($id_anggota ?? ''); ?>">
-                            <input type="hidden" name="bulan_int" value="<?= htmlspecialchars($bulan ?? ''); ?>">
-                            <input type="hidden" name="tahun" value="<?= htmlspecialchars($tahun ?? ''); ?>">
-                            <input type="hidden" name="id_rekap_absensi" value="<?= htmlspecialchars($id_rekap_absensi ?? ''); ?>">
-                            <?php if (!empty($payheads)): ?>
-                                <?php foreach ($payheads as $ph): ?>
-                                    <input type="hidden" name="payheads_ids[]" value="<?= htmlspecialchars($ph['id_payhead'] ?? ''); ?>">
-                                    <input type="hidden" name="payheads_jenis[]" value="<?= htmlspecialchars($ph['jenis'] ?? ''); ?>">
-                                    <input type="hidden" name="payheads_amount[]" value="<?= htmlspecialchars($ph['amount'] ?? 0); ?>">
-                                    <input type="hidden" name="payheads_is_rapel[]" value="<?= htmlspecialchars($ph['is_rapel'] ?? 0); ?>">
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                            <!-- Field tersembunyi -->
-                            <input type="hidden" name="no_rekening" id="fieldNoRek" value="">
-                            <input type="hidden" name="gaji_pokok" id="fieldGajiPokok" value="">
-                            <input type="hidden" name="total_earnings" id="fieldTotalEarnings" value="">
-                            <input type="hidden" name="total_deductions" id="fieldTotalDeductions" value="">
-                            <input type="hidden" name="potongan_koperasi" id="fieldPotonganKoperasi" value="0">
-                            <input type="hidden" name="inputDescription" id="fieldDescription" value="">
-                            <input type="hidden" name="tgl_payroll" id="fieldTglPayroll" value="">
-                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? ''); ?>">
-                            <button type="submit" class="btn btn-success float-end">
-                                <i class="fas fa-check"></i> Proses Payroll
-                            </button>
-                        </form>
-                        <button type="button" class="btn btn-warning float-end me-2" id="btnRejectPayroll">
-                            <i class="fas fa-times"></i> Tolak Payroll
-                        </button>
-                    </div>
-                </div>
-            </div><!-- /container-fluid -->
-        </div><!-- /#content -->
-        <footer class="sticky-footer bg-white">
-            <div class="container my-auto">
-                <div class="copyright text-center my-auto">
-                    <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
                 </div>
             </div>
-        </footer>
-    </div><!-- /#content-wrapper -->
-</div><!-- /#wrapper -->
 
-<!-- MODAL: Edit Payhead -->
-<div class="modal fade" id="modalEditPayhead" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="formEditPayhead">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Payhead</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            <!-- Perhitungan Payroll -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h5 class="card-title mb-0"><strong>Perhitungan Payroll</strong></h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="inputGajiPokok"><strong>Gaji Pokok</strong></label>
+                            <input type="text" id="inputGajiPokok" class="form-control currency-input non-editable"
+                                   value="<?= htmlspecialchars($gaji_pokok); ?>" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label><strong>Total Pendapatan (Payheads)</strong></label>
+                            <input type="text" id="inputTotalEarnings" class="form-control currency-input non-editable"
+                                   value="<?= htmlspecialchars($totalPendapatan); ?>" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label><strong>Total Potongan</strong></label>
+                            <input type="text" id="inputTotalDeductions" class="form-control currency-input non-editable"
+                                   value="<?= htmlspecialchars($totalPotongan); ?>" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label><strong>Potongan Koperasi (Wajib Diisi)</strong></label>
+                            <input type="text" id="inputPotonganKoperasi" class="form-control currency-input"
+                                   value="0">
+                        </div>
+                        <div class="mb-3">
+                            <label><strong>Estimasi Gaji Bersih</strong></label>
+                            <input type="text" id="inputNetSalary" class="form-control currency-input non-editable"
+                                   value="<?= htmlspecialchars($gaji_bersih); ?>" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row baru untuk Detail Payheads agar melebar full -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h5 class="card-title mb-0"><strong>Detail Payheads</strong></h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table id="payheadsTable" class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Nama Payhead</th>
+                                        <th>Jenis</th>
+                                        <th>Nominal</th>
+                                        <th>Status</th>
+                                        <th>Keterangan</th>
+                                        <th>Dokumen</th>
+                                        <th class="text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($payheads)): ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center"><em>Belum ada payhead</em></td>
+                                        </tr>
+                                    <?php else: ?>
+                                        <?php foreach ($payheads as $ph): ?>
+                                            <?php
+                                                // Buat nama file untuk dokumen
+                                                $ext = '';
+                                                $downloadName = '';
+                                                if (!empty($ph['support_doc_path'])) {
+                                                    $ext = pathinfo($ph['support_doc_path'], PATHINFO_EXTENSION);
+                                                    $cleanPayheadName = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $ph['nama_payhead'] ?? '');
+                                                    $cleanPayheadName = str_replace(' ', '_', trim($cleanPayheadName));
+                                                    $downloadName = $nip . '_' . $bulanVal . '_' . $cleanPayheadName . '.' . $ext;
+                                                }
+                                            ?>
+                                            <tr>
+                                                <!-- Kolom Nama Payhead (non-editable) -->
+                                                <td class="non-editable">
+                                                    <?= htmlspecialchars($ph['nama_payhead'] ?? ''); ?>
+                                                </td>
+                                                <!-- Kolom Jenis (non-editable) -->
+                                                <td class="non-editable">
+                                                    <?= htmlspecialchars(ucfirst($ph['jenis'] ?? '')); ?>
+                                                </td>
+                                                <!-- Kolom Nominal (bisa diedit via tombol) -->
+                                                <td>
+                                                    <?= number_format($ph['amount'] ?? 0, 2, ',', '.'); ?>
+                                                </td>
+                                                <!-- Kolom Status (non-editable) -->
+                                                <td class="non-editable">
+                                                    <?= htmlspecialchars($ph['status'] ?? ''); ?>
+                                                </td>
+                                                <!-- Kolom Keterangan (non-editable) -->
+                                                <td class="non-editable">
+                                                    <?php if (!empty($ph['remarks'])): ?>
+                                                        <small><em><?= htmlspecialchars($ph['remarks'] ?? ''); ?></em></small>
+                                                    <?php else: ?>
+                                                        <small><em>-</em></small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <!-- Kolom Dokumen (non-editable) -->
+                                                <td class="non-editable">
+                                                    <?php if (!empty($ph['support_doc_path'])): ?>
+                                                        <a class="btn btn-sm btn-info"
+                                                           href="<?= '/payroll_absensi_v2/uploads/payhead_support/' . basename($ph['support_doc_path']); ?>"
+                                                           download="<?= $downloadName; ?>">
+                                                            <i class="bi bi-download"></i> Download Dokumen
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <em>-</em>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <!-- Kolom Aksi -->
+                                                <td class="text-center">
+                                                    <?php if (!empty($ph['is_rapel']) && $ph['is_rapel'] == 1): ?>
+                                                        <span class="badge bg-secondary">Rapel</span>
+                                                    <?php else: ?>
+                                                        <div class="btn-group btn-group-sm">
+                                                            <button class="btn btn-info btn-edit-payhead"
+                                                                    data-idpayhead="<?= htmlspecialchars($ph['id_payhead'] ?? ''); ?>"
+                                                                    data-amount="<?= htmlspecialchars($ph['amount'] ?? 0); ?>"
+                                                                    data-jenis="<?= htmlspecialchars($ph['jenis'] ?? ''); ?>">
+                                                                <i class="fas fa-pen"></i>
+                                                            </button>
+                                                            <button class="btn btn-danger btn-delete-payhead"
+                                                                    data-idpayhead="<?= htmlspecialchars($ph['id_payhead'] ?? ''); ?>">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div><!-- /.table-responsive -->
+                    </div><!-- /.card-body -->
+                </div><!-- /.card -->
+            </div><!-- /.col-12 -->
+        </div><!-- /.row -->
+
+        <!-- Tombol Aksi -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <a href="/payroll_absensi_v2/keuangan/list_payroll.php" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                </a>
+                <form id="formPayroll" action="" method="POST" class="d-inline">
+                    <input type="hidden" name="id_anggota" value="<?= htmlspecialchars($id_anggota); ?>">
+                    <input type="hidden" name="bulan_int" value="<?= htmlspecialchars($bulan); ?>">
+                    <input type="hidden" name="tahun" value="<?= htmlspecialchars($tahun); ?>">
+                    <input type="hidden" name="id_rekap_absensi" value="<?= htmlspecialchars($id_rekap_absensi); ?>">
+                    <?php if (!empty($payheads)): ?>
+                        <?php foreach ($payheads as $ph): ?>
+                            <input type="hidden" name="payheads_ids[]" value="<?= htmlspecialchars($ph['id_payhead'] ?? ''); ?>">
+                            <input type="hidden" name="payheads_jenis[]" value="<?= htmlspecialchars($ph['jenis'] ?? ''); ?>">
+                            <input type="hidden" name="payheads_amount[]" value="<?= htmlspecialchars($ph['amount'] ?? 0); ?>">
+                            <input type="hidden" name="payheads_is_rapel[]" value="<?= htmlspecialchars($ph['is_rapel'] ?? 0); ?>">
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    <!-- Field tersembunyi -->
+                    <input type="hidden" name="no_rekening" id="fieldNoRek" value="">
+                    <input type="hidden" name="gaji_pokok" id="fieldGajiPokok" value="">
+                    <input type="hidden" name="total_earnings" id="fieldTotalEarnings" value="">
+                    <input type="hidden" name="total_deductions" id="fieldTotalDeductions" value="">
+                    <input type="hidden" name="potongan_koperasi" id="fieldPotonganKoperasi" value="0">
+                    <input type="hidden" name="inputDescription" id="fieldDescription" value="">
+                    <input type="hidden" name="tgl_payroll" id="fieldTglPayroll" value="">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                    <button type="submit" class="btn btn-success float-end">
+                        <i class="fas fa-check"></i> Proses Payroll
+                    </button>
+                </form>
+                <button type="button" class="btn btn-warning float-end me-2" id="btnRejectPayroll">
+                    <i class="fas fa-times"></i> Tolak Payroll
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- End Container Utama -->
+
+     <!-- MODAL: Edit Payhead -->
+     <div class="modal fade" id="modalEditPayhead" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="formEditPayhead">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Payhead</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="edit_idpayhead" name="id_payhead">
+                        <div class="mb-3">
+                            <label>Jenis</label>
+                            <input type="text" id="edit_jenis" class="form-control" name="edit_jenis" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label>Nilai (Amount)</label>
+                            <input type="text" id="edit_amount" class="form-control currency-input" name="edit_amount" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Konfirmasi Delete Payhead -->
+    <div class="modal fade" id="modalDeletePayhead" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Hapus Payhead</h5>
+                    <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" id="edit_idpayhead" name="id_payhead">
-                    <div class="mb-3">
-                        <label>Jenis</label>
-                        <input type="text" id="edit_jenis" class="form-control" name="edit_jenis" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label>Nilai (Amount)</label>
-                        <input type="text" id="edit_amount" class="form-control currency-input" name="edit_amount" required>
-                    </div>
+                    <p>Anda yakin ingin menghapus payhead ini?</p>
+                    <input type="hidden" id="del_idpayhead" name="del_idpayhead">
                 </div>
                 <div class="modal-footer">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? ''); ?>">
-                    <button type="submit" class="btn btn-primary">Simpan</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmDelete">Ya, Hapus</button>
                 </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: Konfirmasi Delete Payhead -->
-<div class="modal fade" id="modalDeletePayhead" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Hapus Payhead</h5>
-                <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Anda yakin ingin menghapus payhead ini?</p>
-                <input type="hidden" id="del_idpayhead" name="del_idpayhead">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-danger" id="btnConfirmDelete">Ya, Hapus</button>
             </div>
         </div>
     </div>
-</div>
 
-<?php $conn->close(); ?>
-<!-- JS Dependencies -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-$(document).ready(function() {
-    // Inisialisasi DataTable dengan file bahasa lokal untuk menghindari masalah CORS
-    $('#payheadsTable').DataTable({
-        responsive: true,
-        autoWidth: false,
-        language: { url: "/payroll_absensi_v2/assets/plugins/Indonesian.json" }
-    });
-    
-    // Inisialisasi AutoNumeric untuk field dengan format mata uang
-    const anGajiPokok       = new AutoNumeric('#inputGajiPokok', {
-  digitGroupSeparator: '.',
-  decimalCharacter: ',',
-  decimalPlaces: 2,
-  // tambahkan ini:
-  overrideMinMaxLimits: 'ceiling', 
-  unformatOnSubmit: true,
-  // agar dia tahu input aslinya menggunakan titik untuk desimal:
-  decimalCharacterAlternative: '.',
-  // dsb
+    <?php $conn->close(); ?>
+    <!-- JS Dependencies: Pastikan urutannya benar -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        // Inisialisasi DataTable
+        $('#payheadsTable').DataTable({
+    responsive: true,
+    autoWidth: false,
+    paging: false,        
+    info: false,          
+    lengthChange: false,  
+    language: { url: "/payroll_absensi_v2/assets/plugins/Indonesian.json" }
 });
-    const anTotalEarnings   = new AutoNumeric('#inputTotalEarnings', {
-        digitGroupSeparator: '.',
-        decimalCharacter: ',',
-        decimalPlaces: 2,
-        unformatOnSubmit: true
-    });
-    const anTotalDeductions = new AutoNumeric('#inputTotalDeductions', {
-        digitGroupSeparator: '.',
-        decimalCharacter: ',',
-        decimalPlaces: 2,
-        unformatOnSubmit: true
-    });
-    const anPotKop          = new AutoNumeric('#inputPotonganKoperasi', {
-        digitGroupSeparator: '.',
-        decimalCharacter: ',',
-        decimalPlaces: 2,
-        unformatOnSubmit: true
-    });
-    const anNetSalary       = new AutoNumeric('#inputNetSalary', {
-        digitGroupSeparator: '.',
-        decimalCharacter: ',',
-        decimalPlaces: 2,
-        unformatOnSubmit: true,
-        readOnly: true
-    });
-    const anEditAmount      = new AutoNumeric('#edit_amount', {
-        digitGroupSeparator: '.',
-        decimalCharacter: ',',
-        decimalPlaces: 2,
-        unformatOnSubmit: true
-    });
-    
-    // Fungsi untuk menghitung ulang estimasi gaji bersih
-    function recalcNetSalary() {
-        let gajiPokok       = parseFloat(anGajiPokok.getNumber())       || 0;
-        let totalEarnings   = parseFloat(anTotalEarnings.getNumber())   || 0;
-        let totalDeductions = parseFloat(anTotalDeductions.getNumber()) || 0;
-        let potKoperasi     = parseFloat(anPotKop.getNumber())          || 0;
-    
-        let netSalary = gajiPokok + totalEarnings - totalDeductions - potKoperasi;
-        anNetSalary.set(netSalary);
-    }
-    
-    $('#inputPotonganKoperasi').on('input', function(){
-        recalcNetSalary();
-    });
-    recalcNetSalary();
-    
-    // Event: Edit Payhead
-    $(document).on('click', '.btn-edit-payhead', function(){
-        const idPayhead = $(this).data('idpayhead');
-        const amount    = $(this).data('amount');
-        const jenis     = $(this).data('jenis');
-        $('#edit_idpayhead').val(idPayhead);
-        $('#edit_jenis').val(jenis);
-        anEditAmount.set(amount);
-        new bootstrap.Modal(document.getElementById('modalEditPayhead')).show();
-    });
-    
-    $('#formEditPayhead').on('submit', function(e){
-        e.preventDefault();
-        const idPayhead = $('#edit_idpayhead').val();
-        const newAmount = anEditAmount.getNumber();
-        $.ajax({
-            url: '?ajax=1',
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                case: 'UpdatePayhead',
-                payroll_id: PAYROLL_ID,
-                id_payhead: idPayhead,
-                amount: newAmount,
-                csrf_token: CSRF_TOKEN
-            },
-            beforeSend: function(){
-                $('#modalEditPayhead button[type="submit"]').prop('disabled', true);
-            },
-            success: function(resp){
-                $('#modalEditPayhead button[type="submit"]').prop('disabled', false);
-                if(resp.code === 0) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: resp.result,
-                        timer: 1500,
-                        showConfirmButton: false
-                    }).then(() => { location.reload(); });
-                } else {
-                    Swal.fire('Gagal', resp.result, 'error');
-                }
-            },
-            error: function(){
-                $('#modalEditPayhead button[type="submit"]').prop('disabled', false);
-                Swal.fire('Error', 'Terjadi kesalahan saat mengupdate payhead.', 'error');
-            }
+        
+        // Inisialisasi AutoNumeric
+        const anGajiPokok = new AutoNumeric('#inputGajiPokok', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true,
+            decimalCharacterAlternative: '.'
         });
-    });
-    
-    // Event: Delete Payhead
-    $(document).on('click', '.btn-delete-payhead', function(){
-        const idPayhead = $(this).data('idpayhead');
-        $('#del_idpayhead').val(idPayhead);
-        new bootstrap.Modal(document.getElementById('modalDeletePayhead')).show();
-    });
-    $('#btnConfirmDelete').on('click', function(){
-        const idPayhead = $('#del_idpayhead').val();
-        if(!idPayhead) {
-            Swal.fire('Error', 'ID Payhead tidak ditemukan.', 'error');
-            return;
+        const anTotalEarnings = new AutoNumeric('#inputTotalEarnings', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+        const anTotalDeductions = new AutoNumeric('#inputTotalDeductions', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+        const anPotKop = new AutoNumeric('#inputPotonganKoperasi', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+        const anNetSalary = new AutoNumeric('#inputNetSalary', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true,
+            readOnly: true
+        });
+        const anEditAmount = new AutoNumeric('#edit_amount', {
+            digitGroupSeparator: '.',
+            decimalCharacter: ',',
+            decimalPlaces: 2,
+            unformatOnSubmit: true
+        });
+
+        // Fungsi perhitungan ulang gaji bersih
+        function recalcNetSalary() {
+            let gajiPokok = parseFloat(anGajiPokok.getNumber()) || 0;
+            let totalEarnings = parseFloat(anTotalEarnings.getNumber()) || 0;
+            let totalDeductions = parseFloat(anTotalDeductions.getNumber()) || 0;
+            let potKoperasi = parseFloat(anPotKop.getNumber()) || 0;
+            let netSalary = gajiPokok + totalEarnings - totalDeductions - potKoperasi;
+            anNetSalary.set(netSalary);
         }
-        $.ajax({
-            url: '?ajax=1',
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                case: 'DeletePayhead',
-                payroll_id: PAYROLL_ID,
-                id_payhead: idPayhead,
-                csrf_token: CSRF_TOKEN
-            },
-            beforeSend: function(){
-                $('#btnConfirmDelete').prop('disabled', true);
-            },
-            success: function(resp){
-                $('#btnConfirmDelete').prop('disabled', false);
-                if(resp.code === 0) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: resp.result,
-                        timer: 1500,
-                        showConfirmButton: false
-                    }).then(() => { location.reload(); });
-                } else {
-                    Swal.fire('Gagal', resp.result, 'error');
-                }
-            },
-            error: function(){
-                $('#btnConfirmDelete').prop('disabled', false);
-                Swal.fire('Error', 'Terjadi kesalahan saat menghapus payhead.', 'error');
-            }
+        $('#inputPotonganKoperasi').on('input', recalcNetSalary);
+        recalcNetSalary();
+
+        // Event: Edit Payhead
+        $(document).on('click', '.btn-edit-payhead', function(){
+            const idPayhead = $(this).data('idpayhead');
+            const amount = $(this).data('amount');
+            const jenis = $(this).data('jenis');
+            $('#edit_idpayhead').val(idPayhead);
+            $('#edit_jenis').val(jenis);
+            anEditAmount.set(amount);
+            new bootstrap.Modal(document.getElementById('modalEditPayhead')).show();
         });
-    });
-    
-    // Event: Reject Payroll
-    $('#btnRejectPayroll').on('click', function(){
-        Swal.fire({
-            title: 'Anda yakin menolak payroll ini?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, Tolak',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if(result.isConfirmed) {
-                $.ajax({
-                    url: '?ajax=1',
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        case: 'RejectPayroll',
-                        id_anggota: EMPLOYEE_ID,
-                        bulan: <?= $bulanVal; ?>,
-                        tahun: <?= $tahunVal; ?>,
-                        csrf_token: CSRF_TOKEN
-                    },
-                    success: function(resp) {
-                        if(resp.code === 0) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Payroll ditolak!',
-                                showConfirmButton: false,
-                                timer: 1500
-                            }).then(() => {
-                                window.location.href = '/payroll_absensi_v2/keuangan/list_payroll.php';
-                            });
-                        } else {
-                            Swal.fire('Gagal', resp.result, 'error');
-                        }
-                    },
-                    error: function() {
-                        Swal.fire('Error', 'Terjadi kesalahan saat menolak payroll.', 'error');
+        $('#formEditPayhead').on('submit', function(e){
+            e.preventDefault();
+            const idPayhead = $('#edit_idpayhead').val();
+            const newAmount = anEditAmount.getNumber();
+            $.ajax({
+                url: '?ajax=1',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    case: 'UpdatePayhead',
+                    payroll_id: PAYROLL_ID,
+                    id_payhead: idPayhead,
+                    amount: newAmount,
+                    csrf_token: CSRF_TOKEN
+                },
+                beforeSend: function(){
+                    $('#modalEditPayhead button[type="submit"]').prop('disabled', true);
+                },
+                success: function(resp){
+                    $('#modalEditPayhead button[type="submit"]').prop('disabled', false);
+                    if(resp.code === 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: resp.result,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => { location.reload(); });
+                    } else {
+                        Swal.fire('Gagal', resp.result, 'error');
                     }
-                });
+                },
+                error: function(){
+                    $('#modalEditPayhead button[type="submit"]').prop('disabled', false);
+                    Swal.fire('Error', 'Terjadi kesalahan saat mengupdate payhead.', 'error');
+                }
+            });
+        });
+
+        // Event: Delete Payhead
+        $(document).on('click', '.btn-delete-payhead', function(){
+            const idPayhead = $(this).data('idpayhead');
+            $('#del_idpayhead').val(idPayhead);
+            new bootstrap.Modal(document.getElementById('modalDeletePayhead')).show();
+        });
+        $('#btnConfirmDelete').on('click', function(){
+            const idPayhead = $('#del_idpayhead').val();
+            if(!idPayhead) {
+                Swal.fire('Error', 'ID Payhead tidak ditemukan.', 'error');
+                return;
             }
+            $.ajax({
+                url: '?ajax=1',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    case: 'DeletePayhead',
+                    payroll_id: PAYROLL_ID,
+                    id_payhead: idPayhead,
+                    csrf_token: CSRF_TOKEN
+                },
+                beforeSend: function(){
+                    $('#btnConfirmDelete').prop('disabled', true);
+                },
+                success: function(resp){
+                    $('#btnConfirmDelete').prop('disabled', false);
+                    if(resp.code === 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: resp.result,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => { location.reload(); });
+                    } else {
+                        Swal.fire('Gagal', resp.result, 'error');
+                    }
+                },
+                error: function(){
+                    $('#btnConfirmDelete').prop('disabled', false);
+                    Swal.fire('Error', 'Terjadi kesalahan saat menghapus payhead.', 'error');
+                }
+            });
+        });
+
+        // Event: Reject Payroll
+        $('#btnRejectPayroll').on('click', function(){
+            Swal.fire({
+                title: 'Anda yakin menolak payroll ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Tolak',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if(result.isConfirmed) {
+                    $.ajax({
+                        url: '?ajax=1',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            case: 'RejectPayroll',
+                            id_anggota: EMPLOYEE_ID,
+                            bulan: BULAN_VAL,
+                            tahun: TAHUN_VAL,
+                            csrf_token: CSRF_TOKEN
+                        },
+                        success: function(resp) {
+                            if(resp.code === 0) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Payroll ditolak!',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    window.location.href = '/payroll_absensi_v2/keuangan/list_payroll.php';
+                                });
+                            } else {
+                                Swal.fire('Gagal', resp.result, 'error');
+                            }
+                        },
+                        error: function() {
+                            Swal.fire('Error', 'Terjadi kesalahan saat menolak payroll.', 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Sebelum submit finalisasi, salin nilai input ke hidden field
+        $('#formPayroll').on('submit', function(){
+            $('#fieldNoRek').val($('#inputNoRek').val());
+            $('#fieldGajiPokok').val($('#inputGajiPokok').val());
+            $('#fieldTotalEarnings').val($('#inputTotalEarnings').val());
+            $('#fieldTotalDeductions').val($('#inputTotalDeductions').val());
+            $('#fieldDescription').val($('#inputDescription').val());
+            $('#fieldTglPayroll').val($('#inputTanggalPayroll').val());
+            let potKoperasiNum = anPotKop.getNumber();
+            $('#fieldPotonganKoperasi').val(potKoperasiNum);
         });
     });
-    
-    // Salin nilai input tampilan ke field tersembunyi sebelum submit form finalisasi
-    $('#formPayroll').on('submit', function(){
-        $('#fieldNoRek').val($('#inputNoRek').val());
-        $('#fieldGajiPokok').val($('#inputGajiPokok').val());
-        $('#fieldTotalEarnings').val($('#inputTotalEarnings').val());
-        $('#fieldTotalDeductions').val($('#inputTotalDeductions').val());
-        $('#fieldDescription').val($('#inputDescription').val());
-        $('#fieldTglPayroll').val($('#inputTanggalPayroll').val());
-        let potKoperasiNum = anPotKop.getNumber(); 
-        $('#fieldPotonganKoperasi').val(potKoperasiNum); 
-    });
-});
-</script>
+    </script>
+</body>
+</html>

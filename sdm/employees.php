@@ -164,17 +164,21 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
     $stmtPH->close();
 
     $sqlInsDetail = "
-       INSERT INTO payroll_detail (id_payroll, id_payhead, jenis, amount)
-       VALUES (?, ?, ?, ?)
-    ";
-    $stmtDet = $conn->prepare($sqlInsDetail);
-    while ($ph = $resPH->fetch_assoc()) {
-        $pid   = intval($ph['id_payhead']);
-        $jenis = $ph['jenis'];
-        $amt   = floatval($ph['amount']);
-        $stmtDet->bind_param("iisd", $newPayrollId, $pid, $jenis, $amt);
-        $stmtDet->execute();
-    }
+   INSERT INTO payroll_detail (id_payroll, id_anggota, id_payhead, jenis, amount)
+   VALUES (?, ?, ?, ?, ?)
+";
+$stmtDet = $conn->prepare($sqlInsDetail);
+
+while ($ph = $resPH->fetch_assoc()) {
+    $pid   = intval($ph['id_payhead']);
+    $jenis = $ph['jenis'];
+    $amt   = floatval($ph['amount']);
+
+    // Perhatikan: sekarang bind 5 parameter (iiisd)
+    $stmtDet->bind_param("iiisd", $newPayrollId, $id_anggota, $pid, $jenis, $amt);
+    $stmtDet->execute();
+}
+
     $stmtDet->close();
 
     // 7) Audit log

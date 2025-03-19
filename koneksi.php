@@ -14,7 +14,7 @@ date_default_timezone_set('Asia/Jakarta');
 $host   = "localhost";
 $user   = "root";
 $pass   = "";
-$dbname = "payroll_ujicoba";
+$dbname = "payroll_absensi";
 
 // (Opsional) Aktifkan reporting error mysqli secara lebih ketat untuk pengembangan.
 // mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);

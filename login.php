@@ -32,7 +32,6 @@ if (isset($_SESSION['role'])) {
             header("Location: kepalasekolah/dashboard_kepala_sekolah.php");
             exit();
         case 'M':  // Jika sudah login sebagai manajerial, arahkan ke halaman sesuai job_title
-            // Redirect sesuai job_title yang telah disimpan di session
             $jobTitle = strtolower($_SESSION['job_title'] ?? '');
             if (strpos($jobTitle, 'superadmin') !== false) {
                 header("Location: superadmin/dashboard_superadmin.php");
@@ -86,14 +85,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $anggotaRole = $row['role'] ?? '';
 
                 if ($anggotaRole === 'M') { // User manajerial
-                    // Tetap simpan role sebagai 'M' dan simpan job_title asli
                     $_SESSION['role']      = 'M';
                     $_SESSION['job_title'] = $row['job_title'];
                     
                     add_audit_log($conn, $row['nip'], 'Login',
                         "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai M dengan job_title '{$row['job_title']}'."
                     );
-                    // Redirect berdasarkan job_title tanpa mengubah role
                     if (strpos($jobTitle, 'superadmin') !== false) {
                         header("Location: superadmin/dashboard_superadmin.php");
                         exit();
@@ -162,6 +159,8 @@ ob_end_flush(); // Akhiri output buffering
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome (untuk ikon) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Google Font (contoh) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:400,500,600&display=swap">
 
     <style>
         /* RESET & GLOBAL STYLE */
@@ -171,100 +170,98 @@ ob_end_flush(); // Akhiri output buffering
             box-sizing: border-box;
         }
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Poppins', sans-serif;
             min-height: 100vh;
             display: flex;
-            overflow-x: hidden;
+            flex-direction: row;
+            /* Background gradient atau bisa diganti dengan background-image */
+            background: linear-gradient(to right, #74c0fc, #4e73df);
         }
-        /* SPLIT SCREEN LAYOUT */
+        
+
+        /* BAGIAN KIRI (SPLIT SCREEN) */
         .left {
             flex: 1;
-            background: linear-gradient(135deg, #4e73df, #74c0fc);
+            position: relative;
+            color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 3rem;
+            overflow: hidden;
+        }
+        /* Contoh: Menambahkan gambar background di sisi kiri */
+        .left::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('https://images.unsplash.com/photo-1603575448363-9229ef31cde6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80') center center / cover no-repeat;
+            opacity: 0.75;
         }
         .left-content {
+            position: relative;
+            z-index: 1;
             max-width: 450px;
             text-align: center;
-            color: #fff;
         }
         .left-content h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: bold;
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
         }
         .left-content p {
-            font-size: 1.1rem;
+            font-size: 1rem;
             line-height: 1.6;
             opacity: 0.9;
         }
+
+        /* BAGIAN KANAN (FORM LOGIN) */
         .right {
             flex: 1;
-            background: #f8f9fc;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 2rem;
+            position: relative;
+            background: #f8f9fc;
         }
-        /* LOGIN FORM CARD */
+
+        /* CARD FORM */
         .login-form {
             width: 100%;
             max-width: 400px;
-            background: #fff;
-            border-radius: 10px;
+            border-radius: 15px;
             padding: 2rem;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
-            text-align: center;
             position: relative;
-            overflow: hidden;
-            transition: box-shadow 0.4s ease, transform 0.3s ease;
+            text-align: center;
+            /* Glassmorphism effect */
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        .login-form:hover {
-            box-shadow: 0 8px 30px rgba(0,0,0,0.1), 0 0 15px rgba(78,115,223,0.5);
-            transform: translateY(-3px);
-        }
-        /* Efek animasi radial background */
-        .login-form::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at center, rgba(78,115,223,0.2), transparent 50%);
-            animation: rotateGradient 6s linear infinite;
-            z-index: -1;
-        }
-        @keyframes rotateGradient {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-        /* Logo & Tagline */
+
+        /* LOGO & TAGLINE */
         .logo-container {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
         .logo-container img {
-            width: 100px;
+            width: 90px;
             height: auto;
         }
         .tagline {
             font-size: 0.9rem;
-            color: #666;
+            color: #555;
             margin-top: 0.5rem;
         }
-        /* Judul */
+
         .login-form h2 {
             font-size: 1.6rem;
             margin-bottom: 1.5rem;
             color: #333;
             font-weight: 700;
         }
+
         /* ALERT ERROR */
         .alert-danger {
             color: #fff;
@@ -275,17 +272,20 @@ ob_end_flush(); // Akhiri output buffering
             border-radius: 5px;
             padding: 0.75rem 1rem;
         }
+
         /* FORM GROUP */
         .form-group {
             text-align: left;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.2rem;
         }
         .form-group label {
             font-weight: 600;
             color: #333;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
             display: inline-block;
         }
+
+        /* INPUT DENGAN ICON */
         .icon-input-container {
             display: flex;
             align-items: center;
@@ -310,6 +310,8 @@ ob_end_flush(); // Akhiri output buffering
             border-color: #4e73df;
             box-shadow: 0 0 5px rgba(78,115,223,0.3);
         }
+
+        /* TOMBOL LOGIN */
         .btn-login {
             width: 100%;
             height: 45px;
@@ -328,53 +330,69 @@ ob_end_flush(); // Akhiri output buffering
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transform: translateY(-2px);
         }
+
+        /* RESPONSIVE */
         @media(max-width: 768px) {
-            .left { display: none; }
-            .right { flex: unset; width: 100%; height: auto; padding: 1rem; }
-            .login-form { margin: 0 auto; max-width: 400px; }
+            .left {
+                display: none;
+            }
+            .right {
+                flex: unset;
+                width: 100%;
+                height: auto;
+                padding: 1rem;
+            }
+            .login-form {
+                margin: 0 auto;
+                max-width: 400px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- Bagian kiri (Welcome section) -->
+    <!-- BAGIAN KIRI -->
     <div class="left">
         <div class="left-content">
-            <h1>Welcome to website</h1>
-            <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                Sed diam nonummy nibh euismod tincidunt ut laoreet dolore
-                magna aliquam erat volutpat.
-            </p>
+            <h1>Sistem Terpadu Sekolah Nusaputera</h1>
+            <p>Selamat datang di portal login. Silakan masuk dengan NIP dan password Anda untuk mengakses sistem.</p>
         </div>
     </div>
 
-    <!-- Bagian kanan (Login Form) -->
+    <!-- BAGIAN KANAN (FORM LOGIN) -->
     <div class="right">
         <div class="login-form">
             <!-- Logo -->
             <div class="logo-container">
+                <!-- Ganti path logo sesuai kebutuhan -->
                 <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
                 <div class="tagline">Sekolah Nusaputera</div>
             </div>
 
             <h2>Login</h2>
 
-            <!-- Tampilan error -->
+            <!-- TAMPILAN ERROR (JIKA ADA) -->
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger">
                     <?= htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
 
-            <!-- Form Login -->
+            <!-- FORM LOGIN -->
             <form action="login.php" method="POST">
                 <div class="form-group">
                     <label for="username">NIP</label>
                     <div class="icon-input-container">
                         <i class="fas fa-user"></i>
-                        <input type="text" class="form-control" id="username" name="username" required
-                               value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>">
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="username" 
+                            name="username" 
+                            required
+                            value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
+                            placeholder="Masukkan NIP Anda..."
+                        >
                     </div>
                 </div>
 
@@ -382,7 +400,14 @@ ob_end_flush(); // Akhiri output buffering
                     <label for="password">Password</label>
                     <div class="icon-input-container">
                         <i class="fas fa-lock"></i>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <input 
+                            type="password" 
+                            class="form-control" 
+                            id="password" 
+                            name="password" 
+                            required
+                            placeholder="Masukkan password Anda..."
+                        >
                     </div>
                 </div>
 
