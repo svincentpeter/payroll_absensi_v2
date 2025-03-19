@@ -2,7 +2,7 @@
 // File: navbar.php
 
 require_once __DIR__ . '/helpers.php';
-require_once __DIR__ . '/koneksi.php';
+
 
 start_session_safe();
 
@@ -260,8 +260,6 @@ if ($stmtPesan) {
 }
 $messageCount = count($messages);
 $latestMessages = $messages;
-
-$conn->close(); // tutup koneksi DB
 
 /** Fungsi formatBadge */
 function formatBadge($count) {
