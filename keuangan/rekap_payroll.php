@@ -80,38 +80,42 @@ function LoadingRekapPayroll($conn) {
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
-    $sqlBase = "FROM payroll p 
-                JOIN anggota_sekolah a ON p.id_anggota = a.id 
-                WHERE 1=1";
-    $params = [];
-    $types  = "";
+    // Bangun potongan WHERE dinamis
+    $sqlWhere = " WHERE 1=1 ";
+    $params   = [];
+    $types    = "";
 
     if (!empty($jenjang)) {
-        $sqlBase .= " AND a.jenjang = ?";
+        $sqlWhere .= " AND a.jenjang = ?";
         $params[] = $jenjang;
-        $types  .= "s";
+        $types   .= "s";
     }
     if ($bulan > 0) {
-        $sqlBase .= " AND p.bulan = ?";
+        $sqlWhere .= " AND pf.bulan = ?";
         $params[] = $bulan;
-        $types  .= "i";
+        $types   .= "i";
     }
     if ($tahun > 0) {
-        $sqlBase .= " AND p.tahun = ?";
+        $sqlWhere .= " AND pf.tahun = ?";
         $params[] = $tahun;
-        $types  .= "i";
+        $types   .= "i";
     }
     if (!empty($search)) {
-        $sqlBase .= " AND a.jenjang LIKE ?";
+        $sqlWhere .= " AND a.jenjang LIKE ?";
         $params[] = "%{$search}%";
-        $types  .= "s";
+        $types   .= "s";
     }
 
-    // Hitung total terfilter
-    $sqlCountFiltered = "SELECT COUNT(DISTINCT a.jenjang) AS total " . $sqlBase;
+    // ========== Hitung total terfilter (distinct jenjang) ==========
+    $sqlCountFiltered = "
+        SELECT COUNT(DISTINCT a.jenjang) AS total
+        FROM payroll_final pf
+        JOIN anggota_sekolah a ON pf.id_anggota = a.id
+        $sqlWhere
+    ";
     $stmtFiltered = $conn->prepare($sqlCountFiltered);
-    if ($stmtFiltered === false) {
-        send_response(1, 'Prepare failed: ' . $conn->error);
+    if (!$stmtFiltered) {
+        send_response(1, 'Prepare failed (countFiltered): ' . $conn->error);
     }
     if (!empty($params)) {
         $stmtFiltered->bind_param($types, ...$params);
@@ -122,27 +126,49 @@ function LoadingRekapPayroll($conn) {
     $totalFiltered = isset($rowFiltered['total']) ? $rowFiltered['total'] : 0;
     $stmtFiltered->close();
 
-    // Hitung total keseluruhan (tanpa filter)
-    $sqlTotal = "SELECT COUNT(DISTINCT a.jenjang) AS total 
-                 FROM payroll p 
-                 JOIN anggota_sekolah a ON p.id_anggota = a.id";
+    // ========== Hitung total keseluruhan (distinct jenjang) ==========
+    $sqlTotal = "
+        SELECT COUNT(DISTINCT a.jenjang) AS total
+        FROM payroll_final pf
+        JOIN anggota_sekolah a ON pf.id_anggota = a.id
+    ";
     $resTotal = $conn->query($sqlTotal);
     if (!$resTotal) {
-        send_response(1, 'Query gagal: ' . $conn->error);
+        send_response(1, 'Query gagal (countTotal): ' . $conn->error);
     }
     $rowTotal = $resTotal->fetch_assoc();
     $recordsTotal = isset($rowTotal['total']) ? $rowTotal['total'] : 0;
 
-    // Ambil data rekap group by jenjang
-    $sqlData = "SELECT a.jenjang,
-                       SUM(p.gaji_pokok) AS total_gaji_pokok,
-                       SUM(p.total_pendapatan) AS total_pendapatan,
-                       SUM(p.total_potongan) AS total_potongan,
-                       SUM(p.gaji_bersih) AS total_gaji_bersih
-                " . $sqlBase . " 
-                GROUP BY a.jenjang";
+    // ========== Ambil data rekap (tidak join langsung detail) ==========
+    // Subquery "d" merangkum total pendapatan/potongan per id_payroll_final
+    // Sehingga gaji pokok TIDAK berlipat ganda.
+    $sqlData = "
+        SELECT
+            a.jenjang,
+            SUM(pf.gaji_pokok) AS total_gaji_pokok,
+            SUM(IFNULL(d.earnings, 0)) AS total_pendapatan,
+            SUM(IFNULL(d.deductions, 0)) AS total_potongan,
+            SUM(pf.gaji_bersih) AS total_gaji_bersih
+        FROM payroll_final pf
+        JOIN anggota_sekolah a
+            ON pf.id_anggota = a.id
+        -- Subquery (derived table) untuk rekap detail
+        LEFT JOIN (
+            SELECT
+                id_payroll_final,
+                SUM(CASE WHEN jenis = 'earnings' THEN amount ELSE 0 END) AS earnings,
+                SUM(CASE WHEN jenis = 'deductions' THEN amount ELSE 0 END) AS deductions
+            FROM payroll_detail_final
+            GROUP BY id_payroll_final
+        ) d ON pf.id = d.id_payroll_final
+        $sqlWhere
+        GROUP BY a.jenjang
+    ";
 
+    // Urutan default
     $orderBy = " ORDER BY a.jenjang ASC";
+
+    // Cek apakah user meng-klik sorting kolom
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $colIndex = intval($_POST['order'][0]['column']);
         $allowedCols = [
@@ -168,16 +194,20 @@ function LoadingRekapPayroll($conn) {
         }
     }
 
+    // Paging
     $limit = " LIMIT ?, ?";
     $paramsData = $params;
-    $typesData = $types . "ii";
+    $typesData  = $types . "ii";
     $paramsData[] = $start;
     $paramsData[] = $length;
+
+    // Final query data
     $sqlData .= $orderBy . $limit;
 
+    // Eksekusi
     $stmtData = $conn->prepare($sqlData);
-    if ($stmtData === false) {
-        send_response(1, 'Prepare failed: ' . $conn->error);
+    if (!$stmtData) {
+        send_response(1, 'Prepare failed (data): ' . $conn->error);
     }
     if (!empty($paramsData)) {
         $stmtData->bind_param($typesData, ...$paramsData);
@@ -185,6 +215,7 @@ function LoadingRekapPayroll($conn) {
     $stmtData->execute();
     $resData = $stmtData->get_result();
 
+    // Siapkan data untuk DataTables
     $data = [];
     while ($row = $resData->fetch_assoc()) {
         $data[] = [
@@ -194,15 +225,15 @@ function LoadingRekapPayroll($conn) {
             "total_potongan"    => formatNominal($row['total_potongan']),
             "total_gaji_bersih" => formatNominal($row['total_gaji_bersih']),
             "aksi" => '
-                <a href="rekap_payroll_details.php?jenjang=' . urlencode($row['jenjang']) . '" 
-                   class="btn btn-info btn-sm me-1" 
-                   data-bs-toggle="tooltip" 
+                <a href="rekap_payroll_details.php?jenjang=' . urlencode($row['jenjang']) . '"
+                   class="btn btn-info btn-sm me-1"
+                   data-bs-toggle="tooltip"
                    title="Lihat Detail Payroll">
                     <i class="fas fa-file-invoice"></i>
                 </a>
-                <button class="btn btn-secondary btn-sm btn-view-rekap-detail" 
-                        data-jenjang="' . htmlspecialchars($row['jenjang']) . '" 
-                        data-bs-toggle="tooltip" 
+                <button class="btn btn-secondary btn-sm btn-view-rekap-detail"
+                        data-jenjang="' . htmlspecialchars($row['jenjang']) . '"
+                        data-bs-toggle="tooltip"
                         title="View Detail">
                     <i class="fas fa-eye"></i>
                 </button>
@@ -211,6 +242,7 @@ function LoadingRekapPayroll($conn) {
     }
     $stmtData->close();
 
+    // Kirim response ke DataTables
     echo json_encode([
         "draw"            => $draw,
         "recordsTotal"    => $recordsTotal,
@@ -220,20 +252,27 @@ function LoadingRekapPayroll($conn) {
     exit();
 }
 
+
+
 function ViewRekapPayrollDetail($conn) {
     $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     if (empty($jenjang)) {
         send_response(1, 'Jenjang tidak valid.');
     }
 
+    // Ganti payroll_detail => payroll_detail_final (pdf)
+    // Ganti payroll => payroll_final (pf)
+    // Ambil data payhead langsung dari payroll_detail_final
+    // (karena sudah ada pdf.nama_payhead dan pdf.jenis)
     $stmt = $conn->prepare("
-        SELECT ph.nama_payhead, ph.jenis, SUM(pd.amount) as total_amount
-        FROM payroll_detail pd
-        JOIN payheads ph ON pd.id_payhead = ph.id
-        JOIN payroll p ON pd.id_payroll = p.id
-        JOIN anggota_sekolah a ON p.id_anggota = a.id
+        SELECT pdf.nama_payhead,
+               pdf.jenis,
+               SUM(pdf.amount) AS total_amount
+        FROM payroll_detail_final pdf
+        JOIN payroll_final pf ON pdf.id_payroll_final = pf.id
+        JOIN anggota_sekolah a ON pf.id_anggota = a.id
         WHERE a.jenjang = ?
-        GROUP BY ph.id, ph.nama_payhead, ph.jenis
+        GROUP BY pdf.nama_payhead, pdf.jenis
     ");
     if ($stmt === false) {
         send_response(1, 'Prepare failed: ' . $conn->error);
@@ -247,12 +286,12 @@ function ViewRekapPayrollDetail($conn) {
     }
     $stmt->close();
 
-    $earnings = [];
+    $earnings   = [];
     $deductions = [];
     foreach ($details as $d) {
-        if ($d['jenis'] === 'earnings') {
+        if (strtolower($d['jenis']) === 'earnings') {
             $earnings[] = $d;
-        } elseif ($d['jenis'] === 'deductions') {
+        } elseif (strtolower($d['jenis']) === 'deductions') {
             $deductions[] = $d;
         }
     }
@@ -436,7 +475,8 @@ function ViewRekapPayrollDetail($conn) {
                                     <select class="form-select" id="filterTahun" name="tahun">
                                         <option value="">Semua Tahun</option>
                                         <?php
-                                        $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll ORDER BY tahun DESC");
+                                        // Ambil daftar tahun dari payroll_final, bukan payroll
+                                        $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll_final ORDER BY tahun DESC");
                                         if ($stmtTahun) {
                                             $stmtTahun->execute();
                                             $resTahun = $stmtTahun->get_result();

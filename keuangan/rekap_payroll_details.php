@@ -73,7 +73,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     $tahun = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
 
     // Query dasar: join payroll dan anggota_sekolah
-    $sqlBase = "FROM payroll p JOIN anggota_sekolah a ON p.id_anggota = a.id WHERE a.jenjang = ?";
+    $sqlBase = "FROM payroll_final p JOIN anggota_sekolah a ON p.id_anggota = a.id WHERE a.jenjang = ?";
     $params = [$jenjang];
     $types  = "s";
     if ($bulan > 0) {
@@ -108,7 +108,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
     $stmtFiltered->close();
 
     // Hitung recordsTotal (tanpa filter pencarian)
-    $sqlCountTotal = "SELECT COUNT(*) AS total FROM payroll p JOIN anggota_sekolah a ON p.id_anggota = a.id WHERE a.jenjang = ?";
+    $sqlCountTotal = "SELECT COUNT(*) AS total FROM payroll_final p JOIN anggota_sekolah a ON p.id_anggota = a.id WHERE a.jenjang = ?";
     $stmtTotal = $conn->prepare($sqlCountTotal);
     if ($stmtTotal === false) {
         send_response(1, 'Prepare failed: ' . $conn->error);
@@ -333,7 +333,7 @@ function LoadingRekapPayrollDetails($conn, $jenjang) {
                                     <select class="form-select" id="filterTahun" name="tahun" style="width:120px">
                                         <option value="">Semua Tahun</option>
                                         <?php
-                                            $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll WHERE id_anggota IN (SELECT id FROM anggota_sekolah WHERE jenjang = ?) ORDER BY tahun DESC");
+                                            $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll_final WHERE id_anggota IN (SELECT id FROM anggota_sekolah WHERE jenjang = ?) ORDER BY tahun DESC");
                                             if ($stmtTahun) {
                                                 $stmtTahun->bind_param("s", $jenjang);
                                                 $stmtTahun->execute();

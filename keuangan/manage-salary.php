@@ -150,184 +150,202 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         die("Parameter tidak valid untuk finalisasi payroll.");
     }
 
-    $conn->begin_transaction();
-    try {
-        // 1) Update status payroll_detail => 'final'
-        $stmtToFinal = $conn->prepare("
-            UPDATE payroll_detail
-               SET status = 'final'
-             WHERE id_payroll IN (
-                SELECT id FROM payroll WHERE id_anggota = ?
-             )
-               AND status IN ('draft','revisi')
-        ");
-        $stmtToFinal->bind_param("i", $id_anggota);
-        if (!$stmtToFinal->execute()) {
-            throw new Exception("Gagal update status payroll_detail: " . $stmtToFinal->error);
-        }
-        $stmtToFinal->close();
-    
-        // 2) Hitung gaji bersih
-        $stmtSum = $conn->prepare("
-            SELECT 
-              SUM(CASE WHEN pd.jenis='earnings' THEN pd.amount ELSE 0 END) AS total_earnings,
-              SUM(CASE WHEN pd.jenis='deductions' THEN pd.amount ELSE 0 END) AS total_deductions
-            FROM payroll_detail pd
-            JOIN payheads ph ON ph.id = pd.id_payhead
-            LEFT JOIN employee_payheads ep
-                   ON ep.id_anggota = ?
-                  AND ep.id_payhead = pd.id_payhead
-            WHERE pd.id_payroll = ?
-              AND IFNULL(ep.is_rapel,0)=0
-        ");
-        $stmtSum->bind_param("ii", $id_anggota, $newPayrollId);
-        $stmtSum->execute();
-        $resSum = $stmtSum->get_result();
-        $rowSum = $resSum->fetch_assoc();
-        $stmtSum->close();
-    
-        $total_earnings   = floatval($rowSum['total_earnings'] ?? 0);
-        $total_deductions = floatval($rowSum['total_deductions'] ?? 0);
-        $gaji_bersih      = $gaji_pokok + $total_earnings - $total_deductions - $potongan_koperasi;
-    
-        // 3) Insert ke tabel payroll
-        $status = 'final';
-        $stmtPayroll = $conn->prepare("
-            INSERT INTO payroll
-            (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok,
-             total_pendapatan, total_potongan, potongan_koperasi,
-             gaji_bersih, no_rekening, catatan, id_rekap_absensi, status)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-        ");
-        if (!$stmtPayroll) {
-            throw new Exception("Prepare failed (insert payroll): " . $conn->error);
-        }
-        $stmtPayroll->bind_param(
-            "iiisdddddssis",
-            $id_anggota,
-            $bulan_int,
-            $tahun,
-            $tgl_payroll,
-            $gaji_pokok,
-            $total_earnings,
-            $total_deductions,
-            $potongan_koperasi,
-            $gaji_bersih,
-            $no_rekening,
-            $catatan,
-            $id_rekap_absensi,
-            $status
-        );
-        
-        if (!$stmtPayroll->execute()) {
-            throw new Exception("Gagal insert payroll: " . $stmtPayroll->error);
-        }
-        $newPayrollId = $stmtPayroll->insert_id;
-        $stmtPayroll->close();
-    
-        // 4) Insert detail payhead => payroll_detail (dari hidden field)
-        if (!empty($_POST['payheads_ids'])) {
-            $stmtDetail = $conn->prepare("
-                INSERT INTO payroll_detail
-                    (id_payroll, id_anggota, id_payhead, jenis, amount, status)
-                VALUES (?,?,?,?,?, 'final')
-            ");
-            if (!$stmtDetail) {
-                throw new Exception("Prepare failed (insert payroll_detail): " . $conn->error);
-            }
-            foreach ($_POST['payheads_ids'] as $i => $ph_id) {
-                $ph_id_int = intval($ph_id);
-                $jenis     = sanitize_input($_POST['payheads_jenis'][$i] ?? '');
-                $amount    = floatval($_POST['payheads_amount'][$i] ?? 0);
-    
-                $stmtDetail->bind_param("iiisd", $newPayrollId, $id_anggota, $ph_id_int, $jenis, $amount);
-                if (!$stmtDetail->execute()) {
-                    throw new Exception("Gagal insert payroll_detail: " . $stmtDetail->error);
-                }
-            }
-            $stmtDetail->close();
-        }
-    
-        // 5) Insert data ke payroll_final
-        $stmtPayrollFinal = $conn->prepare("
-            INSERT INTO payroll_final
-            (id_payroll_asal, id_anggota, bulan, tahun, tgl_payroll,
-             gaji_pokok, total_pendapatan, total_potongan, potongan_koperasi,
-             gaji_bersih, no_rekening, catatan, id_rekap_absensi)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-        ");
-        if (!$stmtPayrollFinal) {
-            throw new Exception("Prepare failed (insert payroll_final): " . $conn->error);
-        }
-        $stmtPayrollFinal->bind_param(
-            "iiiisdddddssi",
-            $newPayrollId, 
-            $id_anggota, 
-            $bulan_int, 
-            $tahun, 
-            $tgl_payroll,
-            $gaji_pokok,
-            $total_earnings,
-            $total_deductions,
-            $potongan_koperasi,
-            $gaji_bersih,
-            $no_rekening,
-            $catatan,
-            $id_rekap_absensi
-        );
-        if (!$stmtPayrollFinal->execute()) {
-            throw new Exception("Gagal insert payroll_final: " . $stmtPayrollFinal->error);
-        }
-        $id_payroll_final = $stmtPayrollFinal->insert_id;
-        $stmtPayrollFinal->close();
-    
-        // 6) Snapshot detail => payroll_detail_final
-        $stmtDetailSnapshot = $conn->prepare("
-            INSERT INTO payroll_detail_final
-            (id_payroll_final, id_payhead, nama_payhead, jenis, amount)
-            SELECT
-              ?,
-              pd.id_payhead,
-              ph.nama_payhead,
-              pd.jenis,
-              pd.amount
-            FROM payroll_detail pd
-            JOIN payheads ph ON ph.id = pd.id_payhead
-            LEFT JOIN employee_payheads ep
-                   ON ep.id_anggota = ?
-                  AND ep.id_payhead = pd.id_payhead
-            WHERE pd.id_payroll = ?
-              AND IFNULL(ep.is_rapel,0) = 0
-        ");
-        if (!$stmtDetailSnapshot) {
-            throw new Exception("Prepare failed (snapshot detail): " . $conn->error);
-        }
-        $stmtDetailSnapshot->bind_param("iii", $id_payroll_final, $id_anggota, $newPayrollId);
-        if (!$stmtDetailSnapshot->execute()) {
-            throw new Exception("Gagal insert payroll_detail_final: " . $stmtDetailSnapshot->error);
-        }
-        $stmtDetailSnapshot->close();
-    
-        // Commit
-        $conn->commit();
-    
-        // Audit log
-        $user_nip = $_SESSION['nip'] ?? '';
-        $details  = "Finalisasi Payroll untuk Anggota $id_anggota periode $bulan_int-$tahun. "
-                  . "Pendapatan: " . formatNominal($total_earnings)
-                  . ", Potongan: " . formatNominal($total_deductions)
-                  . ", Pot. Koperasi: " . formatNominal($potongan_koperasi)
-                  . ", Gaji Bersih: " . formatNominal($gaji_bersih);
-        add_audit_log($conn, $user_nip, 'InsertPayroll', $details);
-    
-        // Redirect ke detail payroll final
-        header("Location: payroll-details.php?id_payroll=$id_payroll_final");
-        exit();
-    
-    } catch (Exception $e) {
-        $conn->rollback();
-        die("Terjadi kesalahan: " . $e->getMessage());
+$conn->begin_transaction();
+try {
+    // 1) Insert dulu ke tabel payroll dengan nilai sementara
+    $status = 'final';
+    $temp_earnings   = 0;  // sementara
+    $temp_deductions = 0;  // sementara
+    $temp_bersih     = 0;  // sementara
+
+    $stmtPayroll = $conn->prepare("
+        INSERT INTO payroll
+        (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok,
+         total_pendapatan, total_potongan, potongan_koperasi,
+         gaji_bersih, no_rekening, catatan, id_rekap_absensi, status)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ");
+    if (!$stmtPayroll) {
+        throw new Exception("Prepare failed (insert payroll): " . $conn->error);
     }
+    $stmtPayroll->bind_param(
+        "iiisdddddssis",
+        $id_anggota,
+        $bulan_int,
+        $tahun,
+        $tgl_payroll,
+        $gaji_pokok,
+        $temp_earnings,
+        $temp_deductions,
+        $potongan_koperasi,
+        $temp_bersih,
+        $no_rekening,
+        $catatan,
+        $id_rekap_absensi,
+        $status
+    );
+    if (!$stmtPayroll->execute()) {
+        throw new Exception("Gagal insert payroll: " . $stmtPayroll->error);
+    }
+    $newPayrollId = $stmtPayroll->insert_id;
+    $stmtPayroll->close();
+
+    // 2) Insert detail payhead => payroll_detail (dari hidden field)
+    if (!empty($_POST['payheads_ids'])) {
+        $stmtDetail = $conn->prepare("
+            INSERT INTO payroll_detail
+                (id_payroll, id_anggota, id_payhead, jenis, amount, status)
+            VALUES (?,?,?,?,?, 'final')
+        ");
+        if (!$stmtDetail) {
+            throw new Exception("Prepare failed (insert payroll_detail): " . $conn->error);
+        }
+        foreach ($_POST['payheads_ids'] as $i => $ph_id) {
+            $ph_id_int = intval($ph_id);
+            $jenis     = sanitize_input($_POST['payheads_jenis'][$i] ?? '');
+            $amount    = floatval($_POST['payheads_amount'][$i] ?? 0);
+
+            if (!$stmtDetail->bind_param("iiisd", $newPayrollId, $id_anggota, $ph_id_int, $jenis, $amount)) {
+                throw new Exception("bind_param error: " . $stmtDetail->error);
+            }
+            if (!$stmtDetail->execute()) {
+                throw new Exception("Gagal insert payroll_detail: " . $stmtDetail->error);
+            }
+        }
+        $stmtDetail->close();
+    }
+
+    // 3) Setelah payroll_detail terisi, baru sum total pendapatan & potongan
+    $stmtSum = $conn->prepare("
+        SELECT 
+          SUM(CASE WHEN pd.jenis='earnings' THEN pd.amount ELSE 0 END) AS total_earnings,
+          SUM(CASE WHEN pd.jenis='deductions' THEN pd.amount ELSE 0 END) AS total_deductions
+        FROM payroll_detail pd
+        JOIN payheads ph ON ph.id = pd.id_payhead
+        LEFT JOIN employee_payheads ep
+               ON ep.id_anggota = ?
+              AND ep.id_payhead = pd.id_payhead
+        WHERE pd.id_payroll = ?
+          AND IFNULL(ep.is_rapel,0)=0
+    ");
+    if (!$stmtSum) {
+        throw new Exception("Prepare failed (sum payroll_detail): " . $conn->error);
+    }
+    $stmtSum->bind_param("ii", $id_anggota, $newPayrollId);
+    if (!$stmtSum->execute()) {
+        throw new Exception("Gagal sum payroll_detail: " . $stmtSum->error);
+    }
+    $resSum = $stmtSum->get_result();
+    $rowSum = $resSum->fetch_assoc();
+    $stmtSum->close();
+
+    $total_earnings   = floatval($rowSum['total_earnings'] ?? 0);
+    $total_deductions = floatval($rowSum['total_deductions'] ?? 0);
+    $gaji_bersih      = $gaji_pokok + $total_earnings - $total_deductions - $potongan_koperasi;
+
+    // 4) Update kembali tabel payroll dengan nilai final
+    $stmtUpdate = $conn->prepare("
+        UPDATE payroll
+           SET total_pendapatan = ?,
+               total_potongan   = ?,
+               gaji_bersih      = ?
+         WHERE id = ?
+    ");
+    if (!$stmtUpdate) {
+        throw new Exception("Prepare failed (update payroll): " . $conn->error);
+    }
+    if (!$stmtUpdate->bind_param("dddi", $total_earnings, $total_deductions, $gaji_bersih, $newPayrollId)) {
+        throw new Exception("bind_param error: " . $stmtUpdate->error);
+    }
+    if (!$stmtUpdate->execute()) {
+        throw new Exception("Gagal update payroll: " . $stmtUpdate->error);
+    }
+    $stmtUpdate->close();
+
+    // 5) Insert data ke payroll_final
+    $stmtPayrollFinal = $conn->prepare("
+        INSERT INTO payroll_final
+        (id_payroll_asal, id_anggota, bulan, tahun, tgl_payroll,
+         gaji_pokok, total_pendapatan, total_potongan, potongan_koperasi,
+         gaji_bersih, no_rekening, catatan, id_rekap_absensi)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ");
+    if (!$stmtPayrollFinal) {
+        throw new Exception("Prepare failed (insert payroll_final): " . $conn->error);
+    }
+    if (!$stmtPayrollFinal->bind_param(
+        "iiiisdddddssi",
+        $newPayrollId,
+        $id_anggota,
+        $bulan_int,
+        $tahun,
+        $tgl_payroll,
+        $gaji_pokok,
+        $total_earnings,
+        $total_deductions,
+        $potongan_koperasi,
+        $gaji_bersih,
+        $no_rekening,
+        $catatan,
+        $id_rekap_absensi
+    )) {
+        throw new Exception("bind_param error: " . $stmtPayrollFinal->error);
+    }
+    if (!$stmtPayrollFinal->execute()) {
+        throw new Exception("Gagal insert payroll_final: " . $stmtPayrollFinal->error);
+    }
+    $id_payroll_final = $stmtPayrollFinal->insert_id;
+    $stmtPayrollFinal->close();
+
+    // 6) Snapshot detail => payroll_detail_final
+    $stmtDetailSnapshot = $conn->prepare("
+        INSERT INTO payroll_detail_final
+        (id_payroll_final, id_payhead, nama_payhead, jenis, amount)
+        SELECT
+          ?,
+          pd.id_payhead,
+          ph.nama_payhead,
+          pd.jenis,
+          pd.amount
+        FROM payroll_detail pd
+        JOIN payheads ph ON ph.id = pd.id_payhead
+        LEFT JOIN employee_payheads ep
+               ON ep.id_anggota = ?
+              AND ep.id_payhead = pd.id_payhead
+        WHERE pd.id_payroll = ?
+          AND IFNULL(ep.is_rapel,0) = 0
+    ");
+    if (!$stmtDetailSnapshot) {
+        throw new Exception("Prepare failed (snapshot detail): " . $conn->error);
+    }
+    if (!$stmtDetailSnapshot->bind_param("iii", $id_payroll_final, $id_anggota, $newPayrollId)) {
+        throw new Exception("bind_param error: " . $stmtDetailSnapshot->error);
+    }
+    if (!$stmtDetailSnapshot->execute()) {
+        throw new Exception("Gagal insert payroll_detail_final: " . $stmtDetailSnapshot->error);
+    }
+    $stmtDetailSnapshot->close();
+
+    // 7) Commit
+    $conn->commit();
+
+    // Audit log
+    $user_nip = $_SESSION['nip'] ?? '';
+    $details  = "Finalisasi Payroll untuk Anggota $id_anggota periode $bulan_int-$tahun. "
+              . "Pendapatan: " . formatNominal($total_earnings)
+              . ", Potongan: " . formatNominal($total_deductions)
+              . ", Pot. Koperasi: " . formatNominal($potongan_koperasi)
+              . ", Gaji Bersih: " . formatNominal($gaji_bersih);
+    add_audit_log($conn, $user_nip, 'InsertPayroll', $details);
+
+    // Redirect ke detail payroll final
+    header("Location: payroll-details.php?id_payroll=$id_payroll_final");
+    exit();
+
+} catch (Exception $e) {
+    $conn->rollback();
+    die("Terjadi kesalahan: " . $e->getMessage());
+}
 }
 
 /**
