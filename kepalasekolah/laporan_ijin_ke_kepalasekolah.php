@@ -5,14 +5,14 @@
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
-    require_once '../../helpers.php';
+    require_once '../helpers.php';
     start_session_safe();
     generate_csrf_token();
     authorize('M:Kepala Sekolah');
 
 
     // Koneksi database
-    require_once '../../koneksi.php';
+    require_once '../koneksi.php';
 
     // PROSES UPDATE STATUS PENGAJUAN IZIN atau DELETE HISTORY
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

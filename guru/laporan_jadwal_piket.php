@@ -8,7 +8,7 @@ start_session_safe();
 generate_csrf_token();
 
 // (Opsional) Tambahkan otorisasi jika halaman ini hanya boleh diakses oleh role tertentu, misalnya:
-authorize(['superadmin', 'sdm', 'keuangan', 'P', 'TK']);
+authorize(['P', 'TK']);
 
 // Aktifkan report error untuk debugging (nonaktifkan pada produksi)
 ini_set('display_errors', 1);

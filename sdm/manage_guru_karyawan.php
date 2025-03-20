@@ -1512,10 +1512,10 @@ function getGajiPokokByRole($conn, $role) {
                     <h6 class="mb-0">${item.nama}</h6>
                     <p class="text-muted" style="font-size:0.9rem;">NIP: ${item.nip}</p>
                     <p style="font-size:0.85rem;">
-                      <strong>Masa Kerja:</strong> ${item.masa_kerja || '0 Thn'}<br>
-                      <strong>Pendidikan:</strong> ${item.pendidikan || '-'}<br>
-                      <strong>Role:</strong> ${item.role} | ${getStatusBadge(item.status_kerja)}
-                    </p>
+  <strong>Masa Kerja:</strong> ${item.masa_kerja || '0 Thn'}<br>
+  <strong>Jenjang:</strong> ${item.jenjang || '-'}<br>
+  <strong>Role:</strong> ${item.role} | ${getStatusBadge(item.status_kerja)}
+</p>
                     <div class="d-grid gap-2">
                       <button class="btn btn-sm btn-primary btn-view" data-id="${item.id}">
                         <i class="fas fa-eye"></i> Detail

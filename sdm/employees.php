@@ -1347,7 +1347,7 @@ if ($resMon) {
                             <div class="col-md-3">
                                 <div class="card border-primary">
                                     <div class="card-header bg-primary text-white" style="font-weight: bold;">
-                                        <i class="bi bi-clipboard-data me-1"></i> Payheads Tersedia
+                                        <i class="bi bi-clipboard-data me-1"></i> Komponen Gaji Tersedia
                                     </div>
                                     <div class="card-body" style="max-height: 250px; overflow-y: auto;">
                                         <div class="form-group mb-2">
@@ -1361,7 +1361,7 @@ if ($resMon) {
 <div class="col-md-9">
     <div class="card border-success">
         <div class="card-header bg-success text-white" style="font-weight: bold;">
-            <i class="bi bi-check2-circle me-1"></i> Payheads Terpilih
+            <i class="bi bi-check2-circle me-1"></i> Komponen Gaji Terpilih
         </div>
         <div class="card-body" style="max-height: 400px; overflow-y: auto;">
             <table class="table table-bordered mb-0" id="selected_payamount_table">

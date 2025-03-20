@@ -73,24 +73,49 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             }
             break;
             
-        case 'RejectPayroll':
-            $id_anggota    = intval($_POST['id_anggota'] ?? 0);
-            $bulanFromAjax = intval($_POST['bulan'] ?? 0);
-            $tahunFromAjax = intval($_POST['tahun'] ?? 0);
-            if ($id_anggota <= 0 || $bulanFromAjax <= 0 || $tahunFromAjax <= 0) {
-                send_response(1, 'Parameter tidak valid (RejectPayroll).');
-            }
-            // Ubah status payroll => 'revisi'
-            $stmtPayrollReject = $conn->prepare("UPDATE payroll SET status = 'revisi' WHERE id_anggota = ? AND bulan = ? AND tahun = ?");
-            $stmtPayrollReject->bind_param("iii", $id_anggota, $bulanFromAjax, $tahunFromAjax);
-            if (!$stmtPayrollReject->execute()) {
-                $stmtPayrollReject->close();
-                send_response(1, 'Gagal menolak payroll (payroll): ' . $stmtPayrollReject->error);
-            }
-            $stmtPayrollReject->close();
-            send_response(0, 'Payroll berhasil ditolak dan status diubah menjadi revisi.');
-            break;
+            case 'RejectPayroll':
+                // Ambil parameter dari POST
+                $id_anggota = intval($_POST['id_anggota'] ?? 0);
+                $bulan       = intval($_POST['bulan'] ?? 0);
+                $tahun       = intval($_POST['tahun'] ?? 0);
+                
+                if ($id_anggota <= 0 || $bulan <= 0 || $tahun <= 0) {
+                    send_response(1, 'Parameter tidak valid (RejectPayroll).');
+                }
+                
+                // Ubah status di tabel payroll menjadi 'revisi' (hanya untuk payroll dengan status 'draft')
+                $stmtReject = $conn->prepare("UPDATE payroll SET status = 'revisi' WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND status = 'draft'");
+                if (!$stmtReject) {
+                    send_response(1, 'Prepare failed (RejectPayroll payroll): ' . $conn->error);
+                }
+                $stmtReject->bind_param("iii", $id_anggota, $bulan, $tahun);
+                if (!$stmtReject->execute()) {
+                    $stmtReject->close();
+                    send_response(1, 'Gagal menolak payroll (payroll): ' . $stmtReject->error);
+                }
+                $stmtReject->close();
             
+                // Ubah status di tabel employee_payheads menjadi 'revisi' (untuk semua payheads yang masih 'draft' milik anggota terkait)
+                $stmtRejectEP = $conn->prepare("UPDATE employee_payheads SET status = 'revisi' WHERE id_anggota = ? AND status = 'draft'");
+                if (!$stmtRejectEP) {
+                    send_response(1, 'Prepare failed (RejectPayroll employee_payheads): ' . $conn->error);
+                }
+                $stmtRejectEP->bind_param("i", $id_anggota);
+                if (!$stmtRejectEP->execute()) {
+                    $stmtRejectEP->close();
+                    send_response(1, 'Gagal menolak payroll (employee_payheads): ' . $stmtRejectEP->error);
+                }
+                $stmtRejectEP->close();
+                
+                // Opsional: tambahkan audit log jika diperlukan
+                $user_nip = $_SESSION['nip'] ?? '';
+                $details  = "Menolak payroll untuk anggota ID $id_anggota periode $bulan-$tahun. Status diubah menjadi revisi.";
+                add_audit_log($conn, $user_nip, 'RejectPayroll', $details);
+                
+                send_response(0, 'Payroll berhasil ditolak dan status diubah menjadi revisi.');
+                break;
+            
+     
         case 'DeletePayhead':
             $id_payhead = intval($_POST['id_payhead'] ?? 0);
             $payroll_id = intval($_POST['payroll_id'] ?? 0);
@@ -684,7 +709,7 @@ $periode      = getIndonesianMonthName($bulan) . ' ' . $tahun;
             <div class="col-12 mb-4">
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
-                        <h5 class="card-title mb-0"><strong>Detail Payheads</strong></h5>
+                        <h5 class="card-title mb-0"><strong>Detail Komponen Gaji</strong></h5>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -818,8 +843,8 @@ $periode      = getIndonesianMonthName($bulan) . ' ' . $tahun;
                     </button>
                 </form>
                 <button type="button" class="btn btn-warning float-end me-2" id="btnRejectPayroll">
-                    <i class="fas fa-times"></i> Tolak Payroll
-                </button>
+                            <i class="fas fa-times"></i> Tolak Payroll
+                        </button>
             </div>
         </div>
     </div>
@@ -1041,47 +1066,47 @@ $periode      = getIndonesianMonthName($bulan) . ' ' . $tahun;
         });
 
         // Event: Reject Payroll
-        $('#btnRejectPayroll').on('click', function(){
-            Swal.fire({
-                title: 'Anda yakin menolak payroll ini?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Ya, Tolak',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if(result.isConfirmed) {
-                    $.ajax({
-                        url: '?ajax=1',
-                        type: 'POST',
-                        dataType: 'json',
-                        data: {
-                            case: 'RejectPayroll',
-                            id_anggota: EMPLOYEE_ID,
-                            bulan: BULAN_VAL,
-                            tahun: TAHUN_VAL,
-                            csrf_token: CSRF_TOKEN
-                        },
-                        success: function(resp) {
-                            if(resp.code === 0) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Payroll ditolak!',
-                                    showConfirmButton: false,
-                                    timer: 1500
-                                }).then(() => {
-                                    window.location.href = '/payroll_absensi_v2/keuangan/list_payroll.php';
-                                });
-                            } else {
-                                Swal.fire('Gagal', resp.result, 'error');
-                            }
-                        },
-                        error: function() {
-                            Swal.fire('Error', 'Terjadi kesalahan saat menolak payroll.', 'error');
+    $('#btnRejectPayroll').on('click', function(){
+        Swal.fire({
+            title: 'Anda yakin menolak payroll ini?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Tolak',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if(result.isConfirmed) {
+                $.ajax({
+                    url: '?ajax=1',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        case: 'RejectPayroll',
+                        id_anggota: EMPLOYEE_ID,
+                        bulan: <?= $bulanVal ?>,
+                        tahun: <?= $tahunVal ?>,
+                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+                    },
+                    success: function(resp) {
+                        if(resp.code === 0) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Payroll ditolak!',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.href = '/payroll_absensi_v2/keuangan/list_payroll.php';
+                            });
+                        } else {
+                            Swal.fire('Gagal', resp.result, 'error');
                         }
-                    });
-                }
-            });
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'Terjadi kesalahan saat menolak payroll.', 'error');
+                    }
+                });
+            }
         });
+    });
 
         // Sebelum submit finalisasi, salin nilai input ke hidden field
         $('#formPayroll').on('submit', function(){

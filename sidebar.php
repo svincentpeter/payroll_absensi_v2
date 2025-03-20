@@ -199,6 +199,12 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                     <span>Jadwal Piket</span>
                 </a>
             </li>
+            <li class="nav-item <?= isActive('/guru/hasil-slip_gaji.php'); ?>">
+                <a class="nav-link" href="<?= getBaseUrl() ?>/guru/hasil-slip_gaji.php">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Slip Gaji</span>
+                </a>
+            </li>
             <?php
         } else {
             // Role tidak dikenal
@@ -240,7 +246,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                 'Koreksi Absensi'      => '/sdm/koreksi_absensi.php',
                 'Kelola Guru/Karyawan' => '/sdm/manage_guru_karyawan.php',
                 'Payroll Anggota'      => '/sdm/employees.php',
-                'Payheads'             => '/sdm/payheads.php',
+                'Komponen Gaji'             => '/sdm/payheads.php',
                 'Laporan Surat Ijin'   => '/sdm/laporan_pengajuan_ijin.php',
                 'Laporan Jadwal Piket'   => '/sdm/laporan_jadwal_piket.php',
                 'Pembuatan Surat'      => '/sdm/pembuatan_surat.php',
