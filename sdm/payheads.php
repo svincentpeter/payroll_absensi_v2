@@ -222,19 +222,27 @@ function AddPayhead($conn) {
     $jenis          = isset($_POST['jenis_payhead']) ? trim($_POST['jenis_payhead']) : '';
     $deskripsi      = isset($_POST['deskripsi']) ? trim($_POST['deskripsi']) : '';
     $nominal_input  = isset($_POST['nominal']) ? $_POST['nominal'] : '';
-    $nominal        = floatval($nominal_input);
 
-    // Validasi sederhana
+    // Jika nominal tidak dimasukkan, set menjadi 0
+    if (trim($nominal_input) === '') {
+        $nominal = 0;
+    } else {
+        $nominal = floatval($nominal_input);
+        if ($nominal < 0) {
+            send_response(5, 'Nominal tidak boleh negatif.');
+        }
+    }
+
+    // Validasi sederhana untuk field wajib
     if (empty($nama_payhead) || empty($jenis)) {
         send_response(2, 'Semua field wajib diisi.');
     }
     if (!in_array($jenis, ['earnings', 'deductions'])) {
         send_response(3, 'Jenis Payhead tidak valid.');
     }
-    if ($nominal <= 0) {
-        send_response(5, 'Masukkan nominal payhead.');
-    }
-
+    // Catatan: validasi nominal yang sebelumnya mengecek ($nominal <= 0) telah diubah,
+    // sehingga jika field kosong, nilai nominal akan menjadi 0, sedangkan input negatif tetap diblok.
+    
     // Cek duplikasi
     $stmt = $conn->prepare("SELECT id FROM payheads WHERE nama_payhead = ? AND jenis = ? LIMIT 1");
     if ($stmt === false) {
@@ -266,6 +274,7 @@ function AddPayhead($conn) {
     $stmt->close();
     exit();
 }
+
 
 /**
  * Mengambil detail Payhead untuk kebutuhan edit.
@@ -594,7 +603,7 @@ function DeletePayhead($conn) {
                             <label for="nominal" class="form-label">
                                 <i class="fas fa-money-bill-wave me-1"></i>Nominal Tetap <span class="text-danger">*</span>
                             </label>
-                            <input type="text" step="0.01" class="form-control" id="nominal" name="nominal" placeholder="Contoh: 1500000" required>
+                            <input type="text" step="0.01" class="form-control" id="nominal" name="nominal" placeholder="Contoh: 1500000">
                             <div class="invalid-feedback">Masukkan nominal payhead.</div>
                             <div class="form-text">Contoh: <em>1500000</em> (tanpa titik/koma).</div>
                         </div>

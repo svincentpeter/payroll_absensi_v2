@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Mar 18, 2025 at 07:28 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Host: localhost:3306
+-- Generation Time: Mar 23, 2025 at 06:13 AM
+-- Server version: 8.0.30
+-- PHP Version: 8.2.26
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `payroll_ujicoba`
+-- Database: `payroll_absensi`
 --
 
 -- --------------------------------------------------------
@@ -28,26 +28,26 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `absensi` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `tanggal` date NOT NULL,
-  `jadwal` varchar(50) DEFAULT NULL,
-  `jam_kerja` varchar(50) DEFAULT NULL,
-  `valid` tinyint(1) DEFAULT 0,
-  `pin` varchar(50) DEFAULT NULL,
-  `nip` varchar(50) DEFAULT NULL,
-  `nama` varchar(100) DEFAULT NULL,
-  `departemen` varchar(10) NOT NULL,
-  `lembur` tinyint(1) DEFAULT 0,
+  `jadwal` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `jam_kerja` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `valid` tinyint(1) DEFAULT '0',
+  `pin` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `nip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `nama` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `departemen` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `lembur` tinyint(1) DEFAULT '0',
   `jam_masuk` time DEFAULT NULL,
   `scan_masuk` datetime DEFAULT NULL,
-  `terlambat` tinyint(1) DEFAULT 0,
+  `terlambat` tinyint(1) DEFAULT '0',
   `scan_istirahat_1` datetime DEFAULT NULL,
   `scan_istirahat_2` datetime DEFAULT NULL,
   `jam_pulang` time DEFAULT NULL,
   `scan_pulang` datetime DEFAULT NULL,
-  `jenis_absensi` varchar(50) DEFAULT '-',
-  `status_kehadiran` enum('hadir','sakit','izin','cuti','tanpa_keterangan','libur') DEFAULT 'hadir',
-  `id_anggota` int(11) NOT NULL
+  `jenis_absensi` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '-',
+  `status_kehadiran` enum('hadir','sakit','izin','cuti','tanpa_keterangan','libur') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'hadir',
+  `id_anggota` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -57,40 +57,40 @@ CREATE TABLE `absensi` (
 --
 
 CREATE TABLE `anggota_sekolah` (
-  `id` int(11) NOT NULL,
-  `uid` varchar(10) NOT NULL,
-  `nip` varchar(20) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `nama` varchar(100) NOT NULL,
-  `jenjang` varchar(10) DEFAULT NULL,
-  `job_title` varchar(50) DEFAULT NULL,
-  `status_kerja` varchar(20) DEFAULT NULL,
+  `id` int NOT NULL,
+  `uid` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `nip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `nama` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `jenjang` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `job_title` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `status_kerja` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `join_start` date DEFAULT NULL,
-  `masa_kerja_tahun` int(11) DEFAULT NULL,
-  `masa_kerja_bulan` int(11) DEFAULT NULL,
-  `masa_kerja_efektif` decimal(5,2) DEFAULT 0.00,
-  `remark` text DEFAULT NULL,
-  `jenis_kelamin` enum('L','P') DEFAULT NULL,
+  `masa_kerja_tahun` int DEFAULT NULL,
+  `masa_kerja_bulan` int DEFAULT NULL,
+  `masa_kerja_efektif` decimal(5,2) DEFAULT '0.00',
+  `remark` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `jenis_kelamin` enum('L','P') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `tanggal_lahir` date DEFAULT NULL,
-  `usia` int(11) DEFAULT NULL,
-  `agama` varchar(20) DEFAULT NULL,
-  `alamat_domisili` text DEFAULT NULL,
-  `alamat_ktp` text DEFAULT NULL,
-  `no_rekening` varchar(50) DEFAULT NULL,
-  `no_hp` varchar(20) DEFAULT NULL,
-  `pendidikan` varchar(50) DEFAULT NULL,
-  `status_perkawinan` varchar(20) DEFAULT NULL,
-  `email` varchar(100) DEFAULT NULL,
-  `nama_pasangan` varchar(100) DEFAULT NULL,
-  `jumlah_anak` int(11) DEFAULT 0,
-  `nama_anak_1` varchar(100) NOT NULL DEFAULT '',
-  `nama_anak_2` varchar(100) NOT NULL DEFAULT '',
-  `nama_anak_3` varchar(100) NOT NULL DEFAULT '',
-  `salary_index_id` int(11) DEFAULT NULL,
-  `salary_index_level` varchar(10) DEFAULT NULL,
-  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00,
-  `foto_profil` varchar(255) DEFAULT 'default.jpg',
-  `role` enum('P','TK','M') DEFAULT NULL
+  `usia` int DEFAULT NULL,
+  `agama` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `alamat_domisili` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `alamat_ktp` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `no_rekening` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `no_hp` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `pendidikan` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `status_perkawinan` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `nama_pasangan` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `jumlah_anak` int DEFAULT '0',
+  `nama_anak_1` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `nama_anak_2` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `nama_anak_3` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `salary_index_id` int DEFAULT NULL,
+  `salary_index_level` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `foto_profil` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'default.jpg',
+  `role` enum('P','TK','M') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -100,13 +100,13 @@ CREATE TABLE `anggota_sekolah` (
 --
 
 CREATE TABLE `audit_logs` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `nip` varchar(20) NOT NULL,
-  `action` varchar(100) NOT NULL,
-  `details` text NOT NULL,
-  `ip_address` varchar(45) NOT NULL,
-  `user_agent` varchar(255) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `id` int UNSIGNED NOT NULL,
+  `nip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `action` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `details` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `user_agent` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -116,20 +116,20 @@ CREATE TABLE `audit_logs` (
 --
 
 CREATE TABLE `employee_payheads` (
-  `id` int(11) NOT NULL,
-  `id_anggota` int(11) NOT NULL,
-  `id_payhead` int(11) NOT NULL,
-  `jenis` enum('earnings','deductions') DEFAULT NULL,
-  `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
-  `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft',
-  `remarks` text DEFAULT NULL,
-  `support_doc_path` varchar(255) DEFAULT NULL,
-  `upload_file_blob` mediumblob DEFAULT NULL,
-  `is_rapel` tinyint(1) DEFAULT 0,
-  `rapel_start_month` int(11) DEFAULT NULL,
-  `rapel_start_year` int(11) DEFAULT NULL,
-  `rapel_monthly_amount` decimal(15,2) DEFAULT 0.00,
-  `rapel_accumulated` decimal(15,2) DEFAULT 0.00
+  `id` int NOT NULL,
+  `id_anggota` int NOT NULL,
+  `id_payhead` int NOT NULL,
+  `jenis` enum('earnings','deductions') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `amount` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `status` enum('draft','revisi','final') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'draft',
+  `remarks` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `support_doc_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `upload_file_blob` mediumblob,
+  `is_rapel` tinyint(1) DEFAULT '0',
+  `rapel_start_month` int DEFAULT NULL,
+  `rapel_start_year` int DEFAULT NULL,
+  `rapel_monthly_amount` decimal(15,2) DEFAULT '0.00',
+  `rapel_accumulated` decimal(15,2) DEFAULT '0.00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -139,9 +139,9 @@ CREATE TABLE `employee_payheads` (
 --
 
 CREATE TABLE `gaji_pokok_roles` (
-  `role` varchar(20) NOT NULL,
-  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT 0.00,
-  `pendidikan` varchar(50) NOT NULL DEFAULT ''
+  `role` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `gaji_pokok` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `pendidikan` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -151,11 +151,11 @@ CREATE TABLE `gaji_pokok_roles` (
 --
 
 CREATE TABLE `holidays` (
-  `holiday_id` int(11) NOT NULL,
-  `holiday_title` varchar(100) NOT NULL,
-  `holiday_desc` text DEFAULT NULL,
+  `holiday_id` int NOT NULL,
+  `holiday_title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `holiday_desc` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `holiday_date` date NOT NULL,
-  `holiday_type` enum('wajib','opsional') NOT NULL
+  `holiday_type` enum('wajib','opsional') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -165,14 +165,14 @@ CREATE TABLE `holidays` (
 --
 
 CREATE TABLE `jadwal_piket` (
-  `id_jadwal` int(11) NOT NULL,
-  `nip` varchar(20) NOT NULL,
-  `nama_guru` varchar(100) NOT NULL,
-  `waktu_piket` varchar(50) NOT NULL,
+  `id_jadwal` int NOT NULL,
+  `nip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `nama_guru` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `waktu_piket` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `tanggal` date NOT NULL,
-  `bulan` varchar(20) NOT NULL,
-  `tahun` int(11) NOT NULL,
-  `status` enum('pending','hadir','tidak hadir') NOT NULL DEFAULT 'pending'
+  `bulan` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `tahun` int NOT NULL,
+  `status` enum('pending','hadir','tidak hadir') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'pending'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -182,14 +182,14 @@ CREATE TABLE `jadwal_piket` (
 --
 
 CREATE TABLE `laporan_surat` (
-  `id` int(11) NOT NULL,
-  `id_pengirim` int(11) NOT NULL,
-  `id_penerima` int(11) NOT NULL,
-  `jenis_surat` enum('peringatan') NOT NULL DEFAULT 'peringatan',
-  `judul` varchar(255) NOT NULL,
-  `isi` text NOT NULL,
-  `tanggal_keluar` datetime NOT NULL DEFAULT current_timestamp(),
-  `status` enum('terkirim','dibaca') NOT NULL DEFAULT 'terkirim'
+  `id` int NOT NULL,
+  `id_pengirim` int NOT NULL,
+  `id_penerima` int NOT NULL,
+  `jenis_surat` enum('peringatan') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'peringatan',
+  `judul` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `isi` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `tanggal_keluar` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `status` enum('terkirim','dibaca') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'terkirim'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -199,18 +199,18 @@ CREATE TABLE `laporan_surat` (
 --
 
 CREATE TABLE `notifications` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `role_target` enum('keuangan','superadmin','sdm','all') NOT NULL DEFAULT 'all',
-  `title` varchar(255) NOT NULL,
-  `message` text NOT NULL,
-  `notification_type` enum('info','warning','success','error') DEFAULT 'info',
-  `link` varchar(255) DEFAULT NULL,
-  `priority` int(11) DEFAULT 5 COMMENT 'Nilai prioritas; semakin kecil nilainya semakin tinggi prioritasnya',
-  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `role_target` enum('keuangan','superadmin','sdm','all') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'all',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `notification_type` enum('info','warning','success','error') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'info',
+  `link` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `priority` int DEFAULT '5' COMMENT 'Nilai prioritas; semakin kecil nilainya semakin tinggi prioritasnya',
+  `is_read` tinyint(1) NOT NULL DEFAULT '0',
   `read_at` datetime DEFAULT NULL,
-  `created_by` varchar(50) DEFAULT 'system' COMMENT 'Pengirim atau pembuat notifikasi, misalnya sistem atau admin',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_by` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'system' COMMENT 'Pengirim atau pembuat notifikasi, misalnya sistem atau admin',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -220,11 +220,11 @@ CREATE TABLE `notifications` (
 --
 
 CREATE TABLE `payheads` (
-  `id` int(11) NOT NULL,
-  `nama_payhead` varchar(100) NOT NULL,
-  `jenis` enum('earnings','deductions') NOT NULL,
-  `deskripsi` text DEFAULT NULL,
-  `nominal` decimal(15,2) NOT NULL DEFAULT 0.00
+  `id` int NOT NULL,
+  `nama_payhead` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `jenis` enum('earnings','deductions') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `deskripsi` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `nominal` decimal(15,2) NOT NULL DEFAULT '0.00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -234,21 +234,21 @@ CREATE TABLE `payheads` (
 --
 
 CREATE TABLE `payroll` (
-  `id` int(11) NOT NULL,
-  `id_anggota` int(11) NOT NULL,
-  `id_rekap_absensi` int(11) DEFAULT NULL,
-  `bulan` int(11) NOT NULL,
-  `tahun` int(11) NOT NULL,
+  `id` int NOT NULL,
+  `id_anggota` int NOT NULL,
+  `id_rekap_absensi` int DEFAULT NULL,
+  `bulan` int NOT NULL,
+  `tahun` int NOT NULL,
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
-  `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `tgl_payroll` datetime NOT NULL DEFAULT current_timestamp(),
-  `no_rekening` varchar(50) DEFAULT NULL,
-  `catatan` text DEFAULT NULL,
-  `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft'
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `tgl_payroll` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `no_rekening` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `catatan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `status` enum('draft','revisi','final') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -258,13 +258,13 @@ CREATE TABLE `payroll` (
 --
 
 CREATE TABLE `payroll_detail` (
-  `id` int(11) NOT NULL,
-  `id_payroll` int(11) NOT NULL,
-  `id_anggota` int(11) NOT NULL,
-  `id_payhead` int(11) NOT NULL,
-  `jenis` enum('earnings','deductions') NOT NULL,
-  `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
-  `status` enum('draft','revisi','final') NOT NULL DEFAULT 'draft'
+  `id` int NOT NULL,
+  `id_payroll` int NOT NULL,
+  `id_anggota` int NOT NULL,
+  `id_payhead` int NOT NULL,
+  `jenis` enum('earnings','deductions') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `amount` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `status` enum('draft','revisi','final') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -274,13 +274,13 @@ CREATE TABLE `payroll_detail` (
 --
 
 CREATE TABLE `payroll_detail_final` (
-  `id` int(11) NOT NULL,
-  `id_payroll_final` int(11) NOT NULL,
-  `id_payhead` int(11) NOT NULL,
-  `nama_payhead` varchar(200) NOT NULL,
-  `jenis` enum('earnings','deductions') NOT NULL,
-  `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
-  `is_rapel` tinyint(1) DEFAULT 0
+  `id` int NOT NULL,
+  `id_payroll_final` int NOT NULL,
+  `id_payhead` int NOT NULL,
+  `nama_payhead` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `jenis` enum('earnings','deductions') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `amount` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `is_rapel` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -290,21 +290,21 @@ CREATE TABLE `payroll_detail_final` (
 --
 
 CREATE TABLE `payroll_final` (
-  `id` int(11) NOT NULL,
-  `id_anggota` int(11) NOT NULL,
-  `id_rekap_absensi` int(11) DEFAULT NULL,
-  `bulan` int(11) NOT NULL,
-  `tahun` int(11) NOT NULL,
+  `id` int NOT NULL,
+  `id_anggota` int NOT NULL,
+  `id_rekap_absensi` int DEFAULT NULL,
+  `bulan` int NOT NULL,
+  `tahun` int NOT NULL,
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
-  `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
   `tgl_payroll` datetime NOT NULL,
-  `no_rekening` varchar(50) DEFAULT NULL,
-  `catatan` text DEFAULT NULL,
-  `finalized_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `id_payroll_asal` int(11) DEFAULT NULL
+  `no_rekening` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `catatan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `finalized_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `id_payroll_asal` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -314,15 +314,16 @@ CREATE TABLE `payroll_final` (
 --
 
 CREATE TABLE `pengajuan_ijin` (
-  `id` int(11) NOT NULL,
-  `nip` varchar(20) NOT NULL,
-  `nama` varchar(255) NOT NULL,
-  `judul_surat` varchar(255) NOT NULL,
-  `tanggal` text NOT NULL,
-  `pesan` text NOT NULL,
-  `tipe_ijin` enum('Sakit','Cuti Biasa','Ijin Lainnya') NOT NULL,
-  `status_kepalasekolah` enum('Diterima','Pending','Ditolak') NOT NULL DEFAULT 'Pending',
-  `status` enum('Diterima','Pending','Ditolak') DEFAULT 'Pending'
+  `id` int NOT NULL,
+  `nip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `nama` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `judul_surat` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `tanggal` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `pesan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `tipe_ijin` enum('Sakit','Cuti Biasa','Ijin Lainnya') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `status_kepalasekolah` enum('Diterima','Pending','Ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Pending',
+  `status` enum('Diterima','Pending','Ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'Pending',
+  `lampiran` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -332,15 +333,15 @@ CREATE TABLE `pengajuan_ijin` (
 --
 
 CREATE TABLE `permintaan_tukar_jadwal` (
-  `id` int(11) NOT NULL,
-  `id_jadwal_pengaju` int(11) NOT NULL,
-  `id_jadwal_tujuan` int(11) DEFAULT NULL,
-  `status` enum('Pending','Diterima','Ditolak') DEFAULT 'Pending',
-  `tanggal_permintaan` timestamp NOT NULL DEFAULT current_timestamp(),
-  `nip_tujuan` varchar(20) DEFAULT NULL,
-  `nip_pengaju` varchar(20) NOT NULL,
-  `nama_pengaju` varchar(100) NOT NULL,
-  `tanggal_piket` varchar(20) DEFAULT NULL
+  `id` int NOT NULL,
+  `id_jadwal_pengaju` int NOT NULL,
+  `id_jadwal_tujuan` int DEFAULT NULL,
+  `status` enum('Pending','Diterima','Ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'Pending',
+  `tanggal_permintaan` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `nip_tujuan` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `nip_pengaju` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `nama_pengaju` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `tanggal_piket` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -350,16 +351,31 @@ CREATE TABLE `permintaan_tukar_jadwal` (
 --
 
 CREATE TABLE `rekap_absensi` (
-  `id` int(11) NOT NULL,
-  `id_anggota` int(11) NOT NULL,
-  `bulan` int(11) NOT NULL,
-  `tahun` int(11) NOT NULL,
-  `total_hadir` int(11) DEFAULT 0,
-  `total_izin` int(11) DEFAULT 0,
-  `total_cuti` int(11) DEFAULT 0,
-  `total_tanpa_keterangan` int(11) DEFAULT 0,
-  `total_sakit` int(11) DEFAULT 0
+  `id` int NOT NULL,
+  `id_anggota` int NOT NULL,
+  `bulan` int NOT NULL,
+  `tahun` int NOT NULL,
+  `total_hadir` int DEFAULT '0',
+  `total_izin` int DEFAULT '0',
+  `total_cuti` int DEFAULT '0',
+  `total_tanpa_keterangan` int DEFAULT '0',
+  `total_sakit` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `rekap_mingguan`
+--
+
+CREATE TABLE `rekap_mingguan` (
+  `id` int NOT NULL,
+  `id_anggota` int NOT NULL,
+  `minggu_ke` int NOT NULL,
+  `tahun` int NOT NULL,
+  `total_hadir` int DEFAULT '0',
+  `total_terlambat` int DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -368,12 +384,12 @@ CREATE TABLE `rekap_absensi` (
 --
 
 CREATE TABLE `salary_indices` (
-  `id` int(11) NOT NULL,
-  `level` varchar(10) NOT NULL,
-  `min_years` int(11) NOT NULL,
-  `max_years` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `level` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `min_years` int NOT NULL,
+  `max_years` int DEFAULT NULL,
   `base_salary` decimal(15,2) NOT NULL,
-  `description` text DEFAULT NULL
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -383,15 +399,15 @@ CREATE TABLE `salary_indices` (
 --
 
 CREATE TABLE `template_surat` (
-  `id` int(11) NOT NULL,
-  `jenis_surat` varchar(100) NOT NULL,
-  `judul` varchar(255) NOT NULL,
-  `isi` text NOT NULL,
-  `default_penerima` enum('semua','perorangan') NOT NULL DEFAULT 'perorangan',
-  `created_by` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime DEFAULT NULL ON UPDATE current_timestamp(),
-  `default_penerima_id` int(11) DEFAULT NULL
+  `id` int NOT NULL,
+  `jenis_surat` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `judul` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `isi` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `default_penerima` enum('semua','perorangan') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'perorangan',
+  `created_by` int NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `default_penerima_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -425,6 +441,7 @@ ALTER TABLE `audit_logs`
 -- Indexes for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
+  ADD PRIMARY KEY (`id`),
   ADD KEY `employee_payheads_ibfk_1` (`id_anggota`),
   ADD KEY `employee_payheads_ibfk_2` (`id_payhead`);
 
@@ -499,10 +516,24 @@ ALTER TABLE `payroll_final`
   ADD KEY `bulan` (`bulan`,`tahun`);
 
 --
+-- Indexes for table `pengajuan_ijin`
+--
+ALTER TABLE `pengajuan_ijin`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_rekap` (`id_anggota`,`bulan`,`tahun`);
+
+--
+-- Indexes for table `rekap_mingguan`
+--
+ALTER TABLE `rekap_mingguan`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_mingguan` (`id_anggota`,`minggu_ke`,`tahun`);
 
 --
 -- Indexes for table `salary_indices`
@@ -522,76 +553,100 @@ ALTER TABLE `template_surat`
 --
 
 --
+-- AUTO_INCREMENT for table `absensi`
+--
+ALTER TABLE `absensi`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `employee_payheads`
+--
+ALTER TABLE `employee_payheads`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
-  MODIFY `holiday_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `holiday_id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `laporan_surat`
 --
 ALTER TABLE `laporan_surat`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payheads`
 --
 ALTER TABLE `payheads`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail_final`
 --
 ALTER TABLE `payroll_detail_final`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pengajuan_ijin`
+--
+ALTER TABLE `pengajuan_ijin`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `rekap_mingguan`
+--
+ALTER TABLE `rekap_mingguan`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `template_surat`
 --
 ALTER TABLE `template_surat`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables

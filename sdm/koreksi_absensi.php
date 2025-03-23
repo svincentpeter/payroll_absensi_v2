@@ -207,10 +207,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id_absensi
             );
             if (mysqli_stmt_execute($stmt)) {
+                // Tambahkan log audit
                 $audit_details = "Mengupdate data absensi ID $id_absensi. Data: tanggal=$tanggal, jadwal=$jadwal, jam_kerja=$jam_kerja, valid=$valid, pin=$pin, nip=$nip, nama=$nama, departemen=$departemen, lembur=$lembur, jam_masuk=$jam_masuk, scan_masuk=$scan_masuk_datetime, terlambat=$terlambat, scan_istirahat_1=$scan_istirahat_1_datetime, scan_istirahat_2=$scan_istirahat_2_datetime, jam_pulang=$jam_pulang, scan_pulang=$scan_pulang_datetime, jenis_absensi=$jenis_absensi.";
                 add_audit_log($conn, $_SESSION['nip'], 'UpdateAbsensi', $audit_details);
-                $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dikoreksi.";
                 mysqli_stmt_close($stmt);
+
+                // --- Update Rekap Absensi (Update Manual) ---
+                // Ambil id_anggota dari record absensi (diasumsikan sudah tersimpan di tabel absensi)
+                $stmt_get = $conn->prepare("SELECT id_anggota FROM absensi WHERE id = ?");
+                mysqli_stmt_bind_param($stmt_get, "i", $id_absensi);
+                mysqli_stmt_execute($stmt_get);
+                mysqli_stmt_bind_result($stmt_get, $id_anggota);
+                mysqli_stmt_fetch($stmt_get);
+                mysqli_stmt_close($stmt_get);
+
+                $bulan_val = date('n', strtotime($tanggal));
+                $tahun_val = date('Y', strtotime($tanggal));
+
+                $stmt_rekap = $conn->prepare("CALL UpdateRekapAbsensi(?, ?, ?)");
+                $stmt_rekap->bind_param("iii", $id_anggota, $bulan_val, $tahun_val);
+                $stmt_rekap->execute();
+                $stmt_rekap->close();
+                // --- End Update Rekap ---
+                
+                $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dikoreksi.";
             } else {
                 $_SESSION['notif_error'] = "Gagal mengupdate data absensi ID $id_absensi: " . mysqli_error($conn);
                 mysqli_stmt_close($stmt);
@@ -224,10 +244,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: koreksi_absensi.php");
                 exit;
             }
+            // --- Ambil data absensi sebelum dihapus untuk update rekap ---
+            $stmt_get = $conn->prepare("SELECT id_anggota, tanggal FROM absensi WHERE id = ?");
+            mysqli_stmt_bind_param($stmt_get, "i", $id_absensi);
+            mysqli_stmt_execute($stmt_get);
+            mysqli_stmt_bind_result($stmt_get, $id_anggota, $tanggal);
+            mysqli_stmt_fetch($stmt_get);
+            mysqli_stmt_close($stmt_get);
+            // --- End Ambil Data ---
+
             $deleteResult = delete_absensi($conn, $id_absensi);
             if ($deleteResult === true) {
                 add_audit_log($conn, $_SESSION['nip'], 'DeleteAbsensi', "Menghapus data absensi ID $id_absensi.");
                 $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dihapus.";
+
+                // --- Update Rekap Absensi setelah deletion ---
+                if ($tanggal) {
+                    $bulan_val = date('n', strtotime($tanggal));
+                    $tahun_val = date('Y', strtotime($tanggal));
+                    $stmt_rekap = $conn->prepare("CALL UpdateRekapAbsensi(?, ?, ?)");
+                    $stmt_rekap->bind_param("iii", $id_anggota, $bulan_val, $tahun_val);
+                    $stmt_rekap->execute();
+                    $stmt_rekap->close();
+                }
+                // --- End Update Rekap ---
             } else {
                 $_SESSION['notif_error'] = $deleteResult;
             }
@@ -705,6 +745,7 @@ $namaKaryawan = get_nama_karyawan($conn);
                           <input type="hidden" name="id_absensi" id="delete_id_absensi">
                           <input type="hidden" name="departemen" id="delete_departemen" value="<?php echo htmlspecialchars($departemen); ?>">
                           <input type="hidden" name="bulan" value="<?php echo htmlspecialchars($bulan); ?>">
+                          <!-- Jika diperlukan, bisa menambahkan hidden input untuk tanggal -->
                           <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                           <div class="modal-header bg-danger text-white">
                             <h5 class="modal-title" id="modalDeleteLabel"><i class="fas fa-trash-alt"></i> Hapus Absensi</h5>

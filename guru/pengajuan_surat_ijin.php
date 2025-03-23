@@ -32,75 +32,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     $tipe_ijin   = sanitize_input($_POST['tipe_ijin'] ?? '');
 
     // --- Proses Upload File Surat Izin ---
-    if (isset($_FILES['upload_surat']) && $_FILES['upload_surat']['error'] === UPLOAD_ERR_OK) {
-        $allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
-        $fileName = $_FILES['upload_surat']['name'];
-        $tmpName  = $_FILES['upload_surat']['tmp_name'];
-        $fileExt  = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        
-        if (!in_array($fileExt, $allowedExtensions)) {
-            $_SESSION['absensi_error'] = "Ekstensi file tidak diperbolehkan. Gunakan pdf, doc, docx, jpg, jpeg, atau png.";
-            header("Location: pengajuan_surat_ijin.php");
-            exit();
-        }
-        
-        // Validasi MIME type
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mimeType = finfo_file($finfo, $tmpName);
-        finfo_close($finfo);
-        $allowedMimes = [
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'image/jpeg',
-            'image/png'
-        ];
-        if (!in_array($mimeType, $allowedMimes)) {
-            $_SESSION['absensi_error'] = "Tipe file ($mimeType) tidak diperbolehkan.";
-            header("Location: pengajuan_surat_ijin.php");
-            exit();
-        }
-        
-        // Folder upload
-        $uploadDir = __DIR__ . '/../uploads/surat_ijin/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-        
-        // Buat nama file baru
-        $newFileName = $nip . '_' . time() . '.' . $fileExt;
-        $destPath = $uploadDir . $newFileName;
-        
-        if (!move_uploaded_file($tmpName, $destPath)) {
-            $_SESSION['absensi_error'] = "Gagal mengupload file surat izin.";
-            header("Location: pengajuan_surat_ijin.php");
-            exit();
-        }
-        
-        $_SESSION['last_uploaded_surat'] = $newFileName;
-    }
-    // --- End Upload File ---
+$lampiran = ''; // Default jika user tidak mengupload
 
-    // Insert ke DB
-    if (!empty($judul_surat) && !empty($tanggal) && !empty($pesan) && !empty($tipe_ijin)) {
-        $insert_query = "INSERT INTO pengajuan_ijin (nip, nama, judul_surat, tanggal, pesan, tipe_ijin, status) 
-                         VALUES (?, ?, ?, ?, ?, ?, 'Pending')";
-        $stmt = $conn->prepare($insert_query);
-        if (!$stmt) {
-            die("Gagal prepare statement: " . $conn->error);
-        }
-        $stmt->bind_param("ssssss", $nip, $nama, $judul_surat, $tanggal, $pesan, $tipe_ijin);
-        if ($stmt->execute()) {
-            $_SESSION['absensi_success'] = "Pengajuan surat izin berhasil diajukan!";
-        } else {
-            $_SESSION['absensi_error'] = "Terjadi kesalahan: " . $conn->error;
-        }
-        $stmt->close();
-    } else {
-        $_SESSION['absensi_error'] = "Semua field harus diisi.";
+if (isset($_FILES['upload_surat']) && $_FILES['upload_surat']['error'] === UPLOAD_ERR_OK) {
+    $allowedExtensions = ['pdf','doc','docx','jpg','jpeg','png'];
+    $fileName = $_FILES['upload_surat']['name'];
+    $tmpName  = $_FILES['upload_surat']['tmp_name'];
+    $fileExt  = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    
+    if (!in_array($fileExt, $allowedExtensions)) {
+        $_SESSION['absensi_error'] = "Ekstensi file tidak diperbolehkan (pdf, doc, docx, jpg, jpeg, png).";
+        header("Location: pengajuan_surat_ijin.php");
+        exit();
     }
-    header("Location: pengajuan_surat_ijin.php");
-    exit();
+    
+    // Validasi MIME type
+    $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $tmpName);
+    finfo_close($finfo);
+    $allowedMimes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png'
+    ];
+    if (!in_array($mimeType, $allowedMimes)) {
+        $_SESSION['absensi_error'] = "Tipe file ($mimeType) tidak diperbolehkan.";
+        header("Location: pengajuan_surat_ijin.php");
+        exit();
+    }
+    
+    // Folder upload
+    $uploadDir = __DIR__ . '/../uploads/surat_ijin/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+    
+    // Buat nama file baru
+    $newFileName = $nip . '_' . time() . '.' . $fileExt;
+    $destPath = $uploadDir . $newFileName;
+    
+    if (!move_uploaded_file($tmpName, $destPath)) {
+        $_SESSION['absensi_error'] = "Gagal mengupload file surat izin.";
+        header("Location: pengajuan_surat_ijin.php");
+        exit();
+    }
+    
+    // Jika sukses, set $lampiran
+    $lampiran = $newFileName;
+}
+
+// Insert ke DB (tambahkan kolom lampiran)
+if (!empty($judul_surat) && !empty($tanggal) && !empty($pesan) && !empty($tipe_ijin)) {
+    $insert_query = "INSERT INTO pengajuan_ijin 
+        (nip, nama, judul_surat, tanggal, pesan, tipe_ijin, status, lampiran) 
+        VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?)";
+    $stmt = $conn->prepare($insert_query);
+    if (!$stmt) {
+        die("Gagal prepare statement: " . $conn->error);
+    }
+    $stmt->bind_param("sssssss", $nip, $nama, $judul_surat, $tanggal, $pesan, $tipe_ijin, $lampiran);
+    if ($stmt->execute()) {
+        $_SESSION['absensi_success'] = "Pengajuan surat izin berhasil diajukan!";
+    } else {
+        $_SESSION['absensi_error'] = "Terjadi kesalahan: " . $conn->error;
+    }
+    $stmt->close();
+} else {
+    $_SESSION['absensi_error'] = "Semua field harus diisi.";
+}
+header("Location: pengajuan_surat_ijin.php");
+exit();
 }
 
 // ======================
@@ -206,11 +209,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
                     // File surat (review)
                     $reviewLink = '<em>Tidak ada</em>';
-                    if (isset($_SESSION['last_uploaded_surat']) && !empty($_SESSION['last_uploaded_surat'])) {
-                        $reviewLink = '<a href="/payroll_absensi_v2/uploads/surat_ijin/' 
-                            . htmlspecialchars($_SESSION['last_uploaded_surat'])
-                            . '" target="_blank" class="btn btn-sm btn-info">Lihat Surat</a>';
-                    }
+if (!empty($row['lampiran'])) {
+    $reviewLink = '<a href="/payroll_absensi_v2/uploads/surat_ijin/'
+        . htmlspecialchars($row['lampiran'])
+        . '" target="_blank" class="btn btn-sm btn-info">Lihat Surat</a>';
+}
 
                     $data[] = [
                         "nama"        => htmlspecialchars($row['nama']),

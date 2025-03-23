@@ -188,29 +188,17 @@ if (!$historyResult) {
                                                 <td><?= htmlspecialchars($row['pesan']); ?></td>
                                                 <td><?= htmlspecialchars($row['tipe_ijin']); ?></td>
                                                 <td>
-                                                    <?php
-                                                    // Cari file lampiran di folder uploads/surat_ijin dengan pola berdasarkan NIP
-                                                    $pattern = __DIR__ . '/../uploads/surat_ijin/' . $row['nip'] . '_*';
-                                                    $files = glob($pattern);
-                                                    if (!empty($files)) {
-                                                        // Urutkan file berdasarkan filemtime secara descending
-                                                        usort($files, function($a, $b) {
-                                                            return filemtime($b) - filemtime($a);
-                                                        });
-                                                        $lampiran = basename($files[0]);
-                                                        $uploadDirRelative = '/payroll_absensi_v2/uploads/surat_ijin/';
-                                                        // Tombol "Cetak Lampiran" memanggil fungsi printLampiran()
-                                                        echo '<a href="/payroll_absensi_v2/view_pdf.php?file=<?= urlencode($lampiran); ?>"
-   target="_blank"
-   class="btn btn-sm btn-info">
-    Cetak Lampiran
-</a>
-';
-                                                    } else {
-                                                        echo '<em>Tidak ada</em>';
-                                                    }
-                                                    ?>
-                                                </td>
+  <?php
+  if (!empty($row['lampiran'])) {
+      $uploadDirRelative = '/payroll_absensi_v2/uploads/surat_ijin/';
+      // Misal ingin cetak di tab baru:
+      echo '<a href="' . $uploadDirRelative . htmlspecialchars($row['lampiran']) . '" 
+             target="_blank" class="btn btn-sm btn-info">Lihat Lampiran</a>';
+  } else {
+      echo '<em>Tidak ada</em>';
+  }
+  ?>
+</td>
                                                 <td>
                                                     <span class="badge badge-pending">
                                                         <?= htmlspecialchars($row['status_kepalasekolah']); ?>
@@ -275,21 +263,17 @@ if (!$historyResult) {
                                                 <td><?= htmlspecialchars($row['pesan']); ?></td>
                                                 <td><?= htmlspecialchars($row['tipe_ijin']); ?></td>
                                                 <td>
-                                                    <?php
-                                                    $pattern = __DIR__ . '/../uploads/surat_ijin/' . $row['nip'] . '_*';
-                                                    $files = glob($pattern);
-                                                    if (!empty($files)) {
-                                                        usort($files, function($a, $b) {
-                                                            return filemtime($b) - filemtime($a);
-                                                        });
-                                                        $lampiran = basename($files[0]);
-                                                        $uploadDirRelative = '/payroll_absensi_v2/uploads/surat_ijin/';
-                                                        echo '<a href="#" onclick="printLampiran(\'' . $uploadDirRelative . htmlspecialchars($lampiran) . '\'); return false;" class="btn btn-sm btn-info">Cetak Lampiran</a>';
-                                                    } else {
-                                                        echo '<em>Tidak ada</em>';
-                                                    }
-                                                    ?>
-                                                </td>
+  <?php
+  if (!empty($row['lampiran'])) {
+      $uploadDirRelative = '/payroll_absensi_v2/uploads/surat_ijin/';
+      // Misal ingin cetak di tab baru:
+      echo '<a href="' . $uploadDirRelative . htmlspecialchars($row['lampiran']) . '" 
+             target="_blank" class="btn btn-sm btn-info">Lihat Lampiran</a>';
+  } else {
+      echo '<em>Tidak ada</em>';
+  }
+  ?>
+</td>
                                                 <td>
                                                     <span class="<?= ($row['status_kepalasekolah'] === 'Diterima') ? 'badge badge-success' : 'badge badge-danger'; ?>">
                                                         <?= htmlspecialchars($row['status_kepalasekolah']); ?>

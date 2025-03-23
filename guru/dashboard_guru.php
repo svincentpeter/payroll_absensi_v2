@@ -54,6 +54,12 @@ add_audit_log($conn, $nip, 'AccessDashboard', 'Mengakses dashboard.');
 // Tentukan judul dashboard
 $dashboard_title = ($db_role === 'P') ? 'Dashboard Guru' : 'Dashboard Karyawan';
 
+// Ambil parameter filter bulan dan tahun, default ke bulan dan tahun saat ini
+$filterMonth = isset($_GET['bulan']) ? (int)$_GET['bulan'] : (int)date('m');
+$filterYear  = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (int)date('Y');
+// Gunakan fungsi utilitas untuk mendapatkan nama bulan dalam Bahasa Indonesia
+$displayBulan = getIndonesianMonthName($filterMonth);
+
 // =============================================================================
 // 3. Data Ringkasan Kehadiran (STATISTIK)
 // =============================================================================
@@ -65,10 +71,10 @@ $sqlSummary = "
         SUM(CASE WHEN status_kehadiran='tanpa_keterangan' THEN 1 ELSE 0 END) AS total_tanpa_keterangan,
         SUM(CASE WHEN status_kehadiran='sakit' THEN 1 ELSE 0 END) AS total_sakit
     FROM absensi
-    WHERE nip = ?
+    WHERE nip = ? AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?
 ";
 $stmtSum = $conn->prepare($sqlSummary);
-$stmtSum->bind_param("s", $nip);
+$stmtSum->bind_param("sii", $nip, $filterMonth, $filterYear);
 $stmtSum->execute();
 $resultSum = $stmtSum->get_result();
 $sumData = $resultSum->fetch_assoc();
@@ -157,7 +163,6 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid py-3">
-
                     <!-- Header / Judul Halaman -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-3">
                         <div class="d-flex align-items-center">
@@ -190,6 +195,52 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                         unset($_SESSION['success_message']);
                     }
                     ?>
+
+                    <!-- Form Filter Bulan dan Tahun -->
+                    <form method="GET" action="" class="mb-4">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label for="bulan" class="form-label">Bulan</label>
+                                <select name="bulan" id="bulan" class="form-select">
+                                    <?php
+                                    for ($i = 1; $i <= 12; $i++) {
+                                        $selected = ($i === $filterMonth) ? 'selected' : '';
+                                        echo "<option value=\"$i\" $selected>" . getIndonesianMonthName($i) . "</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="tahun" class="form-label">Tahun</label>
+                                <select name="tahun" id="tahun" class="form-select">
+                                    <?php
+                                    $startYear = date('Y') - 5;
+                                    $endYear = date('Y') + 1;
+                                    for ($year = $startYear; $year <= $endYear; $year++) {
+                                        $selected = ($year === $filterYear) ? 'selected' : '';
+                                        echo "<option value=\"$year\" $selected>$year</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="text-center mb-3">
+                        <small>Menampilkan data kehadiran untuk Bulan <?= htmlspecialchars($displayBulan) ?> Tahun <?= htmlspecialchars($filterYear) ?></small>
+                    </div>
+
+                    <!-- ITEM: Tanggal & Waktu Realtime -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header text-center" style="background: linear-gradient(45deg, #ff8a00, #e52e71); color: white;">
+                            <h6 class="m-0 font-weight-bold">Waktu Sekarang</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div id="currentDateTime" class="h4"></div>
+                        </div>
+                    </div>
 
                     <!-- STATISTIK KEHADIRAN (5 CARD) -->
                     <div class="card shadow mb-4">
@@ -251,7 +302,6 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                             </div>
                         </div>
                     </div>
-                    <!-- END STATISTIK KEHADIRAN -->
 
                     <!-- MENU CEPAT -->
                     <div class="card shadow mb-4">
@@ -401,9 +451,10 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                         </div>
                         <div class="card-body p-2">
                             <?php
-                            $queryPayroll = "SELECT * FROM payroll_final WHERE id_anggota = ? ORDER BY finalized_at DESC LIMIT 1";
+                            // Ambil data payroll dari table payroll_final berdasarkan id_anggota, bulan, dan tahun
+                            $queryPayroll = "SELECT * FROM payroll_final WHERE id_anggota = ? AND bulan = ? AND tahun = ? ORDER BY finalized_at DESC LIMIT 1";
                             $stmtPayroll = $conn->prepare($queryPayroll);
-                            $stmtPayroll->bind_param("i", $id_anggota);
+                            $stmtPayroll->bind_param("iii", $id_anggota, $filterMonth, $filterYear);
                             $stmtPayroll->execute();
                             $resultPayroll = $stmtPayroll->get_result();
                             if ($resultPayroll->num_rows > 0) {
@@ -417,7 +468,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                                     Gaji Pokok
                                                 </div>
                                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                    Rp <?= number_format($payroll['gaji_pokok'], 2) ?>
+                                                    <?= formatNominal($payroll['gaji_pokok']) ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -429,7 +480,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                                     Total Pendapatan
                                                 </div>
                                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                    Rp <?= number_format($payroll['total_pendapatan'], 2) ?>
+                                                    <?= formatNominal($payroll['total_pendapatan']) ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -441,7 +492,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                                     Total Potongan
                                                 </div>
                                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                    Rp <?= number_format($payroll['total_potongan'], 2) ?>
+                                                    <?= formatNominal($payroll['total_potongan']) ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -453,7 +504,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                                     Gaji Bersih
                                                 </div>
                                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                    Rp <?= number_format($payroll['gaji_bersih'], 2) ?>
+                                                    <?= formatNominal($payroll['gaji_bersih']) ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -464,7 +515,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                 </p>
                                 <?php
                             } else {
-                                echo '<p class="text-center">Payroll belum diproses.</p>';
+                                echo '<p class="text-center">Payroll belum diproses untuk periode ini.</p>';
                             }
                             $stmtPayroll->close();
                             ?>
@@ -495,6 +546,19 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+
+    <!-- Script untuk update tanggal & waktu secara realtime -->
+    <script>
+        function updateDateTime() {
+            var now = new Date();
+            var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            var dateString = now.toLocaleDateString('id-ID', options);
+            var timeString = now.toLocaleTimeString('id-ID', { hour12: false });
+            document.getElementById('currentDateTime').innerHTML = dateString + ' - ' + timeString;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+    </script>
 </body>
 </html>
 <?php

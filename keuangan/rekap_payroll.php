@@ -70,7 +70,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 }
 
 // ======== Fungsi-Fungsi ========
+
 function LoadingRekapPayroll($conn) {
+    // Parameter DataTables
     $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length  = isset($_POST['length']) ? intval($_POST['length']) : 10;
@@ -79,8 +81,9 @@ function LoadingRekapPayroll($conn) {
     $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
     $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
+    $show_all = isset($_POST['show_all']) ? intval($_POST['show_all']) : 0;
 
-    // Bangun potongan WHERE dinamis
+    // Bangun kondisi WHERE dinamis
     $sqlWhere = " WHERE 1=1 ";
     $params   = [];
     $types    = "";
@@ -105,8 +108,12 @@ function LoadingRekapPayroll($conn) {
         $params[] = "%{$search}%";
         $types   .= "s";
     }
+    // Jika tidak ada bulan yang dipilih dan user belum mengaktifkan "tampilkan semua", maka kembalikan dataset kosong.
+    if ($bulan <= 0 && !$show_all) {
+        $sqlWhere .= " AND 0=1 ";
+    }
 
-    // ========== Hitung total terfilter (distinct jenjang) ==========
+    // Hitung total terfilter (distinct jenjang)
     $sqlCountFiltered = "
         SELECT COUNT(DISTINCT a.jenjang) AS total
         FROM payroll_final pf
@@ -126,7 +133,7 @@ function LoadingRekapPayroll($conn) {
     $totalFiltered = isset($rowFiltered['total']) ? $rowFiltered['total'] : 0;
     $stmtFiltered->close();
 
-    // ========== Hitung total keseluruhan (distinct jenjang) ==========
+    // Hitung total keseluruhan (distinct jenjang)
     $sqlTotal = "
         SELECT COUNT(DISTINCT a.jenjang) AS total
         FROM payroll_final pf
@@ -139,55 +146,80 @@ function LoadingRekapPayroll($conn) {
     $rowTotal = $resTotal->fetch_assoc();
     $recordsTotal = isset($rowTotal['total']) ? $rowTotal['total'] : 0;
 
-    // ========== Ambil data rekap (tidak join langsung detail) ==========
-    // Subquery "d" merangkum total pendapatan/potongan per id_payroll_final
-    // Sehingga gaji pokok TIDAK berlipat ganda.
+    // --- Ambil daftar payheads secara terpisah untuk Pendapatan dan Potongan ---
+    $earningPayheads = [];
+    $resultEarnings = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='earnings' ORDER BY nama_payhead ASC");
+    if ($resultEarnings) {
+        while ($row = $resultEarnings->fetch_assoc()) {
+            $earningPayheads[] = $row['nama_payhead'];
+        }
+    }
+    $deductionPayheads = [];
+    $resultDeductions = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='deductions' ORDER BY nama_payhead ASC");
+    if ($resultDeductions) {
+        while ($row = $resultDeductions->fetch_assoc()) {
+            $deductionPayheads[] = $row['nama_payhead'];
+        }
+    }
+    // Gabungkan: Pendapatan (earnings) terlebih dahulu, lalu Potongan (deductions)
+    $payheads = array_merge($earningPayheads, $deductionPayheads);
+
+    // --- Membangun subquery untuk agregasi detail payroll ---
+    $dynamicCases = [];
+    foreach ($payheads as $ph) {
+        $escaped = $conn->real_escape_string($ph);
+        $alias = "payhead_" . md5($ph);
+        $dynamicCases[] = "SUM(CASE WHEN nama_payhead = '$escaped' THEN amount ELSE 0 END) AS `$alias`";
+    }
+    $dynamicSelectSubquery = implode(", ", $dynamicCases);
+
+    // Bagian SELECT dinamis outer query (mengambil hasil agregasi detail)
+    $outerDynamicSelect = "";
+    foreach ($payheads as $ph) {
+        $alias = "payhead_" . md5($ph);
+        $outerDynamicSelect .= ", SUM(IFNULL(agg_detail.`$alias`, 0)) AS `$alias` ";
+    }
+
+    // Query utama: ambil data payroll_final dan LEFT JOIN hasil agregasi detail
     $sqlData = "
         SELECT
             a.jenjang,
-            SUM(pf.gaji_pokok) AS total_gaji_pokok,
-            SUM(IFNULL(d.earnings, 0)) AS total_pendapatan,
-            SUM(IFNULL(d.deductions, 0)) AS total_potongan,
+            SUM(pf.gaji_pokok) AS total_gaji_pokok
+            $outerDynamicSelect,
             SUM(pf.gaji_bersih) AS total_gaji_bersih
         FROM payroll_final pf
-        JOIN anggota_sekolah a
-            ON pf.id_anggota = a.id
-        -- Subquery (derived table) untuk rekap detail
+        JOIN anggota_sekolah a ON pf.id_anggota = a.id
         LEFT JOIN (
-            SELECT
-                id_payroll_final,
-                SUM(CASE WHEN jenis = 'earnings' THEN amount ELSE 0 END) AS earnings,
-                SUM(CASE WHEN jenis = 'deductions' THEN amount ELSE 0 END) AS deductions
+            SELECT id_payroll_final, $dynamicSelectSubquery
             FROM payroll_detail_final
             GROUP BY id_payroll_final
-        ) d ON pf.id = d.id_payroll_final
+        ) agg_detail ON pf.id = agg_detail.id_payroll_final
         $sqlWhere
         GROUP BY a.jenjang
     ";
 
-    // Urutan default
+    // Default urutan (berdasarkan jenjang)
     $orderBy = " ORDER BY a.jenjang ASC";
 
-    // Cek apakah user meng-klik sorting kolom
+    // Siapkan kolom-kolom yang diijinkan untuk sorting (sesuai urutan: gaji pokok, detail, gaji bersih)
+    $allowedCols = ['jenjang', 'total_gaji_pokok'];
+    $mapCol = [
+        'jenjang' => 'a.jenjang',
+        'total_gaji_pokok' => 'total_gaji_pokok'
+    ];
+    foreach ($payheads as $ph) {
+        $alias = "payhead_" . md5($ph);
+        $allowedCols[] = $alias;
+        $mapCol[$alias] = $alias;
+    }
+    $allowedCols[] = 'total_gaji_bersih';
+    $mapCol['total_gaji_bersih'] = 'total_gaji_bersih';
+
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $colIndex = intval($_POST['order'][0]['column']);
-        $allowedCols = [
-            'jenjang',
-            'total_gaji_pokok',
-            'total_pendapatan',
-            'total_potongan',
-            'total_gaji_bersih'
-        ];
         if (isset($_POST['columns'][$colIndex]['data']) && in_array($_POST['columns'][$colIndex]['data'], $allowedCols)) {
             $colName = $_POST['columns'][$colIndex]['data'];
             $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
-            $mapCol = [
-                'jenjang'           => 'a.jenjang',
-                'total_gaji_pokok'  => 'total_gaji_pokok',
-                'total_pendapatan'  => 'total_pendapatan',
-                'total_potongan'    => 'total_potongan',
-                'total_gaji_bersih' => 'total_gaji_bersih'
-            ];
             if (isset($mapCol[$colName])) {
                 $orderBy = " ORDER BY " . $mapCol[$colName] . " " . $colSortOrder;
             }
@@ -201,10 +233,8 @@ function LoadingRekapPayroll($conn) {
     $paramsData[] = $start;
     $paramsData[] = $length;
 
-    // Final query data
     $sqlData .= $orderBy . $limit;
 
-    // Eksekusi
     $stmtData = $conn->prepare($sqlData);
     if (!$stmtData) {
         send_response(1, 'Prepare failed (data): ' . $conn->error);
@@ -218,31 +248,33 @@ function LoadingRekapPayroll($conn) {
     // Siapkan data untuk DataTables
     $data = [];
     while ($row = $resData->fetch_assoc()) {
-        $data[] = [
-            "jenjang"           => htmlspecialchars($row['jenjang']),
-            "total_gaji_pokok"  => formatNominal($row['total_gaji_pokok']),
-            "total_pendapatan"  => formatNominal($row['total_pendapatan']),
-            "total_potongan"    => formatNominal($row['total_potongan']),
-            "total_gaji_bersih" => formatNominal($row['total_gaji_bersih']),
-            "aksi" => '
-                <a href="rekap_payroll_details.php?jenjang=' . urlencode($row['jenjang']) . '"
-                   class="btn btn-info btn-sm me-1"
-                   data-bs-toggle="tooltip"
-                   title="Lihat Detail Payroll">
-                    <i class="fas fa-file-invoice"></i>
-                </a>
-                <button class="btn btn-secondary btn-sm btn-view-rekap-detail"
-                        data-jenjang="' . htmlspecialchars($row['jenjang']) . '"
-                        data-bs-toggle="tooltip"
-                        title="View Detail">
-                    <i class="fas fa-eye"></i>
-                </button>
-            '
-        ];
+        $rowData = [];
+        $rowData["jenjang"] = htmlspecialchars($row['jenjang']);
+        $rowData["total_gaji_pokok"] = formatNominal($row['total_gaji_pokok']);
+        // Masukkan nilai detail untuk tiap payhead
+        foreach ($payheads as $ph) {
+            $alias = "payhead_" . md5($ph);
+            $rowData[$alias] = formatNominal($row[$alias]);
+        }
+        $rowData["total_gaji_bersih"] = formatNominal($row['total_gaji_bersih']);
+        $rowData["aksi"] = '
+            <a href="rekap_payroll_details.php?jenjang=' . urlencode($row['jenjang']) . '"
+               class="btn btn-info btn-sm me-1"
+               data-bs-toggle="tooltip"
+               title="Lihat Detail Payroll">
+                <i class="fas fa-file-invoice"></i>
+            </a>
+            <button class="btn btn-secondary btn-sm btn-view-rekap-detail"
+                    data-jenjang="' . htmlspecialchars($row['jenjang']) . '"
+                    data-bs-toggle="tooltip"
+                    title="View Detail">
+                <i class="fas fa-eye"></i>
+            </button>
+        ';
+        $data[] = $rowData;
     }
     $stmtData->close();
 
-    // Kirim response ke DataTables
     echo json_encode([
         "draw"            => $draw,
         "recordsTotal"    => $recordsTotal,
@@ -252,18 +284,12 @@ function LoadingRekapPayroll($conn) {
     exit();
 }
 
-
-
 function ViewRekapPayrollDetail($conn) {
     $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     if (empty($jenjang)) {
         send_response(1, 'Jenjang tidak valid.');
     }
 
-    // Ganti payroll_detail => payroll_detail_final (pdf)
-    // Ganti payroll => payroll_final (pf)
-    // Ambil data payhead langsung dari payroll_detail_final
-    // (karena sudah ada pdf.nama_payhead dan pdf.jenis)
     $stmt = $conn->prepare("
         SELECT pdf.nama_payhead,
                pdf.jenis,
@@ -444,6 +470,8 @@ function ViewRekapPayrollDetail($conn) {
                         <div class="card-body" style="background-color: #f8f9fa;">
                             <form id="filterForm" class="row gy-2 gx-3 align-items-center">
                                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                <!-- Tambahkan input hidden untuk show_all -->
+                                <input type="hidden" id="filterShowAll" name="show_all" value="0">
                                 <!-- Jenjang -->
                                 <div class="col-auto">
                                     <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang Pendidikan:</strong></label>
@@ -461,7 +489,7 @@ function ViewRekapPayrollDetail($conn) {
                                 <div class="col-auto">
                                     <label for="filterBulan" class="form-label mb-0"><strong>Bulan:</strong></label>
                                     <select class="form-select" id="filterBulan" name="bulan">
-                                        <option value="">Semua Bulan</option>
+                                        <option value="">-- Pilih Bulan --</option>
                                         <?php
                                         for ($m = 1; $m <= 12; $m++) {
                                             echo "<option value=\"$m\">" . getIndonesianMonthName($m) . "</option>";
@@ -475,7 +503,6 @@ function ViewRekapPayrollDetail($conn) {
                                     <select class="form-select" id="filterTahun" name="tahun">
                                         <option value="">Semua Tahun</option>
                                         <?php
-                                        // Ambil daftar tahun dari payroll_final, bukan payroll
                                         $stmtTahun = $conn->prepare("SELECT DISTINCT tahun FROM payroll_final ORDER BY tahun DESC");
                                         if ($stmtTahun) {
                                             $stmtTahun->execute();
@@ -495,6 +522,10 @@ function ViewRekapPayrollDetail($conn) {
                                     </button>
                                     <button type="button" class="btn btn-secondary me-2" id="btnResetFilter">
                                         <i class="fas fa-undo"></i> Reset Filter
+                                    </button>
+                                    <!-- Tombol baru untuk tampilkan semua rekapan -->
+                                    <button type="button" class="btn btn-warning me-2" id="btnShowAll">
+                                        <i class="fas fa-eye"></i> Tampilkan Semua Rekapan
                                     </button>
                                     <button type="button" class="btn btn-success" id="btnExportData">
                                         <i class="fas fa-file-export"></i> Export Data
@@ -519,8 +550,28 @@ function ViewRekapPayrollDetail($conn) {
                                         <tr>
                                             <th>Jenjang</th>
                                             <th>Total Gaji Pokok</th>
-                                            <th>Total Pendapatan</th>
-                                            <th>Total Potongan</th>
+                                            <?php
+                                            // Ambil daftar payhead untuk header tabel dengan urutan:
+                                            // Pendapatan (earnings) terlebih dahulu, lalu Potongan (deductions)
+                                            $earningHeaderPayheads = [];
+                                            $resultEarnings = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='earnings' ORDER BY nama_payhead ASC");
+                                            if ($resultEarnings) {
+                                                while ($row = $resultEarnings->fetch_assoc()) {
+                                                    $earningHeaderPayheads[] = $row['nama_payhead'];
+                                                }
+                                            }
+                                            $deductionHeaderPayheads = [];
+                                            $resultDeductions = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='deductions' ORDER BY nama_payhead ASC");
+                                            if ($resultDeductions) {
+                                                while ($row = $resultDeductions->fetch_assoc()) {
+                                                    $deductionHeaderPayheads[] = $row['nama_payhead'];
+                                                }
+                                            }
+                                            $headerPayheads = array_merge($earningHeaderPayheads, $deductionHeaderPayheads);
+                                            foreach ($headerPayheads as $ph) {
+                                                echo '<th>' . htmlspecialchars($ph) . '</th>';
+                                            }
+                                            ?>
                                             <th>Total Gaji Bersih</th>
                                             <th>Aksi</th>
                                         </tr>
@@ -591,7 +642,17 @@ function ViewRekapPayrollDetail($conn) {
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <script>
+    // Siapkan array kolom dinamis berdasarkan payhead (sesuai header yang telah disusun: Pendapatan lalu Potongan)
+    var dynamicColumns = [];
+    <?php
+    foreach ($headerPayheads as $ph) {
+        $colKey = "payhead_" . md5($ph);
+        echo "dynamicColumns.push({ data: '$colKey', name: '$colKey' });\n";
+    }
+    ?>
+
     $(document).ready(function(){
         // Inisialisasi tooltip Bootstrap 5
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -617,7 +678,7 @@ function ViewRekapPayrollDetail($conn) {
 
         var csrfToken = '<?php echo $csrf_token; ?>';
 
-        // Inisialisasi DataTables
+        // Inisialisasi DataTables dengan kolom dinamis
         var rekapPayrollTable = $('#rekapPayrollTable').DataTable({
             processing: true,
             serverSide: true,
@@ -630,6 +691,7 @@ function ViewRekapPayrollDetail($conn) {
                     d.jenjang = $('#filterJenjang').val();
                     d.bulan   = $('#filterBulan').val();
                     d.tahun   = $('#filterTahun').val();
+                    d.show_all = $('#filterShowAll').val();
                 },
                 beforeSend: function(){
                     $('#loadingSpinner').show();
@@ -644,11 +706,10 @@ function ViewRekapPayrollDetail($conn) {
             columns: [
                 { data:'jenjang', name:'jenjang' },
                 { data:'total_gaji_pokok', name:'total_gaji_pokok' },
-                { data:'total_pendapatan', name:'total_pendapatan' },
-                { data:'total_potongan', name:'total_potongan' },
+            ].concat(dynamicColumns).concat([
                 { data:'total_gaji_bersih', name:'total_gaji_bersih' },
                 { data:'aksi', orderable:false, searchable:false }
-            ],
+            ]),
             order: [[0,'asc']],
             language: {
                 url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
@@ -659,13 +720,13 @@ function ViewRekapPayrollDetail($conn) {
                     extend: 'excelHtml5',
                     text: '<i class="fas fa-file-excel"></i> Export Excel',
                     className: 'btn btn-success btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4] }
+                    exportOptions: { columns: ':visible:not(:last-child)' }
                 },
                 {
                     extend: 'pdfHtml5',
                     text: '<i class="fas fa-file-pdf"></i> Export PDF',
                     className: 'btn btn-danger btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4] },
+                    exportOptions: { columns: ':visible:not(:last-child)' },
                     customize: function (doc) {
                         doc.styles.tableHeader.fillColor = '#343a40';
                         doc.styles.tableHeader.color = 'white';
@@ -676,14 +737,25 @@ function ViewRekapPayrollDetail($conn) {
                     extend: 'print',
                     text: '<i class="fas fa-print"></i> Print',
                     className: 'btn btn-info btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4] }
+                    exportOptions: { columns: ':visible:not(:last-child)' }
                 }
             ],
             responsive: true
         });
 
-        // Apply Filter
+        // Ketika filter Bulan berubah, jika ada pilihan maka set show_all menjadi 0
+        $('#filterBulan').on('change', function(){
+            if ($(this).val()) {
+                $('#filterShowAll').val("0");
+            }
+        });
+
+        // Tombol Terapkan Filter
         $('#btnApplyFilter').on('click', function(){
+            // Jika bulan tidak dipilih, pastikan nilai show_all tetap 0 (tidak menampilkan data)
+            if (!$('#filterBulan').val()) {
+                $('#filterShowAll').val("0");
+            }
             $.ajax({
                 url: 'rekap_payroll.php?ajax=1',
                 type: 'POST',
@@ -691,29 +763,39 @@ function ViewRekapPayrollDetail($conn) {
                     case: 'AddAuditLog',
                     csrf_token: csrfToken,
                     action: 'ApplyFilter',
-                    details: `Filter diterapkan: Jenjang=${$('#filterJenjang').val()||'Semua'}, Bulan=${$('#filterBulan').val()||'Semua'}, Tahun=${$('#filterTahun').val()||'Semua'}.`
+                    details: `Filter diterapkan: Jenjang=${$('#filterJenjang').val()||'Semua'}, Bulan=${$('#filterBulan').val()||'-- tidak dipilih --'}, Tahun=${$('#filterTahun').val()||'Semua'}.`
                 }
             });
             rekapPayrollTable.ajax.reload();
         });
 
-        // Reset Filter
+        // Tombol Reset Filter
         $('#btnResetFilter').on('click', function(){
+            $('#filterForm')[0].reset();
+            // Pastikan show_all kembali ke 0 (default tidak tampilkan data kecuali diaktifkan)
+            $('#filterShowAll').val("0");
+            rekapPayrollTable.ajax.reload();
+        });
+
+        // Tombol Tampilkan Semua Rekapan
+        $('#btnShowAll').on('click', function(){
+            // Set nilai show_all menjadi 1 dan kosongkan filter bulan
+            $('#filterShowAll').val("1");
+            $('#filterBulan').val("");
             $.ajax({
                 url: 'rekap_payroll.php?ajax=1',
                 type: 'POST',
                 data: {
                     case: 'AddAuditLog',
                     csrf_token: csrfToken,
-                    action: 'ResetFilter',
-                    details: 'Filter direset.'
+                    action: 'ShowAllRecap',
+                    details: 'Menampilkan semua rekapan (semua bulan).'
                 }
             });
-            $('#filterForm')[0].reset();
             rekapPayrollTable.ajax.reload();
         });
 
-        // Export Data (Excel)
+        // Tombol Export Data (Excel)
         $('#btnExportData').on('click', function(){
             rekapPayrollTable.button('.buttons-excel').trigger();
             $.ajax({

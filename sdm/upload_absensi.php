@@ -266,17 +266,20 @@ function impor_absensi($conn, $file, $departemen) {
         ];
     }
 
-    // Tipe data bind (17 kolom, dengan id_anggota as integer)
+    // Tipe data bind (17 kolom, dengan id_anggota sebagai integer)
     $type_string = 'sssissssississssi'; // 's' untuk string, 'i' untuk integer
 
     $totalRows    = count($data);
     $successCount = 0;
     $failCount    = 0;
     $details      = [];
-    $rowNumber    = 3; // baris data mulai row ke-3
+    $rowNumber    = 3; // baris data mulai dari row ke-3
+
+    // Array untuk menyimpan periode terpengaruh (untuk update rekap)
+    $affected_periods = [];
 
     foreach ($data as $row) {
-        // Ekstrak data
+        // Ekstrak data dari masing-masing kolom berdasarkan $expected_headers
         $tanggal_str    = isset($row[$expected_headers['tanggal']]) ? $row[$expected_headers['tanggal']] : '';
         $jadwal         = isset($row[$expected_headers['jadwal']]) ? $row[$expected_headers['jadwal']] : '';
         $jam_kerja      = isset($row[$expected_headers['jam kerja']]) ? $row[$expected_headers['jam kerja']] : '';
@@ -284,7 +287,7 @@ function impor_absensi($conn, $file, $departemen) {
         $pin            = isset($row[$expected_headers['pin']]) ? $row[$expected_headers['pin']] : '';
         $nip            = isset($row[$expected_headers['nip']]) ? trim($row[$expected_headers['nip']]) : '';
         $nama           = isset($row[$expected_headers['nama']]) ? $row[$expected_headers['nama']] : '';
-        // departemen → dari form
+        // departemen → dari form, sudah diubah ke uppercase sebelumnya
         $lembur         = isset($row[$expected_headers['lembur']]) ? $row[$expected_headers['lembur']] : '';
         $jam_masuk_raw  = isset($row[$expected_headers['jam masuk']]) ? $row[$expected_headers['jam masuk']] : '';
         $scan_masuk_raw = isset($row[$expected_headers['scan masuk']]) ? $row[$expected_headers['scan masuk']] : '';
@@ -311,18 +314,18 @@ function impor_absensi($conn, $file, $departemen) {
         $jam_masuk  = parseTimeString($jam_masuk_raw);            // format hh:mm:ss
         $jam_pulang = parseTimeString($jam_pulang_raw);
 
-        // (3) Konversi scan/datetime (gabung tanggal + jam)
+        // (3) Konversi scan/datetime (gabungkan tanggal + jam)
         $scan_masuk       = parseDateTimeString($tanggal, $scan_masuk_raw);      // yyyy-mm-dd hh:mm:ss
         $scan_istirahat_1 = parseDateTimeString($tanggal, $scan_i1_raw);
         $scan_istirahat_2 = parseDateTimeString($tanggal, $scan_i2_raw);
         $scan_pulang      = parseDateTimeString($tanggal, $scan_pulang_raw);
 
-        // (4) valid, lembur, terlambat ke integer
+        // (4) Konversi valid, lembur, terlambat ke integer
         $valid     = intval($valid) ?: 0;  // 0 atau 1
         $lembur    = intval($lembur) ?: 0;
         $terlambat = intval($terlambat) ?: 0;
 
-        // Pastikan valid = (0/1) saja
+        // Pastikan valid hanya bernilai 0 atau 1
         $valid     = ($valid === 1) ? 1 : 0;
 
         // (5) Cek dan ambil id_anggota dari anggota_sekolah berdasarkan nip
@@ -345,11 +348,10 @@ function impor_absensi($conn, $file, $departemen) {
 
         $id_anggota = intval($row_id['id']);
 
-        // Binding param
+        // Binding parameter untuk statement INSERT
         mysqli_stmt_bind_param(
             $stmt,
             $type_string,
-            // kolom-kolom:
             $tanggal,             // DATE
             $jadwal,              // VARCHAR
             $jam_kerja,           // VARCHAR
@@ -369,7 +371,7 @@ function impor_absensi($conn, $file, $departemen) {
             $id_anggota           // INT (foreign key)
         );
 
-        // Eksekusi
+        // Eksekusi statement INSERT
         if (mysqli_stmt_execute($stmt)) {
             $successCount++;
             $details[] = [
@@ -377,6 +379,18 @@ function impor_absensi($conn, $file, $departemen) {
                 'status' => 'success',
                 'reason' => ''
             ];
+            
+            // Catat periode yang terpengaruh
+            $bulan = date('n', strtotime($tanggal));
+            $tahun = date('Y', strtotime($tanggal));
+            $key = "{$id_anggota}-{$bulan}-{$tahun}";
+            if (!isset($affected_periods[$key])) {
+                $affected_periods[$key] = [
+                    'id_anggota' => $id_anggota,
+                    'bulan'      => $bulan,
+                    'tahun'      => $tahun
+                ];
+            }
         } else {
             $failCount++;
             $details[] = [
@@ -384,15 +398,52 @@ function impor_absensi($conn, $file, $departemen) {
                 'status' => 'fail',
                 'reason' => mysqli_stmt_error($stmt)
             ];
-            // Tambahkan logging ke file log (opsional)
             error_log("Gagal mengimpor baris $rowNumber: " . mysqli_stmt_error($stmt));
         }
-
         $rowNumber++;
     }
 
     mysqli_stmt_close($stmt);
     mysqli_stmt_close($stmt_get_id);
+
+    // Update rekap absensi untuk setiap periode yang terpengaruh
+    foreach ($affected_periods as $period) {
+        $stmt_rekap = $conn->prepare("CALL UpdateRekapAbsensi(?, ?, ?)");
+        $stmt_rekap->bind_param("iii", 
+            $period['id_anggota'],
+            $period['bulan'],
+            $period['tahun']
+        );
+        $stmt_rekap->execute();
+        $stmt_rekap->close();
+    }
+
+    // ================== MODIFIKASI DI BAWAH INI ==================
+    // [1] Kumpulkan semua tanggal yang berhasil diimpor
+    $dates = [];
+    foreach ($affected_periods as $period) {
+        $dates[] = date('Y-m-d', strtotime($period['tahun'].'-'.$period['bulan'].'-01'));
+    }
+    
+    // [2] Cari rentang tanggal terbaru
+    if (!empty($dates)) {
+        $min_date = min($dates);
+        $max_date = max($dates);
+        
+        // [3] Panggil UpdateRekapMingguan
+        $stmt_rekap = $conn->prepare("CALL UpdateRekapMingguan(?, ?)");
+        $stmt_rekap->bind_param("ss", $min_date, $max_date);
+        $stmt_rekap->execute();
+        
+        // Tambahkan log audit untuk tracking (pastikan fungsi add_audit_log() sudah ada)
+        add_audit_log(
+            $conn, 
+            $_SESSION['nip'] ?? 'system', 
+            'UpdateRekapMingguan', 
+            "Update rekap dari $min_date hingga $max_date"
+        );
+    }
+    // ================== MODIFIKASI DI ATAS INI ==================
 
     return [
         'status' => 'ok',
@@ -400,7 +451,8 @@ function impor_absensi($conn, $file, $departemen) {
         'total_rows' => $totalRows,
         'success_count' => $successCount,
         'fail_count' => $failCount,
-        'details' => $details
+        'details' => $details,
+        'rekap_periode' => [$min_date ?? null, $max_date ?? null]
     ];
 }
 
@@ -419,8 +471,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hasilImport = impor_absensi($conn, $file, $departemen);
         if ($hasilImport['status'] === 'ok') {
             $message = "Proses impor selesai. " .
-                       "Total baris: " . $hasilImport['total_rows'] .
-                       ", Sukses: " . $hasilImport['success_count'] .
+                       "Total baris: " . $hasilImport['total_rows'] . 
+                       ", Sukses: " . $hasilImport['success_count'] . 
                        ", Gagal: " . $hasilImport['fail_count'];
 
             if (!empty($hasilImport['details']) && is_array($hasilImport['details'])) {
@@ -491,6 +543,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="alert alert-info alert-dismissible fade show" role="alert">
                 <i class="fas fa-info-circle"></i> <?= htmlspecialchars($message) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
+        <!-- Notifikasi Rekap Mingguan -->
+        <?php if (!empty($hasilImport['rekap_periode'])): ?>
+            <div class="alert alert-success mt-3">
+                <i class="fas fa-calendar-check"></i> Rekap mingguan telah diperbarui:<br>
+                Periode: <?= date('d M Y', strtotime($hasilImport['rekap_periode'][0])) ?> - 
+                <?= date('d M Y', strtotime($hasilImport['rekap_periode'][1])) ?>
             </div>
         <?php endif; ?>
 
