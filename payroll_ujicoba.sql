@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Mar 23, 2025 at 06:12 AM
+-- Generation Time: Mar 23, 2025 at 09:32 AM
 -- Server version: 8.0.30
--- PHP Version: 8.2.26
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -50,6 +50,38 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateRekapAbsensi` (IN `p_id_anggo
         total_sakit = VALUES(total_sakit);
 END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateRekapMingguan` (IN `p_min_date` DATE, IN `p_max_date` DATE)   BEGIN
+    /*
+      Contoh logika:
+      - Menghapus data rekap mingguan untuk periode yang terpengaruh,
+      - Menghitung ulang rekap mingguan berdasarkan data absensi antara p_min_date dan p_max_date,
+      - Mengelompokkan berdasarkan id_anggota, minggu ke berapa, dan tahun.
+    */
+
+    -- Hapus rekap mingguan lama (sesuaikan logika ini jika perlu)
+    DELETE FROM rekap_mingguan 
+    WHERE id_anggota IN (
+        SELECT DISTINCT id_anggota 
+        FROM absensi 
+        WHERE tanggal BETWEEN p_min_date AND p_max_date
+    );
+
+    -- Masukkan data rekap baru
+    INSERT INTO rekap_mingguan (id_anggota, minggu_ke, tahun, total_hadir, total_terlambat)
+    SELECT 
+        a.id_anggota,
+        WEEK(a.tanggal, 1) AS minggu_ke, -- Menggunakan ISO week (opsional: sesuaikan jika perlu)
+        YEAR(a.tanggal) AS tahun,
+        SUM(a.status_kehadiran = 'hadir') AS total_hadir,
+        SUM(a.terlambat) AS total_terlambat
+    FROM absensi a
+    WHERE a.tanggal BETWEEN p_min_date AND p_max_date
+    GROUP BY a.id_anggota, WEEK(a.tanggal, 1), YEAR(a.tanggal)
+    ON DUPLICATE KEY UPDATE 
+        total_hadir = VALUES(total_hadir),
+        total_terlambat = VALUES(total_terlambat);
+END$$
+
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -86,20 +118,13 @@ CREATE TABLE `absensi` (
 --
 
 INSERT INTO `absensi` (`id`, `tanggal`, `jadwal`, `jam_kerja`, `valid`, `pin`, `nip`, `nama`, `departemen`, `lembur`, `jam_masuk`, `scan_masuk`, `terlambat`, `scan_istirahat_1`, `scan_istirahat_2`, `jam_pulang`, `scan_pulang`, `jenis_absensi`, `status_kehadiran`, `id_anggota`) VALUES
-(1, '2024-12-09', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-09 06:32:20', 0, '2024-12-09 00:00:00', '2024-12-09 00:00:00', '14:45:00', '2024-12-09 15:24:42', '-', 'hadir', 5),
-(2, '2024-12-10', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-10 06:19:18', 0, '2024-12-10 00:00:00', '2024-12-10 00:00:00', '14:45:00', '2024-12-10 13:19:41', '-', 'hadir', 5),
-(3, '2024-12-11', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-11 06:07:54', 0, '2024-12-11 00:00:00', '2024-12-11 00:00:00', '14:45:00', '2024-12-11 15:16:17', '-', 'hadir', 5),
-(4, '2024-12-12', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-12 06:26:41', 0, '2024-12-12 00:00:00', '2024-12-12 00:00:00', '14:45:00', '2024-12-12 15:41:13', '-', 'hadir', 5),
-(5, '2024-12-13', 'Guru', 'Jum\'at - Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-13 06:23:05', 0, '2024-12-13 00:00:00', '2024-12-13 00:00:00', '13:30:00', '2024-12-13 16:24:13', '-', 'hadir', 5),
-(6, '2024-12-14', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2024-12-14 00:00:00', 0, '2024-12-14 00:00:00', '2024-12-14 00:00:00', '00:00:00', '2024-12-14 00:00:00', '-', 'hadir', 5),
-(7, '2024-12-15', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2024-12-15 00:00:00', 0, '2024-12-15 00:00:00', '2024-12-15 00:00:00', '00:00:00', '2024-12-15 00:00:00', '-', 'hadir', 5),
-(8, '2024-12-09', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-09 06:32:20', 0, '2024-12-09 00:00:00', '2024-12-09 00:00:00', '14:45:00', '2024-12-09 15:24:42', '-', 'hadir', 5),
-(9, '2024-12-10', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-10 06:19:18', 0, '2024-12-10 00:00:00', '2024-12-10 00:00:00', '14:45:00', '2024-12-10 13:19:41', '-', 'hadir', 5),
-(10, '2024-12-11', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-11 06:07:54', 0, '2024-12-11 00:00:00', '2024-12-11 00:00:00', '14:45:00', '2024-12-11 15:16:17', '-', 'hadir', 5),
-(11, '2024-12-12', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-12 06:26:41', 0, '2024-12-12 00:00:00', '2024-12-12 00:00:00', '14:45:00', '2024-12-12 15:41:13', '-', 'hadir', 5),
-(12, '2024-12-13', 'Guru', 'Jum\'at - Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2024-12-13 06:23:05', 0, '2024-12-13 00:00:00', '2024-12-13 00:00:00', '13:30:00', '2024-12-13 16:24:13', '-', 'hadir', 5),
-(13, '2024-12-14', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2024-12-14 00:00:00', 0, '2024-12-14 00:00:00', '2024-12-14 00:00:00', '00:00:00', '2024-12-14 00:00:00', '-', 'hadir', 5),
-(14, '2024-12-15', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2024-12-15 00:00:00', 0, '2024-12-15 00:00:00', '2024-12-15 00:00:00', '00:00:00', '2024-12-15 00:00:00', '-', 'hadir', 5);
+(1, '2025-03-01', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-01 06:32:20', 0, '2025-03-01 00:00:00', '2025-03-01 00:00:00', '14:45:00', '2025-03-01 15:24:42', '-', 'hadir', 5),
+(2, '2025-03-02', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-02 06:19:18', 0, '2025-03-02 00:00:00', '2025-03-02 00:00:00', '14:45:00', '2025-03-02 13:19:41', '-', 'hadir', 5),
+(3, '2025-03-03', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-03 06:07:54', 0, '2025-03-03 00:00:00', '2025-03-03 00:00:00', '14:45:00', '2025-03-03 15:16:17', '-', 'hadir', 5),
+(4, '2025-03-04', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-04 06:26:41', 0, '2025-03-04 00:00:00', '2025-03-04 00:00:00', '14:45:00', '2025-03-04 15:41:13', '-', 'hadir', 5),
+(5, '2025-03-05', 'Guru', 'Jum\'at - Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-05 06:23:05', 0, '2025-03-05 00:00:00', '2025-03-05 00:00:00', '13:30:00', '2025-03-05 16:24:13', 'Izin', 'hadir', 5),
+(6, '2025-03-06', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2025-03-06 00:00:00', 0, '2025-03-06 00:00:00', '2025-03-06 00:00:00', '00:00:00', '2025-03-06 00:00:00', '-', 'hadir', 5),
+(7, '2025-03-07', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2025-03-07 00:00:00', 0, '2025-03-07 00:00:00', '2025-03-07 00:00:00', '00:00:00', '2025-03-07 00:00:00', '-', 'hadir', 5);
 
 -- --------------------------------------------------------
 
@@ -179,6 +204,36 @@ CREATE TABLE `audit_logs` (
   `user_agent` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `audit_logs`
+--
+
+INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
+(1, '300004', 'UpdateRekapMingguan', 'Update rekap dari 2024-12-01 hingga 2024-12-01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:31:18'),
+(2, '300004', 'UpdateRekapMingguan', 'Update rekap dari 2024-12-01 hingga 2024-12-01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:33:04'),
+(3, '300004', 'UpdateRekapMingguan', 'Update rekap dari 2017-12-01 hingga 2025-03-01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:37:43'),
+(4, '01011995', 'Login', 'Pengguna dengan NIP \'01011995\' berhasil login sebagai guru.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:39:01'),
+(5, '01011995', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:39:01'),
+(6, '300004', 'UpdateRekapMingguan', 'Update rekap dari 2017-12-01 hingga 2025-03-01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:39:49'),
+(7, '01011995', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:39:56'),
+(8, '01011995', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:40:00'),
+(9, '300004', 'UpdateRekapMingguan', 'Update rekap dari 2025-03-01 hingga 2025-03-01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:41:14'),
+(10, '01011995', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:41:27'),
+(11, '01011995', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:46:26'),
+(12, '01011995', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:46:31'),
+(13, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:46:44'),
+(14, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:46:44'),
+(15, '300004', 'LoadingEmployees', 'start=10, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:46:49'),
+(16, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:46:50'),
+(17, '300004', 'ViewRekapAbsensi', 'id_anggota=5, bulan=3, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:46:51'),
+(18, '300004', 'UpdateAbsensi', 'Mengupdate data absensi ID 5. Data: tanggal=2025-03-05, jadwal=Guru, jam_kerja=Jum\'at - Guru, valid=0, pin=010195, nip=01011995, nama=Roosalin Chintia Dewi,SE, departemen=TK, lembur=0, jam_masuk=06:30, scan_masuk=2025-03-05 06:23:05, terlambat=0, scan_istirahat_1=2025-03-05 00:00:00, scan_istirahat_2=2025-03-05 00:00:00, jam_pulang=13:30, scan_pulang=2025-03-05 16:24:13, jenis_absensi=Izin.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:50:32'),
+(19, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:50:41'),
+(20, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:50:41'),
+(21, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 5 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:50:43'),
+(22, '300004', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:50:43'),
+(23, '300004', 'ViewRekapAbsensi', 'id_anggota=5, bulan=3, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:50:43'),
+(24, '01011995', 'AccessDashboard', 'Mengakses dashboard.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-03-23 07:51:07');
 
 -- --------------------------------------------------------
 
@@ -439,7 +494,7 @@ CREATE TABLE `pengajuan_ijin` (
   `tipe_ijin` enum('Sakit','Cuti Biasa','Ijin Lainnya') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `status_kepalasekolah` enum('Diterima','Pending','Ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Pending',
   `status` enum('Diterima','Pending','Ditolak') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'Pending',
-  `lampiran` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
+  `lampiran` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -498,6 +553,13 @@ CREATE TABLE `rekap_absensi` (
   `total_sakit` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `rekap_absensi`
+--
+
+INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`, `total_izin`, `total_cuti`, `total_tanpa_keterangan`, `total_sakit`) VALUES
+(1, 5, 3, 2025, 7, 0, 0, 0, 0);
+
 -- --------------------------------------------------------
 
 --
@@ -512,6 +574,13 @@ CREATE TABLE `rekap_mingguan` (
   `total_hadir` int DEFAULT '0',
   `total_terlambat` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `rekap_mingguan`
+--
+
+INSERT INTO `rekap_mingguan` (`id`, `id_anggota`, `minggu_ke`, `tahun`, `total_hadir`, `total_terlambat`) VALUES
+(1, 5, 9, 2025, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -710,7 +779,7 @@ ALTER TABLE `template_surat`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `anggota_sekolah`
@@ -722,7 +791,7 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `employee_payheads`
@@ -788,13 +857,13 @@ ALTER TABLE `pengajuan_ijin`
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `rekap_mingguan`
 --
 ALTER TABLE `rekap_mingguan`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `template_surat`
