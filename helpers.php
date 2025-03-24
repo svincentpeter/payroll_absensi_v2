@@ -228,103 +228,108 @@ function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
     }
 }
 
-function updateSalaryIndexForUser($conn, $userId) {
-    // Ambil join_start
-    $stmt = $conn->prepare("SELECT join_start, masa_kerja_tahun, masa_kerja_bulan 
-                            FROM anggota_sekolah 
-                            WHERE id = ?");
-    if (!$stmt) {
-        error_log("Prepare error (masa kerja): " . $conn->error);
-        return false;
-    }
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $stmt->bind_result($joinStart, $tahun, $bulan);
-    if (!$stmt->fetch()) {
-        $stmt->close();
-        return false;
-    }
-    $stmt->close();
-    
-    // Hitung masaKerjaAktual
-    try {
-        $startDate = new DateTime($joinStart);
-        $now       = new DateTime();
-        if ($startDate > $now) {
-            $masaKerjaAktual = 0;
-        } else {
-            $diff = $now->diff($startDate);
-            $masaKerjaAktual = $diff->y + ($diff->m / 12.0);
+if (!function_exists('updateSalaryIndexForUser')) {
+    function updateSalaryIndexForUser($conn, $userId) {
+        // Initialize variables to avoid undefined warnings
+        $role = '';
+        $join_start = '';
+        $pendidikan = '';
+        $jenjang = '';
+
+        // Ambil data user: role, join_start, pendidikan, dan jenjang
+        $stmt = $conn->prepare("SELECT role, join_start, pendidikan, jenjang FROM anggota_sekolah WHERE id = ?");
+        if (!$stmt) {
+            error_log("Prepare error (masa kerja): " . $conn->error);
+            return false;
         }
-    } catch (\Exception $e) {
-        $masaKerjaAktual = 0;
-    }
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $stmt->bind_result($role, $join_start, $pendidikan, $jenjang);
+        if (!$stmt->fetch()) {
+            $stmt->close();
+            return false;
+        }
+        $stmt->close();
+        
+        // Hitung lama kerja dalam tahun
+        $years = 0;
+        if (!empty($join_start) && $join_start != '0000-00-00') {
+            try {
+                $startDate = new DateTime($join_start);
+                $now       = new DateTime();
+                $diff = $now->diff($startDate);
+                $years = $diff->y;
+            } catch (Exception $e) {
+                $years = 0;
+            }
+        }
+
+        // Initialize salary index variables
+        $salaryIndexId = 0;
+        $baseSalary = 0.0;
+        $level = '';
     
-    // Cek SP
-    $stmt2 = $conn->prepare("SELECT COUNT(*) as spCount 
-                             FROM laporan_surat 
-                             WHERE id_penerima = ? 
-                               AND jenis_surat = 'peringatan'");
-    if (!$stmt2) {
-        error_log("Prepare error (SP): " . $conn->error);
-        return false;
-    }
-    $stmt2->bind_param("i", $userId);
-    $stmt2->execute();
-    $res2 = $stmt2->get_result();
-    $row2 = $res2->fetch_assoc();
-    $spCount = intval($row2['spCount'] ?? 0);
-    $stmt2->close();
-    
-    $penalty = ($spCount > 0) ? 1 : 0;
-    $masaKerjaEfektif = $masaKerjaAktual - $penalty;
-    if ($masaKerjaEfektif < 0) {
-        $masaKerjaEfektif = 0;
-    }
-
-    // === HAPUS DEBUG ===
-    // error_log("DEBUG MasaKerja: userId=$userId, masaKerjaAktual=$masaKerjaAktual, penalty=$penalty, effectiveYears=".floor($masaKerjaEfektif));
-
-    $effectiveYearsForIndex = floor($masaKerjaEfektif);
-
-    // Cari salary index
-    $stmt3 = $conn->prepare("SELECT id, base_salary 
-                             FROM salary_indices 
-                             WHERE min_years <= ?
-                               AND (max_years IS NULL OR ? <= max_years)
-                             ORDER BY min_years DESC
-                             LIMIT 1");
-    if (!$stmt3) {
-        error_log("Prepare error (salary_indices): " . $conn->error);
-        return false;
-    }
-    $stmt3->bind_param("ii", $effectiveYearsForIndex, $effectiveYearsForIndex);
-    $stmt3->execute();
-    $stmt3->bind_result($salaryIndexId, $baseSalary);
-    if (!$stmt3->fetch()) {
+        // Cari salary index yang sesuai
+        $stmt3 = $conn->prepare("SELECT id, base_salary, level FROM salary_indices WHERE min_years <= ? AND (max_years IS NULL OR ? <= max_years) ORDER BY min_years DESC LIMIT 1");
+        if (!$stmt3) {
+            error_log("Prepare error (salary_indices): " . $conn->error);
+            return false;
+        }
+        $stmt3->bind_param("ii", $years, $years);
+        $stmt3->execute();
+        $stmt3->bind_result($salaryIndexId, $baseSalary, $level);
+        if (!$stmt3->fetch()) {
+            $stmt3->close();
+            error_log("Tidak ada salary index yang cocok untuk tahun = $years");
+            return false;
+        }
         $stmt3->close();
-        error_log("Tidak ada salary index yang cocok untuk effectiveYears = $effectiveYearsForIndex");
-        return false;
+        
+        // Tentukan gaji pokok
+        $gaji_pokok = $baseSalary; // Default to base salary
+        if ($role === 'P' && !empty($pendidikan)) {
+            $guru_salary = 0.0; // Initialize variable
+            $stmtStrata = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_strata_guru WHERE jenjang=? AND strata=? LIMIT 1");
+            if ($stmtStrata) {
+                $stmtStrata->bind_param("ss", $jenjang, $pendidikan);
+                $stmtStrata->execute();
+                $stmtStrata->bind_result($guru_salary);
+                if ($stmtStrata->fetch()) {
+                    $gaji_pokok = floatval($guru_salary);
+                }
+                $stmtStrata->close();
+            }
+        }
+
+        $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, salary_index_level = ?, gaji_pokok = ?, masa_kerja_efektif = ? WHERE id = ?");
+        if (!$stmtUpdate) {
+            error_log("Prepare error (update anggota): " . $conn->error);
+            return false;
+        }
+        $masaKerjaEfektif = $years;
+        $stmtUpdate->bind_param("isidi", $salaryIndexId, $level, $gaji_pokok, $masaKerjaEfektif, $userId);
+        $result = $stmtUpdate->execute();
+        if (!$result) {
+            error_log("Execute error (update anggota): " . $stmtUpdate->error);
+        }
+        $stmtUpdate->close();
+        return $result;
     }
-    $stmt3->close();
-    
-    // Update
-    $stmt4 = $conn->prepare("UPDATE anggota_sekolah 
-                             SET salary_index_id = ?, 
-                                 gaji_pokok = ?, 
-                                 masa_kerja_efektif = ? 
-                             WHERE id = ?");
-    if (!$stmt4) {
-        error_log("Prepare error (update anggota): " . $conn->error);
-        return false;
+}
+
+function normalizePendidikan($pendidikan) {
+    $pendidikan = strtoupper($pendidikan);
+    if (strpos($pendidikan, 'D3') !== false) {
+        return 'D3';
+    } elseif (strpos($pendidikan, 'S1') !== false) {
+        return 'S1';
+    } elseif (strpos($pendidikan, 'S2') !== false) {
+        return 'S2';
+    } elseif (strpos($pendidikan, 'S3') !== false) {
+        return 'S3';
+    } else {
+        return $pendidikan;
     }
-    $stmt4->bind_param("iddi", $salaryIndexId, $baseSalary, $masaKerjaEfektif, $userId);
-    $result = $stmt4->execute();
-    if (!$result) {
-        error_log("Execute error (update anggota): " . $stmt4->error);
-    }
-    $stmt4->close();
-    return $result;
 }
 
 function updateSalaryIndexForAll($conn) {

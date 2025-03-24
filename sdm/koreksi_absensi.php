@@ -61,7 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         $action = $_POST['action'];
         if ($action === 'update') {
-            $id_absensi      = $_POST['id_absensi'] ?? '';
+            // CAST id_absensi ke integer agar sesuai dengan tipe "i"
+            $id_absensi      = isset($_POST['id_absensi']) ? (int) $_POST['id_absensi'] : 0;
             $departemen_post = $_POST['departemen'] ?? '';
             $bulan_post      = $_POST['bulan'] ?? '';
             if (empty($id_absensi)) {
@@ -157,7 +158,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $scan_istirahat_2_datetime = $old_ist2;
             }
 
-            // Update record absensi
+            // Tentukan status_kehadiran berdasarkan jenis_absensi
+            $status_kehadiran = 'hadir';
+            switch (strtolower($jenis_absensi)) {
+                case 'izin':
+                case 'sakit':
+                case 'cuti':
+                case 'libur':
+                    $status_kehadiran = strtolower($jenis_absensi);
+                    break;
+                case 'bolos':
+                    $status_kehadiran = 'tanpa_keterangan';
+                    break;
+            }
+
+            // Update record absensi (tambahkan field status_kehadiran)
             $sqlUpdate = "UPDATE absensi
                           SET 
                             tanggal=?,
@@ -176,7 +191,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             scan_istirahat_2=?,
                             jam_pulang=?,
                             scan_pulang=?,
-                            jenis_absensi=?
+                            jenis_absensi=?,
+                            status_kehadiran=?
                           WHERE id = ?";
             $stmt = mysqli_prepare($conn, $sqlUpdate);
             if (!$stmt) {
@@ -186,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             mysqli_stmt_bind_param(
                 $stmt,
-                'sssissssississsssi',
+                'sssissssississssssi',
                 $tanggal,
                 $jadwal,
                 $jam_kerja,
@@ -204,11 +220,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $jam_pulang,
                 $scan_pulang_datetime,
                 $jenis_absensi,
+                $status_kehadiran,
                 $id_absensi
             );
             if (mysqli_stmt_execute($stmt)) {
                 // Tambahkan log audit
-                $audit_details = "Mengupdate data absensi ID $id_absensi. Data: tanggal=$tanggal, jadwal=$jadwal, jam_kerja=$jam_kerja, valid=$valid, pin=$pin, nip=$nip, nama=$nama, departemen=$departemen, lembur=$lembur, jam_masuk=$jam_masuk, scan_masuk=$scan_masuk_datetime, terlambat=$terlambat, scan_istirahat_1=$scan_istirahat_1_datetime, scan_istirahat_2=$scan_istirahat_2_datetime, jam_pulang=$jam_pulang, scan_pulang=$scan_pulang_datetime, jenis_absensi=$jenis_absensi.";
+                $audit_details = "Mengupdate data absensi ID $id_absensi. Data: tanggal=$tanggal, jadwal=$jadwal, jam_kerja=$jam_kerja, valid=$valid, pin=$pin, nip=$nip, nama=$nama, departemen=$departemen, lembur=$lembur, jam_masuk=$jam_masuk, scan_masuk=$scan_masuk_datetime, terlambat=$terlambat, scan_istirahat_1=$scan_istirahat_1_datetime, scan_istirahat_2=$scan_istirahat_2_datetime, jam_pulang=$jam_pulang, scan_pulang=$scan_pulang_datetime, jenis_absensi=$jenis_absensi, status_kehadiran=$status_kehadiran.";
                 add_audit_log($conn, $_SESSION['nip'], 'UpdateAbsensi', $audit_details);
                 mysqli_stmt_close($stmt);
 
@@ -228,8 +245,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt_rekap->bind_param("iii", $id_anggota, $bulan_val, $tahun_val);
                 $stmt_rekap->execute();
                 $stmt_rekap->close();
-                // --- End Update Rekap ---
-                
+                // --- End Update Rekap Absensi ---
+
+                // --- Update Rekap Mingguan ---
+                // Panggil stored procedure UpdateRekapMingguan untuk tanggal yang terpengaruh
+                $stmt_rekap_mingguan = $conn->prepare("CALL UpdateRekapMingguan(?, ?)");
+                $stmt_rekap_mingguan->bind_param("ss", $tanggal, $tanggal);
+                $stmt_rekap_mingguan->execute();
+                $stmt_rekap_mingguan->close();
+                // --- End Update Rekap Mingguan ---
+
                 $_SESSION['notif_success'] = "Data absensi ID $id_absensi berhasil dikoreksi.";
             } else {
                 $_SESSION['notif_error'] = "Gagal mengupdate data absensi ID $id_absensi: " . mysqli_error($conn);
@@ -238,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: koreksi_absensi.php");
             exit;
         } elseif ($action === 'delete') {
-            $id_absensi = $_POST['id_absensi'] ?? '';
+            $id_absensi = isset($_POST['id_absensi']) ? (int) $_POST['id_absensi'] : 0;
             if (empty($id_absensi)) {
                 $_SESSION['notif_error'] = "ID Absensi tidak valid.";
                 header("Location: koreksi_absensi.php");
@@ -266,8 +291,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt_rekap->bind_param("iii", $id_anggota, $bulan_val, $tahun_val);
                     $stmt_rekap->execute();
                     $stmt_rekap->close();
+                    
+                    // --- Update Rekap Mingguan setelah deletion ---
+                    $stmt_rekap_mingguan = $conn->prepare("CALL UpdateRekapMingguan(?, ?)");
+                    $stmt_rekap_mingguan->bind_param("ss", $tanggal, $tanggal);
+                    $stmt_rekap_mingguan->execute();
+                    $stmt_rekap_mingguan->close();
+                    // --- End Update Rekap Mingguan ---
                 }
-                // --- End Update Rekap ---
+                // --- End Update Rekap Absensi ---
             } else {
                 $_SESSION['notif_error'] = $deleteResult;
             }
