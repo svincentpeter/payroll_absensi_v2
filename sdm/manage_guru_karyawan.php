@@ -171,13 +171,26 @@ function CreateGuru($conn) {
     $no_rekening     = bersihkan_input($_POST['no_rekening'] ?? '');
     $no_hp           = bersihkan_input($_POST['no_hp'] ?? '');
     $email           = bersihkan_input($_POST['email'] ?? '');
+    // Data pasangan dan anak
     $nama_pasangan   = bersihkan_input($_POST['nama_pasangan'] ?? '');
     $jumlah_anak     = (int)($_POST['jumlah_anak'] ?? 0);
-    // Inisialisasi variabel tambahan untuk query INSERT
-    $remark = bersihkan_input($_POST['remark'] ?? '');
+    $nama_anak_1     = bersihkan_input($_POST['nama_anak_1'] ?? '');
+    $nama_anak_2     = bersihkan_input($_POST['nama_anak_2'] ?? '');
+    $nama_anak_3     = bersihkan_input($_POST['nama_anak_3'] ?? '');
+    // Data tambahan baru: status perkawinan dan remark
     $status_perkawinan = bersihkan_input($_POST['status_perkawinan'] ?? '');
+    $remark            = bersihkan_input($_POST['remark'] ?? '');
+    
+    // Jika status perkawinan adalah "Belum Menikah", set default nilai
+    if ($status_perkawinan === 'Belum Menikah') {
+        $nama_pasangan = '-';
+        $jumlah_anak   = 0;
+        $nama_anak_1   = '-';
+        $nama_anak_2   = '-';
+        $nama_anak_3   = '-';
+    }
+    
     $null = null; // Untuk salary_index_id yang diisi NULL
-
     $salary_index_id = null;
     $join_start      = bersihkan_input($_POST['join_start'] ?? '');
     
@@ -226,7 +239,6 @@ function CreateGuru($conn) {
         $query = "SELECT gaji_pokok FROM gaji_pokok_strata_guru WHERE jenjang=? AND strata=? LIMIT 1";
         $stmt = $conn->prepare($query);
         if ($stmt) {
-            // Inisialisasi variabel $gaji_strata untuk menghindari error undefined variable
             $gaji_strata = 0;
             $stmt->bind_param("ss", $jenjang, $normalizedPendidikan);
             $stmt->execute();
@@ -244,7 +256,6 @@ function CreateGuru($conn) {
         $gaji_pokok = getGajiPokokByRole($conn, $role);
     }
     
-    
     $defaultPassword = password_hash('123456', PASSWORD_DEFAULT);
     
     $sql = "INSERT INTO anggota_sekolah (
@@ -254,6 +265,7 @@ function CreateGuru($conn) {
         usia, agama, alamat_domisili, alamat_ktp,
         no_rekening, no_hp, pendidikan,
         status_perkawinan, email, nama_pasangan, jumlah_anak,
+        nama_anak_1, nama_anak_2, nama_anak_3,
         salary_index_id, gaji_pokok, role
     ) VALUES (
         ?, ?, ?, ?, ?, ?, ?,
@@ -262,6 +274,7 @@ function CreateGuru($conn) {
         ?, ?, ?, ?,
         ?, ?, ?,
         ?, ?, ?, ?,
+        ?, ?, ?,
         ?, ?, ?
     )";
     
@@ -270,16 +283,16 @@ function CreateGuru($conn) {
         die("Query error: " . $conn->error);
     }
     
-    $types = "ssssssss"  // 8 s
-           . "ii"        // 2 i => total 10
-           . "sss"       // 3 s => total 13
-           . "i"         // +1 => 14
-           . "sssssssss" // +9 => 23
-           . "ii"        // +2 => 25
-           . "d"         // +1 => 26
-           . "s";        // +1 => 27
-    
-    // Pastikan TIDAK ada spasi di dalam string $types
+    // Menyusun string tipe data untuk bind_param (total 30 parameter)
+    $types = "ssssssssii" .      // uid, nip, password, nama, jenjang, job_title, status_kerja, join_start, masa_kerja_tahun, masa_kerja_bulan
+             "sss" .              // remark, jenis_kelamin, tanggal_lahir
+             "i" .                // usia
+             "sssssssss" .        // agama, alamat_domisili, alamat_ktp, no_rekening, no_hp, pendidikan, status_perkawinan, email, nama_pasangan
+             "i" .                // jumlah_anak
+             "sss" .              // nama_anak_1, nama_anak_2, nama_anak_3
+             "i" .                // salary_index_id
+             "d" .                // gaji_pokok
+             "s";                 // role
     
     $stmt->bind_param(
         $types,
@@ -307,11 +320,13 @@ function CreateGuru($conn) {
         $email,
         $nama_pasangan,
         $jumlah_anak,
+        $nama_anak_1,
+        $nama_anak_2,
+        $nama_anak_3,
         $null,       // salary_index_id
         $gaji_pokok,
         $role
     );
-    
     
     if ($stmt->execute()) {
         $newId = $stmt->insert_id;
@@ -328,7 +343,6 @@ function CreateGuru($conn) {
         send_response(1, 'Gagal menyimpan data: ' . $conn->error);
     }
 }
-
 
 function GetGuruDetail($conn) {
     $id = (int)($_POST['id'] ?? 0);
@@ -353,6 +367,7 @@ function GetGuruDetail($conn) {
         $data = $res->fetch_assoc();
         unset($data['password']);
         $data['masa_kerja'] = $data['masa_kerja_tahun'] . " Thn " . $data['masa_kerja_bulan'] . " Bln";
+        // Untuk konsistensi nama field
         $data['religion']   = $data['agama'];
         $data['jk']         = $data['jenis_kelamin'];
         send_response(0, $data);
@@ -379,13 +394,19 @@ function UpdateGuru($conn) {
     $no_rekening     = bersihkan_input($_POST['no_rekening'] ?? '');
     $no_hp           = bersihkan_input($_POST['no_hp'] ?? '');
     $pendidikan      = bersihkan_input($_POST['pendidikan'] ?? '');
+    // Data tambahan: status perkawinan, remark, pasangan dan anak
+    $status_perkawinan = bersihkan_input($_POST['status_perkawinan'] ?? '');
+    $remark            = bersihkan_input($_POST['remark'] ?? '');
     $email           = bersihkan_input($_POST['email'] ?? '');
     $nama_pasangan   = bersihkan_input($_POST['nama_pasangan'] ?? '');
     $jumlah_anak     = (int)($_POST['jumlah_anak'] ?? 0);
-    $salary_index_id = (int)($_POST['salary_index_id'] ?? null);
+    $nama_anak_1     = bersihkan_input($_POST['nama_anak_1'] ?? '');
+    $nama_anak_2     = bersihkan_input($_POST['nama_anak_2'] ?? '');
+    $nama_anak_3     = bersihkan_input($_POST['nama_anak_3'] ?? '');
+    $salary_index_id = (isset($_POST['salary_index_id']) && $_POST['salary_index_id'] !== '') ? (int)$_POST['salary_index_id'] : null;
     $password_baru   = $_POST['password'] ?? '';
     $join_start      = bersihkan_input($_POST['join_start'] ?? '');
-
+    
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
     }
@@ -422,7 +443,16 @@ function UpdateGuru($conn) {
         $masa_kerja_tahun = 0;
         $masa_kerja_bulan = 0;
     }
-
+    
+    // Jika status perkawinan adalah "Belum Menikah", set default nilai
+    if ($status_perkawinan === 'Belum Menikah') {
+        $nama_pasangan = '-';
+        $jumlah_anak   = 0;
+        $nama_anak_1   = '-';
+        $nama_anak_2   = '-';
+        $nama_anak_3   = '-';
+    }
+    
     $fields = [
         'nip'             => $nip,
         'nama'            => $nama,
@@ -438,9 +468,14 @@ function UpdateGuru($conn) {
         'no_rekening'     => $no_rekening,
         'no_hp'           => $no_hp,
         'pendidikan'      => $pendidikan,
+        'status_perkawinan' => $status_perkawinan,
+        'remark'          => $remark,
         'email'           => $email,
         'nama_pasangan'   => $nama_pasangan,
         'jumlah_anak'     => $jumlah_anak,
+        'nama_anak_1'     => $nama_anak_1,
+        'nama_anak_2'     => $nama_anak_2,
+        'nama_anak_3'     => $nama_anak_3,
         'salary_index_id' => $salary_index_id,
         'join_start'      => $join_start,
         'masa_kerja_tahun'=> $masa_kerja_tahun,
@@ -451,8 +486,8 @@ function UpdateGuru($conn) {
     }
 
     $updates = [];
-    $types   = '';
-    $values  = [];
+    $types = "";
+    $values = [];
     foreach ($fields as $col => $val) {
         $updates[] = "$col = ?";
         if (in_array($col, ['salary_index_id','jumlah_anak','usia','masa_kerja_tahun','masa_kerja_bulan'])) {
@@ -545,10 +580,8 @@ function updateGajiPokok($conn) {
     }
 }
 
-// Fungsi Update Gaji Strata Guru menggunakan INSERT ... ON DUPLICATE KEY UPDATE
 function updateGajiStrataGuru($conn) {
     $updates = [];
-    // Buat array kombinasi berdasarkan konfigurasi yang digunakan di modal
     $guruConfig = [
         'TK'      => ['D3', 'S1', 'S2'],
         'SD'      => ['S1', 'S2'],
@@ -557,7 +590,6 @@ function updateGajiStrataGuru($conn) {
     ];
     foreach ($guruConfig as $jenjang => $strataArr) {
         foreach ($strataArr as $strata) {
-            // Nama field pada form diharapkan: misalnya untuk TK-D3 => tk_d3
             $fieldName = strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata);
             $gaji = isset($_POST[$fieldName]) ? floatval($_POST[$fieldName]) : 0;
             $updates[] = ['jenjang'=>$jenjang, 'strata'=>$strata, 'gaji'=>$gaji];
@@ -586,7 +618,6 @@ function updateGajiStrataGuru($conn) {
     }
 }
 
-// Fungsi Update Gaji Strata Karyawan menggunakan INSERT ... ON DUPLICATE KEY UPDATE
 function updateGajiStrataKaryawan($conn) {
     $updates = [];
     $karyawanConfig = [
@@ -671,16 +702,13 @@ function updateSalaryIndexForUser($conn, $id) {
         return false;
     }
 
-    // Inisialisasi variabel gaji_pokok agar selalu ada
     $gaji_pokok = 0;
-    
     if ($role === 'P' && !empty($pendidikan)) {
         $normalizedPendidikan = normalizePendidikan($pendidikan);
         $stmtStrata = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_strata_guru WHERE jenjang=? AND strata=? LIMIT 1");
         if ($stmtStrata) {
             $stmtStrata->bind_param("ss", $jenjang, $normalizedPendidikan);
             $stmtStrata->execute();
-            // Inisialisasi variabel $guru_salary untuk menghindari error undefined variable
             $guru_salary = 0;
             $stmtStrata->bind_result($guru_salary);
             if ($stmtStrata->fetch()) {
@@ -721,14 +749,14 @@ function generateUID($conn) {
 
 function getGajiPokokByRole($conn, $role) {
     $lookup = ($role === 'P') ? 'guru' : 'karyawan';
-    $gaji_pokok = 0.0; // Inisialisasi nilai default
+    $gaji_pokok = 0.0;
     
     $stmt = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_roles WHERE role=?");
     if ($stmt) {
         $stmt->bind_param("s", $lookup);
         $stmt->execute();
         $stmt->bind_result($gaji_pokok);
-        $stmt->fetch(); // Tetap jalankan fetch meski tidak ada hasil
+        $stmt->fetch();
         $stmt->close();
     }
     
@@ -841,7 +869,6 @@ function getGajiPokokByRole($conn, $role) {
                                 <select class="form-control" id="filterJenjang" name="jenjang">
                     <option value="">Semua Jenjang</option>
                     <?php
-                    // Ambil daftar jenjang yang telah didefinisikan di helper
                     $jenjangList = getOrderedJenjang();
                     foreach ($jenjangList as $jenjang) {
                         echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
@@ -880,16 +907,12 @@ function getGajiPokokByRole($conn, $role) {
                             </h6>
                         </div>
                         <div class="card-body">
-                            <!-- Grid Card Container -->
-                            <div id="employeeCards" 
-                                 class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3">
-                                <!-- Kartu-kartu akan di-generate via AJAX loadGuru() -->
+                            <div id="employeeCards" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3">
                             </div>
 
                             <!-- Pagination Container -->
                             <nav class="mt-4">
                                 <ul class="pagination justify-content-center" id="paginationContainer">
-                                    <!-- Pagination link akan di-generate via JS -->
                                 </ul>
                             </nav>
                         </div>
@@ -966,7 +989,7 @@ function getGajiPokokByRole($conn, $role) {
                   </div>
               </div>
           </div>
-          <!-- Field Role -->
+          <!-- Field Role dan Tanggal Bergabung -->
           <div class="row">
               <div class="col-md-6">
                   <div class="form-group">
@@ -980,7 +1003,6 @@ function getGajiPokokByRole($conn, $role) {
                       <div class="invalid-feedback">Role wajib dipilih.</div>
                   </div>
               </div>
-              <!-- Ganti label Join Start jadi Tanggal Bergabung -->
               <div class="col-md-6">
                   <div class="form-group">
                       <label for="addJoinStart">Tanggal Bergabung <span class="text-danger">*</span></label>
@@ -988,6 +1010,18 @@ function getGajiPokokByRole($conn, $role) {
                       <div class="invalid-feedback">Tanggal Bergabung wajib diisi.</div>
                   </div>
               </div>
+              <div class="col-md-6">
+                  <div class="form-group">
+                      <label for="addRemark">Remark</label>
+                      <input type="text" name="remark" id="addRemark" class="form-control" placeholder="Catatan tambahan">
+                  </div>
+              </div>
+              <div class="col-md-6">
+              <div class="form-group">
+    <label for="addPendidikan">Pendidikan</label>
+    <input type="text" name="pendidikan" id="addPendidikan" class="form-control" placeholder="Contoh: S1, D3">
+</div>
+
           </div>
           
           <!-- Data Pribadi -->
@@ -1024,15 +1058,6 @@ function getGajiPokokByRole($conn, $role) {
                   </div>
               </div>
           </div>
-          <!-- Kolom Pendidikan -->
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addPendidikan">Pendidikan</label>
-                      <input type="text" name="pendidikan" id="addPendidikan" class="form-control" placeholder="Contoh: S1, D3, dsb.">
-                  </div>
-              </div>
-          </div>
           <!-- Data Kontak -->
           <h6 class="mt-4 mb-2">Data Kontak</h6>
           <div class="row">
@@ -1062,41 +1087,45 @@ function getGajiPokokByRole($conn, $role) {
                       <input type="text" name="no_hp" id="addNoHP" class="form-control" placeholder="08xxx">
                   </div>
               </div>
+              <div class="col-md-6">
+              <div class="form-group">
+    <label for="addEmail">Email</label>
+    <input type="email" name="email" id="addEmail" class="form-control" placeholder="contoh@domain.com">
+</div>
+
+              
           </div>
+          <!-- Data Lainnya (Remark, Status Perkawinan, Pasangan & Anak) -->
+          <h6 class="mt-4 mb-2">Data Lainnya</h6>
           <div class="row">
               <div class="col-md-6">
                   <div class="form-group">
-                      <label for="addEmail">Email</label>
-                      <input type="email" name="email" id="addEmail" class="form-control" placeholder="contoh@domain.com">
+                      <label for="addStatusPerkawinan">Status Perkawinan <span class="text-danger">*</span></label>
+                      <select name="status_perkawinan" id="addStatusPerkawinan" class="form-control" required>
+                        <option value="">-- Pilih Status --</option>
+                        <option value="Menikah">Menikah</option>
+                        <option value="Belum Menikah">Belum Menikah</option>
+                      </select>
+                      <div class="invalid-feedback">Status Perkawinan wajib dipilih.</div>
                   </div>
               </div>
+          </div>
+          <!-- Field untuk pasangan dan anak -->
+          <div class="row mt-2">
               <div class="col-md-6">
                   <div class="form-group">
                       <label for="addNamaPasangan">Nama Pasangan</label>
-                      <input type="text" name="nama_pasangan" id="addNamaPasangan" class="form-control">
+                      <input type="text" name="nama_pasangan" id="addNamaPasangan" class="form-control" placeholder="Nama Pasangan">
                   </div>
               </div>
-          </div>
-          <div class="row">
               <div class="col-md-6">
                   <div class="form-group">
                       <label for="addJumlahAnak">Jumlah Anak</label>
-                      <input type="number" name="jumlah_anak" id="addJumlahAnak" class="form-control">
+                      <input type="number" name="jumlah_anak" id="addJumlahAnak" class="form-control" placeholder="Jumlah Anak">
                   </div>
               </div>
-              <!-- Hapus input Salary Index ID karena akan ditentukan otomatis -->
-              <!--
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addSalaryIndex">Salary Index ID</label>
-                      <input type="number" name="salary_index_id" id="addSalaryIndex" class="form-control">
-                  </div>
-              </div>
-              -->
           </div>
-          <!-- MODIFIKASI: Bagian Data Anak-anak -->
-          <h6 class="mt-4 mb-2">Data Anak-anak</h6>
-          <div class="row">
+          <div class="row mt-2">
               <div class="col-md-4">
                   <div class="form-group">
                       <label for="addNamaAnak1">Nama Anak 1</label>
@@ -1116,7 +1145,6 @@ function getGajiPokokByRole($conn, $role) {
                   </div>
               </div>
           </div>
-          <!-- End Data Anak-anak -->
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -1183,14 +1211,19 @@ function getGajiPokokByRole($conn, $role) {
                 <option value="TK">Tenaga Kependidikan</option>
                 <option value="M">Manajerial</option>
               </select>
-              <div class="invalid-feedback">Role wajib diisi.</div>
+              <div class="invalid-feedback">Role wajib dipilih.</div>
             </div>
             <div class="col-md-6">
               <label for="editJobTitle">Job Title</label>
               <input type="text" name="job_title" id="editJobTitle" class="form-control">
             </div>
+            <div class="col-md-6">
+                  <div class="form-group">
+                      <label for="editRemark">Remark</label>
+                      <input type="text" name="remark" id="editRemark" class="form-control" placeholder="Catatan tambahan">
+                  </div>
+              </div>
           </div>
-
           <!-- Tanggal Bergabung -->
           <div class="row mt-2">
             <div class="col-md-6">
@@ -1198,7 +1231,6 @@ function getGajiPokokByRole($conn, $role) {
               <input type="date" name="join_start" id="editJoinStart" class="form-control">
             </div>
           </div>
-
           <h6 class="mt-4 mb-2">Data Pribadi</h6>
           <div class="row">
             <div class="col-md-6">
@@ -1224,15 +1256,14 @@ function getGajiPokokByRole($conn, $role) {
               <input type="text" name="religion" id="editReligion" class="form-control">
             </div>
           </div>
-
-          <!-- Tambahan: Pendidikan di Modal Edit -->
+          <!-- Tambahan: Pendidikan -->
           <div class="row mt-2">
             <div class="col-md-6">
               <label for="editPendidikan">Pendidikan</label>
               <input type="text" name="pendidikan" id="editPendidikan" class="form-control" placeholder="Contoh: S1">
             </div>
           </div>
-
+          <!-- Data Kontak -->
           <h6 class="mt-4 mb-2">Data Kontak</h6>
           <div class="row">
             <div class="col-md-6">
@@ -1259,34 +1290,55 @@ function getGajiPokokByRole($conn, $role) {
               <label for="editEmail">Email</label>
               <input type="email" name="email" id="editEmail" class="form-control">
             </div>
-            <div class="col-md-6">
-              <label for="editNamaPasangan">Nama Pasangan</label>
-              <input type="text" name="nama_pasangan" id="editNamaPasangan" class="form-control">
-            </div>
+          </div>
+          <!-- Data Lainnya -->
+          <h6 class="mt-4 mb-2">Data Lainnya</h6>
+          <div class="row">
+              <div class="col-md-6">
+                  <div class="form-group">
+                      <label for="editStatusPerkawinan">Status Perkawinan <span class="text-danger">*</span></label>
+                      <select name="status_perkawinan" id="editStatusPerkawinan" class="form-control" required>
+                        <option value="">-- Pilih Status --</option>
+                        <option value="Menikah">Menikah</option>
+                        <option value="Belum Menikah">Belum Menikah</option>
+                      </select>
+                      <div class="invalid-feedback">Status Perkawinan wajib dipilih.</div>
+                  </div>
+              </div>
           </div>
           <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="editJumlahAnak">Jumlah Anak</label>
-              <input type="number" name="jumlah_anak" id="editJumlahAnak" class="form-control">
-            </div>
-            <div class="col-md-6">
-              <label for="editSalaryIndex">Salary Index ID</label>
-              <input type="number" name="salary_index_id" id="editSalaryIndex" class="form-control">
-            </div>
+              <div class="col-md-6">
+                  <div class="form-group">
+                      <label for="editNamaPasangan">Nama Pasangan</label>
+                      <input type="text" name="nama_pasangan" id="editNamaPasangan" class="form-control">
+                  </div>
+              </div>
+              <div class="col-md-6">
+                  <div class="form-group">
+                      <label for="editJumlahAnak">Jumlah Anak</label>
+                      <input type="number" name="jumlah_anak" id="editJumlahAnak" class="form-control">
+                  </div>
+              </div>
           </div>
           <div class="row mt-2">
-            <div class="col-md-4">
-              <label for="editNamaAnak1">Nama Anak 1</label>
-              <input type="text" name="nama_anak_1" id="editNamaAnak1" class="form-control">
-            </div>
-            <div class="col-md-4">
-              <label for="editNamaAnak2">Nama Anak 2</label>
-              <input type="text" name="nama_anak_2" id="editNamaAnak2" class="form-control">
-            </div>
-            <div class="col-md-4">
-              <label for="editNamaAnak3">Nama Anak 3</label>
-              <input type="text" name="nama_anak_3" id="editNamaAnak3" class="form-control">
-            </div>
+              <div class="col-md-4">
+                  <div class="form-group">
+                      <label for="editNamaAnak1">Nama Anak 1</label>
+                      <input type="text" name="nama_anak_1" id="editNamaAnak1" class="form-control">
+                  </div>
+              </div>
+              <div class="col-md-4">
+                  <div class="form-group">
+                      <label for="editNamaAnak2">Nama Anak 2</label>
+                      <input type="text" name="nama_anak_2" id="editNamaAnak2" class="form-control">
+                  </div>
+              </div>
+              <div class="col-md-4">
+                  <div class="form-group">
+                      <label for="editNamaAnak3">Nama Anak 3</label>
+                      <input type="text" name="nama_anak_3" id="editNamaAnak3" class="form-control">
+                  </div>
+              </div>
           </div>
           <hr>
           <div class="row">
@@ -1329,7 +1381,6 @@ function getGajiPokokByRole($conn, $role) {
           <tr><th>Tanggal Bergabung</th><td id="detailJoinStart"></td></tr>
           <tr><th>Masa Kerja</th><td id="detailMasaKerja"></td></tr>
           <tr><th>Pendidikan</th><td id="detailPendidikan"></td></tr>
-          <!-- Tambahan: Salary Index di Modal View -->
           <tr><th>Salary Indeks Level</th><td id="detailSalaryIndexId"></td></tr>
         </table>
 
@@ -1353,6 +1404,7 @@ function getGajiPokokByRole($conn, $role) {
         <h6 class="mt-3">Data Lainnya</h6>
         <table class="table table-sm">
           <tr><th>Remark</th><td id="detailRemark"></td></tr>
+          <tr><th>Status Perkawinan</th><td id="detailStatusPerkawinan"></td></tr>
           <tr><th>Nama Pasangan</th><td id="detailNamaPasangan"></td></tr>
           <tr><th>Jumlah Anak</th><td id="detailJumlahAnak"></td></tr>
           <tr><th>Nama Anak 1</th><td id="detailNamaAnak1"></td></tr>
@@ -1367,14 +1419,14 @@ function getGajiPokokByRole($conn, $role) {
   </div>
 </div>
 
-    <!-- MODAL: Delete -->
+    <!-- MODAL: Delete (Perbaikan struktur HTML) -->
 <div class="modal fade" id="modalDelete" tabindex="-1">
   <div class="modal-dialog">
-    <form id="delete-guru-form" class="modal-content">
-      <input type="hidden" name="case" value="DeleteGuru">
-      <input type="hidden" name="id" id="delId">
-      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-      <div class="modal-content">
+    <div class="modal-content"> <!-- Hapus tag form yang mengelilingi modal-content -->
+      <form id="delete-guru-form"> <!-- Pindahkan tag form ke dalam modal-content -->
+        <input type="hidden" name="case" value="DeleteGuru">
+        <input type="hidden" name="id" id="delId">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
         <div class="modal-header">
           <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
           <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -1390,8 +1442,8 @@ function getGajiPokokByRole($conn, $role) {
             Hapus
           </button>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -1426,7 +1478,7 @@ function getGajiPokokByRole($conn, $role) {
       </div>
     </div>
 
-    <!-- MODAL: Atur Gaji Strata Guru (dihasilkan secara dinamis) -->
+    <!-- MODAL: Atur Gaji Strata Guru -->
     <div class="modal fade" id="modalGajiStrataGuru" tabindex="-1" aria-labelledby="modalGajiStrataGuruLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="gaji-strata-form-guru" method="POST" class="modal-content">
@@ -1480,7 +1532,7 @@ function getGajiPokokByRole($conn, $role) {
       </div>
     </div>
 
-    <!-- MODAL: Atur Gaji Strata Karyawan (dihasilkan secara dinamis) -->
+    <!-- MODAL: Atur Gaji Strata Karyawan -->
     <div class="modal fade" id="modalGajiStrataKaryawan" tabindex="-1" aria-labelledby="modalGajiStrataKaryawanLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form id="gaji-strata-form-karyawan" method="POST" class="modal-content">
@@ -1538,7 +1590,6 @@ function getGajiPokokByRole($conn, $role) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     const Toast = Swal.mixin({
@@ -1622,7 +1673,6 @@ function getGajiPokokByRole($conn, $role) {
             });
         }
 
-        // Dapatkan baseUrl dari PHP
         let baseUrl = "<?= getBaseUrl(); ?>";
     
         function generateCards(data) {
@@ -1634,7 +1684,6 @@ function getGajiPokokByRole($conn, $role) {
                          ? item.foto_profil
                          : baseUrl + "/assets/img/undraw_profile.svg";
 
-                // Tambahkan baris Tanggal Bergabung, Masa Kerja, Pendidikan di card
                 let cardHtml = `
                 <div class="col">
                   <div class="card shadow-sm text-center p-3 h-100">
@@ -1686,39 +1735,32 @@ function getGajiPokokByRole($conn, $role) {
             }
         }
         
-        // Hapus event handler untuk meng-update Salary Index secara otomatis berdasarkan join_start
-        /*
-        $('#addJoinStart').on('change', function() {
-            let joinDate = $(this).val();  // format YYYY-MM-DD
-            if (!joinDate) {
-                $('#addSalaryIndex').val('');
-                return;
+        // Event handler disable/enable field pasangan dan anak di modal Create
+        $('#addStatusPerkawinan').on('change', function(){
+            if ($(this).val() === 'Belum Menikah') {
+                $('#addNamaPasangan, #addJumlahAnak, #addNamaAnak1, #addNamaAnak2, #addNamaAnak3')
+                    .prop('disabled', true)
+                    .val('-');
+            } else {
+                $('#addNamaPasangan, #addJumlahAnak, #addNamaAnak1, #addNamaAnak2, #addNamaAnak3')
+                    .prop('disabled', false)
+                    .val('');
             }
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: {
-                    case: 'GetRecommendedSalaryIndex',
-                    join_start: joinDate,
-                    csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
-                },
-                dataType: "json",
-                success: function(response) {
-                    if (response.code === 0) {
-                        let recommendedId = response.result.salary_index_id || 0;
-                        $('#addSalaryIndex').val(recommendedId);
-                        console.log('Rekomendasi Salary Index ID:', recommendedId, response.result.explanation);
-                    } else {
-                        $('#addSalaryIndex').val('');
-                    }
-                },
-                error: function() {
-                    $('#addSalaryIndex').val('');
-                }
-            });
         });
-        */
-
+        
+        // Event handler disable/enable field pasangan dan anak di modal Edit
+        $('#editStatusPerkawinan').on('change', function(){
+            if ($(this).val() === 'Belum Menikah') {
+                $('#editNamaPasangan, #editJumlahAnak, #editNamaAnak1, #editNamaAnak2, #editNamaAnak3')
+                    .prop('disabled', true)
+                    .val('-');
+            } else {
+                $('#editNamaPasangan, #editJumlahAnak, #editNamaAnak1, #editNamaAnak2, #editNamaAnak3')
+                    .prop('disabled', false)
+                    .val('');
+            }
+        });
+        
         // View Detail
         $(document).on('click', '.btn-view', function() {
             var id = $(this).data('id');
@@ -1744,25 +1786,22 @@ function getGajiPokokByRole($conn, $role) {
                         $('#detailMasaKerja').text(response.result.masa_kerja);
                         $('#detailPendidikan').text(response.result.pendidikan);
                         $('#detailSalaryIndexId').text(response.result.salary_level);
-
                         $('#detailJK').text(response.result.jk);
                         $('#detailTglLahir').text(response.result.tanggal_lahir);
                         $('#detailUsia').text(response.result.usia);
                         $('#detailReligion').text(response.result.religion);
-
                         $('#detailAlamatDomisili').text(response.result.alamat_domisili);
                         $('#detailAlamatKTP').text(response.result.alamat_ktp);
                         $('#detailNoRekening').text(response.result.no_rekening);
                         $('#detailNoHP').text(response.result.no_hp);
                         $('#detailEmail').text(response.result.email);
-
                         $('#detailRemark').text(response.result.remark || '');
+                        $('#detailStatusPerkawinan').text(response.result.status_perkawinan);
                         $('#detailNamaPasangan').text(response.result.nama_pasangan || '');
                         $('#detailJumlahAnak').text(response.result.jumlah_anak || 0);
                         $('#detailNamaAnak1').text(response.result.nama_anak_1 || '');
                         $('#detailNamaAnak2').text(response.result.nama_anak_2 || '');
                         $('#detailNamaAnak3').text(response.result.nama_anak_3 || '');
-
                         $('#modalView').modal('show');
                     } else {
                         showToast(response.result, 'error');
@@ -1804,22 +1843,16 @@ function getGajiPokokByRole($conn, $role) {
                         $('#editTglLahir').val(response.result.tanggal_lahir || '');
                         $('#editUsia').val(response.result.usia || '');
                         $('#editReligion').val(response.result.religion || '');
-                        $('#editAlamatDomisili').val(response.result.alamat_domisili || '');
-                        $('#editAlamatKTP').val(response.result.alamat_ktp || '');
-                        $('#editNoRekening').val(response.result.no_rekening || '');
-                        $('#editNoHP').val(response.result.no_hp || '');
                         $('#editPendidikan').val(response.result.pendidikan || '');
+                        $('#editStatusPerkawinan').val(response.result.status_perkawinan || '');
+                        $('#editRemark').val(response.result.remark || '');
                         $('#editEmail').val(response.result.email || '');
                         $('#editNamaPasangan').val(response.result.nama_pasangan || '');
                         $('#editJumlahAnak').val(response.result.jumlah_anak || 0);
-                        $('#editSalaryIndex').val(response.result.salary_index_id || 0);
-                        $('#editJoinStart').val(response.result.join_start || '');
-
-                        // Nama anak
                         $('#editNamaAnak1').val(response.result.nama_anak_1 || '');
                         $('#editNamaAnak2').val(response.result.nama_anak_2 || '');
                         $('#editNamaAnak3').val(response.result.nama_anak_3 || '');
-
+                        $('#editJoinStart').val(response.result.join_start || '');
                         modal.modal('show');
                     } else {
                         showToast(response.result, 'error');
@@ -1913,7 +1946,7 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Form Create
+        // Submit form Create
         $('#add-guru-form').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -1952,7 +1985,7 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Form: Update Gaji Strata Guru
+        // Submit form Update Gaji Strata Guru
         $('#gaji-strata-form-guru').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -1988,7 +2021,7 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Form: Update Gaji Strata Karyawan
+        // Submit form Update Gaji Strata Karyawan
         $('#gaji-strata-form-karyawan').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
