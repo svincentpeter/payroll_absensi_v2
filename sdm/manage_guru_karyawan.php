@@ -98,7 +98,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 // Fungsi-Fungsi CRUD
 // =============================================================================
 function LoadingGuru($conn) {
-    // (tidak ada modifikasi pada fungsi ini)
     $start         = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length        = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search        = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
@@ -106,12 +105,14 @@ function LoadingGuru($conn) {
     $roleFilter    = isset($_POST['role']) ? bersihkan_input($_POST['role']) : '';
     $statusFilter  = isset($_POST['status_kerja']) ? bersihkan_input($_POST['status_kerja']) : '';
 
-    $sqlTotal = "SELECT COUNT(*) as total FROM anggota_sekolah";
+    // Hitung total data anggota yang belum dihapus (is_delete = 0)
+    $sqlTotal = "SELECT COUNT(*) as total FROM anggota_sekolah WHERE is_delete = 0";
     $resultTotal = mysqli_query($conn, $sqlTotal);
     $rowTotal = mysqli_fetch_assoc($resultTotal);
     $recordsTotal = $rowTotal['total'];
 
-    $sql = "SELECT * FROM anggota_sekolah WHERE 1=1";
+    // Query data anggota yang belum dihapus
+    $sql = "SELECT * FROM anggota_sekolah WHERE is_delete = 0";
     if (!empty($search)) {
         $sql .= " AND (nip LIKE '%$search%' OR nama LIKE '%$search%')";
     }
@@ -154,6 +155,7 @@ function LoadingGuru($conn) {
     exit();
 }
 
+
 function CreateGuru($conn) {
     // Pengambilan input dari form
     $nip             = bersihkan_input($_POST['nip'] ?? '');
@@ -181,7 +183,6 @@ function CreateGuru($conn) {
     $status_perkawinan = bersihkan_input($_POST['status_perkawinan'] ?? '');
     $remark            = bersihkan_input($_POST['remark'] ?? '');
     
-    // Jika status perkawinan adalah "Belum Menikah", set default nilai
     if ($status_perkawinan === 'Belum Menikah') {
         $nama_pasangan = '-';
         $jumlah_anak   = 0;
@@ -283,16 +284,15 @@ function CreateGuru($conn) {
         die("Query error: " . $conn->error);
     }
     
-    // Menyusun string tipe data untuk bind_param (total 30 parameter)
-    $types = "ssssssssii" .      // uid, nip, password, nama, jenjang, job_title, status_kerja, join_start, masa_kerja_tahun, masa_kerja_bulan
-             "sss" .              // remark, jenis_kelamin, tanggal_lahir
-             "i" .                // usia
-             "sssssssss" .        // agama, alamat_domisili, alamat_ktp, no_rekening, no_hp, pendidikan, status_perkawinan, email, nama_pasangan
-             "i" .                // jumlah_anak
-             "sss" .              // nama_anak_1, nama_anak_2, nama_anak_3
-             "i" .                // salary_index_id
-             "d" .                // gaji_pokok
-             "s";                 // role
+    $types = "ssssssssii" .
+             "sss" .
+             "i" .
+             "sssssssss" .
+             "i" .
+             "sss" .
+             "i" .
+             "d" .
+             "s";
     
     $stmt->bind_param(
         $types,
@@ -323,7 +323,7 @@ function CreateGuru($conn) {
         $nama_anak_1,
         $nama_anak_2,
         $nama_anak_3,
-        $null,       // salary_index_id
+        $null,
         $gaji_pokok,
         $role
     );
@@ -332,7 +332,6 @@ function CreateGuru($conn) {
         $newId = $stmt->insert_id;
         $stmt->close();
     
-        // Update salary index dan gaji pokok secara otomatis
         updateSalaryIndexForUser($conn, $newId);
     
         $user_id = $_SESSION['nip'] ?? '';
@@ -367,7 +366,6 @@ function GetGuruDetail($conn) {
         $data = $res->fetch_assoc();
         unset($data['password']);
         $data['masa_kerja'] = $data['masa_kerja_tahun'] . " Thn " . $data['masa_kerja_bulan'] . " Bln";
-        // Untuk konsistensi nama field
         $data['religion']   = $data['agama'];
         $data['jk']         = $data['jenis_kelamin'];
         send_response(0, $data);
@@ -523,35 +521,29 @@ function DeleteGuru($conn) {
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
     }
-    $stmtFind = $conn->prepare("SELECT nama, nip FROM anggota_sekolah WHERE id=?");
-    if (!$stmtFind) {
+    
+    // Update is_delete dan deleted_at
+    $sql = "UPDATE anggota_sekolah 
+            SET is_delete = 1, deleted_at = NOW() 
+            WHERE id = ?";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
         send_response(1, 'Query error: ' . $conn->error);
     }
-    $stmtFind->bind_param("i", $id);
-    $stmtFind->execute();
-    $resFind = $stmtFind->get_result();
-    if (!$resFind || $resFind->num_rows < 1) {
-        $stmtFind->close();
-        send_response(2, 'Data tidak ditemukan atau sudah terhapus.');
-    }
-    $row = $resFind->fetch_assoc();
-    $stmtFind->close();
-
-    $stmtDel = $conn->prepare("DELETE FROM anggota_sekolah WHERE id=?");
-    if (!$stmtDel) {
-        send_response(1, 'Query error: ' . $conn->error);
-    }
-    $stmtDel->bind_param("i", $id);
-    if ($stmtDel->execute()) {
-        $stmtDel->close();
+    
+    $stmt->bind_param("i", $id);
+    if ($stmt->execute()) {
+        $stmt->close();
         $user_id = $_SESSION['nip'] ?? '';
-        add_audit_log($conn, $user_id, 'DeleteGuru', "Menghapus ID=$id, NIP={$row['nip']}, Nama={$row['nama']}");
+        add_audit_log($conn, $user_id, 'DeleteGuru', "Soft delete ID=$id");
         send_response(0, 'Data berhasil dihapus.');
     } else {
-        $stmtDel->close();
+        $stmt->close();
         send_response(1, 'Gagal menghapus data: ' . $conn->error);
     }
 }
+
 
 function updateGajiPokok($conn) {
     $gaji_guru     = isset($_POST['gaji_pokok_guru']) ? floatval($_POST['gaji_pokok_guru']) : 0;
@@ -763,7 +755,6 @@ function getGajiPokokByRole($conn, $role) {
     return floatval($gaji_pokok);
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -840,21 +831,36 @@ function getGajiPokokByRole($conn, $role) {
                 <?php include __DIR__ . '/../breadcrumb.php'; ?>
 
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">Manajemen Data Guru/Karyawan</h1>
-                    <div class="d-flex justify-content-end mb-3 flex-wrap">
-                        <button class="btn btn-primary me-2 mb-2" data-bs-toggle="modal" data-bs-target="#modalAdd">
-                            <i class="fas fa-plus"></i> Tambah Guru/Karyawan
-                        </button>
-                        <button class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#modalGajiPokok">
-                            <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
-                        </button>
-                        <button class="btn btn-info mb-2 ms-2" id="btnManageSalaryIndices" data-href="/payroll_absensi_v2/sdm/manage_salary_indices.php">
-                            <i class="fas fa-money-bill-wave"></i> Atur Salary Indeks
-                        </button>
-                        <button class="btn btn-warning mb-2 ms-2" id="btnManageHolidays" data-href="/payroll_absensi_v2/sdm/holidays.php">
-                            <i class="fas fa-calendar-alt"></i> Atur Hari Libur
-                        </button>
-                    </div>
+    <h1 class="h3 mb-4 text-gray-800">Manajemen Data Guru/Karyawan</h1>
+
+    <!-- Bagian Tombol Aksi -->
+    <div class="d-flex justify-content-end mb-3 flex-wrap gap-2">
+        <!-- Tombol Tambah -->
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdd">
+            <i class="fas fa-plus"></i> Tambah Guru/Karyawan
+        </button>
+        
+        <!-- Tombol History -->
+        <a href="history_anggota_sekolah.php" class="btn btn-dark btn-sm">
+            <i class="fas fa-history"></i> Lihat History
+        </a>
+        
+        <!-- Tombol Atur Gaji Pokok -->
+        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalGajiPokok">
+            <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
+        </button>
+        
+        <!-- Tombol Atur Salary Indeks -->
+        <button class="btn btn-info btn-sm" id="btnManageSalaryIndices" data-href="/payroll_absensi_v2/sdm/manage_salary_indices.php">
+            <i class="fas fa-money-bill-wave"></i> Atur Salary Indeks
+        </button>
+        
+        <!-- Tombol Atur Hari Libur -->
+        <button class="btn btn-warning btn-sm" id="btnManageHolidays" data-href="/payroll_absensi_v2/sdm/holidays.php">
+            <i class="fas fa-calendar-alt"></i> Atur Hari Libur
+        </button>
+    </div>
+
 
                     <!-- Filter -->
                     <div class="card mb-4">
@@ -867,15 +873,14 @@ function getGajiPokokByRole($conn, $role) {
                             <form id="filterForm" method="GET" class="form-inline">
                                 <label class="me-2" for="filterJenjang">Jenjang:</label>
                                 <select class="form-control" id="filterJenjang" name="jenjang">
-                    <option value="">Semua Jenjang</option>
-                    <?php
-                    $jenjangList = getOrderedJenjang();
-                    foreach ($jenjangList as $jenjang) {
-                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
-                    }
-                    ?>
-                </select>
-
+                                    <option value="">Semua Jenjang</option>
+                                    <?php
+                                    $jenjangList = getOrderedJenjang();
+                                    foreach ($jenjangList as $jenjang) {
+                                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                                    }
+                                    ?>
+                                </select>
                                 <label class="me-2" for="filterRole">Role:</label>
                                 <select class="form-control me-2" id="filterRole" name="role">
                                     <option value="">Semua Role</option>
@@ -909,8 +914,6 @@ function getGajiPokokByRole($conn, $role) {
                         <div class="card-body">
                             <div id="employeeCards" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3">
                             </div>
-
-                            <!-- Pagination Container -->
                             <nav class="mt-4">
                                 <ul class="pagination justify-content-center" id="paginationContainer">
                                 </ul>
@@ -938,234 +941,232 @@ function getGajiPokokByRole($conn, $role) {
     </div>
 
     <!-- MODAL: Tambah Guru/Karyawan -->
-<div class="modal fade" id="modalAdd" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <form id="add-guru-form" method="POST" class="needs-validation" novalidate>
-      <input type="hidden" name="case" value="CreateGuru">
-      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalAddLabel">Tambah Data Guru/Karyawan</h5>
-          <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-        </div>
-        <div class="modal-body">
-          <!-- Data Pekerjaan -->
-          <h6 class="mb-2">Data Pekerjaan</h6>
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addNip">NIP <span class="text-danger">*</span></label>
-                      <input type="text" name="nip" id="addNip" class="form-control" required placeholder="Masukkan NIP">
-                      <div class="invalid-feedback">NIP wajib diisi.</div>
+    <div class="modal fade" id="modalAdd" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <form id="add-guru-form" method="POST" class="needs-validation" novalidate>
+          <input type="hidden" name="case" value="CreateGuru">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalAddLabel">Tambah Data Guru/Karyawan</h5>
+              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Data Pekerjaan -->
+              <h6 class="mb-2">Data Pekerjaan</h6>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNip">NIP <span class="text-danger">*</span></label>
+                          <input type="text" name="nip" id="addNip" class="form-control" required placeholder="Masukkan NIP">
+                          <div class="invalid-feedback">NIP wajib diisi.</div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNama">Nama <span class="text-danger">*</span></label>
+                          <input type="text" name="nama" id="addNama" class="form-control" required placeholder="Nama lengkap">
+                          <div class="invalid-feedback">Nama wajib diisi.</div>
+                      </div>
                   </div>
               </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addNama">Nama <span class="text-danger">*</span></label>
-                      <input type="text" name="nama" id="addNama" class="form-control" required placeholder="Nama lengkap">
-                      <div class="invalid-feedback">Nama wajib diisi.</div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJenjang">Jenjang <span class="text-danger">*</span></label>
+                          <select name="jenjang" id="addJenjang" class="form-control" required>
+                              <option value="">-- Pilih Jenjang --</option>
+                              <option value="TK">TK</option>
+                              <option value="SD">SD</option>
+                              <option value="SMP">SMP</option>
+                              <option value="SMA">SMA</option>
+                              <option value="SMK">SMK</option>
+                          </select>
+                          <div class="invalid-feedback">Jenjang wajib dipilih.</div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJobTitle">Job Title</label>
+                          <input type="text" name="job_title" id="addJobTitle" class="form-control" placeholder="Contoh: Guru, Staff, dll">
+                      </div>
                   </div>
               </div>
+              <!-- Field Role dan Tanggal Bergabung -->
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addRole">Role <span class="text-danger">*</span></label>
+                          <select name="role" id="addRole" class="form-control" required>
+                              <option value="">-- Pilih Role --</option>
+                              <option value="P">Pendidik (Guru)</option>
+                              <option value="TK">Tenaga Kependidikan</option>
+                              <option value="M">Manajerial</option>
+                          </select>
+                          <div class="invalid-feedback">Role wajib dipilih.</div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJoinStart">Tanggal Bergabung <span class="text-danger">*</span></label>
+                          <input type="date" name="join_start" id="addJoinStart" class="form-control" required>
+                          <div class="invalid-feedback">Tanggal Bergabung wajib diisi.</div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addRemark">Remark</label>
+                          <input type="text" name="remark" id="addRemark" class="form-control" placeholder="Catatan tambahan">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addPendidikan">Pendidikan</label>
+                          <input type="text" name="pendidikan" id="addPendidikan" class="form-control" placeholder="Contoh: S1, D3">
+                      </div>
+                  </div>
+              </div>
+              <!-- Data Pribadi -->
+              <h6 class="mt-4 mb-2">Data Pribadi</h6>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJK">Jenis Kelamin</label>
+                          <select name="jk" id="addJK" class="form-control">
+                              <option value="">-- Pilih Jenis Kelamin --</option>
+                              <option value="L">Laki-laki</option>
+                              <option value="P">Perempuan</option>
+                          </select>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addTglLahir">Tanggal Lahir</label>
+                          <input type="date" name="tgl_lahir" id="addTglLahir" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addUsia">Usia</label>
+                          <input type="number" name="usia" id="addUsia" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addReligion">Agama</label>
+                          <input type="text" name="religion" id="addReligion" class="form-control">
+                      </div>
+                  </div>
+              </div>
+              <!-- Data Kontak -->
+              <h6 class="mt-4 mb-2">Data Kontak</h6>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addAlamatDomisili">Alamat Domisili</label>
+                          <textarea name="alamat_domisili" id="addAlamatDomisili" class="form-control"></textarea>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addAlamatKTP">Alamat KTP</label>
+                          <textarea name="alamat_ktp" id="addAlamatKTP" class="form-control"></textarea>
+                      </div>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNoRekening">No Rekening</label>
+                          <input type="text" name="no_rekening" id="addNoRekening" class="form-control">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNoHP">No Handphone</label>
+                          <input type="text" name="no_hp" id="addNoHP" class="form-control" placeholder="08xxx">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addEmail">Email</label>
+                          <input type="email" name="email" id="addEmail" class="form-control" placeholder="contoh@domain.com">
+                      </div>
+                  </div>
+              </div>
+              <!-- Data Lainnya -->
+              <h6 class="mt-4 mb-2">Data Lainnya</h6>
+              <div class="row">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addStatusPerkawinan">Status Perkawinan <span class="text-danger">*</span></label>
+                          <select name="status_perkawinan" id="addStatusPerkawinan" class="form-control" required>
+                            <option value="">-- Pilih Status --</option>
+                            <option value="Menikah">Menikah</option>
+                            <option value="Belum Menikah">Belum Menikah</option>
+                          </select>
+                          <div class="invalid-feedback">Status Perkawinan wajib dipilih.</div>
+                      </div>
+                  </div>
+              </div>
+              <!-- Pasangan dan Anak -->
+              <div class="row mt-2">
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addNamaPasangan">Nama Pasangan</label>
+                          <input type="text" name="nama_pasangan" id="addNamaPasangan" class="form-control" placeholder="Nama Pasangan">
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="form-group">
+                          <label for="addJumlahAnak">Jumlah Anak</label>
+                          <input type="number" name="jumlah_anak" id="addJumlahAnak" class="form-control" placeholder="Jumlah Anak">
+                      </div>
+                  </div>
+              </div>
+              <div class="row mt-2">
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="addNamaAnak1">Nama Anak 1</label>
+                          <input type="text" name="nama_anak_1" id="addNamaAnak1" class="form-control" placeholder="Nama Anak 1">
+                      </div>
+                  </div>
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="addNamaAnak2">Nama Anak 2</label>
+                          <input type="text" name="nama_anak_2" id="addNamaAnak2" class="form-control" placeholder="Nama Anak 2">
+                      </div>
+                  </div>
+                  <div class="col-md-4">
+                      <div class="form-group">
+                          <label for="addNamaAnak3">Nama Anak 3</label>
+                          <input type="text" name="nama_anak_3" id="addNamaAnak3" class="form-control" placeholder="Nama Anak 3">
+                      </div>
+                  </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-success">
+                  <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                  Simpan
+              </button>
+            </div>
           </div>
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addJenjang">Jenjang <span class="text-danger">*</span></label>
-                      <select name="jenjang" id="addJenjang" class="form-control" required>
-                          <option value="">-- Pilih Jenjang --</option>
-                          <option value="TK">TK</option>
-                          <option value="SD">SD</option>
-                          <option value="SMP">SMP</option>
-                          <option value="SMA">SMA</option>
-                          <option value="SMK">SMK</option>
-                      </select>
-                      <div class="invalid-feedback">Jenjang wajib dipilih.</div>
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addJobTitle">Job Title</label>
-                      <input type="text" name="job_title" id="addJobTitle" class="form-control" placeholder="Contoh: Guru, Staff, dll">
-                  </div>
-              </div>
-          </div>
-          <!-- Field Role dan Tanggal Bergabung -->
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addRole">Role <span class="text-danger">*</span></label>
-                      <select name="role" id="addRole" class="form-control" required>
-                          <option value="">-- Pilih Role --</option>
-                          <option value="P">Pendidik (Guru)</option>
-                          <option value="TK">Tenaga Kependidikan</option>
-                          <option value="M">Manajerial</option>
-                      </select>
-                      <div class="invalid-feedback">Role wajib dipilih.</div>
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addJoinStart">Tanggal Bergabung <span class="text-danger">*</span></label>
-                      <input type="date" name="join_start" id="addJoinStart" class="form-control" required>
-                      <div class="invalid-feedback">Tanggal Bergabung wajib diisi.</div>
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addRemark">Remark</label>
-                      <input type="text" name="remark" id="addRemark" class="form-control" placeholder="Catatan tambahan">
-                  </div>
-              </div>
-              <div class="col-md-6">
-              <div class="form-group">
-    <label for="addPendidikan">Pendidikan</label>
-    <input type="text" name="pendidikan" id="addPendidikan" class="form-control" placeholder="Contoh: S1, D3">
-</div>
-
-          </div>
-          
-          <!-- Data Pribadi -->
-          <h6 class="mt-4 mb-2">Data Pribadi</h6>
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addJK">Jenis Kelamin</label>
-                      <select name="jk" id="addJK" class="form-control">
-                          <option value="">-- Pilih Jenis Kelamin --</option>
-                          <option value="L">Laki-laki</option>
-                          <option value="P">Perempuan</option>
-                      </select>
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addTglLahir">Tanggal Lahir</label>
-                      <input type="date" name="tgl_lahir" id="addTglLahir" class="form-control">
-                  </div>
-              </div>
-          </div>
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addUsia">Usia</label>
-                      <input type="number" name="usia" id="addUsia" class="form-control">
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addReligion">Agama</label>
-                      <input type="text" name="religion" id="addReligion" class="form-control">
-                  </div>
-              </div>
-          </div>
-          <!-- Data Kontak -->
-          <h6 class="mt-4 mb-2">Data Kontak</h6>
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addAlamatDomisili">Alamat Domisili</label>
-                      <textarea name="alamat_domisili" id="addAlamatDomisili" class="form-control"></textarea>
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addAlamatKTP">Alamat KTP</label>
-                      <textarea name="alamat_ktp" id="addAlamatKTP" class="form-control"></textarea>
-                  </div>
-              </div>
-          </div>
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addNoRekening">No Rekening</label>
-                      <input type="text" name="no_rekening" id="addNoRekening" class="form-control">
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addNoHP">No Handphone</label>
-                      <input type="text" name="no_hp" id="addNoHP" class="form-control" placeholder="08xxx">
-                  </div>
-              </div>
-              <div class="col-md-6">
-              <div class="form-group">
-    <label for="addEmail">Email</label>
-    <input type="email" name="email" id="addEmail" class="form-control" placeholder="contoh@domain.com">
-</div>
-
-              
-          </div>
-          <!-- Data Lainnya (Remark, Status Perkawinan, Pasangan & Anak) -->
-          <h6 class="mt-4 mb-2">Data Lainnya</h6>
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addStatusPerkawinan">Status Perkawinan <span class="text-danger">*</span></label>
-                      <select name="status_perkawinan" id="addStatusPerkawinan" class="form-control" required>
-                        <option value="">-- Pilih Status --</option>
-                        <option value="Menikah">Menikah</option>
-                        <option value="Belum Menikah">Belum Menikah</option>
-                      </select>
-                      <div class="invalid-feedback">Status Perkawinan wajib dipilih.</div>
-                  </div>
-              </div>
-          </div>
-          <!-- Field untuk pasangan dan anak -->
-          <div class="row mt-2">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addNamaPasangan">Nama Pasangan</label>
-                      <input type="text" name="nama_pasangan" id="addNamaPasangan" class="form-control" placeholder="Nama Pasangan">
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="addJumlahAnak">Jumlah Anak</label>
-                      <input type="number" name="jumlah_anak" id="addJumlahAnak" class="form-control" placeholder="Jumlah Anak">
-                  </div>
-              </div>
-          </div>
-          <div class="row mt-2">
-              <div class="col-md-4">
-                  <div class="form-group">
-                      <label for="addNamaAnak1">Nama Anak 1</label>
-                      <input type="text" name="nama_anak_1" id="addNamaAnak1" class="form-control" placeholder="Nama Anak 1">
-                  </div>
-              </div>
-              <div class="col-md-4">
-                  <div class="form-group">
-                      <label for="addNamaAnak2">Nama Anak 2</label>
-                      <input type="text" name="nama_anak_2" id="addNamaAnak2" class="form-control" placeholder="Nama Anak 2">
-                  </div>
-              </div>
-              <div class="col-md-4">
-                  <div class="form-group">
-                      <label for="addNamaAnak3">Nama Anak 3</label>
-                      <input type="text" name="nama_anak_3" id="addNamaAnak3" class="form-control" placeholder="Nama Anak 3">
-                  </div>
-              </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-success">
-              <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-              Simpan
-          </button>
-        </div>
+        </form>
       </div>
-    </form>
-  </div>
-</div>
+    </div>
 
     <!-- MODAL: Edit -->
-<div class="modal fade" id="modalEdit" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <form id="edit-guru-form" method="POST" class="needs-validation" novalidate>
-      <input type="hidden" name="case" value="UpdateGuru">
-      <input type="hidden" name="id" id="editId">
-      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-      <div class="modal-content">
+    <div class="modal fade" id="modalEdit" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <form id="edit-guru-form" method="POST" class="needs-validation" novalidate>
+          <input type="hidden" name="case" value="UpdateGuru">
+          <input type="hidden" name="id" id="editId">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+          <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Edit Data Guru/Karyawan</h5>
           <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -1361,14 +1362,14 @@ function getGajiPokokByRole($conn, $role) {
 </div>
 
     <!-- MODAL: View Detail -->
-<div class="modal fade" id="modalView" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Detail Data Guru/Karyawan</h5>
-        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-      </div>
-      <div class="modal-body" style="color: #000;">
+    <div class="modal fade" id="modalView" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Detail Data Guru/Karyawan</h5>
+            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+          </div>
+          <div class="modal-body" style="color: #000;">
         <h6>Data Pekerjaan</h6>
         <table class="table table-sm">
           <tr><th>NIP</th><td id="detailNip"></td></tr>
@@ -1419,33 +1420,33 @@ function getGajiPokokByRole($conn, $role) {
   </div>
 </div>
 
-    <!-- MODAL: Delete (Perbaikan struktur HTML) -->
-<div class="modal fade" id="modalDelete" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content"> <!-- Hapus tag form yang mengelilingi modal-content -->
-      <form id="delete-guru-form"> <!-- Pindahkan tag form ke dalam modal-content -->
-        <input type="hidden" name="case" value="DeleteGuru">
-        <input type="hidden" name="id" id="delId">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-        <div class="modal-header">
-          <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
-          <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+    <!-- MODAL: Delete -->
+    <div class="modal fade" id="modalDelete" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="delete-guru-form">
+            <input type="hidden" name="case" value="DeleteGuru">
+            <input type="hidden" name="id" id="delId">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+            <div class="modal-header">
+              <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
+              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+              <p>Anda yakin ingin menghapus data berikut?</p>
+              <p><strong id="delNama"></strong></p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-danger">
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                Hapus
+              </button>
+            </div>
+          </form>
         </div>
-        <div class="modal-body">
-          <p>Anda yakin ingin menghapus data berikut?</p>
-          <p><strong id="delNama"></strong></p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-danger">
-            <span class="spinner-border spinner-border-sm d-none"></span>
-            Hapus
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
-  </div>
-</div>
 
     <!-- MODAL: Atur Gaji Pokok -->
     <div class="modal fade" id="modalGajiPokok" tabindex="-1" aria-labelledby="modalGajiPokokLabel" aria-hidden="true">
@@ -1459,10 +1460,11 @@ function getGajiPokokByRole($conn, $role) {
           </div>
           <div class="modal-body">
             <div class="text-center mb-3">
-              <button type="button" class="btn btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#modalGajiStrataGuru">
+              <!-- Ubah tombol ini menjadi tanpa data-bs-toggle/data-bs-target -->
+              <button type="button" id="btnGajiStrataGuru" class="btn btn-secondary me-2">
                 <i class="fas fa-chart-bar"></i> Atur Gaji Strata Guru
               </button>
-              <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalGajiStrataKaryawan">
+              <button type="button" id="btnGajiStrataKaryawan" class="btn btn-secondary">
                 <i class="fas fa-chart-bar"></i> Atur Gaji Strata Karyawan
               </button>
             </div>
@@ -1735,7 +1737,6 @@ function getGajiPokokByRole($conn, $role) {
             }
         }
         
-        // Event handler disable/enable field pasangan dan anak di modal Create
         $('#addStatusPerkawinan').on('change', function(){
             if ($(this).val() === 'Belum Menikah') {
                 $('#addNamaPasangan, #addJumlahAnak, #addNamaAnak1, #addNamaAnak2, #addNamaAnak3')
@@ -1748,7 +1749,6 @@ function getGajiPokokByRole($conn, $role) {
             }
         });
         
-        // Event handler disable/enable field pasangan dan anak di modal Edit
         $('#editStatusPerkawinan').on('change', function(){
             if ($(this).val() === 'Belum Menikah') {
                 $('#editNamaPasangan, #editJumlahAnak, #editNamaAnak1, #editNamaAnak2, #editNamaAnak3')
@@ -1843,6 +1843,11 @@ function getGajiPokokByRole($conn, $role) {
                         $('#editTglLahir').val(response.result.tanggal_lahir || '');
                         $('#editUsia').val(response.result.usia || '');
                         $('#editReligion').val(response.result.religion || '');
+                        $('#editAlamatDomisili').val(response.result.alamat_domisili || '');
+                        $('#editAlamatKTP').val(response.result.alamat_ktp || '');
+                        $('#editNoRekening').val(response.result.no_rekening || '');
+                        $('#editNoHP').val(response.result.no_hp || '');
+                        $('#editEmail').val(response.result.email || '');
                         $('#editPendidikan').val(response.result.pendidikan || '');
                         $('#editStatusPerkawinan').val(response.result.status_perkawinan || '');
                         $('#editRemark').val(response.result.remark || '');
@@ -1865,7 +1870,6 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Delete
         $(document).on('click', '.btn-delete', function() {
             var id = $(this).data('id');
             $('#delId').val(id);
@@ -1909,7 +1913,6 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Submit form Edit
         $('#edit-guru-form').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -1946,7 +1949,6 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Submit form Create
         $('#add-guru-form').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -1985,7 +1987,6 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Submit form Update Gaji Strata Guru
         $('#gaji-strata-form-guru').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -2021,7 +2022,6 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
-        // Submit form Update Gaji Strata Karyawan
         $('#gaji-strata-form-karyawan').on('submit', function(e) {
             e.preventDefault();
             var form = $(this);
@@ -2057,6 +2057,17 @@ function getGajiPokokByRole($conn, $role) {
             });
         });
 
+        // Tambahan: Event binding untuk tombol di dalam modalGajiPokok agar tidak terjadi nested modal
+        $('#btnGajiStrataGuru').on('click', function(){
+            $('#modalGajiPokok').modal('hide');
+            // Pastikan modalGajiStrataGuru sudah terinisialisasi
+            $('#modalGajiStrataGuru').modal('show');
+        });
+        $('#btnGajiStrataKaryawan').on('click', function(){
+            $('#modalGajiPokok').modal('hide');
+            $('#modalGajiStrataKaryawan').modal('show');
+        });
+
         // Navigasi ke halaman lain
         $(document).on('click', '#btnManageSalaryIndices', function(e) {
             e.preventDefault();
@@ -2065,7 +2076,6 @@ function getGajiPokokByRole($conn, $role) {
                 window.location.href = url;
             });
         });
-
         $(document).on('click', '#btnManageHolidays', function(e) {
             e.preventDefault();
             var url = $(this).data('href');
