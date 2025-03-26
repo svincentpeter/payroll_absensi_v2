@@ -148,37 +148,43 @@ function LoadingRekapPayroll($conn) {
 
     // --- Ambil daftar payheads secara terpisah untuk Pendapatan dan Potongan ---
     $earningPayheads = [];
-    $resultEarnings = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='earnings' ORDER BY nama_payhead ASC");
-    if ($resultEarnings) {
-        while ($row = $resultEarnings->fetch_assoc()) {
-            $earningPayheads[] = $row['nama_payhead'];
-        }
+$resultEarnings = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='earnings' ORDER BY nama_payhead ASC");
+if ($resultEarnings) {
+    while ($row = $resultEarnings->fetch_assoc()) {
+        $earningPayheads[] = $row['nama_payhead'];
     }
-    $deductionPayheads = [];
-    $resultDeductions = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='deductions' ORDER BY nama_payhead ASC");
-    if ($resultDeductions) {
-        while ($row = $resultDeductions->fetch_assoc()) {
-            $deductionPayheads[] = $row['nama_payhead'];
-        }
+}
+$deductionPayheads = [];
+$resultDeductions = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='deductions' ORDER BY nama_payhead ASC");
+if ($resultDeductions) {
+    while ($row = $resultDeductions->fetch_assoc()) {
+        $deductionPayheads[] = $row['nama_payhead'];
     }
-    // Gabungkan: Pendapatan (earnings) terlebih dahulu, lalu Potongan (deductions)
-    $payheads = array_merge($earningPayheads, $deductionPayheads);
+}
+// Gabungkan: Pendapatan (earnings) terlebih dahulu, lalu Potongan (deductions)
+$payheads = array_merge($earningPayheads, $deductionPayheads);
 
-    // --- Membangun subquery untuk agregasi detail payroll ---
-    $dynamicCases = [];
-    foreach ($payheads as $ph) {
-        $escaped = $conn->real_escape_string($ph);
-        $alias = "payhead_" . md5($ph);
-        $dynamicCases[] = "SUM(CASE WHEN nama_payhead = '$escaped' THEN amount ELSE 0 END) AS `$alias`";
-    }
+// --- Membangun subquery untuk agregasi detail payroll ---
+$dynamicCases = [];
+foreach ($payheads as $ph) {
+    $escaped = $conn->real_escape_string($ph);
+    $alias = "payhead_" . md5($ph);
+    $dynamicCases[] = "SUM(CASE WHEN nama_payhead = '$escaped' THEN amount ELSE 0 END) AS `$alias`";
+}
+
+// Handle empty payheads by adding a dummy column
+if (empty($dynamicCases)) {
+    $dynamicSelectSubquery = '0 AS dummy'; // Prevents empty SELECT clause
+} else {
     $dynamicSelectSubquery = implode(", ", $dynamicCases);
+}
 
-    // Bagian SELECT dinamis outer query (mengambil hasil agregasi detail)
-    $outerDynamicSelect = "";
-    foreach ($payheads as $ph) {
-        $alias = "payhead_" . md5($ph);
-        $outerDynamicSelect .= ", SUM(IFNULL(agg_detail.`$alias`, 0)) AS `$alias` ";
-    }
+// Bagian SELECT dinamis outer query (mengambil hasil agregasi detail)
+$outerDynamicSelect = "";
+foreach ($payheads as $ph) {
+    $alias = "payhead_" . md5($ph);
+    $outerDynamicSelect .= ", SUM(IFNULL(agg_detail.`$alias`, 0)) AS `$alias` ";
+}
 
     // Query utama: ambil data payroll_final dan LEFT JOIN hasil agregasi detail
     $sqlData = "

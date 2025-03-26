@@ -1660,64 +1660,63 @@ $(document).ready(function(){
     let baseUrl = "<?= getBaseUrl(); ?>";
     
     function generateCards(data) {
-  let container = $("#employeeCards");
-  container.empty();
-  data.forEach(function(item){
-    // tentukan warna & teks rapel
-    let rapelBadge = '';
-    if (item.has_rapel) {
-      // misalnya badge merah dengan teks hitam
-      rapelBadge = `<span class="badge" style="background-color: red;">Ada</span>`;
-    } else {
-      rapelBadge = `<span class="badge bg-secondary">-</span>`;
-    }
+      let container = $("#employeeCards");
+      container.empty();
+      data.forEach(function(item){
+        // tentukan warna & teks rapel
+        let rapelBadge = '';
+        if (item.has_rapel) {
+          rapelBadge = `<span class="badge" style="background-color: red;">Ada</span>`;
+        } else {
+          rapelBadge = `<span class="badge bg-secondary">-</span>`;
+        }
 
-    let badgeClass = 'default';
-    if (item.payroll_status.toLowerCase() === 'final') badgeClass = 'final';
-    else if (item.payroll_status.toLowerCase() === 'draft') badgeClass = 'draft';
-    else if (item.payroll_status.toLowerCase() === 'revisi') badgeClass = 'revisi';
+        let badgeClass = 'default';
+        if (item.payroll_status.toLowerCase() === 'final') badgeClass = 'final';
+        else if (item.payroll_status.toLowerCase() === 'draft') badgeClass = 'draft';
+        else if (item.payroll_status.toLowerCase() === 'revisi') badgeClass = 'revisi';
 
-    let photoUrl = item.foto_profil && item.foto_profil !== ''
-                         ? item.foto_profil
-                         : baseUrl + "/assets/img/undraw_profile.svg";
+        let photoUrl = item.foto_profil && item.foto_profil !== ''
+                             ? item.foto_profil
+                             : baseUrl + "/assets/img/undraw_profile.svg";
 
-    let cardHtml = `
-      <div class="col">
-        <div class="card shadow-sm p-3 h-100 text-center" data-payroll_status="${item.payroll_status}">
-          <img src="${photoUrl}" alt="Foto" class="employee-photo mb-2">
-          <h6 class="mb-0">${item.nama}</h6>
-          <small class="text-muted">NIP: ${item.nip}</small>
-          <p class="mt-2 mb-1" style="font-size:0.85rem;">
-            Role: ${item.role} | <strong>${item.jenjang}</strong>
-          </p>
-          <p style="font-size:0.85rem;">
-            Status: <span class="badge-status ${badgeClass}">${item.payroll_status}</span>
-          </p>
-          <p style="font-size:0.85rem;">
-            Rapel: ${rapelBadge}
-          </p>
-          <div class="d-grid gap-2">
-            <button class="btn btn-sm btn-primary btnViewDetail" data-id="${item.id}">
-              <i class="bi bi-eye-fill"></i> Detail Data
-            </button>
-            <button class="btn btn-sm btn-warning btnEdit" data-id="${item.id}">
-              <i class="bi bi-pencil-square"></i> Edit Data
-            </button>
-            <button class="btn btn-sm btn-info btnAssignPayheads" data-id="${item.id}">
-              <i class="bi bi-cash-stack"></i> Payroll
-            </button>
-            <button class="btn btn-sm btn-secondary btnRekapAbsensi"
-                    data-id="${item.id}"
-                    data-role="${item.role}">
-              <i class="bi bi-calendar-check"></i> Rekap Absensi
-            </button>
+        let cardHtml = `
+          <div class="col">
+            <div class="card shadow-sm p-3 h-100 text-center" data-payroll_status="${item.payroll_status}">
+              <img src="${photoUrl}" alt="Foto" class="employee-photo mb-2">
+              <h6 class="mb-0">${item.nama}</h6>
+              <small class="text-muted">NIP: ${item.nip}</small>
+              <p class="mt-2 mb-1" style="font-size:0.85rem;">
+                Role: ${item.role} | <strong>${item.jenjang}</strong>
+              </p>
+              <p style="font-size:0.85rem;">
+                Status: <span class="badge-status ${badgeClass}">${item.payroll_status}</span>
+              </p>
+              <p style="font-size:0.85rem;">
+                Rapel: ${rapelBadge}
+              </p>
+              <div class="d-grid gap-2">
+                <button class="btn btn-sm btn-primary btnViewDetail" data-id="${item.id}">
+                  <i class="bi bi-eye-fill"></i> Detail Data
+                </button>
+                <button class="btn btn-sm btn-warning btnEdit" data-id="${item.id}">
+                  <i class="bi bi-pencil-square"></i> Edit Data
+                </button>
+                <button class="btn btn-sm btn-info btnAssignPayheads" data-id="${item.id}">
+                  <i class="bi bi-cash-stack"></i> Payroll
+                </button>
+                <button class="btn btn-sm btn-secondary btnRekapAbsensi"
+                        data-id="${item.id}"
+                        data-role="${item.role}">
+                  <i class="bi bi-calendar-check"></i> Rekap Absensi
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    `;
-    container.append(cardHtml);
-  });
-}
+        `;
+        container.append(cardHtml);
+      });
+    }
 
 
     function generatePagination(totalRecords) {
@@ -1745,147 +1744,145 @@ $(document).ready(function(){
         loadEmployees(1);
     });
 
-    // ================= AutoNumeric =================
-    function initAutoNumeric() {
-        AutoNumeric.multiple('.currency-input', {
-            digitGroupSeparator: '.',
-            decimalCharacter: ',',
-            decimalPlaces: 2,
-            unformatOnSubmit: true
-        });
-    }
-    initAutoNumeric();
-
-    // ================= Render Assigned Payheads =================
-    function renderAssignedPayheads(payheads) {
-    const tbody = $("#selected_payamount_table tbody");
-    tbody.empty();
-
-    payheads.forEach(function(ph, index) {
-        // Ambil data payhead
-        const payheadId    = ph.id_payhead;
-        const payheadType  = (ph.jenis_payhead || '').toLowerCase();
-        const defaultAmt   = ph.amount || "0";
-        const remarksVal   = ph.remarks || '';
-        const isRapel      = (ph.is_rapel == 1); // 1 => rapel, 0 => bukan
-
-        // Tentukan badge earnings/potongan
-        let badgeHTML = (payheadType === 'earnings')
-          ? '<span class="badge bg-success text-white me-1">Pendapatan</span>'
-          : '<span class="badge bg-danger text-white me-1">Potongan</span>';
-
-        // Checkbox rapel
-        const rapelChecked = isRapel ? "checked" : "";
-
-        // Jika rapel, form di‐disabled?
-        const disabledAttr = isRapel ? "disabled" : "";
-
-        // Jika rapel, tombol remove disembunyikan
-        const removeButtonHtml = isRapel ? "" : `
-          <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
-            <i class="bi bi-dash"></i>
-          </button>
-        `;
-
-        // Keterangan diisi “Rapel” jika isRapel
-        const finalRemarks = isRapel ? "Rapel" : remarksVal;
-
-        // Susun baris HTML
-        const rowHtml = `
-          <tr data-id="${payheadId}" data-type="${ph.jenis_payhead}">
-            <td>${index + 1}</td>
-            <td>${badgeHTML}${ph.nama_payhead}</td>
-            <td>
-              <input type="text" name="pay_amounts[${payheadId}]"
-                     class="form-control currency-input"
-                     value="${defaultAmt}"
-                     ${disabledAttr} required>
-            </td>
-            <td>
-              <textarea name="remarks[${payheadId}]"
-                        class="form-control"
-                        ${disabledAttr}>${finalRemarks}</textarea>
-            </td>
-            <td>
-              <input type="checkbox" name="rapel[${payheadId}]"
-                     class="rapel-checkbox"
-                     ${rapelChecked}>
-            </td>
-            <td>
-              <div class="input-group">
-                <input type="file" name="upload_file[${payheadId}]"
-                       class="file-input d-none"
-                       id="upload_file_${payheadId}"
-                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                <label for="upload_file_${payheadId}"
-                       class="btn btn-sm btn-info file-label me-2">
-                  Pilih File
-                </label>
-                <button type="button"
-                        class="btn btn-sm btn-danger btn-clear-file">
-                  Hapus
-                </button>
-              </div>
-            </td>
-            <td>
-              ${removeButtonHtml}
-            </td>
-          </tr>
-        `;
-
-        // Tambahkan ke tbody
-        tbody.append(rowHtml);
-    });
-
-    // Setelah ter‐render, inisialisasi AutoNumeric & jalankan recalc
-    AutoNumeric.multiple('.currency-input', {
+    // ================= Inisialisasi AutoNumeric =================
+    // Inisialisasi hanya sekali saat load pertama untuk input yang sudah ada di DOM
+    new AutoNumeric('.currency-input', {
         digitGroupSeparator: '.',
         decimalCharacter: ',',
         decimalPlaces: 2,
         unformatOnSubmit: true
     });
-    recalcPayheadsTotals();
-}
 
+    // ================= Render Assigned Payheads =================
+    function renderAssignedPayheads(payheads) {
+        const tbody = $("#selected_payamount_table tbody");
+        tbody.empty();
 
-// Tangani event ketika user centang/uncentang checkbox rapel
-$(document).on('change', '.rapel-checkbox', function() {
-    let $row       = $(this).closest('tr');
-    let isChecked  = $(this).prop('checked');
-    let $nominal   = $row.find('input.currency-input');
-    let $remarks   = $row.find('textarea');
-    let $removeBtn = $row.find('.btnRemoveRow'); // tombol hapus
+        payheads.forEach(function(ph, index) {
+            // Ambil data payhead
+            const payheadId    = ph.id_payhead;
+            const payheadType  = (ph.jenis_payhead || '').toLowerCase();
+            const defaultAmt   = ph.amount || "0";
+            const remarksVal   = ph.remarks || '';
+            const isRapel      = (ph.is_rapel == 1); // 1 => rapel, 0 => bukan
 
-    // Ambil nilai sekarang
-    let currentNominal = $nominal.val();
-    let currentRemarks = $remarks.val();
+            // Tentukan badge earnings/potongan
+            let badgeHTML = (payheadType === 'earnings')
+              ? '<span class="badge bg-success text-white me-1">Pendapatan</span>'
+              : '<span class="badge bg-danger text-white me-1">Potongan</span>';
 
-    if (isChecked) {
-        // Simpan old values ke data tr
-        $row.data('oldNominalVal', currentNominal);
-        $row.data('oldRemarksVal', currentRemarks);
+            // Checkbox rapel
+            const rapelChecked = isRapel ? "checked" : "";
 
-        // Nonaktifkan input
-        $nominal.prop('disabled', true);
-        $remarks.val('Rapel').prop('disabled', true);
+            // Jika rapel, form di‐disabled?
+            const disabledAttr = isRapel ? "disabled" : "";
 
-        // Sembunyikan tombol remove
-        $removeBtn.hide();
-    } else {
-        // Kembalikan ke kondisi sebelum rapel
-        let oldNominal = $row.data('oldNominalVal') || currentNominal;
-        let oldRemarks = $row.data('oldRemarksVal') || '';
+            // Jika rapel, tombol remove disembunyikan
+            const removeButtonHtml = isRapel ? "" : `
+              <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
+                <i class="bi bi-dash"></i>
+              </button>
+            `;
 
-        $nominal.val(oldNominal).prop('disabled', false);
-        $remarks.val(oldRemarks).prop('disabled', false);
+            // Keterangan diisi “Rapel” jika isRapel
+            const finalRemarks = isRapel ? "Rapel" : remarksVal;
 
-        // Tampilkan lagi tombol remove
-        $removeBtn.show();
+            // Susun baris HTML
+            const rowHtml = `
+              <tr data-id="${payheadId}" data-type="${ph.jenis_payhead}">
+                <td>${index + 1}</td>
+                <td>${badgeHTML}${ph.nama_payhead}</td>
+                <td>
+                  <input type="text" name="pay_amounts[${payheadId}]"
+                         class="form-control currency-input"
+                         value="${defaultAmt}"
+                         ${disabledAttr} required>
+                </td>
+                <td>
+                  <textarea name="remarks[${payheadId}]"
+                            class="form-control"
+                            ${disabledAttr}>${finalRemarks}</textarea>
+                </td>
+                <td>
+                  <input type="checkbox" name="rapel[${payheadId}]"
+                         class="rapel-checkbox"
+                         ${rapelChecked}>
+                </td>
+                <td>
+                  <div class="input-group">
+                    <input type="file" name="upload_file[${payheadId}]"
+                           class="file-input d-none"
+                           id="upload_file_${payheadId}"
+                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <label for="upload_file_${payheadId}"
+                           class="btn btn-sm btn-info file-label me-2">
+                      Pilih File
+                    </label>
+                    <button type="button"
+                            class="btn btn-sm btn-danger btn-clear-file">
+                      Hapus
+                    </button>
+                  </div>
+                </td>
+                <td>
+                  ${removeButtonHtml}
+                </td>
+              </tr>
+            `;
+            // Buat elemen baris baru dan inisialisasi AutoNumeric pada input baru
+            const $row = $(rowHtml);
+            $row.find('.currency-input').each(function() {
+                new AutoNumeric(this, {
+                    digitGroupSeparator: '.',
+                    decimalCharacter: ',',
+                    decimalPlaces: 2,
+                    unformatOnSubmit: true
+                });
+            });
+            tbody.append($row);
+        });
+
+        recalcPayheadsTotals();
     }
 
-    // Recalc
-    recalcPayheadsTotals();
-});
+    // Tangani event ketika user centang/uncentang checkbox rapel
+    $(document).on('change', '.rapel-checkbox', function() {
+        let $row       = $(this).closest('tr');
+        let isChecked  = $(this).prop('checked');
+        let $nominal   = $row.find('input.currency-input');
+        let $remarks   = $row.find('textarea');
+        let $removeBtn = $row.find('.btnRemoveRow'); // tombol hapus
+
+        // Ambil nilai sekarang
+        let currentNominal = $nominal.val();
+        let currentRemarks = $remarks.val();
+
+        if (isChecked) {
+            // Simpan old values ke data tr
+            $row.data('oldNominalVal', currentNominal);
+            $row.data('oldRemarksVal', currentRemarks);
+
+            // Nonaktifkan input
+            $nominal.prop('disabled', true);
+            $remarks.val('Rapel').prop('disabled', true);
+
+            // Sembunyikan tombol remove
+            $removeBtn.hide();
+        } else {
+            // Kembalikan ke kondisi sebelum rapel
+            let oldNominal = $row.data('oldNominalVal') || currentNominal;
+            let oldRemarks = $row.data('oldRemarksVal') || '';
+
+            $nominal.val(oldNominal).prop('disabled', false);
+            $remarks.val(oldRemarks).prop('disabled', false);
+
+            // Tampilkan lagi tombol remove
+            $removeBtn.show();
+        }
+
+        // Recalc
+        recalcPayheadsTotals();
+    });
 
 
     $(document).on('change', '.file-input', function() {
@@ -1900,95 +1897,98 @@ $(document).on('change', '.rapel-checkbox', function() {
     });
 
     $(document).on('click', '.btnAddPayhead', function() {
-    const item = $(this).closest('.payhead-item');
-    const payheadId   = item.data('id');
-    const payheadName = item.find('.payhead-name').text();
-    const defaultAmt  = item.data('nominal') || "0";
-    const payType     = (item.data('type') || '').toLowerCase();
+        const item = $(this).closest('.payhead-item');
+        const payheadId   = item.data('id');
+        const payheadName = item.find('.payhead-name').text();
+        const defaultAmt  = item.data('nominal') || "0";
+        const payType     = (item.data('type') || '').toLowerCase();
 
-    // Hapus item dari daftar "payheads tersedia"
-    item.remove();
+        // Hapus item dari daftar "payheads tersedia"
+        item.remove();
 
-    // Cek payhead mana saja yang sudah ada di table
-    const existingRows = $("#selected_payamount_table tbody tr")
-                           .map(function(){ return $(this).data('id'); })
-                           .get();
+        // Cek payhead mana saja yang sudah ada di table
+        const existingRows = $("#selected_payamount_table tbody tr")
+                               .map(function(){ return $(this).data('id'); })
+                               .get();
 
-    // Jika belum ada, buat baris baru
-    if (!existingRows.includes(payheadId)) {
-        const newIndex = existingRows.length;
+        // Jika belum ada, buat baris baru
+        if (!existingRows.includes(payheadId)) {
+            const newIndex = existingRows.length;
 
-        // Badge pendapatan/potongan
-        let badgeHTML = '';
-        if (payType === 'earnings') {
-            badgeHTML = '<span class="badge bg-success text-white me-1">Pendapatan</span>';
-        } else {
-            badgeHTML = '<span class="badge bg-danger text-white me-1">Potongan</span>';
-        }
+            // Badge pendapatan/potongan
+            let badgeHTML = '';
+            if (payType === 'earnings') {
+                badgeHTML = '<span class="badge bg-success text-white me-1">Pendapatan</span>';
+            } else {
+                badgeHTML = '<span class="badge bg-danger text-white me-1">Potongan</span>';
+            }
 
-        // Susun <tr> dengan 7 kolom (termasuk rapel)
-        const rowHtml = `
-          <tr data-id="${payheadId}" data-type="${payType}">
-            <!-- Kolom 1: No -->
-            <td>${newIndex + 1}</td>
+            // Susun <tr> dengan 7 kolom (termasuk rapel)
+            const rowHtml = `
+              <tr data-id="${payheadId}" data-type="${payType}">
+                <!-- Kolom 1: No -->
+                <td>${newIndex + 1}</td>
 
-            <!-- Kolom 2: Nama Payhead -->
-            <td>${badgeHTML + payheadName}</td>
+                <!-- Kolom 2: Nama Payhead -->
+                <td>${badgeHTML + payheadName}</td>
 
-            <!-- Kolom 3: Nominal -->
-            <td>
-              <input type="text" name="pay_amounts[${payheadId}]"
-                     class="form-control currency-input" 
-                     value="${defaultAmt}" required>
-            </td>
+                <!-- Kolom 3: Nominal -->
+                <td>
+                  <input type="text" name="pay_amounts[${payheadId}]"
+                         class="form-control currency-input" 
+                         value="${defaultAmt}" required>
+                </td>
 
-            <!-- Kolom 4: Keterangan -->
-            <td>
-              <textarea name="remarks[${payheadId}]"
-                        class="form-control"></textarea>
-            </td>
+                <!-- Kolom 4: Keterangan -->
+                <td>
+                  <textarea name="remarks[${payheadId}]"
+                            class="form-control"></textarea>
+                </td>
 
-            <!-- Kolom 5: Rapel -->
-            <td>
-              <input type="checkbox" name="rapel[${payheadId}]"
-                     class="rapel-checkbox">
-            </td>
+                <!-- Kolom 5: Rapel -->
+                <td>
+                  <input type="checkbox" name="rapel[${payheadId}]"
+                         class="rapel-checkbox">
+                </td>
 
-            <!-- Kolom 6: Upload Dokumen -->
-            <td>
-              <div class="input-group">
-                <input type="file" name="upload_file[${payheadId}]"
-                       class="file-input d-none"
-                       id="upload_file_${payheadId}"
-                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                <label for="upload_file_${payheadId}"
-                       class="btn btn-sm btn-info file-label me-2">
-                       Pilih File
-                </label>
-                <button type="button" 
-                        class="btn btn-sm btn-danger btn-clear-file">
-                  Hapus
-                </button>
-              </div>
-            </td>
+                <!-- Kolom 6: Upload Dokumen -->
+                <td>
+                  <div class="input-group">
+                    <input type="file" name="upload_file[${payheadId}]"
+                           class="file-input d-none"
+                           id="upload_file_${payheadId}"
+                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <label for="upload_file_${payheadId}"
+                           class="btn btn-sm btn-info file-label me-2">
+                           Pilih File
+                    </label>
+                    <button type="button" 
+                            class="btn btn-sm btn-danger btn-clear-file">
+                      Hapus
+                    </button>
+                  </div>
+                </td>
 
-            <!-- Kolom 7: Aksi -->
-            <td>
-              <button type="button"
-                      class="btn btn-danger btn-sm btnRemoveRow">
-                <i class="bi bi-dash"></i>
-              </button>
-            </td>
-          </tr>
-        `;
-
-        $("#selected_payamount_table tbody").append(rowHtml);
-            AutoNumeric.multiple('.currency-input', {
-                digitGroupSeparator: '.',
-                decimalCharacter: ',',
-                decimalPlaces: 2,
-                unformatOnSubmit: true
+                <!-- Kolom 7: Aksi -->
+                <td>
+                  <button type="button"
+                          class="btn btn-danger btn-sm btnRemoveRow">
+                    <i class="bi bi-dash"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+            // Buat elemen row baru dan inisialisasi AutoNumeric pada input yang baru dibuat
+            const $newRow = $(rowHtml);
+            $newRow.find('.currency-input').each(function() {
+                new AutoNumeric(this, {
+                    digitGroupSeparator: '.',
+                    decimalCharacter: ',',
+                    decimalPlaces: 2,
+                    unformatOnSubmit: true
+                });
             });
+            $("#selected_payamount_table tbody").append($newRow);
             recalcPayheadsTotals();
         }
     });
