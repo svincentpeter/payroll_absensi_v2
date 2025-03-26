@@ -4,7 +4,7 @@
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 generate_csrf_token(); // Jika Anda menggunakan CSRF token
-authorize(['P','TK']);
+authorize(['P', 'TK']);
 
 require_once __DIR__ . '/../koneksi.php';
 
@@ -38,7 +38,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 if (!empty($search)) {
                     $sqlFilter      .= " AND (holiday_title LIKE ? OR holiday_desc LIKE ?)";
                     $sqlFilterCount .= " AND (holiday_title LIKE ? OR holiday_desc LIKE ?)";
-                    $likeParam = "%".$search."%";
+                    $likeParam = "%" . $search . "%";
                     $params    = [$likeParam, $likeParam];
                     $types     = "ss";
                 }
@@ -82,7 +82,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 }
 
                 // Limit (pagination)
-                $sqlFilter .= $orderBy." LIMIT ?, ?";
+                $sqlFilter .= $orderBy . " LIMIT ?, ?";
                 // Bind param start & length
                 if (!empty($params)) {
                     // Sudah ada param
@@ -127,7 +127,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                         "holiday_title" => $title,
                         "holiday_desc"  => $desc,
                         "holiday_date"  => $tanggal,
-                        "holiday_type"  => '<span class="badge '.$badgeClass.'">'.$badgeText.'</span>'
+                        "holiday_type"  => '<span class="badge ' . $badgeClass . '">' . $badgeText . '</span>'
                     ];
                 }
                 $stmtData->close();
@@ -155,6 +155,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Daftar Hari Libur</title>
@@ -179,163 +180,183 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         body {
             font-family: "Nunito", sans-serif;
         }
+
         /* Card-header dengan gradasi ala laporan_surat.php */
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .badge-libur_biasa {
-            background-color:rgb(146, 146, 146); 
+            background-color: rgb(146, 146, 146);
             color: #fff;
             padding: 0.4em 0.6em;
             border-radius: 0.25rem;
         }
+
         .badge-tanggal_merah {
-            background-color:rgb(255, 0, 0);
+            background-color: rgb(255, 0, 0);
             color: #fff;
             padding: 0.4em 0.6em;
-  border-radius: 0.25rem;
+            border-radius: 0.25rem;
         }
     </style>
 </head>
+
 <body id="page-top">
 
-<div id="wrapper">
-    <!-- Sidebar -->
-    <?php include __DIR__ . '/../sidebar.php'; ?>
-    <!-- End of Sidebar -->
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../sidebar.php'; ?>
+        <!-- End of Sidebar -->
 
-    <!-- Content Wrapper -->
-    <div id="content-wrapper" class="d-flex flex-column">
-        <!-- Main Content -->
-        <div id="content">
-            <!-- Topbar -->
-            <?php include __DIR__ . '/../navbar.php'; ?>
-            <!-- End Topbar -->
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
+                <!-- Topbar -->
+                <?php include __DIR__ . '/../navbar.php'; ?>
+                <!-- End Topbar -->
 
-            <!-- Page Content -->
-            <div class="container-fluid">
-                <h1 class="h3 mb-4 text-gray-800">
-                    <i class="fas fa-calendar-alt me-2"></i>Daftar Hari Libur
-                </h1>
+                <!-- Page Content -->
+                <div class="container-fluid">
+                    <h1 class="h3 mb-4 text-gray-800">
+                        <i class="fas fa-calendar-alt me-2"></i>Daftar Hari Libur
+                    </h1>
 
-                <!-- Card untuk tabel hari libur -->
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-white">
-                            <i class="fas fa-calendar-check me-1"></i> List Hari Libur
-                        </h6>
+                    <!-- Card untuk tabel hari libur -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-calendar-check me-1"></i> List Hari Libur
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <!-- Tabel DataTables (server-side) -->
+                                <table id="holidayTable"
+                                    class="table table-bordered table-hover dt-responsive nowrap"
+                                    style="width:100%;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>No</th>
+                                            <th>Judul Hari Libur</th>
+                                            <th>Deskripsi Hari Libur</th>
+                                            <th>Tanggal Hari Libur</th>
+                                            <th>Jenis Libur</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Tbody dikosongkan, karena DataTables server-side akan mengisinya -->
+                                    </tbody>
+                                </table>
+                            </div><!-- End .table-responsive -->
+                        </div><!-- End card-body -->
+                    </div><!-- End card -->
+                </div><!-- End container-fluid -->
+            </div><!-- End content -->
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>&copy; Sistem Nusaputera 2025</span>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <!-- Tabel DataTables (server-side) -->
-                            <table id="holidayTable" 
-                                   class="table table-bordered table-hover dt-responsive nowrap" 
-                                   style="width:100%;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Judul Hari Libur</th>
-                                        <th>Deskripsi Hari Libur</th>
-                                        <th>Tanggal Hari Libur</th>
-                                        <th>Jenis Libur</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Tbody dikosongkan, karena DataTables server-side akan mengisinya -->
-                                </tbody>
-                            </table>
-                        </div><!-- End .table-responsive -->
-                    </div><!-- End card-body -->
-                </div><!-- End card -->
-            </div><!-- End container-fluid -->
-        </div><!-- End content -->
-
-        <!-- Footer -->
-        <footer class="sticky-footer bg-white">
-            <div class="container my-auto">
-                <div class="copyright text-center my-auto">
-                    <span>&copy; Sistem Nusaputera 2025</span>
                 </div>
-            </div>
-        </footer>
-        <!-- End Footer -->
-    </div><!-- End Content Wrapper -->
-</div><!-- End Wrapper -->
+            </footer>
+            <!-- End Footer -->
+        </div><!-- End Content Wrapper -->
+    </div><!-- End Wrapper -->
 
-<!-- JS Dependencies -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JS Dependencies -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- DataTables JS -->
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
-<!-- DataTables Buttons + dependencies -->
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+    <!-- DataTables Buttons + dependencies -->
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
 
-<!-- DataTables Responsive JS -->
-<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <!-- DataTables Responsive JS -->
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
 
-<!-- SB Admin 2 (opsional) -->
-<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+    <!-- SB Admin 2 (opsional) -->
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
 
-<script>
-$(document).ready(function() {
-    // Inisialisasi DataTables dengan server-side
-    $('#holidayTable').DataTable({
-        processing: true,
-        serverSide: true,
-        responsive: true,   // agar responsive + ikon plus/minus di layar sempit
-        autoWidth: false,
+    <script>
+        $(document).ready(function() {
+            // Inisialisasi DataTables dengan server-side
+            $('#holidayTable').DataTable({
+                processing: true,
+                serverSide: true,
+                responsive: true, // agar responsive + ikon plus/minus di layar sempit
+                autoWidth: false,
 
-        ajax: {
-            url: 'list_hari_libur.php?ajax=1', // Memanggil file ini sendiri
-            type: 'POST',
-            data: { case: 'LoadingHolidays' }
-        },
-        columns: [
-            { data: 'no', name: 'no' },
-            { data: 'holiday_title', name: 'holiday_title' },
-            { data: 'holiday_desc', name: 'holiday_desc' },
-            { data: 'holiday_date', name: 'holiday_date' },
-            { data: 'holiday_type', name: 'holiday_type' }
-        ],
-        dom: 'Bfrtip',
-        buttons: [
-            { 
-                extend: 'excelHtml5', 
-                className: 'btn btn-success btn-sm',
-                text: '<i class="fas fa-file-excel me-1"></i> Export Excel'
-            },
-            { 
-                extend: 'pdfHtml5', 
-                className: 'btn btn-danger btn-sm',
-                text: '<i class="fas fa-file-pdf me-1"></i> Export PDF',
-                orientation: 'portrait',
-                pageSize: 'A4'
-            },
-            { 
-                extend: 'print', 
-                className: 'btn btn-secondary btn-sm',
-                text: '<i class="fas fa-print me-1"></i> Print'
-            }
-        ],
-        language: {
-            url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
-        }
-    });
-});
-</script>
+                ajax: {
+                    url: 'list_hari_libur.php?ajax=1', // Memanggil file ini sendiri
+                    type: 'POST',
+                    data: {
+                        case: 'LoadingHolidays'
+                    }
+                },
+                columns: [{
+                        data: 'no',
+                        name: 'no'
+                    },
+                    {
+                        data: 'holiday_title',
+                        name: 'holiday_title'
+                    },
+                    {
+                        data: 'holiday_desc',
+                        name: 'holiday_desc'
+                    },
+                    {
+                        data: 'holiday_date',
+                        name: 'holiday_date'
+                    },
+                    {
+                        data: 'holiday_type',
+                        name: 'holiday_type'
+                    }
+                ],
+                dom: 'Bfrtip',
+                buttons: [{
+                        extend: 'excelHtml5',
+                        className: 'btn btn-success btn-sm',
+                        text: '<i class="fas fa-file-excel me-1"></i> Export Excel'
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        className: 'btn btn-danger btn-sm',
+                        text: '<i class="fas fa-file-pdf me-1"></i> Export PDF',
+                        orientation: 'portrait',
+                        pageSize: 'A4'
+                    },
+                    {
+                        extend: 'print',
+                        className: 'btn btn-secondary btn-sm',
+                        text: '<i class="fas fa-print me-1"></i> Print'
+                    }
+                ],
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+                }
+            });
+        });
+    </script>
 
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

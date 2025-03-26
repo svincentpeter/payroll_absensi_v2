@@ -3,7 +3,7 @@
 
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
-authorize(['P','TK']);
+authorize(['P', 'TK']);
 
 require_once __DIR__ . '/../koneksi.php';
 
@@ -59,7 +59,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 if (!empty($search)) {
                     $sqlFilter .= " AND (ls.judul LIKE ? OR ls.isi LIKE ? OR pengirim.nama LIKE ?)";
                     $sqlFilterCount .= " AND (ls.judul LIKE ? OR ls.isi LIKE ? OR pengirim.nama LIKE ?)";
-                    $searchParam = "%".$search."%";
+                    $searchParam = "%" . $search . "%";
                     $params = array_merge($params, [$searchParam, $searchParam, $searchParam]);
                     $types .= "sss";
                 }
@@ -102,7 +102,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 }
 
                 // Limit (pagination)
-                $sqlFilter .= $orderBy." LIMIT ?, ?";
+                $sqlFilter .= $orderBy . " LIMIT ?, ?";
                 $params[] = $start;
                 $params[] = $length;
                 $types .= "ii";
@@ -129,14 +129,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                         "judul"          => htmlspecialchars($row['judul']),
                         "isi"            => htmlspecialchars($isiSingkat),
                         "tanggal_keluar" => $tglKeluar,
-                        "status"         => '<span class="badge '.$badgeClass.'">'.$badgeText.'</span>',
+                        "status"         => '<span class="badge ' . $badgeClass . '">' . $badgeText . '</span>',
                         "aksi"           => '
                             <button type="button" class="btn btn-sm btn-info btn-detail"
-                                    data-id="'.$row['id'].'"
-                                    data-judul="'.htmlspecialchars($row['judul']).'"
-                                    data-isi="'.htmlspecialchars($row['isi']).'"
-                                    data-pengirim="'.$namaPengirim.'"
-                                    data-tanggal="'.$tglKeluar.'">
+                                    data-id="' . $row['id'] . '"
+                                    data-judul="' . htmlspecialchars($row['judul']) . '"
+                                    data-isi="' . htmlspecialchars($row['isi']) . '"
+                                    data-pengirim="' . $namaPengirim . '"
+                                    data-tanggal="' . $tglKeluar . '">
                                 Lihat Detail
                             </button>'
                     ];
@@ -152,7 +152,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 ], JSON_UNESCAPED_UNICODE);
                 exit();
 
-            // =========== [ Update Status Surat ] ===========
+                // =========== [ Update Status Surat ] ===========
             case 'UpdateStatus':
                 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
                 if ($id <= 0) {
@@ -161,19 +161,19 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 }
                 $stmt = $conn->prepare("UPDATE laporan_surat SET status = 'dibaca' WHERE id = ?");
                 if (!$stmt) {
-                    echo json_encode(["code" => 1, "message" => "Query Error: ".$conn->error]);
+                    echo json_encode(["code" => 1, "message" => "Query Error: " . $conn->error]);
                     exit();
                 }
                 $stmt->bind_param("i", $id);
                 if ($stmt->execute()) {
                     echo json_encode(["code" => 0, "message" => "Status berhasil diperbarui."]);
                 } else {
-                    echo json_encode(["code" => 1, "message" => "Gagal memperbarui status: ".$stmt->error]);
+                    echo json_encode(["code" => 1, "message" => "Gagal memperbarui status: " . $stmt->error]);
                 }
                 $stmt->close();
                 exit();
 
-            // =========== [ Delete Surat (opsional) ] ===========
+                // =========== [ Delete Surat (opsional) ] ===========
             case 'DeleteSurat':
                 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
                 if ($id <= 0) {
@@ -182,12 +182,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 }
                 $stmt = $conn->prepare("DELETE FROM laporan_surat WHERE id = ?");
                 if (!$stmt) {
-                    echo json_encode(["code" => 1, "message" => "Query Error: ".$conn->error]);
+                    echo json_encode(["code" => 1, "message" => "Query Error: " . $conn->error]);
                     exit();
                 }
                 $stmt->bind_param("i", $id);
                 if (!$stmt->execute()) {
-                    echo json_encode(["code" => 1, "message" => "Gagal menghapus surat: ".$stmt->error]);
+                    echo json_encode(["code" => 1, "message" => "Gagal menghapus surat: " . $stmt->error]);
                 } else {
                     echo json_encode(["code" => 0, "message" => "Surat berhasil dihapus."]);
                 }
@@ -208,6 +208,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Laporan Surat Peringatan</title>
@@ -234,23 +235,29 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         body {
             font-family: "Nunito", sans-serif;
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .badge-terkirim {
             background-color: #0d6efd;
         }
+
         .badge-dibaca {
             background-color: #198754;
         }
+
         .modal-header {
             background-color: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
         }
+
         .modal-title {
             color: #000;
         }
+
         .modal-body {
             color: #000;
             font-size: 1rem;
@@ -258,191 +265,214 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         }
     </style>
 </head>
+
 <body id="page-top">
 
-<div id="wrapper">
-    <!-- Sidebar -->
-    <?php include __DIR__ . '/../sidebar.php'; ?>
-    <!-- End Sidebar -->
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../sidebar.php'; ?>
+        <!-- End Sidebar -->
 
-    <!-- Content Wrapper -->
-    <div id="content-wrapper" class="d-flex flex-column">
-        <!-- Main Content -->
-        <div id="content">
-            <!-- Topbar -->
-            <?php include __DIR__ . '/../navbar.php'; ?>
-            <!-- End Topbar -->
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
+                <!-- Topbar -->
+                <?php include __DIR__ . '/../navbar.php'; ?>
+                <!-- End Topbar -->
 
-            <!-- Page Content -->
-            <div class="container-fluid">
-                <h1 class="h3 mb-4 text-gray-800">
-                    <i class="fas fa-envelope-open-text me-2"></i>Laporan Surat
-                </h1>
+                <!-- Page Content -->
+                <div class="container-fluid">
+                    <h1 class="h3 mb-4 text-gray-800">
+                        <i class="fas fa-envelope-open-text me-2"></i>Laporan Surat
+                    </h1>
 
-                <!-- Card untuk tabel surat -->
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-white">
-                            <i class="fas fa-envelope me-1"></i> Daftar Surat
-                        </h6>
-                        <!-- Bisa tambahkan tombol di sini jika perlu -->
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <!-- Tabel DataTables (server-side) -->
-                            <table id="tabelSurat" 
-       class="table table-striped table-bordered table-hover" 
-       style="width:100%; white-space: normal; word-wrap: break-word;">
-
-    <thead class="table-light">
-        <tr>
-            <th>No</th>
-            <th>Dari (Pengirim)</th>
-            <th>Judul</th>
-            <th>Isi Singkat</th>
-            <th>Tanggal Keluar</th>
-            <th>Status</th>
-            <th>Aksi</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
+                    <!-- Card untuk tabel surat -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-envelope me-1"></i> Daftar Surat
+                            </h6>
+                            <!-- Bisa tambahkan tombol di sini jika perlu -->
                         </div>
-                    </div> <!-- End card-body -->
-                </div> <!-- End card -->
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <!-- Tabel DataTables (server-side) -->
+                                <table id="tabelSurat"
+                                    class="table table-striped table-bordered table-hover"
+                                    style="width:100%; white-space: normal; word-wrap: break-word;">
 
-            </div><!-- End Container Fluid -->
-        </div><!-- End Content -->
-    </div><!-- End Content Wrapper -->
-</div><!-- End Wrapper -->
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>No</th>
+                                            <th>Dari (Pengirim)</th>
+                                            <th>Judul</th>
+                                            <th>Isi Singkat</th>
+                                            <th>Tanggal Keluar</th>
+                                            <th>Status</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div> <!-- End card-body -->
+                    </div> <!-- End card -->
 
-<!-- Modal Detail Surat -->
-<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="detailModalLabel">Detail Surat</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-2"><strong>Dari:</strong> <span id="detailPengirim"></span></div>
-        <div class="mb-2"><strong>Tanggal:</strong> <span id="detailTanggal"></span></div>
-        <hr>
-        <div id="detailIsi" style="white-space: pre-wrap;"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-      </div>
+                </div><!-- End Container Fluid -->
+            </div><!-- End Content -->
+        </div><!-- End Content Wrapper -->
+    </div><!-- End Wrapper -->
+
+    <!-- Modal Detail Surat -->
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalLabel">Detail Surat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2"><strong>Dari:</strong> <span id="detailPengirim"></span></div>
+                    <div class="mb-2"><strong>Tanggal:</strong> <span id="detailTanggal"></span></div>
+                    <hr>
+                    <div id="detailIsi" style="white-space: pre-wrap;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- JS Dependencies -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JS Dependencies -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- DataTables JS -->
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
-<!-- DataTables Buttons (Export PDF/Excel/Print) + dependencies -->
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+    <!-- DataTables Buttons (Export PDF/Excel/Print) + dependencies -->
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
 
-<!-- DataTables Responsive JS -->
-<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+    <!-- DataTables Responsive JS -->
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
 
-<!-- SB Admin 2 (opsional) -->
-<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+    <!-- SB Admin 2 (opsional) -->
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
 
-<script>
-$(document).ready(function(){
-    var table = $('#tabelSurat').DataTable({
-    processing: true,
-    serverSide: true,
-    responsive: true, // Boleh diaktifkan agar kolom menyusut/tersembunyi
-    autoWidth: false, // Boleh tetap false agar lebar kolom tidak 'lompat'
+    <script>
+        $(document).ready(function() {
+            var table = $('#tabelSurat').DataTable({
+                processing: true,
+                serverSide: true,
+                responsive: true, // Boleh diaktifkan agar kolom menyusut/tersembunyi
+                autoWidth: false, // Boleh tetap false agar lebar kolom tidak 'lompat'
 
-    ajax: {
-        url: 'laporan_surat.php?ajax=1',
-        type: 'POST',
-        data: { case: 'LoadingSurat' }
-    },
-    columns: [
-        { data: 'no', name: 'no' },
-        { data: 'nama_pengirim', name: 'nama_pengirim' },
-        { data: 'judul', name: 'judul' },
-        { data: 'isi', name: 'isi' },
-        { data: 'tanggal_keluar', name: 'tanggal_keluar' },
-        { data: 'status', name: 'status' },
-        {
-            data: 'aksi',
-            name: 'aksi',
-            orderable: false,
-            searchable: false
-        }
-    ],
-    dom: 'Bfrtip',
-    buttons: [
-        { 
-            extend: 'excelHtml5', 
-            className: 'btn btn-success btn-sm',
-            text: '<i class="fas fa-file-excel me-1"></i> Export Excel'
-        },
-        { 
-            extend: 'pdfHtml5', 
-            className: 'btn btn-danger btn-sm',
-            text: '<i class="fas fa-file-pdf me-1"></i> Export PDF',
-            orientation: 'portrait', 
-            pageSize: 'A4'
-        },
-        { 
-            extend: 'print', 
-            className: 'btn btn-secondary btn-sm',
-            text: '<i class="fas fa-print me-1"></i> Print'
-        }
-    ]
-});
+                ajax: {
+                    url: 'laporan_surat.php?ajax=1',
+                    type: 'POST',
+                    data: {
+                        case: 'LoadingSurat'
+                    }
+                },
+                columns: [{
+                        data: 'no',
+                        name: 'no'
+                    },
+                    {
+                        data: 'nama_pengirim',
+                        name: 'nama_pengirim'
+                    },
+                    {
+                        data: 'judul',
+                        name: 'judul'
+                    },
+                    {
+                        data: 'isi',
+                        name: 'isi'
+                    },
+                    {
+                        data: 'tanggal_keluar',
+                        name: 'tanggal_keluar'
+                    },
+                    {
+                        data: 'status',
+                        name: 'status'
+                    },
+                    {
+                        data: 'aksi',
+                        name: 'aksi',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                dom: 'Bfrtip',
+                buttons: [{
+                        extend: 'excelHtml5',
+                        className: 'btn btn-success btn-sm',
+                        text: '<i class="fas fa-file-excel me-1"></i> Export Excel'
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        className: 'btn btn-danger btn-sm',
+                        text: '<i class="fas fa-file-pdf me-1"></i> Export PDF',
+                        orientation: 'portrait',
+                        pageSize: 'A4'
+                    },
+                    {
+                        extend: 'print',
+                        className: 'btn btn-secondary btn-sm',
+                        text: '<i class="fas fa-print me-1"></i> Print'
+                    }
+                ]
+            });
 
 
-    // Event untuk tombol "Lihat Detail" dsb. tetap sama
-    $(document).on('click', '.btn-detail', function(){
-        var btn = $(this);
-        var suratId = btn.data('id');
+            // Event untuk tombol "Lihat Detail" dsb. tetap sama
+            $(document).on('click', '.btn-detail', function() {
+                var btn = $(this);
+                var suratId = btn.data('id');
 
-        $.ajax({
-            url: "laporan_surat.php?ajax=1",
-            type: "POST",
-            data: { case: "UpdateStatus", id: suratId },
-            dataType: "json",
-            success: function(response){
-                if(response.code === 0){
-                    btn.closest('tr').find('span.badge')
-                       .removeClass('badge-terkirim')
-                       .addClass('badge-dibaca')
-                       .text('Dibaca');
-                }
-            }
+                $.ajax({
+                    url: "laporan_surat.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: "UpdateStatus",
+                        id: suratId
+                    },
+                    dataType: "json",
+                    success: function(response) {
+                        if (response.code === 0) {
+                            btn.closest('tr').find('span.badge')
+                                .removeClass('badge-terkirim')
+                                .addClass('badge-dibaca')
+                                .text('Dibaca');
+                        }
+                    }
+                });
+
+                $('#detailModalLabel').text(btn.data('judul'));
+                $('#detailPengirim').text(btn.data('pengirim'));
+                $('#detailTanggal').text(btn.data('tanggal'));
+                $('#detailIsi').html(btn.data('isi'));
+
+                var detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+                detailModal.show();
+            });
         });
-
-        $('#detailModalLabel').text(btn.data('judul'));
-        $('#detailPengirim').text(btn.data('pengirim'));
-        $('#detailTanggal').text(btn.data('tanggal'));
-        $('#detailIsi').html(btn.data('isi'));
-
-        var detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
-        detailModal.show();
-    });
-});
-</script>
+    </script>
 
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

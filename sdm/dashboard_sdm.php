@@ -65,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             ],
             'detailData' => $detailData
         ]);
-
     } elseif ($action === 'get_upcoming_holidays') {
         // ================
         // Ambil 5 hari libur terdekat
@@ -86,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         $stmt->close();
         send_response(0, $holidays);
-
     } elseif ($action === 'get_unpaid_summary') {
         // ================
         // Hitung anggota (per jenjang) yang BELUM di payroll final
@@ -120,7 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         $stmt->close();
         send_response(0, $unpaidData);
-
     } else {
         send_response(404, 'Aksi tidak dikenali.');
     }
@@ -147,6 +144,7 @@ if ($resTotal) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Dashboard SDM</title>
@@ -168,39 +166,50 @@ if ($resTotal) {
         .chart-container {
             position: relative;
             width: 100%;
-            height: 250px; /* agar muat di 1 kolom */
+            height: 250px;
+            /* agar muat di 1 kolom */
         }
+
         .card-body {
             overflow: hidden;
         }
+
         .clock {
             font-size: 1.5rem;
             text-align: center;
             margin-bottom: 10px;
         }
+
         .calendar {
             width: 100%;
             border-collapse: collapse;
         }
-        .calendar th, .calendar td {
+
+        .calendar th,
+        .calendar td {
             border: 1px solid #dee2e6;
             padding: 5px;
             text-align: center;
         }
+
         .calendar th {
             background-color: #f8f9fc;
         }
+
         .calendar .today {
             background-color: #42a5f5;
             color: #fff;
             font-weight: bold;
         }
+
         .border-left-info {
             border-left: .25rem solid #36b9cc !important;
         }
+
         .border-left-primary {
             border-left: .25rem solid #4e73df !important;
         }
+
         #loadingSpinner {
             display: none;
             position: fixed;
@@ -213,474 +222,510 @@ if ($resTotal) {
         }
     </style>
 </head>
+
 <body id="page-top">
-<div id="wrapper">
-    <!-- Sidebar -->
-    <?php include __DIR__ . '/../sidebar.php'; ?>
-    <!-- End of Sidebar -->
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../sidebar.php'; ?>
+        <!-- End of Sidebar -->
 
-    <!-- Content Wrapper -->
-    <div id="content-wrapper" class="d-flex flex-column">
-        <!-- Main Content -->
-        <div id="content">
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
 
-            <!-- Topbar -->
-            <?php include __DIR__ . '/../navbar.php'; ?>
-            <!-- End of Topbar -->
+                <!-- Topbar -->
+                <?php include __DIR__ . '/../navbar.php'; ?>
+                <!-- End of Topbar -->
 
-            <!-- (Optional) Breadcrumb -->
-            <?php include __DIR__ . '/../breadcrumb.php'; ?>
+                <!-- (Optional) Breadcrumb -->
+                <?php include __DIR__ . '/../breadcrumb.php'; ?>
 
-            <!-- Begin Page Content -->
-            <div class="container-fluid">
-                <h1 class="h3 mb-4 text-gray-800">
-                    <i class="fas fa-users me-2"></i>Dashboard SDM
-                </h1>
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+                    <h1 class="h3 mb-4 text-gray-800">
+                        <i class="fas fa-users me-2"></i>Dashboard SDM
+                    </h1>
 
-                <!-- Filter Periode (opsional) -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <i class="bi bi-filter"></i> Filter Periode
-                    </div>
-                    <div class="card-body">
-                        <div class="row align-items-end g-3">
-                            <div class="col-md-3">
-                                <label for="filterBulan" class="form-label">Bulan</label>
-                                <select id="filterBulan" class="form-select">
-                                    <?php
-                                    $bulanNow = date('n');
-                                    for ($m = 1; $m <= 12; $m++) {
-                                        $selected = ($m == $bulanNow) ? 'selected' : '';
-                                        echo "<option value='$m' $selected>$m</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="filterTahun" class="form-label">Tahun</label>
-                                <select id="filterTahun" class="form-select">
-                                    <?php
-                                    $yearNow = date('Y');
-                                    for ($y = $yearNow - 3; $y <= $yearNow + 3; $y++) {
-                                        $sel = ($y == $yearNow) ? 'selected' : '';
-                                        echo "<option value='$y' $sel>$y</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            <div class="col-md-3 mt-2">
-                                <button id="btnApplyFilter" class="btn btn-primary w-100">
-                                    <i class="bi bi-search"></i> Terapkan
-                                </button>
-                            </div>
+                    <!-- Filter Periode (opsional) -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="bi bi-filter"></i> Filter Periode
                         </div>
-                    </div>
-                </div>
-
-                <!-- Row Pertama: "Total Anggota Sekolah" & "Upcoming Holidays" -->
-                <div class="row mb-4">
-                    <!-- Total Anggota Sekolah -->
-                    <div class="col-xl-6 col-md-6 mb-4">
-                        <div class="card border-left-primary shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col me-2 text-start">
-                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            <i class="fas fa-users"></i> Total Anggota Sekolah
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            <?= number_format($totalAnggota) ?>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-users fa-2x text-gray-300"></i>
-                                    </div>
+                        <div class="card-body">
+                            <div class="row align-items-end g-3">
+                                <div class="col-md-3">
+                                    <label for="filterBulan" class="form-label">Bulan</label>
+                                    <select id="filterBulan" class="form-select">
+                                        <?php
+                                        $bulanNow = date('n');
+                                        for ($m = 1; $m <= 12; $m++) {
+                                            $selected = ($m == $bulanNow) ? 'selected' : '';
+                                            echo "<option value='$m' $selected>$m</option>";
+                                        }
+                                        ?>
+                                    </select>
                                 </div>
-                                <small class="text-muted d-block mt-2">
-                                    Anggota mencakup guru & karyawan di semua jenjang.
-                                </small>
+                                <div class="col-md-3">
+                                    <label for="filterTahun" class="form-label">Tahun</label>
+                                    <select id="filterTahun" class="form-select">
+                                        <?php
+                                        $yearNow = date('Y');
+                                        for ($y = $yearNow - 3; $y <= $yearNow + 3; $y++) {
+                                            $sel = ($y == $yearNow) ? 'selected' : '';
+                                            echo "<option value='$y' $sel>$y</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mt-2">
+                                    <button id="btnApplyFilter" class="btn btn-primary w-100">
+                                        <i class="bi bi-search"></i> Terapkan
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <!-- Upcoming Holidays -->
-                    <div class="col-xl-6 col-md-6 mb-4">
-                        <div class="card border-left-info shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col me-2 text-start">
-                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                            <i class="fas fa-calendar-alt"></i> Upcoming Holidays
+
+                    <!-- Row Pertama: "Total Anggota Sekolah" & "Upcoming Holidays" -->
+                    <div class="row mb-4">
+                        <!-- Total Anggota Sekolah -->
+                        <div class="col-xl-6 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col me-2 text-start">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                <i class="fas fa-users"></i> Total Anggota Sekolah
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                <?= number_format($totalAnggota) ?>
+                                            </div>
                                         </div>
-                                        <!-- Daftar 5 hari libur terdekat -->
-                                        <div id="holidaysList" class="mt-2">
-                                            <!-- Diisi via AJAX -->
+                                        <div class="col-auto">
+                                            <i class="fas fa-users fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                                    <small class="text-muted d-block mt-2">
+                                        Anggota mencakup guru & karyawan di semua jenjang.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Upcoming Holidays -->
+                        <div class="col-xl-6 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col me-2 text-start">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                <i class="fas fa-calendar-alt"></i> Upcoming Holidays
+                                            </div>
+                                            <!-- Daftar 5 hari libur terdekat -->
+                                            <div id="holidaysList" class="mt-2">
+                                                <!-- Diisi via AJAX -->
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">
+                                        Menampilkan 5 hari libur mendatang.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row Kedua (3 kolom): Live Calendar & Clock, Belum di Payroll Final, Jumlah Anggota per Jenjang -->
+                    <div class="row mb-4">
+                        <!-- Kolom 1: Live Calendar & Clock (WIB) -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header bg-info text-white">
+                                    <strong><i class="fas fa-clock me-1"></i>Live Calendar & Clock (WIB)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="clock" id="digitalClock"></div>
+                                    <div id="calendarContainer"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kolom 2: Belum di Payroll Final -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header bg-danger text-white">
+                                    <strong><i class="fas fa-exclamation-circle me-1"></i>Belum di Payroll Final</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div id="unpaidSummaryContainer" class="mb-3"></div>
+                                    <div style="height: 250px;">
+                                        <canvas id="unpaidSummaryChart"></canvas>
                                     </div>
                                 </div>
-                                <small class="text-muted d-block mt-2">
-                                    Menampilkan 5 hari libur mendatang.
-                                </small>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Row Kedua (3 kolom): Live Calendar & Clock, Belum di Payroll Final, Jumlah Anggota per Jenjang -->
-                <div class="row mb-4">
-                    <!-- Kolom 1: Live Calendar & Clock (WIB) -->
-                    <div class="col-lg-4 mb-4">
-                        <div class="card shadow h-100">
-                            <div class="card-header bg-info text-white">
-                                <strong><i class="fas fa-clock me-1"></i>Live Calendar & Clock (WIB)</strong>
-                            </div>
-                            <div class="card-body">
-                                <div class="clock" id="digitalClock"></div>
-                                <div id="calendarContainer"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Kolom 2: Belum di Payroll Final -->
-                    <div class="col-lg-4 mb-4">
-                        <div class="card shadow h-100">
-                            <div class="card-header bg-danger text-white">
-                                <strong><i class="fas fa-exclamation-circle me-1"></i>Belum di Payroll Final</strong>
-                            </div>
-                            <div class="card-body">
-                                <div id="unpaidSummaryContainer" class="mb-3"></div>
-                                <div style="height: 250px;">
-                                    <canvas id="unpaidSummaryChart"></canvas>
+                        <!-- Kolom 3: Jumlah Anggota per Jenjang (Pie Chart) -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card shadow">
+                                <div class="card-header bg-primary text-white">
+                                    <strong><i class="fas fa-chart-pie me-1"></i> Jumlah Anggota per Jenjang</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container mb-3">
+                                        <canvas id="payrollChart"></canvas>
+                                    </div>
+                                    <div id="payrollDetailTable" class="small">
+                                        <!-- Tabel ringkasan diisi AJAX -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <!-- End Row Kedua -->
 
-                    <!-- Kolom 3: Jumlah Anggota per Jenjang (Pie Chart) -->
-                    <div class="col-lg-4 mb-4">
-                        <div class="card shadow">
-                            <div class="card-header bg-primary text-white">
-                                <strong><i class="fas fa-chart-pie me-1"></i> Jumlah Anggota per Jenjang</strong>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-container mb-3">
-                                    <canvas id="payrollChart"></canvas>
-                                </div>
-                                <div id="payrollDetailTable" class="small">
-                                    <!-- Tabel ringkasan diisi AJAX -->
-                                </div>
-                            </div>
-                        </div>
+                </div><!-- /.container-fluid -->
+            </div><!-- End #content -->
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
                     </div>
                 </div>
-                <!-- End Row Kedua -->
+            </footer>
+            <!-- End Footer -->
+        </div><!-- End Content Wrapper -->
+    </div><!-- End #wrapper -->
 
-            </div><!-- /.container-fluid -->
-        </div><!-- End #content -->
-
-        <!-- Footer -->
-        <footer class="sticky-footer bg-white">
-            <div class="container my-auto">
-                <div class="copyright text-center my-auto">
-                    <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
-                </div>
-            </div>
-        </footer>
-        <!-- End Footer -->
-    </div><!-- End Content Wrapper -->
-</div><!-- End #wrapper -->
-
-<!-- Loading Spinner -->
-<div id="loadingSpinner">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
     </div>
-</div>
 
-<!-- Bootstrap 5 JS Bundle -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
 
-<script>
-$(document).ready(function(){
+    <script>
+        $(document).ready(function() {
 
-    // Deklarasi chart global (tidak double-declare)
-    let payrollChart = null;
-    let unpaidChart  = null;
+            // Deklarasi chart global (tidak double-declare)
+            let payrollChart = null;
+            let unpaidChart = null;
 
-    function showSpinner() { $('#loadingSpinner').show(); }
-    function hideSpinner() { $('#loadingSpinner').hide(); }
-
-    // SweetAlert2 Toast
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-        }
-    });
-    function showToast(msg, icon='success') {
-        Toast.fire({ icon, title: msg });
-    }
-
-    // 1) Pie Chart: Jumlah Anggota per Jenjang
-    function fetchPayrollDashboardData() {
-        showSpinner();
-        $.ajax({
-            url: 'dashboard_sdm.php',
-            type: 'POST',
-            data: {
-                action: 'get_payroll_dashboard',
-                csrf_token: '<?= $_SESSION['csrf_token']; ?>'
-            },
-            dataType: 'json',
-            success: function(resp) {
-                hideSpinner();
-                if(resp.code===0) {
-                    renderPayrollDashboard(resp.result);
-                } else {
-                    showToast(resp.result, 'error');
-                }
-            },
-            error: function(){
-                hideSpinner();
-                showToast('Gagal memuat data Pie Chart.', 'error');
+            function showSpinner() {
+                $('#loadingSpinner').show();
             }
-        });
-    }
-    function renderPayrollDashboard(data) {
-        const { chartData, detailData } = data;
-        const ctx = document.getElementById('payrollChart').getContext('2d');
 
-        if(payrollChart) {
-            payrollChart.destroy();
-        }
-
-        payrollChart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    data: chartData.data,
-                    backgroundColor: chartData.colors,
-                    borderWidth:1
-                }]
-            },
-            options: {
-                responsive:true,
-                plugins:{
-                    legend:{ position:'bottom' }
-                }
+            function hideSpinner() {
+                $('#loadingSpinner').hide();
             }
-        });
 
-        let html = '<table class="table table-bordered table-sm">';
-        html += '<thead><tr><th>Jenjang</th><th>Total</th><th>P</th><th>TK</th><th>M</th></tr></thead><tbody>';
-        detailData.forEach(d => {
-            html += `<tr>
+            // SweetAlert2 Toast
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+
+            function showToast(msg, icon = 'success') {
+                Toast.fire({
+                    icon,
+                    title: msg
+                });
+            }
+
+            // 1) Pie Chart: Jumlah Anggota per Jenjang
+            function fetchPayrollDashboardData() {
+                showSpinner();
+                $.ajax({
+                    url: 'dashboard_sdm.php',
+                    type: 'POST',
+                    data: {
+                        action: 'get_payroll_dashboard',
+                        csrf_token: '<?= $_SESSION['csrf_token']; ?>'
+                    },
+                    dataType: 'json',
+                    success: function(resp) {
+                        hideSpinner();
+                        if (resp.code === 0) {
+                            renderPayrollDashboard(resp.result);
+                        } else {
+                            showToast(resp.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        hideSpinner();
+                        showToast('Gagal memuat data Pie Chart.', 'error');
+                    }
+                });
+            }
+
+            function renderPayrollDashboard(data) {
+                const {
+                    chartData,
+                    detailData
+                } = data;
+                const ctx = document.getElementById('payrollChart').getContext('2d');
+
+                if (payrollChart) {
+                    payrollChart.destroy();
+                }
+
+                payrollChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            data: chartData.data,
+                            backgroundColor: chartData.colors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+
+                let html = '<table class="table table-bordered table-sm">';
+                html += '<thead><tr><th>Jenjang</th><th>Total</th><th>P</th><th>TK</th><th>M</th></tr></thead><tbody>';
+                detailData.forEach(d => {
+                    html += `<tr>
                         <td>${d.jenjang || '-'}</td>
                         <td>${d.total}</td>
                         <td>${d.P ?? 0}</td>
                         <td>${d.TK ?? 0}</td>
                         <td>${d.M ?? 0}</td>
                      </tr>`;
-        });
-        html += '</tbody></table>';
-        $('#payrollDetailTable').html(html);
-    }
-
-    // 2) Upcoming Holidays
-    function fetchUpcomingHolidays() {
-        showSpinner();
-        $.ajax({
-            url: 'dashboard_sdm.php',
-            type: 'POST',
-            data: {
-                action: 'get_upcoming_holidays',
-                csrf_token: '<?= $_SESSION['csrf_token']; ?>'
-            },
-            dataType: 'json',
-            success: function(resp) {
-                hideSpinner();
-                if(resp.code===0) {
-                    renderHolidays(resp.result);
-                } else {
-                    showToast(resp.result, 'error');
-                }
-            },
-            error: function(){
-                hideSpinner();
-                showToast('Gagal memuat data Holidays.', 'error');
+                });
+                html += '</tbody></table>';
+                $('#payrollDetailTable').html(html);
             }
-        });
-    }
-    function renderHolidays(data) {
-        let html = '';
-        if(!data || data.length===0) {
-            html = '<div class="text-muted">Tidak ada hari libur mendatang.</div>';
-        } else {
-            data.forEach(h => {
-                html += `<div class="mb-1">
+
+            // 2) Upcoming Holidays
+            function fetchUpcomingHolidays() {
+                showSpinner();
+                $.ajax({
+                    url: 'dashboard_sdm.php',
+                    type: 'POST',
+                    data: {
+                        action: 'get_upcoming_holidays',
+                        csrf_token: '<?= $_SESSION['csrf_token']; ?>'
+                    },
+                    dataType: 'json',
+                    success: function(resp) {
+                        hideSpinner();
+                        if (resp.code === 0) {
+                            renderHolidays(resp.result);
+                        } else {
+                            showToast(resp.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        hideSpinner();
+                        showToast('Gagal memuat data Holidays.', 'error');
+                    }
+                });
+            }
+
+            function renderHolidays(data) {
+                let html = '';
+                if (!data || data.length === 0) {
+                    html = '<div class="text-muted">Tidak ada hari libur mendatang.</div>';
+                } else {
+                    data.forEach(h => {
+                        html += `<div class="mb-1">
                     <strong>${h.holiday_title}</strong> (${h.holiday_date})<br>
                     <small class="text-muted">${h.holiday_desc}</small>
                 </div>`;
-            });
-        }
-        $('#holidaysList').html(html);
-    }
+                    });
+                }
+                $('#holidaysList').html(html);
+            }
 
-    // 3) Live Calendar & Clock
-    function updateClock() {
-        let now = new Date();
-        let opt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' };
-        $('#digitalClock').text(new Intl.DateTimeFormat('id-ID', opt).format(now));
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+            // 3) Live Calendar & Clock
+            function updateClock() {
+                let now = new Date();
+                let opt = {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                    timeZone: 'Asia/Jakarta'
+                };
+                $('#digitalClock').text(new Intl.DateTimeFormat('id-ID', opt).format(now));
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
 
-    function buildCalendar() {
-        let today = new Date();
-        let currentYear  = today.getFullYear();
-        let currentMonth = today.getMonth();
-        let currentDate  = today.getDate();
+            function buildCalendar() {
+                let today = new Date();
+                let currentYear = today.getFullYear();
+                let currentMonth = today.getMonth();
+                let currentDate = today.getDate();
 
-        let monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-        let dayNames   = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+                let monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                let dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
-        let calHtml = `<h5 class="text-center mb-2">${monthNames[currentMonth]} ${currentYear}</h5>`;
-        calHtml += '<table class="calendar"><thead><tr>';
-        dayNames.forEach(d => { calHtml += `<th>${d}</th>`; });
-        calHtml += '</tr></thead><tbody>';
+                let calHtml = `<h5 class="text-center mb-2">${monthNames[currentMonth]} ${currentYear}</h5>`;
+                calHtml += '<table class="calendar"><thead><tr>';
+                dayNames.forEach(d => {
+                    calHtml += `<th>${d}</th>`;
+                });
+                calHtml += '</tr></thead><tbody>';
 
-        let firstDay    = new Date(currentYear, currentMonth, 1).getDay();
-        let daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
-        let day = 1;
-        for(let row=0; row<6; row++){
-            calHtml += '<tr>';
-            for(let col=0; col<7; col++){
-                if(row===0 && col<firstDay){
-                    calHtml += '<td></td>';
-                } else if(day>daysInMonth){
-                    calHtml += '<td></td>';
-                } else {
-                    if(day===currentDate){
-                        calHtml += `<td class="today">${day}</td>`;
-                    } else {
-                        calHtml += `<td>${day}</td>`;
+                let firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                let daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                let day = 1;
+                for (let row = 0; row < 6; row++) {
+                    calHtml += '<tr>';
+                    for (let col = 0; col < 7; col++) {
+                        if (row === 0 && col < firstDay) {
+                            calHtml += '<td></td>';
+                        } else if (day > daysInMonth) {
+                            calHtml += '<td></td>';
+                        } else {
+                            if (day === currentDate) {
+                                calHtml += `<td class="today">${day}</td>`;
+                            } else {
+                                calHtml += `<td>${day}</td>`;
+                            }
+                            day++;
+                        }
                     }
-                    day++;
+                    calHtml += '</tr>';
+                    if (day > daysInMonth) break;
                 }
+                calHtml += '</tbody></table>';
+                $('#calendarContainer').html(calHtml);
             }
-            calHtml += '</tr>';
-            if(day>daysInMonth) break;
-        }
-        calHtml += '</tbody></table>';
-        $('#calendarContainer').html(calHtml);
-    }
-    buildCalendar();
+            buildCalendar();
 
-    // 4) Unpaid Summary
-    function fetchUnpaidSummary(bulan, tahun) {
-        showSpinner();
-        $.ajax({
-            url: 'dashboard_sdm.php',
-            type: 'POST',
-            data: {
-                action:'get_unpaid_summary',
-                bulan, tahun,
-                csrf_token:'<?= $_SESSION['csrf_token']; ?>'
-            },
-            dataType:'json',
-            success:function(resp){
-                hideSpinner();
-                if(resp.code===0){
-                    renderUnpaidSummary(resp.result);
-                } else {
-                    showToast(resp.result, 'error');
-                }
-            },
-            error:function(){
-                hideSpinner();
-                showToast('Gagal memuat data Unpaid Summary.', 'error');
+            // 4) Unpaid Summary
+            function fetchUnpaidSummary(bulan, tahun) {
+                showSpinner();
+                $.ajax({
+                    url: 'dashboard_sdm.php',
+                    type: 'POST',
+                    data: {
+                        action: 'get_unpaid_summary',
+                        bulan,
+                        tahun,
+                        csrf_token: '<?= $_SESSION['csrf_token']; ?>'
+                    },
+                    dataType: 'json',
+                    success: function(resp) {
+                        hideSpinner();
+                        if (resp.code === 0) {
+                            renderUnpaidSummary(resp.result);
+                        } else {
+                            showToast(resp.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        hideSpinner();
+                        showToast('Gagal memuat data Unpaid Summary.', 'error');
+                    }
+                });
             }
-        });
-    }
-    function renderUnpaidSummary(data){
-        let c = $('#unpaidSummaryContainer');
-        if(!data || data.length===0){
-            c.html('<div class="alert alert-success mb-2">Semua anggota sudah di payroll final untuk periode ini.</div>');
-            if(unpaidChart) { unpaidChart.destroy(); unpaidChart=null; }
-            return;
-        }
-        let totalAll=0;
-        let html='<ul class="list-group mb-3">';
-        data.forEach(d=>{
-            html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+
+            function renderUnpaidSummary(data) {
+                let c = $('#unpaidSummaryContainer');
+                if (!data || data.length === 0) {
+                    c.html('<div class="alert alert-success mb-2">Semua anggota sudah di payroll final untuk periode ini.</div>');
+                    if (unpaidChart) {
+                        unpaidChart.destroy();
+                        unpaidChart = null;
+                    }
+                    return;
+                }
+                let totalAll = 0;
+                let html = '<ul class="list-group mb-3">';
+                data.forEach(d => {
+                    html += `<li class="list-group-item d-flex justify-content-between align-items-center">
                        <strong>${d.jenjang}</strong>
                        <span class="badge bg-danger">${d.total} Belum Final</span>
                      </li>`;
-            totalAll += d.total;
-        });
-        html += '</ul>';
-        html += `<p class="fw-bold">Total belum final: ${totalAll}</p>`;
-        c.html(html);
+                    totalAll += d.total;
+                });
+                html += '</ul>';
+                html += `<p class="fw-bold">Total belum final: ${totalAll}</p>`;
+                c.html(html);
 
-        let ctx = document.getElementById('unpaidSummaryChart').getContext('2d');
-        if(unpaidChart) unpaidChart.destroy();
+                let ctx = document.getElementById('unpaidSummaryChart').getContext('2d');
+                if (unpaidChart) unpaidChart.destroy();
 
-        unpaidChart = new Chart(ctx, {
-            type:'bar',
-            data:{
-                labels:data.map(d=>d.jenjang),
-                datasets:[{
-                    label:'Belum di Payroll Final',
-                    data:data.map(d=>d.total),
-                    backgroundColor:'rgba(255,99,132,0.6)',
-                    borderColor:'rgba(255,99,132,1)',
-                    borderWidth:1
-                }]
-            },
-            options:{
-                responsive:true,
-                scales:{
-                    y:{ beginAtZero:true, ticks:{ precision:0 } }
-                }
+                unpaidChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d.jenjang),
+                        datasets: [{
+                            label: 'Belum di Payroll Final',
+                            data: data.map(d => d.total),
+                            backgroundColor: 'rgba(255,99,132,0.6)',
+                            borderColor: 'rgba(255,99,132,1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
             }
+
+            // ============ Inisialisasi ============
+
+            // 1. Pie Chart Anggota per Jenjang
+            fetchPayrollDashboardData();
+
+            // 2. Upcoming Holidays
+            fetchUpcomingHolidays();
+
+            // 3. Unpaid Summary (default: bulan & tahun saat ini)
+            let now = new Date();
+            let currentMonth = now.getMonth() + 1;
+            let currentYear = now.getFullYear();
+            fetchUnpaidSummary(currentMonth, currentYear);
+
+            // Tombol Filter Periode
+            $('#btnApplyFilter').on('click', function() {
+                let selBulan = parseInt($('#filterBulan').val()) || currentMonth;
+                let selTahun = parseInt($('#filterTahun').val()) || currentYear;
+                currentMonth = selBulan;
+                currentYear = selTahun;
+                fetchUnpaidSummary(currentMonth, currentYear);
+                showToast(`Menampilkan data untuk periode ${selBulan}-${selTahun}`, 'info');
+            });
         });
-    }
-
-    // ============ Inisialisasi ============
-
-    // 1. Pie Chart Anggota per Jenjang
-    fetchPayrollDashboardData();
-
-    // 2. Upcoming Holidays
-    fetchUpcomingHolidays();
-
-    // 3. Unpaid Summary (default: bulan & tahun saat ini)
-    let now = new Date();
-    let currentMonth = now.getMonth()+1;
-    let currentYear  = now.getFullYear();
-    fetchUnpaidSummary(currentMonth, currentYear);
-
-    // Tombol Filter Periode
-    $('#btnApplyFilter').on('click', function(){
-        let selBulan = parseInt($('#filterBulan').val()) || currentMonth;
-        let selTahun = parseInt($('#filterTahun').val()) || currentYear;
-        currentMonth = selBulan;
-        currentYear  = selTahun;
-        fetchUnpaidSummary(currentMonth, currentYear);
-        showToast(`Menampilkan data untuk periode ${selBulan}-${selTahun}`, 'info');
-    });
-});
-</script>
+    </script>
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

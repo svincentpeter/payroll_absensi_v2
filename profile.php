@@ -156,10 +156,18 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             }
             $stmtUpd->bind_param(
                 "sssssssssssis",
-                $nip, $nama, $jenjang, $job_title,
-                $no_hp, $email, $alamat_domisili,
-                $tanggal_lahir, $pendidikan, $status_perkawinan,
-                $password_hashed, $final_foto_profil,
+                $nip,
+                $nama,
+                $jenjang,
+                $job_title,
+                $no_hp,
+                $email,
+                $alamat_domisili,
+                $tanggal_lahir,
+                $pendidikan,
+                $status_perkawinan,
+                $password_hashed,
+                $final_foto_profil,
                 $id
             );
         } else {
@@ -175,9 +183,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             }
             $stmtUpd->bind_param(
                 "sssssssssssi",
-                $nip, $nama, $jenjang, $job_title,
-                $no_hp, $email, $alamat_domisili,
-                $tanggal_lahir, $pendidikan, $status_perkawinan,
+                $nip,
+                $nama,
+                $jenjang,
+                $job_title,
+                $no_hp,
+                $email,
+                $alamat_domisili,
+                $tanggal_lahir,
+                $pendidikan,
+                $status_perkawinan,
                 $final_foto_profil,
                 $id
             );
@@ -244,6 +259,7 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Profile - Payroll System</title>
@@ -258,6 +274,7 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
             max-width: 1000px;
             margin: 20px auto;
         }
+
         .profile-img {
             width: 180px;
             height: 180px;
@@ -266,20 +283,24 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
             border-radius: 50%;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
+
         @media (max-width: 576px) {
             .profile-img {
                 width: 140px;
                 height: 140px;
             }
         }
+
         .profile-data-row {
             margin-bottom: 0.75rem;
         }
+
         .profile-data-row .col-sm-4 {
             font-weight: 600;
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -318,9 +339,9 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                             <div class="row">
                                 <!-- Foto Profil -->
                                 <div class="col-md-4 text-center mb-3 d-flex flex-column align-items-center">
-                                    <img src="<?= htmlspecialchars($foto_profil); ?>" 
-                                         alt="Foto Profil" 
-                                         class="img-fluid rounded-circle profile-img mb-3">
+                                    <img src="<?= htmlspecialchars($foto_profil); ?>"
+                                        alt="Foto Profil"
+                                        class="img-fluid rounded-circle profile-img mb-3">
                                     <h5 class="text-primary"><?= htmlspecialchars($profile['nama']); ?></h5>
                                     <span class="text-muted"><?= htmlspecialchars($profile['job_title'] ?: ''); ?></span>
                                 </div>
@@ -352,16 +373,16 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                                                 <div class="col-sm-8"><?= $tanggalLahirFormatted; ?></div>
                                             </div>
                                             <?php if (!empty($profile['usia'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Usia</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['usia']); ?> tahun</div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Usia</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['usia']); ?> tahun</div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['agama'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Agama</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['agama']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Agama</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['agama']); ?></div>
+                                                </div>
                                             <?php endif; ?>
 
                                             <hr class="my-3">
@@ -370,28 +391,28 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                                                 <i class="fas fa-address-book me-1"></i>Kontak & Alamat
                                             </h6>
                                             <?php if (!empty($profile['email'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Email</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['email']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Email</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['email']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['no_hp'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">No. HP</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['no_hp']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">No. HP</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['no_hp']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['alamat_domisili'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Domisili</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['alamat_domisili']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Domisili</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['alamat_domisili']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['alamat_ktp'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Alamat KTP</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['alamat_ktp']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Alamat KTP</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['alamat_ktp']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                         </div>
 
@@ -401,44 +422,44 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                                                 <i class="fas fa-briefcase me-1"></i>Informasi Profesional
                                             </h6>
                                             <?php if (!empty($profile['jenjang'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Jenjang</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['jenjang']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Jenjang</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['jenjang']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['status_kerja'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Status</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['status_kerja']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Status</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['status_kerja']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['join_start'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Join</div>
-                                                <div class="col-sm-8">
-                                                    <?= date('d F Y', strtotime($profile['join_start'])); ?>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Join</div>
+                                                    <div class="col-sm-8">
+                                                        <?= date('d F Y', strtotime($profile['join_start'])); ?>
+                                                    </div>
                                                 </div>
-                                            </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['masa_kerja_tahun']) || !empty($profile['masa_kerja_bulan'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Masa Kerja</div>
-                                                <div class="col-sm-8">
-                                                    <?= $profile['masa_kerja_tahun'] . ' th ' . $profile['masa_kerja_bulan'] . ' bln'; ?>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Masa Kerja</div>
+                                                    <div class="col-sm-8">
+                                                        <?= $profile['masa_kerja_tahun'] . ' th ' . $profile['masa_kerja_bulan'] . ' bln'; ?>
+                                                    </div>
                                                 </div>
-                                            </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['remark'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Catatan</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['remark']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Catatan</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['remark']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['pendidikan'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Pendidikan</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['pendidikan']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Pendidikan</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['pendidikan']); ?></div>
+                                                </div>
                                             <?php endif; ?>
 
                                             <hr class="my-3">
@@ -447,40 +468,40 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                                                 <i class="fas fa-user-friends me-1"></i>Informasi Keluarga
                                             </h6>
                                             <?php if (!empty($profile['status_perkawinan'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Status</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['status_perkawinan']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Status</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['status_perkawinan']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['nama_pasangan'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Pasangan</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['nama_pasangan']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Pasangan</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['nama_pasangan']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (isset($profile['jumlah_anak'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Anak</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['jumlah_anak']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Anak</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['jumlah_anak']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['nama_anak_1'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Anak 1</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['nama_anak_1']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Anak 1</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['nama_anak_1']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['nama_anak_2'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Anak 2</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['nama_anak_2']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Anak 2</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['nama_anak_2']); ?></div>
+                                                </div>
                                             <?php endif; ?>
                                             <?php if (!empty($profile['nama_anak_3'])): ?>
-                                            <div class="row profile-data-row">
-                                                <div class="col-sm-4">Anak 3</div>
-                                                <div class="col-sm-8"><?= htmlspecialchars($profile['nama_anak_3']); ?></div>
-                                            </div>
+                                                <div class="row profile-data-row">
+                                                    <div class="col-sm-4">Anak 3</div>
+                                                    <div class="col-sm-8"><?= htmlspecialchars($profile['nama_anak_3']); ?></div>
+                                                </div>
                                             <?php endif; ?>
 
                                             <hr class="my-3">
@@ -524,184 +545,184 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
 
     <!-- MODAL: Edit Profil -->
     <div class="modal fade" id="modalEditProfile" tabindex="-1" aria-labelledby="modalEditProfileLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-          <form id="edit-profile-form" class="needs-validation" novalidate enctype="multipart/form-data">
-            <div class="modal-header bg-primary text-white">
-              <h5 class="modal-title" id="modalEditProfileLabel">
-                <i class="fas fa-user-edit me-2"></i>Edit Profil
-              </h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <form id="edit-profile-form" class="needs-validation" novalidate enctype="multipart/form-data">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="modalEditProfileLabel">
+                            <i class="fas fa-user-edit me-2"></i>Edit Profil
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="container-fluid">
+                            <!-- Grup: Identitas Pribadi -->
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-id-card me-2"></i>Identitas Pribadi
+                            </h5>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="uid" class="form-label">UID</label>
+                                    <input type="text" id="uid" class="form-control" value="<?= htmlspecialchars($profile['uid']); ?>" readonly style="color: #000;">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="nip" class="form-label">NIP</label>
+                                    <input type="text" id="nip" class="form-control" value="<?= htmlspecialchars($profile['nip']); ?>" readonly style="color: #000;">
+                                    <input type="hidden" name="nip" value="<?= htmlspecialchars($profile['nip']); ?>">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="status_kerja" class="form-label">Status Kerja</label>
+                                    <input type="text" id="status_kerja" class="form-control" value="<?= htmlspecialchars($profile['status_kerja']); ?>" readonly style="color: #000;">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="editNama" class="form-label">Nama <span class="text-danger">*</span></label>
+                                    <input type="text" name="nama" id="editNama" class="form-control"
+                                        value="<?= htmlspecialchars($profile['nama']); ?>" required style="color: #000;">
+                                    <div class="invalid-feedback">Nama wajib diisi.</div>
+                                </div>
+                            </div>
+                            <hr>
+
+                            <!-- Grup: Kontak & Alamat -->
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-address-book me-2"></i>Kontak & Alamat
+                            </h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editNoHP" class="form-label">No. HP</label>
+                                    <input type="text" name="no_hp" id="editNoHP" class="form-control"
+                                        value="<?= htmlspecialchars($profile['no_hp'] ?? ''); ?>" style="color: #000;">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editEmail" class="form-label">Email</label>
+                                    <input type="email" name="email" id="editEmail" class="form-control"
+                                        value="<?= htmlspecialchars($profile['email'] ?? ''); ?>" style="color: #000;">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label for="editAlamatDomisili" class="form-label">Alamat Domisili</label>
+                                    <textarea name="alamat_domisili" id="editAlamatDomisili" rows="2" class="form-control" style="color: #000;"><?= htmlspecialchars($profile['alamat_domisili'] ?? ''); ?></textarea>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editTanggalLahir" class="form-label">Tanggal Lahir</label>
+                                    <input type="date" name="tanggal_lahir" id="editTanggalLahir" class="form-control"
+                                        value="<?= htmlspecialchars($profile['tanggal_lahir'] ?? ''); ?>" style="color: #000;">
+                                </div>
+                            </div>
+                            <hr>
+
+                            <!-- Grup: Informasi Profesional -->
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-briefcase me-2"></i>Informasi Profesional
+                            </h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="jenjang" class="form-label">Jenjang</label>
+                                    <input type="text" id="jenjang" class="form-control"
+                                        value="<?= htmlspecialchars($profile['jenjang']); ?>" readonly style="color: #000;">
+                                    <input type="hidden" name="jenjang" value="<?= htmlspecialchars($profile['jenjang']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="job_title" class="form-label">Pekerjaan</label>
+                                    <input type="text" id="job_title" class="form-control"
+                                        value="<?= htmlspecialchars($profile['job_title']); ?>" readonly style="color: #000;">
+                                    <input type="hidden" name="job_title" value="<?= htmlspecialchars($profile['job_title']); ?>">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="join_start" class="form-label">Bergabung Sejak</label>
+                                    <input type="text" id="join_start" class="form-control"
+                                        value="<?= !empty($profile['join_start']) ? date('d F Y', strtotime($profile['join_start'])) : '-'; ?>" readonly style="color: #000;">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="masa_kerja" class="form-label">Masa Kerja</label>
+                                    <input type="text" id="masa_kerja" class="form-control"
+                                        value="<?= $profile['masa_kerja_tahun'] . ' tahun ' . $profile['masa_kerja_bulan'] . ' bulan'; ?>" readonly style="color: #000;">
+                                </div>
+                            </div>
+                            <hr>
+
+                            <!-- Grup: Pendidikan & Status Pernikahan -->
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-university me-2"></i>Pendidikan & Status
+                            </h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="pendidikan" class="form-label">Pendidikan</label>
+                                    <input type="text" id="pendidikan" class="form-control"
+                                        value="<?= htmlspecialchars($profile['pendidikan']); ?>" readonly style="color: #000;">
+                                    <input type="hidden" name="pendidikan" value="<?= htmlspecialchars($profile['pendidikan']); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="status_perkawinan" class="form-label">Status Pernikahan</label>
+                                    <input type="text" id="status_perkawinan" class="form-control"
+                                        value="<?= htmlspecialchars($profile['status_perkawinan']); ?>" readonly style="color: #000;">
+                                    <input type="hidden" name="status_perkawinan" value="<?= htmlspecialchars($profile['status_perkawinan']); ?>">
+                                </div>
+                            </div>
+                            <hr>
+
+                            <!-- Grup: Gaji & Role -->
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-money-bill-wave me-2"></i>Gaji & Role
+                            </h5>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="gaji_pokok" class="form-label">Gaji Pokok</label>
+                                    <input type="text" id="gaji_pokok" class="form-control"
+                                        value="Rp <?= number_format($profile['gaji_pokok'], 2, ',', '.'); ?>" readonly style="color: #000;">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="salary_index_level" class="form-label">Salary Index Level</label>
+                                    <input type="text" id="salary_index_level" class="form-control"
+                                        value="<?= htmlspecialchars($profile['salary_index_level'] ?? '-'); ?>" readonly style="color: #000;">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="role" class="form-label">Role</label>
+                                    <input type="text" id="role" class="form-control"
+                                        value="<?= htmlspecialchars($profile['role']); ?>" readonly style="color: #000;">
+                                </div>
+                            </div>
+                            <hr>
+
+                            <!-- Grup: Ubah Password & Foto Profil -->
+                            <h5 class="mb-3 text-primary">
+                                <i class="fas fa-lock me-2"></i>Ubah Password & Foto
+                            </h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editPassword" class="form-label">Password Baru (opsional)</label>
+                                    <input type="password" name="password" id="editPassword" class="form-control"
+                                        placeholder="Kosongkan jika tidak ingin mengganti password" style="color: #000;">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="foto_profil" class="form-label">Ganti Foto Profil (opsional)</label>
+                                    <input type="file" name="foto_profil" id="foto_profil" class="form-control">
+                                    <small class="text-muted">Maksimal 2MB (jpg/jpeg/png).</small>
+                                </div>
+                            </div>
+
+                            <!-- Hidden input untuk CSRF token dan ID user -->
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="id" value="<?= htmlspecialchars($profile['id']); ?>">
+                        </div><!-- /.container-fluid -->
+                    </div><!-- /.modal-body -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            Update Profil
+                        </button>
+                    </div>
+                </form>
             </div>
-            <div class="modal-body">
-              <div class="container-fluid">
-                <!-- Grup: Identitas Pribadi -->
-                <h5 class="mb-3 text-primary">
-                  <i class="fas fa-id-card me-2"></i>Identitas Pribadi
-                </h5>
-                <div class="row mb-3">
-                  <div class="col-md-4">
-                    <label for="uid" class="form-label">UID</label>
-                    <input type="text" id="uid" class="form-control" value="<?= htmlspecialchars($profile['uid']); ?>" readonly style="color: #000;">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="nip" class="form-label">NIP</label>
-                    <input type="text" id="nip" class="form-control" value="<?= htmlspecialchars($profile['nip']); ?>" readonly style="color: #000;">
-                    <input type="hidden" name="nip" value="<?= htmlspecialchars($profile['nip']); ?>">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="status_kerja" class="form-label">Status Kerja</label>
-                    <input type="text" id="status_kerja" class="form-control" value="<?= htmlspecialchars($profile['status_kerja']); ?>" readonly style="color: #000;">
-                  </div>
-                </div>
-                <div class="row mb-3">
-                  <div class="col-md-12">
-                    <label for="editNama" class="form-label">Nama <span class="text-danger">*</span></label>
-                    <input type="text" name="nama" id="editNama" class="form-control" 
-                           value="<?= htmlspecialchars($profile['nama']); ?>" required style="color: #000;">
-                    <div class="invalid-feedback">Nama wajib diisi.</div>
-                  </div>
-                </div>
-                <hr>
-
-                <!-- Grup: Kontak & Alamat -->
-                <h5 class="mb-3 text-primary">
-                  <i class="fas fa-address-book me-2"></i>Kontak & Alamat
-                </h5>
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label for="editNoHP" class="form-label">No. HP</label>
-                    <input type="text" name="no_hp" id="editNoHP" class="form-control" 
-                           value="<?= htmlspecialchars($profile['no_hp'] ?? ''); ?>" style="color: #000;">
-                  </div>
-                  <div class="col-md-6">
-                    <label for="editEmail" class="form-label">Email</label>
-                    <input type="email" name="email" id="editEmail" class="form-control" 
-                           value="<?= htmlspecialchars($profile['email'] ?? ''); ?>" style="color: #000;">
-                  </div>
-                </div>
-                <div class="row mb-3">
-                  <div class="col-12">
-                    <label for="editAlamatDomisili" class="form-label">Alamat Domisili</label>
-<textarea name="alamat_domisili" id="editAlamatDomisili" rows="2" class="form-control" style="color: #000;"><?= htmlspecialchars($profile['alamat_domisili'] ?? ''); ?></textarea>
-                  </div>
-                </div>
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label for="editTanggalLahir" class="form-label">Tanggal Lahir</label>
-                    <input type="date" name="tanggal_lahir" id="editTanggalLahir" class="form-control" 
-                           value="<?= htmlspecialchars($profile['tanggal_lahir'] ?? ''); ?>" style="color: #000;">
-                  </div>
-                </div>
-                <hr>
-
-                <!-- Grup: Informasi Profesional -->
-                <h5 class="mb-3 text-primary">
-                  <i class="fas fa-briefcase me-2"></i>Informasi Profesional
-                </h5>
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label for="jenjang" class="form-label">Jenjang</label>
-                    <input type="text" id="jenjang" class="form-control" 
-                           value="<?= htmlspecialchars($profile['jenjang']); ?>" readonly style="color: #000;">
-                    <input type="hidden" name="jenjang" value="<?= htmlspecialchars($profile['jenjang']); ?>">
-                  </div>
-                  <div class="col-md-6">
-                    <label for="job_title" class="form-label">Pekerjaan</label>
-                    <input type="text" id="job_title" class="form-control" 
-                           value="<?= htmlspecialchars($profile['job_title']); ?>" readonly style="color: #000;">
-                    <input type="hidden" name="job_title" value="<?= htmlspecialchars($profile['job_title']); ?>">
-                  </div>
-                </div>
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label for="join_start" class="form-label">Bergabung Sejak</label>
-                    <input type="text" id="join_start" class="form-control" 
-                           value="<?= !empty($profile['join_start']) ? date('d F Y', strtotime($profile['join_start'])) : '-'; ?>" readonly style="color: #000;">
-                  </div>
-                  <div class="col-md-6">
-                    <label for="masa_kerja" class="form-label">Masa Kerja</label>
-                    <input type="text" id="masa_kerja" class="form-control" 
-                           value="<?= $profile['masa_kerja_tahun'] . ' tahun ' . $profile['masa_kerja_bulan'] . ' bulan'; ?>" readonly style="color: #000;">
-                  </div>
-                </div>
-                <hr>
-
-                <!-- Grup: Pendidikan & Status Pernikahan -->
-                <h5 class="mb-3 text-primary">
-                  <i class="fas fa-university me-2"></i>Pendidikan & Status
-                </h5>
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label for="pendidikan" class="form-label">Pendidikan</label>
-                    <input type="text" id="pendidikan" class="form-control" 
-                           value="<?= htmlspecialchars($profile['pendidikan']); ?>" readonly style="color: #000;">
-                    <input type="hidden" name="pendidikan" value="<?= htmlspecialchars($profile['pendidikan']); ?>">
-                  </div>
-                  <div class="col-md-6">
-                    <label for="status_perkawinan" class="form-label">Status Pernikahan</label>
-                    <input type="text" id="status_perkawinan" class="form-control" 
-                           value="<?= htmlspecialchars($profile['status_perkawinan']); ?>" readonly style="color: #000;">
-                    <input type="hidden" name="status_perkawinan" value="<?= htmlspecialchars($profile['status_perkawinan']); ?>">
-                  </div>
-                </div>
-                <hr>
-
-                <!-- Grup: Gaji & Role -->
-                <h5 class="mb-3 text-primary">
-                  <i class="fas fa-money-bill-wave me-2"></i>Gaji & Role
-                </h5>
-                <div class="row mb-3">
-                  <div class="col-md-4">
-                    <label for="gaji_pokok" class="form-label">Gaji Pokok</label>
-                    <input type="text" id="gaji_pokok" class="form-control" 
-                           value="Rp <?= number_format($profile['gaji_pokok'], 2, ',', '.'); ?>" readonly style="color: #000;">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="salary_index_level" class="form-label">Salary Index Level</label>
-                    <input type="text" id="salary_index_level" class="form-control" 
-                           value="<?= htmlspecialchars($profile['salary_index_level'] ?? '-'); ?>" readonly style="color: #000;">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="role" class="form-label">Role</label>
-                    <input type="text" id="role" class="form-control" 
-                           value="<?= htmlspecialchars($profile['role']); ?>" readonly style="color: #000;">
-                  </div>
-                </div>
-                <hr>
-
-                <!-- Grup: Ubah Password & Foto Profil -->
-                <h5 class="mb-3 text-primary">
-                  <i class="fas fa-lock me-2"></i>Ubah Password & Foto
-                </h5>
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label for="editPassword" class="form-label">Password Baru (opsional)</label>
-                    <input type="password" name="password" id="editPassword" class="form-control" 
-                           placeholder="Kosongkan jika tidak ingin mengganti password" style="color: #000;">
-                  </div>
-                  <div class="col-md-6">
-                    <label for="foto_profil" class="form-label">Ganti Foto Profil (opsional)</label>
-                    <input type="file" name="foto_profil" id="foto_profil" class="form-control">
-                    <small class="text-muted">Maksimal 2MB (jpg/jpeg/png).</small>
-                  </div>
-                </div>
-
-                <!-- Hidden input untuk CSRF token dan ID user -->
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']); ?>">
-                <input type="hidden" name="id" value="<?= htmlspecialchars($profile['id']); ?>">
-              </div><!-- /.container-fluid -->
-            </div><!-- /.modal-body -->
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-              <button type="submit" class="btn btn-primary">
-                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                Update Profil
-              </button>
-            </div>
-          </form>
         </div>
-      </div>
     </div>
 
     <!-- JS Dependencies -->
@@ -709,63 +730,64 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    $(document).ready(function() {
-        $('#edit-profile-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this)[0];
-            if (!form.checkValidity()) {
-                e.stopPropagation();
-                $(this).addClass('was-validated');
-                return;
-            }
-            var formData = new FormData(form);
-            $.ajax({
-                url: 'profile.php?ajax=1',
-                type: 'POST',
-                data: formData,
-                dataType: 'json',
-                processData: false,
-                contentType: false,
-                beforeSend: function() {
-                    $('#edit-profile-form button[type="submit"]').prop('disabled', true);
-                    $('#edit-profile-form .spinner-border').removeClass('d-none');
-                },
-                success: function(resp) {
-                    $('#edit-profile-form button[type="submit"]').prop('disabled', false);
-                    $('#edit-profile-form .spinner-border').addClass('d-none');
-                    if (resp.code === 0) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil',
-                            text: resp.result,
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-                        setTimeout(function() {
-                            location.reload();
-                        }, 1600);
-                    } else {
+        $(document).ready(function() {
+            $('#edit-profile-form').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this)[0];
+                if (!form.checkValidity()) {
+                    e.stopPropagation();
+                    $(this).addClass('was-validated');
+                    return;
+                }
+                var formData = new FormData(form);
+                $.ajax({
+                    url: 'profile.php?ajax=1',
+                    type: 'POST',
+                    data: formData,
+                    dataType: 'json',
+                    processData: false,
+                    contentType: false,
+                    beforeSend: function() {
+                        $('#edit-profile-form button[type="submit"]').prop('disabled', true);
+                        $('#edit-profile-form .spinner-border').removeClass('d-none');
+                    },
+                    success: function(resp) {
+                        $('#edit-profile-form button[type="submit"]').prop('disabled', false);
+                        $('#edit-profile-form .spinner-border').addClass('d-none');
+                        if (resp.code === 0) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: resp.result,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1600);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: resp.result
+                            });
+                        }
+                    },
+                    error: function() {
+                        $('#edit-profile-form button[type="submit"]').prop('disabled', false);
+                        $('#edit-profile-form .spinner-border').addClass('d-none');
                         Swal.fire({
                             icon: 'error',
-                            title: 'Gagal',
-                            text: resp.result
+                            title: 'Error',
+                            text: 'Terjadi kesalahan saat mengupdate profil.'
                         });
                     }
-                },
-                error: function() {
-                    $('#edit-profile-form button[type="submit"]').prop('disabled', false);
-                    $('#edit-profile-form .spinner-border').addClass('d-none');
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Terjadi kesalahan saat mengupdate profil.'
-                    });
-                }
+                });
             });
         });
-    });
     </script>
 </body>
+
 </html>
 <?php
 $conn->close();

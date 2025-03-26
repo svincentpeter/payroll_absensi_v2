@@ -24,7 +24,8 @@ if (ob_get_length()) {
 // 2. Fungsi Pendukung (Ikon, Warna & Badge)
 // =========================
 
-function getActivityIcon($action) {
+function getActivityIcon($action)
+{
     $actionLower = strtolower($action);
     if (strpos($actionLower, 'login') !== false) {
         return '<i class="fas fa-sign-in-alt"></i>';
@@ -40,7 +41,8 @@ function getActivityIcon($action) {
     return '<i class="fas fa-info-circle"></i>';
 }
 
-function getRoleIcon($role) {
+function getRoleIcon($role)
+{
     $role = strtolower($role);
     switch ($role) {
         case 'superadmin':
@@ -58,7 +60,8 @@ function getRoleIcon($role) {
     }
 }
 
-function getActivityColor($action) {
+function getActivityColor($action)
+{
     $actionLower = strtolower($action);
     if (strpos($actionLower, 'login') !== false) {
         return '#1cc88a';
@@ -119,6 +122,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Audit Logs SDM - Halaman SDM</title>
@@ -130,25 +134,28 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <!-- Custom CSS untuk Card dan Timeline -->
     <style>
-
-.card-header {
+        .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         body {
             background-color: #f8f9fc;
         }
+
         .card-custom {
             max-width: 900px;
             margin: 20px auto;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+
         .vertical-timeline {
             position: relative;
             padding: 20px 0;
             margin: 0;
         }
+
         .vertical-timeline::before {
             content: "";
             position: absolute;
@@ -159,14 +166,17 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             background: #4e73df;
             border-radius: 2px;
         }
+
         .vertical-timeline-item {
             position: relative;
             margin-bottom: 20px;
             padding-left: 70px;
         }
+
         .vertical-timeline-item:last-child {
             margin-bottom: 0;
         }
+
         .vertical-timeline-icon {
             position: absolute;
             left: 12px;
@@ -180,6 +190,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             line-height: 32px;
             font-size: 18px;
         }
+
         .vertical-timeline-content {
             background: #ffffff;
             padding: 15px;
@@ -187,6 +198,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             border-left: 4px solid #4e73df;
             margin-bottom: 10px;
         }
+
         .vertical-timeline-content h5 {
             margin-top: 0;
             margin-bottom: 5px;
@@ -194,29 +206,35 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             font-weight: bold;
             color: #2e59d9;
         }
+
         .vertical-timeline-content p {
             margin: 0;
             font-size: 0.9rem;
             color: #858796;
         }
+
         .timeline-meta {
             font-size: 0.8rem;
             color: #6e707e;
             margin-top: 5px;
         }
+
         @media (max-width: 768px) {
             .vertical-timeline {
                 padding-left: 10px;
             }
+
             .vertical-timeline-item {
                 padding-left: 60px;
             }
+
             .vertical-timeline-icon {
                 left: 5px;
             }
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -242,11 +260,11 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
 
                     <!-- Filter Form Card -->
                     <div class="card mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-    <h6 class="m-0 fw-bold text-white">
-      <i class="fas fa-filter"></i> Filter Audit Logs
-    </h6>
-  </div>
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-filter"></i> Filter Audit Logs
+                            </h6>
+                        </div>
                         <div class="card-body">
                             <form method="GET" id="filterForm" class="row g-3">
                                 <div class="col-md-3">
@@ -276,11 +294,11 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
 
                     <!-- Audit Logs Timeline Card -->
                     <div class="card mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-    <h6 class="m-0 fw-bold text-white">
-      <i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)
-    </h6>
-  </div>
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-clock"></i> Audit Logs Timeline (Max 30)
+                            </h6>
+                        </div>
                         <div class="card-body">
                             <div class="vertical-timeline">
                                 <?php
@@ -295,19 +313,19 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                                     $dateStr     = date("d M Y, H:i", strtotime($row['created_at']));
                                     $color       = getActivityColor($actionText);
                                 ?>
-                                <div class="vertical-timeline-item">
-                                    <div class="vertical-timeline-icon" style="border-color: <?php echo $color; ?>; color: <?php echo $color; ?>;">
-                                        <?php echo getActivityIcon($actionText); ?>
+                                    <div class="vertical-timeline-item">
+                                        <div class="vertical-timeline-icon" style="border-color: <?php echo $color; ?>; color: <?php echo $color; ?>;">
+                                            <?php echo getActivityIcon($actionText); ?>
+                                        </div>
+                                        <div class="vertical-timeline-content" style="border-left-color: <?php echo $color; ?>;">
+                                            <h5><?php echo $actionText; ?></h5>
+                                            <p><?php echo $detailsText; ?></p>
+                                            <p class="timeline-meta">
+                                                <?php echo getRoleIcon($role) . ' <strong>' . $username . '</strong> (' . ucfirst($role) . ')'; ?>
+                                                <span class="float-end"><?php echo $dateStr; ?></span>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div class="vertical-timeline-content" style="border-left-color: <?php echo $color; ?>;">
-                                        <h5><?php echo $actionText; ?></h5>
-                                        <p><?php echo $detailsText; ?></p>
-                                        <p class="timeline-meta">
-                                            <?php echo getRoleIcon($role) . ' <strong>' . $username . '</strong> (' . ucfirst($role) . ')'; ?>
-                                            <span class="float-end"><?php echo $dateStr; ?></span>
-                                        </p>
-                                    </div>
-                                </div>
                                 <?php endwhile; ?>
                             </div>
                         </div>
@@ -336,6 +354,7 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
 </body>
+
 </html>
 
 <?php

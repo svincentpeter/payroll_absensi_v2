@@ -16,6 +16,7 @@ $nama = $_SESSION['nama'] ?? 'Kepala Sekolah';
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Kepala Sekolah</title>
@@ -29,11 +30,13 @@ $nama = $_SESSION['nama'] ?? 'Kepala Sekolah';
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
         .welcome-message {
             margin-bottom: 20px;
         }
     </style>
 </head>
+
 <body id="page-top">
 
     <!-- Page Wrapper -->
@@ -95,6 +98,7 @@ $nama = $_SESSION['nama'] ?? 'Kepala Sekolah';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

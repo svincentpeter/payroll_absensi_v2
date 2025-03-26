@@ -50,15 +50,16 @@ $currentMonth = (int) date('n');
 $currentYear  = (int) date('Y');
 
 // Fungsi bantu untuk mengkonversi nomor bulan ke nama bulan bahasa Indonesia
-function getIndonesianMonthName($month) {
-    $months = [1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April', 5=>'Mei', 6=>'Juni', 7=>'Juli', 8=>'Agustus', 9=>'September', 10=>'Oktober', 11=>'November', 12=>'Desember'];
+function getIndonesianMonthName($month)
+{
+    $months = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
     return $months[$month] ?? $month;
 }
 
 // --- Pesan untuk Guru / Karyawan (P, TK) ---
 if (in_array($fullRole, ['P', 'TK'])) {
     $nip = $_SESSION['nip'] ?? '';
-    
+
     // 1. Pengingat Jadwal Piket Hari Ini
     $sqlPiket = "SELECT waktu_piket FROM jadwal_piket WHERE nip = ? AND tanggal = CURDATE()";
     $stmtPiket = $conn->prepare($sqlPiket);
@@ -76,7 +77,7 @@ if (in_array($fullRole, ['P', 'TK'])) {
         }
         $stmtPiket->close();
     }
-    
+
     // 2. Peringatan Absensi Terlambat (jika terlambat ≥ 3 kali bulan ini)
     $sqlTerlambat = "SELECT COUNT(*) AS cnt FROM absensi WHERE nip = ? AND terlambat = 1 AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?";
     $stmtTerlambat = $conn->prepare($sqlTerlambat);
@@ -96,7 +97,7 @@ if (in_array($fullRole, ['P', 'TK'])) {
             ];
         }
     }
-    
+
     // 3. Pengajuan Izin Mendekati Tanggal Mulai (jika status 'Diterima' dan 1 hari sebelum tanggal efektif)
     $sqlIzinBesok = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE nip = ? AND status = 'Diterima' AND DATEDIFF(STR_TO_DATE(tanggal, '%Y-%m-%d'), CURDATE()) = 1";
     $stmtIzinBesok = $conn->prepare($sqlIzinBesok);
@@ -116,7 +117,7 @@ if (in_array($fullRole, ['P', 'TK'])) {
             ];
         }
     }
-    
+
     // 4. Slip Gaji Final Tersedia (cek di payroll_final untuk bulan sebelumnya)
     $sqlSlipGaji = "SELECT COUNT(*) AS cnt FROM payroll_final pf JOIN anggota_sekolah a ON pf.id_anggota = a.id WHERE a.nip = ? AND pf.tahun = ? AND pf.bulan = ?";
     $targetMonthSlip = ($currentMonth == 1) ? 12 : $currentMonth - 1;
@@ -138,7 +139,7 @@ if (in_array($fullRole, ['P', 'TK'])) {
             ];
         }
     }
-    
+
     // 5. Permintaan Tukar Jadwal (cek permintaan yang masih Pending untuk user)
     $sqlTukar = "SELECT COUNT(*) AS cnt FROM permintaan_tukar_jadwal WHERE nip_pengaju = ? AND status = 'Pending'";
     $stmtTukar = $conn->prepare($sqlTukar);
@@ -180,7 +181,7 @@ if ($fullRole === 'M:sdm') {
             ];
         }
     }
-    
+
     // 2. Karyawan Baru Belum Diperbarui (cek karyawan yang join 7 hari terakhir dan salary_index_id IS NULL)
     $sqlKaryawanBaru = "SELECT COUNT(*) AS cnt FROM anggota_sekolah WHERE join_start >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND salary_index_id IS NULL";
     $stmtKaryawanBaru = $conn->prepare($sqlKaryawanBaru);
@@ -199,7 +200,7 @@ if ($fullRole === 'M:sdm') {
             ];
         }
     }
-    
+
     // 3. Ketidakhadiran Berulang (misal absensi 'tanpa_keterangan' ≥ 3 hari unik di bulan ini)
     $sqlBolos = "SELECT COUNT(DISTINCT tanggal) AS cnt FROM absensi WHERE nip IN (SELECT nip FROM anggota_sekolah WHERE role IN ('P','TK')) AND status_kehadiran = 'tanpa_keterangan' AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?";
     $stmtBolos = $conn->prepare($sqlBolos);
@@ -310,7 +311,7 @@ if ($fullRole === 'M:superadmin') {
 $allMessages = array_merge($customMessages, $personalMessages);
 
 // Urutkan semua pesan berdasarkan tanggal (descending)
-usort($allMessages, function($a, $b) {
+usort($allMessages, function ($a, $b) {
     $dateA = isset($a['display_date']) ? strtotime($a['display_date']) : strtotime($a['date'] ?? 'now');
     $dateB = isset($b['display_date']) ? strtotime($b['display_date']) : strtotime($b['date'] ?? 'now');
     return $dateB - $dateA;
@@ -320,42 +321,45 @@ $conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Pesan Surat</title>
-  <!-- FontAwesome CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-        integrity="sha512-dC3e6uJll3WpvW1cz5qXfOzue+1t8J0d1Y1+e2kF/4t52uY1oD5UVpZ4KbbV84JxK9a6zTni6ZHBW6+0fllpNQ==" 
+    <meta charset="UTF-8">
+    <title>Pesan Surat</title>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-dC3e6uJll3WpvW1cz5qXfOzue+1t8J0d1Y1+e2kF/4t52uY1oD5UVpZ4KbbV84JxK9a6zTni6ZHBW6+0fllpNQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <!-- Bootstrap 5.3.3 CSS CDN -->
-  <link rel="stylesheet" 
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
-        integrity="sha384-9ndCyUa6mYv+0cQKXH5Dk8ROJ0R2fzuy+kFsv+u78S5cRYPFfzqF4A/2P5F06F1p" 
+    <!-- Bootstrap 5.3.3 CSS CDN -->
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        integrity="sha384-9ndCyUa6mYv+0cQKXH5Dk8ROJ0R2fzuy+kFsv+u78S5cRYPFfzqF4A/2P5F06F1p"
         crossorigin="anonymous">
 </head>
+
 <body>
-  <?php include 'navbar.php'; ?>
-  <div class="container my-4">
-    <h1>Pesan Surat</h1>
-    <?php if(empty($allMessages)): ?>
-      <div class="alert alert-info">Tidak ada pesan surat atau notifikasi.</div>
-    <?php else: ?>
-      <div class="list-group">
-        <?php foreach($allMessages as $msg): ?>
-          <a href="<?= isset($msg['link']) ? htmlspecialchars($msg['link']) : '#' ?>" class="list-group-item list-group-item-action">
-            <div class="d-flex w-100 justify-content-between">
-              <h5 class="mb-1"><?= htmlspecialchars($msg['title']) ?></h5>
-              <small><?= isset($msg['display_date']) ? htmlspecialchars($msg['display_date']) : date('d M Y H:i', strtotime($msg['date'] ?? 'now')) ?></small>
+    <?php include 'navbar.php'; ?>
+    <div class="container my-4">
+        <h1>Pesan Surat</h1>
+        <?php if (empty($allMessages)): ?>
+            <div class="alert alert-info">Tidak ada pesan surat atau notifikasi.</div>
+        <?php else: ?>
+            <div class="list-group">
+                <?php foreach ($allMessages as $msg): ?>
+                    <a href="<?= isset($msg['link']) ? htmlspecialchars($msg['link']) : '#' ?>" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1"><?= htmlspecialchars($msg['title']) ?></h5>
+                            <small><?= isset($msg['display_date']) ? htmlspecialchars($msg['display_date']) : date('d M Y H:i', strtotime($msg['date'] ?? 'now')) ?></small>
+                        </div>
+                        <p class="mb-1"><?= htmlspecialchars($msg['message'] ?? '') ?></p>
+                    </a>
+                <?php endforeach; ?>
             </div>
-            <p class="mb-1"><?= htmlspecialchars($msg['message'] ?? '') ?></p>
-          </a>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-  </div>
-  <!-- Bootstrap 5.3.3 JS Bundle CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
-          integrity="sha384-ENjdO4Dr2bkBIFxQpeoOvZHnNQzYfC0RL5jJ5enq+QcPlj3x1p4cW4Md7o8Lk8UR" 
-          crossorigin="anonymous"></script>
+        <?php endif; ?>
+    </div>
+    <!-- Bootstrap 5.3.3 JS Bundle CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ENjdO4Dr2bkBIFxQpeoOvZHnNQzYfC0RL5jJ5enq+QcPlj3x1p4cW4Md7o8Lk8UR"
+        crossorigin="anonymous"></script>
 </body>
+
 </html>

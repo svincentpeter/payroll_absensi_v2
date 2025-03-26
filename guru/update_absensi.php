@@ -16,7 +16,7 @@ require_once __DIR__ . '/../koneksi.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verifikasi CSRF token
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $id_jadwal = intval($_POST['id_jadwal'] ?? 0);
     if ($id_jadwal > 0) {
         // Tentukan status baru berdasarkan tombol yang ditekan

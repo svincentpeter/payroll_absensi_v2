@@ -81,7 +81,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 // 4. Fungsi CRUD untuk Holidays
 // =========================
 
-function LoadingHolidays($conn) {
+function LoadingHolidays($conn)
+{
     // DataTables parameters
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
@@ -157,9 +158,9 @@ function LoadingHolidays($conn) {
     $no = $start + 1;
     while ($row = $dataQuery->fetch_assoc()) {
         // Tampilkan jenis hari libur dengan badge dan ikon
-        $jenis = ($row['holiday_type'] == 'wajib') 
-                    ? '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Wajib</span>' 
-                    : '<span class="badge bg-info"><i class="fas fa-info-circle"></i> Opsional</span>';
+        $jenis = ($row['holiday_type'] == 'wajib')
+            ? '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Wajib</span>'
+            : '<span class="badge bg-info"><i class="fas fa-info-circle"></i> Opsional</span>';
         // Tombol aksi (Edit dan Hapus)
         $aksi = '
             <button class="btn btn-sm btn-warning btn-edit" data-id="' . htmlspecialchars($row['holiday_id']) . '" title="Edit"><i class="fas fa-edit"></i></button>
@@ -185,7 +186,8 @@ function LoadingHolidays($conn) {
     exit();
 }
 
-function AddHoliday($conn) {
+function AddHoliday($conn)
+{
     $nama      = isset($_POST['nama']) ? bersihkan_input($_POST['nama']) : '';
     $deskripsi = isset($_POST['deskripsi']) ? bersihkan_input($_POST['deskripsi']) : '';
     $tanggal   = isset($_POST['tanggal']) ? bersihkan_input($_POST['tanggal']) : '';
@@ -230,7 +232,8 @@ function AddHoliday($conn) {
     exit();
 }
 
-function GetHolidayDetail($conn) {
+function GetHolidayDetail($conn)
+{
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
         send_response(1, 'ID Hari Libur tidak valid.');
@@ -259,7 +262,8 @@ function GetHolidayDetail($conn) {
     exit();
 }
 
-function UpdateHoliday($conn) {
+function UpdateHoliday($conn)
+{
     $id        = isset($_POST['edit_id']) ? intval($_POST['edit_id']) : 0;
     $nama      = isset($_POST['edit_nama']) ? bersihkan_input($_POST['edit_nama']) : '';
     $deskripsi = isset($_POST['edit_deskripsi']) ? bersihkan_input($_POST['edit_deskripsi']) : '';
@@ -304,7 +308,8 @@ function UpdateHoliday($conn) {
     exit();
 }
 
-function DeleteHoliday($conn) {
+function DeleteHoliday($conn)
+{
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
         send_response(3, 'ID Hari Libur tidak valid.');
@@ -342,6 +347,7 @@ function DeleteHoliday($conn) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Manajemen Hari Libur - Payroll</title>
@@ -360,48 +366,64 @@ function DeleteHoliday($conn) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
     <style>
         /* Styling khusus tanpa sidebar dan navbar */
-        body { padding-top: 20px; }
+        body {
+            padding-top: 20px;
+        }
+
         #main-content {
             transition: opacity 0.3s ease;
         }
+
         .back-btn {
             margin-bottom: 20px;
         }
+
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
+
         .btn:hover {
             transform: scale(1.05);
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
+
         #holidaysTable tbody tr:nth-of-type(odd) {
             background-color: #f9f9f9;
         }
+
         #holidaysTable tbody tr:nth-of-type(even) {
             background-color: #ffffff;
         }
+
         #holidaysTable tbody tr:hover {
             background-color: #e2e6ea;
         }
-        .table-sm th, .table-sm td {
+
+        .table-sm th,
+        .table-sm td {
             font-size: 13px;
             vertical-align: middle;
             white-space: nowrap;
         }
+
         thead th {
             background-color: #343a40;
             color: white;
             text-align: left;
         }
+
         .table-responsive {
             overflow-x: auto;
         }
+
         #loadingSpinner {
             display: none;
             position: fixed;
@@ -409,14 +431,19 @@ function DeleteHoliday($conn) {
             height: 100px;
             width: 100px;
             margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Container Utama Tanpa Sidebar/Navbar -->
     <div class="container" id="main-content">
@@ -430,11 +457,11 @@ function DeleteHoliday($conn) {
 
         <!-- Filter -->
         <div class="card mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-    <h6 class="m-0 fw-bold text-white">
-      <i class="fas fa-filter"></i> Filter Hari Libur
-    </h6>
-  </div>
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-white">
+                    <i class="fas fa-filter"></i> Filter Hari Libur
+                </h6>
+            </div>
 
             <div class="card-body">
                 <form id="filterForm" class="form-inline">
@@ -453,10 +480,10 @@ function DeleteHoliday($conn) {
 
         <!-- Tabel Data Hari Libur -->
         <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-    <h6 class="m-0 fw-bold text-white">
-      <i class="fas fa-list"></i> Daftar Hari Libur
-    </h6>
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-white">
+                    <i class="fas fa-list"></i> Daftar Hari Libur
+                </h6>
 
                 <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addHolidayModal" title="Tambah Hari Libur">
                     <i class="fas fa-plus-circle"></i> Tambah Hari Libur
@@ -606,295 +633,318 @@ function DeleteHoliday($conn) {
     <!-- Bootstrap Datepicker JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
     <script>
-    $(document).ready(function() {
-        // Inisialisasi tooltip (jika diperlukan)
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-            new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Inisialisasi SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-            }
-        });
-        function showToast(message, icon = 'success') {
-            Toast.fire({
-                icon: icon,
-                title: message
+        $(document).ready(function() {
+            // Inisialisasi tooltip (jika diperlukan)
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
             });
-        }
 
-        // Inisialisasi DataTable untuk Holidays
-        var holidaysTable = $('#holidaysTable').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: "holidays.php?ajax=1",
-                type: "POST",
-                data: function(d) {
-                    d.case = 'LoadingHolidays';
-                    d.csrf_token = '<?= htmlspecialchars($csrf_token); ?>';
-                },
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                complete: function(){
-                    $('#loadingSpinner').hide();
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat memuat data hari libur.', 'error');
-                }
-            },
-            columns: [
-                { data: "no", orderable: false },
-                { data: "nama" },
-                { data: "deskripsi" },
-                { data: "tanggal" },
-                { data: "jenis" },
-                { data: "aksi", orderable: false }
-            ],
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-            },
-            responsive: true,
-            autoWidth: false
-        });
-
-        // Tombol Back dengan transisi smooth
-        $('#btnBack').on('click', function(e) {
-            e.preventDefault();
-            var url = $(this).data('href');
-            $('#main-content').fadeOut(300, function() {
-                window.location.href = url;
-            });
-        });
-
-        // Filter
-        $('#btnApplyFilter').on('click', function(){
-            $.ajax({
-                url: 'holidays.php?ajax=1',
-                type: 'POST',
-                data: {
-                    case: 'AddAuditLog',
-                    action: 'ApplyFilter',
-                    details: 'Pengguna menerapkan filter pada Hari Libur.',
-                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
-                },
-                success: function(response){
-                    if(response.code === 0){
-                        showToast('Filter berhasil diterapkan.', 'success');
-                    }
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
+            // Inisialisasi SweetAlert2 Toast
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
                 }
             });
-            holidaysTable.ajax.reload();
-        });
 
-        $('#btnResetFilter').on('click', function(){
-            $.ajax({
-                url: 'holidays.php?ajax=1',
-                type: 'POST',
-                data: {
-                    case: 'AddAuditLog',
-                    action: 'ResetFilter',
-                    details: 'Pengguna mereset filter hari libur.',
-                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
-                },
-                success: function(response){
-                    if(response.code === 0){
-                        showToast('Filter berhasil direset.', 'success');
-                    }
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
-                }
-            });
-            $('#filterForm')[0].reset();
-            holidaysTable.ajax.reload();
-        });
-
-        // Validasi form Bootstrap
-        (function() {
-            'use strict';
-            window.addEventListener('load', function() {
-                var forms = document.getElementsByClassName('needs-validation');
-                Array.prototype.filter.call(forms, function(form) {
-                    form.addEventListener('submit', function(event) {
-                        if (form.checkValidity() === false) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        form.classList.add('was-validated');
-                    }, false);
+            function showToast(message, icon = 'success') {
+                Toast.fire({
+                    icon: icon,
+                    title: message
                 });
-            }, false);
-        })();
-
-        // Tambah Hari Libur
-        $('#add-holiday-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
             }
-            var formData = form.serialize();
-            $.ajax({
-                url: "holidays.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if (response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#addHolidayModal').modal('hide');
-                        holidaysTable.ajax.reload(null, false);
-                        form[0].reset();
-                        form.removeClass('was-validated');
-                    } else {
-                        showToast(response.result, 'error');
+
+            // Inisialisasi DataTable untuk Holidays
+            var holidaysTable = $('#holidaysTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "holidays.php?ajax=1",
+                    type: "POST",
+                    data: function(d) {
+                        d.case = 'LoadingHolidays';
+                        d.csrf_token = '<?= htmlspecialchars($csrf_token); ?>';
+                    },
+                    beforeSend: function() {
+                        $('#loadingSpinner').show();
+                    },
+                    complete: function() {
+                        $('#loadingSpinner').hide();
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan saat memuat data hari libur.', 'error');
                     }
                 },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menambah hari libur.', 'error');
-                }
-            });
-        });
-
-        // Buka modal edit
-        $(document).on('click', '.btn-edit', function() {
-            var id = $(this).data('id');
-            var modal = $('#editHolidayModal');
-            var form = $('#edit-holiday-form');
-            form[0].reset();
-            form.removeClass('was-validated');
-            $.ajax({
-                url: "holidays.php?ajax=1",
-                type: "POST",
-                data: { id: id, case: 'GetHolidayDetail', csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
-                dataType: "json",
-                success: function(response){
-                    if (response.code == 0) {
-                        $('#edit_id').val(response.result.id);
-                        $('#edit_nama').val(response.result.nama);
-                        $('#edit_deskripsi').val(response.result.deskripsi);
-                        $('#edit_tanggal').val(response.result.tanggal);
-                        $('#edit_jenis').val(response.result.jenis);
-                        modal.modal('show');
-                    } else {
-                        showToast(response.result, 'error');
+                columns: [{
+                        data: "no",
+                        orderable: false
+                    },
+                    {
+                        data: "nama"
+                    },
+                    {
+                        data: "deskripsi"
+                    },
+                    {
+                        data: "tanggal"
+                    },
+                    {
+                        data: "jenis"
+                    },
+                    {
+                        data: "aksi",
+                        orderable: false
                     }
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
                 },
-                error: function(){
-                    showToast('Terjadi kesalahan mengambil detail hari libur.', 'error');
-                }
+                responsive: true,
+                autoWidth: false
             });
-        });
 
-        // Update Hari Libur
-        $('#edit-holiday-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "holidays.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if (response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#editHolidayModal').modal('hide');
-                        holidaysTable.ajax.reload(null, false);
-                        form[0].reset();
-                        form.removeClass('was-validated');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat update hari libur.', 'error');
-                }
+            // Tombol Back dengan transisi smooth
+            $('#btnBack').on('click', function(e) {
+                e.preventDefault();
+                var url = $(this).data('href');
+                $('#main-content').fadeOut(300, function() {
+                    window.location.href = url;
+                });
             });
-        });
 
-        // Hapus Hari Libur
-        $(document).on('click', '.btn-delete', function() {
-            var id = $(this).data('id');
-            Swal.fire({
-                title: 'Apakah Anda yakin?',
-                text: "Hari libur akan dihapus!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-check"></i> Ya, hapus!',
-                cancelButtonText: '<i class="fas fa-times"></i> Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: "holidays.php?ajax=1",
-                        type: "POST",
-                        data: { id: id, case: 'DeleteHoliday', csrf_token: '<?= htmlspecialchars($csrf_token); ?>' },
-                        dataType: "json",
-                        beforeSend: function(){
-                            $('#loadingSpinner').show();
-                        },
-                        success: function(response){
-                            $('#loadingSpinner').hide();
-                            if (response.code == 0) {
-                                showToast(response.result, 'success');
-                                holidaysTable.ajax.reload(null, false);
-                            } else {
-                                showToast(response.result, 'error');
-                            }
-                        },
-                        error: function(){
-                            $('#loadingSpinner').hide();
-                            showToast('Terjadi kesalahan saat menghapus hari libur.', 'error');
+            // Filter
+            $('#btnApplyFilter').on('click', function() {
+                $.ajax({
+                    url: 'holidays.php?ajax=1',
+                    type: 'POST',
+                    data: {
+                        case: 'AddAuditLog',
+                        action: 'ApplyFilter',
+                        details: 'Pengguna menerapkan filter pada Hari Libur.',
+                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+                    },
+                    success: function(response) {
+                        if (response.code === 0) {
+                            showToast('Filter berhasil diterapkan.', 'success');
                         }
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
+                    }
+                });
+                holidaysTable.ajax.reload();
+            });
+
+            $('#btnResetFilter').on('click', function() {
+                $.ajax({
+                    url: 'holidays.php?ajax=1',
+                    type: 'POST',
+                    data: {
+                        case: 'AddAuditLog',
+                        action: 'ResetFilter',
+                        details: 'Pengguna mereset filter hari libur.',
+                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+                    },
+                    success: function(response) {
+                        if (response.code === 0) {
+                            showToast('Filter berhasil direset.', 'success');
+                        }
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan saat mencatat audit log.', 'warning');
+                    }
+                });
+                $('#filterForm')[0].reset();
+                holidaysTable.ajax.reload();
+            });
+
+            // Validasi form Bootstrap
+            (function() {
+                'use strict';
+                window.addEventListener('load', function() {
+                    var forms = document.getElementsByClassName('needs-validation');
+                    Array.prototype.filter.call(forms, function(form) {
+                        form.addEventListener('submit', function(event) {
+                            if (form.checkValidity() === false) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+                            form.classList.add('was-validated');
+                        }, false);
                     });
+                }, false);
+            })();
+
+            // Tambah Hari Libur
+            $('#add-holiday-form').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
                 }
+                var formData = form.serialize();
+                $.ajax({
+                    url: "holidays.php?ajax=1",
+                    type: "POST",
+                    data: formData,
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result, 'success');
+                            $('#addHolidayModal').modal('hide');
+                            holidaysTable.ajax.reload(null, false);
+                            form[0].reset();
+                            form.removeClass('was-validated');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menambah hari libur.', 'error');
+                    }
+                });
+            });
+
+            // Buka modal edit
+            $(document).on('click', '.btn-edit', function() {
+                var id = $(this).data('id');
+                var modal = $('#editHolidayModal');
+                var form = $('#edit-holiday-form');
+                form[0].reset();
+                form.removeClass('was-validated');
+                $.ajax({
+                    url: "holidays.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        id: id,
+                        case: 'GetHolidayDetail',
+                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+                    },
+                    dataType: "json",
+                    success: function(response) {
+                        if (response.code == 0) {
+                            $('#edit_id').val(response.result.id);
+                            $('#edit_nama').val(response.result.nama);
+                            $('#edit_deskripsi').val(response.result.deskripsi);
+                            $('#edit_tanggal').val(response.result.tanggal);
+                            $('#edit_jenis').val(response.result.jenis);
+                            modal.modal('show');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan mengambil detail hari libur.', 'error');
+                    }
+                });
+            });
+
+            // Update Hari Libur
+            $('#edit-holiday-form').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
+                }
+                var formData = form.serialize();
+                $.ajax({
+                    url: "holidays.php?ajax=1",
+                    type: "POST",
+                    data: formData,
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result, 'success');
+                            $('#editHolidayModal').modal('hide');
+                            holidaysTable.ajax.reload(null, false);
+                            form[0].reset();
+                            form.removeClass('was-validated');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat update hari libur.', 'error');
+                    }
+                });
+            });
+
+            // Hapus Hari Libur
+            $(document).on('click', '.btn-delete', function() {
+                var id = $(this).data('id');
+                Swal.fire({
+                    title: 'Apakah Anda yakin?',
+                    text: "Hari libur akan dihapus!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check"></i> Ya, hapus!',
+                    cancelButtonText: '<i class="fas fa-times"></i> Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "holidays.php?ajax=1",
+                            type: "POST",
+                            data: {
+                                id: id,
+                                case: 'DeleteHoliday',
+                                csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+                            },
+                            dataType: "json",
+                            beforeSend: function() {
+                                $('#loadingSpinner').show();
+                            },
+                            success: function(response) {
+                                $('#loadingSpinner').hide();
+                                if (response.code == 0) {
+                                    showToast(response.result, 'success');
+                                    holidaysTable.ajax.reload(null, false);
+                                } else {
+                                    showToast(response.result, 'error');
+                                }
+                            },
+                            error: function() {
+                                $('#loadingSpinner').hide();
+                                showToast('Terjadi kesalahan saat menghapus hari libur.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Inisialisasi Datepicker
+            $('.datepicker').datepicker({
+                format: 'yyyy-mm-dd',
+                autoclose: true,
+                todayHighlight: true
             });
         });
-
-        // Inisialisasi Datepicker
-        $('.datepicker').datepicker({
-            format: 'yyyy-mm-dd',
-            autoclose: true,
-            todayHighlight: true
-        });
-    });
     </script>
 </body>
+
 </html>

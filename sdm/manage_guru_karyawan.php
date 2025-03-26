@@ -51,7 +51,7 @@ $csrf_token = $_SESSION['csrf_token'];
 // =============================================================================
 if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     switch ($_POST['case']) {
         case 'LoadingGuru':
             LoadingGuru($conn);
@@ -97,7 +97,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 // =============================================================================
 // Fungsi-Fungsi CRUD
 // =============================================================================
-function LoadingGuru($conn) {
+function LoadingGuru($conn)
+{
     $start         = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length        = isset($_POST['length']) ? intval($_POST['length']) : 10;
     $search        = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
@@ -156,7 +157,8 @@ function LoadingGuru($conn) {
 }
 
 
-function CreateGuru($conn) {
+function CreateGuru($conn)
+{
     // Pengambilan input dari form
     $nip             = bersihkan_input($_POST['nip'] ?? '');
     $nama            = bersihkan_input($_POST['nama'] ?? '');
@@ -182,7 +184,7 @@ function CreateGuru($conn) {
     // Data tambahan baru: status perkawinan dan remark
     $status_perkawinan = bersihkan_input($_POST['status_perkawinan'] ?? '');
     $remark            = bersihkan_input($_POST['remark'] ?? '');
-    
+
     if ($status_perkawinan === 'Belum Menikah') {
         $nama_pasangan = '-';
         $jumlah_anak   = 0;
@@ -190,15 +192,15 @@ function CreateGuru($conn) {
         $nama_anak_2   = '-';
         $nama_anak_3   = '-';
     }
-    
+
     $null = null; // Untuk salary_index_id yang diisi NULL
     $salary_index_id = null;
     $join_start      = bersihkan_input($_POST['join_start'] ?? '');
-    
+
     if (empty($nip) || empty($nama) || empty($jenjang) || empty($role)) {
         send_response(1, 'NIP, Nama, Jenjang, dan Role wajib diisi.');
     }
-    
+
     // Cek duplikasi NIP
     $sqlCek = "SELECT id FROM anggota_sekolah WHERE nip = ?";
     $stmtCek = $conn->prepare($sqlCek);
@@ -212,10 +214,10 @@ function CreateGuru($conn) {
         send_response(1, 'NIP sudah digunakan.');
     }
     $stmtCek->close();
-    
+
     $uid = generateUID($conn);
     $status_kerja = 'Tetap';
-    
+
     // Hitung masa kerja
     if (!empty($join_start) && $join_start != '0000-00-00') {
         try {
@@ -232,7 +234,7 @@ function CreateGuru($conn) {
         $masa_kerja_tahun = 0;
         $masa_kerja_bulan = 0;
     }
-    
+
     // Tentukan gaji pokok berdasarkan strata
     $gaji_pokok = 0;
     if ($role === 'P' && !empty($pendidikan)) {
@@ -256,9 +258,9 @@ function CreateGuru($conn) {
     } else {
         $gaji_pokok = getGajiPokokByRole($conn, $role);
     }
-    
+
     $defaultPassword = password_hash('123456', PASSWORD_DEFAULT);
-    
+
     $sql = "INSERT INTO anggota_sekolah (
         uid, nip, password, nama, jenjang, job_title, status_kerja,
         join_start, masa_kerja_tahun, masa_kerja_bulan,
@@ -278,22 +280,22 @@ function CreateGuru($conn) {
         ?, ?, ?,
         ?, ?, ?
     )";
-    
+
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         die("Query error: " . $conn->error);
     }
-    
+
     $types = "ssssssssii" .
-             "sss" .
-             "i" .
-             "sssssssss" .
-             "i" .
-             "sss" .
-             "i" .
-             "d" .
-             "s";
-    
+        "sss" .
+        "i" .
+        "sssssssss" .
+        "i" .
+        "sss" .
+        "i" .
+        "d" .
+        "s";
+
     $stmt->bind_param(
         $types,
         $uid,
@@ -327,13 +329,13 @@ function CreateGuru($conn) {
         $gaji_pokok,
         $role
     );
-    
+
     if ($stmt->execute()) {
         $newId = $stmt->insert_id;
         $stmt->close();
-    
+
         updateSalaryIndexForUser($conn, $newId);
-    
+
         $user_id = $_SESSION['nip'] ?? '';
         add_audit_log($conn, $user_id, 'CreateGuru', "Menambah Guru/Karyawan baru ID=$newId, NIP=$nip, Nama=$nama.");
         send_response(0, 'Data berhasil disimpan.');
@@ -343,7 +345,8 @@ function CreateGuru($conn) {
     }
 }
 
-function GetGuruDetail($conn) {
+function GetGuruDetail($conn)
+{
     $id = (int)($_POST['id'] ?? 0);
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
@@ -375,7 +378,8 @@ function GetGuruDetail($conn) {
     $stmt->close();
 }
 
-function UpdateGuru($conn) {
+function UpdateGuru($conn)
+{
     $id              = (int)($_POST['id'] ?? 0);
     $nip             = bersihkan_input($_POST['nip'] ?? '');
     $uid             = bersihkan_input($_POST['uid'] ?? '');
@@ -404,7 +408,7 @@ function UpdateGuru($conn) {
     $salary_index_id = (isset($_POST['salary_index_id']) && $_POST['salary_index_id'] !== '') ? (int)$_POST['salary_index_id'] : null;
     $password_baru   = $_POST['password'] ?? '';
     $join_start      = bersihkan_input($_POST['join_start'] ?? '');
-    
+
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
     }
@@ -441,7 +445,7 @@ function UpdateGuru($conn) {
         $masa_kerja_tahun = 0;
         $masa_kerja_bulan = 0;
     }
-    
+
     // Jika status perkawinan adalah "Belum Menikah", set default nilai
     if ($status_perkawinan === 'Belum Menikah') {
         $nama_pasangan = '-';
@@ -450,7 +454,7 @@ function UpdateGuru($conn) {
         $nama_anak_2   = '-';
         $nama_anak_3   = '-';
     }
-    
+
     $fields = [
         'nip'             => $nip,
         'nama'            => $nama,
@@ -476,8 +480,8 @@ function UpdateGuru($conn) {
         'nama_anak_3'     => $nama_anak_3,
         'salary_index_id' => $salary_index_id,
         'join_start'      => $join_start,
-        'masa_kerja_tahun'=> $masa_kerja_tahun,
-        'masa_kerja_bulan'=> $masa_kerja_bulan
+        'masa_kerja_tahun' => $masa_kerja_tahun,
+        'masa_kerja_bulan' => $masa_kerja_bulan
     ];
     if (!empty($password_baru)) {
         $fields['password'] = password_hash($password_baru, PASSWORD_DEFAULT);
@@ -488,7 +492,7 @@ function UpdateGuru($conn) {
     $values = [];
     foreach ($fields as $col => $val) {
         $updates[] = "$col = ?";
-        if (in_array($col, ['salary_index_id','jumlah_anak','usia','masa_kerja_tahun','masa_kerja_bulan'])) {
+        if (in_array($col, ['salary_index_id', 'jumlah_anak', 'usia', 'masa_kerja_tahun', 'masa_kerja_bulan'])) {
             $types .= 'i';
         } else {
             $types .= 's';
@@ -516,22 +520,23 @@ function UpdateGuru($conn) {
     }
 }
 
-function DeleteGuru($conn) {
+function DeleteGuru($conn)
+{
     $id = (int)($_POST['id'] ?? 0);
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
     }
-    
+
     // Update is_delete dan deleted_at
     $sql = "UPDATE anggota_sekolah 
             SET is_delete = 1, deleted_at = NOW() 
             WHERE id = ?";
-    
+
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         send_response(1, 'Query error: ' . $conn->error);
     }
-    
+
     $stmt->bind_param("i", $id);
     if ($stmt->execute()) {
         $stmt->close();
@@ -545,7 +550,8 @@ function DeleteGuru($conn) {
 }
 
 
-function updateGajiPokok($conn) {
+function updateGajiPokok($conn)
+{
     $gaji_guru     = isset($_POST['gaji_pokok_guru']) ? floatval($_POST['gaji_pokok_guru']) : 0;
     $gaji_karyawan = isset($_POST['gaji_pokok_karyawan']) ? floatval($_POST['gaji_pokok_karyawan']) : 0;
 
@@ -572,7 +578,8 @@ function updateGajiPokok($conn) {
     }
 }
 
-function updateGajiStrataGuru($conn) {
+function updateGajiStrataGuru($conn)
+{
     $updates = [];
     $guruConfig = [
         'TK'      => ['D3', 'S1', 'S2'],
@@ -584,7 +591,7 @@ function updateGajiStrataGuru($conn) {
         foreach ($strataArr as $strata) {
             $fieldName = strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata);
             $gaji = isset($_POST[$fieldName]) ? floatval($_POST[$fieldName]) : 0;
-            $updates[] = ['jenjang'=>$jenjang, 'strata'=>$strata, 'gaji'=>$gaji];
+            $updates[] = ['jenjang' => $jenjang, 'strata' => $strata, 'gaji' => $gaji];
         }
     }
     $allSuccess = true;
@@ -610,7 +617,8 @@ function updateGajiStrataGuru($conn) {
     }
 }
 
-function updateGajiStrataKaryawan($conn) {
+function updateGajiStrataKaryawan($conn)
+{
     $updates = [];
     $karyawanConfig = [
         'TK'  => ['D3'],
@@ -621,7 +629,7 @@ function updateGajiStrataKaryawan($conn) {
         foreach ($strataArr as $strata) {
             $fieldName = strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata);
             $gaji = isset($_POST[$fieldName]) ? floatval($_POST[$fieldName]) : 0;
-            $updates[] = ['jenjang'=>$jenjang, 'strata'=>$strata, 'gaji'=>$gaji];
+            $updates[] = ['jenjang' => $jenjang, 'strata' => $strata, 'gaji' => $gaji];
         }
     }
     $allSuccess = true;
@@ -647,7 +655,8 @@ function updateGajiStrataKaryawan($conn) {
     }
 }
 
-function updateSalaryIndexForUser($conn, $id) {
+function updateSalaryIndexForUser($conn, $id)
+{
     $stmt = $conn->prepare("SELECT role, join_start, pendidikan, jenjang FROM anggota_sekolah WHERE id = ?");
     if (!$stmt) {
         return false;
@@ -715,7 +724,7 @@ function updateSalaryIndexForUser($conn, $id) {
     } else {
         $gaji_pokok = $base_salary;
     }
-    
+
     $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id=?, salary_index_level=?, gaji_pokok=? WHERE id=?");
     if (!$stmtUpdate) {
         return false;
@@ -726,7 +735,8 @@ function updateSalaryIndexForUser($conn, $id) {
     return $exec;
 }
 
-function generateUID($conn) {
+function generateUID($conn)
+{
     do {
         $uid = strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
         $stmt = $conn->prepare("SELECT id FROM anggota_sekolah WHERE uid=? LIMIT 1");
@@ -739,10 +749,11 @@ function generateUID($conn) {
     return $uid;
 }
 
-function getGajiPokokByRole($conn, $role) {
+function getGajiPokokByRole($conn, $role)
+{
     $lookup = ($role === 'P') ? 'guru' : 'karyawan';
     $gaji_pokok = 0.0;
-    
+
     $stmt = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_roles WHERE role=?");
     if ($stmt) {
         $stmt->bind_param("s", $lookup);
@@ -751,12 +762,13 @@ function getGajiPokokByRole($conn, $role) {
         $stmt->fetch();
         $stmt->close();
     }
-    
+
     return floatval($gaji_pokok);
 }
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Manajemen Data Guru/Karyawan - Payroll</title>
@@ -770,13 +782,16 @@ function getGajiPokokByRole($conn, $role) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        body, .text-gray-800 {
+        body,
+        .text-gray-800 {
             color: #000 !important;
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         #loadingSpinner {
             display: none;
             position: fixed;
@@ -784,14 +799,19 @@ function getGajiPokokByRole($conn, $role) {
             height: 100px;
             width: 100px;
             margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
         }
+
         #ManageModal .modal-dialog {
             max-width: 1000px;
             margin: auto;
             padding-top: 70px;
             color: #000 !important;
         }
+
         .employee-initial {
             width: 60px;
             height: 60px;
@@ -799,22 +819,26 @@ function getGajiPokokByRole($conn, $role) {
             background: #ff9800;
             color: #fff;
             font-size: 24px;
-            display: flex; 
-            align-items: center; 
+            display: flex;
+            align-items: center;
             justify-content: center;
             margin: 0 auto 10px auto;
         }
+
         #employeeCards {
             margin-top: 20px;
         }
+
         #employeeCards .col {
             display: flex;
         }
+
         #employeeCards .card {
-            flex: 1; 
+            flex: 1;
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -831,44 +855,44 @@ function getGajiPokokByRole($conn, $role) {
                 <?php include __DIR__ . '/../breadcrumb.php'; ?>
 
                 <div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">Manajemen Data Guru/Karyawan</h1>
+                    <h1 class="h3 mb-4 text-gray-800">Manajemen Data Guru/Karyawan</h1>
 
-    <!-- Bagian Tombol Aksi -->
-    <div class="d-flex justify-content-end mb-3 flex-wrap gap-2">
-        <!-- Tombol Tambah -->
-        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdd">
-            <i class="fas fa-plus"></i> Tambah Guru/Karyawan
-        </button>
-        
-        <!-- Tombol History -->
-        <a href="history_anggota_sekolah.php" class="btn btn-dark btn-sm">
-            <i class="fas fa-history"></i> Lihat History
-        </a>
-        
-        <!-- Tombol Atur Gaji Pokok -->
-        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalGajiPokok">
-            <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
-        </button>
-        
-        <!-- Tombol Atur Salary Indeks -->
-        <button class="btn btn-info btn-sm" id="btnManageSalaryIndices" data-href="/payroll_absensi_v2/sdm/manage_salary_indices.php">
-            <i class="fas fa-money-bill-wave"></i> Atur Salary Indeks
-        </button>
-        
-        <!-- Tombol Atur Hari Libur -->
-        <button class="btn btn-warning btn-sm" id="btnManageHolidays" data-href="/payroll_absensi_v2/sdm/holidays.php">
-            <i class="fas fa-calendar-alt"></i> Atur Hari Libur
-        </button>
-    </div>
+                    <!-- Bagian Tombol Aksi -->
+                    <div class="d-flex justify-content-end mb-3 flex-wrap gap-2">
+                        <!-- Tombol Tambah -->
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdd">
+                            <i class="fas fa-plus"></i> Tambah Guru/Karyawan
+                        </button>
+
+                        <!-- Tombol History -->
+                        <a href="history_anggota_sekolah.php" class="btn btn-dark btn-sm">
+                            <i class="fas fa-history"></i> Lihat History
+                        </a>
+
+                        <!-- Tombol Atur Gaji Pokok -->
+                        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalGajiPokok">
+                            <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
+                        </button>
+
+                        <!-- Tombol Atur Salary Indeks -->
+                        <button class="btn btn-info btn-sm" id="btnManageSalaryIndices" data-href="/payroll_absensi_v2/sdm/manage_salary_indices.php">
+                            <i class="fas fa-money-bill-wave"></i> Atur Salary Indeks
+                        </button>
+
+                        <!-- Tombol Atur Hari Libur -->
+                        <button class="btn btn-warning btn-sm" id="btnManageHolidays" data-href="/payroll_absensi_v2/sdm/holidays.php">
+                            <i class="fas fa-calendar-alt"></i> Atur Hari Libur
+                        </button>
+                    </div>
 
 
                     <!-- Filter -->
                     <div class="card mb-4">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-white">
+                            <h6 class="m-0 fw-bold text-white">
                                 <i class="fas fa-search"></i> Filter Data Guru/Karyawan
                             </h6>
-                            </div>
+                        </div>
                         <div class="card-body">
                             <form id="filterForm" method="GET" class="form-inline">
                                 <label class="me-2" for="filterJenjang">Jenjang:</label>
@@ -884,14 +908,14 @@ function getGajiPokokByRole($conn, $role) {
                                 <label class="me-2" for="filterRole">Role:</label>
                                 <select class="form-control me-2" id="filterRole" name="role">
                                     <option value="">Semua Role</option>
-                                    <option value="P"  <?= (isset($_GET['role']) && $_GET['role'] === 'P') ? 'selected' : ''; ?>>Pendidik</option>
+                                    <option value="P" <?= (isset($_GET['role']) && $_GET['role'] === 'P') ? 'selected' : ''; ?>>Pendidik</option>
                                     <option value="TK" <?= (isset($_GET['role']) && $_GET['role'] === 'TK') ? 'selected' : ''; ?>>Tenaga Kependidikan</option>
-                                    <option value="M"  <?= (isset($_GET['role']) && $_GET['role'] === 'M') ? 'selected' : ''; ?>>Manajerial</option>
+                                    <option value="M" <?= (isset($_GET['role']) && $_GET['role'] === 'M') ? 'selected' : ''; ?>>Manajerial</option>
                                 </select>
                                 <label class="me-2" for="filterStatus">Status Kerja:</label>
                                 <select class="form-control me-2" id="filterStatus" name="status_kerja">
                                     <option value="">Semua Status</option>
-                                    <option value="Tetap"   <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Tetap') ? 'selected' : ''; ?>>Tetap</option>
+                                    <option value="Tetap" <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Tetap') ? 'selected' : ''; ?>>Tetap</option>
                                     <option value="Kontrak" <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Kontrak') ? 'selected' : ''; ?>>Kontrak</option>
                                 </select>
                                 <button type="button" id="btnApplyFilter" class="btn btn-primary me-2">
@@ -942,650 +966,731 @@ function getGajiPokokByRole($conn, $role) {
 
     <!-- MODAL: Tambah Guru/Karyawan -->
     <div class="modal fade" id="modalAdd" tabindex="-1" aria-labelledby="modalAddLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form id="add-guru-form" method="POST" class="needs-validation" novalidate>
-          <input type="hidden" name="case" value="CreateGuru">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="modalAddLabel">Tambah Data Guru/Karyawan</h5>
-              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            </div>
-            <div class="modal-body">
-              <!-- Data Pekerjaan -->
-              <h6 class="mb-2">Data Pekerjaan</h6>
-              <div class="row">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addNip">NIP <span class="text-danger">*</span></label>
-                          <input type="text" name="nip" id="addNip" class="form-control" required placeholder="Masukkan NIP">
-                          <div class="invalid-feedback">NIP wajib diisi.</div>
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addNama">Nama <span class="text-danger">*</span></label>
-                          <input type="text" name="nama" id="addNama" class="form-control" required placeholder="Nama lengkap">
-                          <div class="invalid-feedback">Nama wajib diisi.</div>
-                      </div>
-                  </div>
-              </div>
-              <div class="row">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addJenjang">Jenjang <span class="text-danger">*</span></label>
-                          <select name="jenjang" id="addJenjang" class="form-control" required>
-                              <option value="">-- Pilih Jenjang --</option>
-                              <option value="TK">TK</option>
-                              <option value="SD">SD</option>
-                              <option value="SMP">SMP</option>
-                              <option value="SMA">SMA</option>
-                              <option value="SMK">SMK</option>
-                          </select>
-                          <div class="invalid-feedback">Jenjang wajib dipilih.</div>
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addJobTitle">Job Title</label>
-                          <input type="text" name="job_title" id="addJobTitle" class="form-control" placeholder="Contoh: Guru, Staff, dll">
-                      </div>
-                  </div>
-              </div>
-              <!-- Field Role dan Tanggal Bergabung -->
-              <div class="row">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addRole">Role <span class="text-danger">*</span></label>
-                          <select name="role" id="addRole" class="form-control" required>
-                              <option value="">-- Pilih Role --</option>
-                              <option value="P">Pendidik (Guru)</option>
-                              <option value="TK">Tenaga Kependidikan</option>
-                              <option value="M">Manajerial</option>
-                          </select>
-                          <div class="invalid-feedback">Role wajib dipilih.</div>
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addJoinStart">Tanggal Bergabung <span class="text-danger">*</span></label>
-                          <input type="date" name="join_start" id="addJoinStart" class="form-control" required>
-                          <div class="invalid-feedback">Tanggal Bergabung wajib diisi.</div>
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addRemark">Remark</label>
-                          <input type="text" name="remark" id="addRemark" class="form-control" placeholder="Catatan tambahan">
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addPendidikan">Pendidikan</label>
-                          <input type="text" name="pendidikan" id="addPendidikan" class="form-control" placeholder="Contoh: S1, D3">
-                      </div>
-                  </div>
-              </div>
-              <!-- Data Pribadi -->
-              <h6 class="mt-4 mb-2">Data Pribadi</h6>
-              <div class="row">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addJK">Jenis Kelamin</label>
-                          <select name="jk" id="addJK" class="form-control">
-                              <option value="">-- Pilih Jenis Kelamin --</option>
-                              <option value="L">Laki-laki</option>
-                              <option value="P">Perempuan</option>
-                          </select>
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addTglLahir">Tanggal Lahir</label>
-                          <input type="date" name="tgl_lahir" id="addTglLahir" class="form-control">
-                      </div>
-                  </div>
-              </div>
-              <div class="row">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addUsia">Usia</label>
-                          <input type="number" name="usia" id="addUsia" class="form-control">
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addReligion">Agama</label>
-                          <input type="text" name="religion" id="addReligion" class="form-control">
-                      </div>
-                  </div>
-              </div>
-              <!-- Data Kontak -->
-              <h6 class="mt-4 mb-2">Data Kontak</h6>
-              <div class="row">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addAlamatDomisili">Alamat Domisili</label>
-                          <textarea name="alamat_domisili" id="addAlamatDomisili" class="form-control"></textarea>
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addAlamatKTP">Alamat KTP</label>
-                          <textarea name="alamat_ktp" id="addAlamatKTP" class="form-control"></textarea>
-                      </div>
-                  </div>
-              </div>
-              <div class="row">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addNoRekening">No Rekening</label>
-                          <input type="text" name="no_rekening" id="addNoRekening" class="form-control">
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addNoHP">No Handphone</label>
-                          <input type="text" name="no_hp" id="addNoHP" class="form-control" placeholder="08xxx">
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addEmail">Email</label>
-                          <input type="email" name="email" id="addEmail" class="form-control" placeholder="contoh@domain.com">
-                      </div>
-                  </div>
-              </div>
-              <!-- Data Lainnya -->
-              <h6 class="mt-4 mb-2">Data Lainnya</h6>
-              <div class="row">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addStatusPerkawinan">Status Perkawinan <span class="text-danger">*</span></label>
-                          <select name="status_perkawinan" id="addStatusPerkawinan" class="form-control" required>
-                            <option value="">-- Pilih Status --</option>
-                            <option value="Menikah">Menikah</option>
-                            <option value="Belum Menikah">Belum Menikah</option>
-                          </select>
-                          <div class="invalid-feedback">Status Perkawinan wajib dipilih.</div>
-                      </div>
-                  </div>
-              </div>
-              <!-- Pasangan dan Anak -->
-              <div class="row mt-2">
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addNamaPasangan">Nama Pasangan</label>
-                          <input type="text" name="nama_pasangan" id="addNamaPasangan" class="form-control" placeholder="Nama Pasangan">
-                      </div>
-                  </div>
-                  <div class="col-md-6">
-                      <div class="form-group">
-                          <label for="addJumlahAnak">Jumlah Anak</label>
-                          <input type="number" name="jumlah_anak" id="addJumlahAnak" class="form-control" placeholder="Jumlah Anak">
-                      </div>
-                  </div>
-              </div>
-              <div class="row mt-2">
-                  <div class="col-md-4">
-                      <div class="form-group">
-                          <label for="addNamaAnak1">Nama Anak 1</label>
-                          <input type="text" name="nama_anak_1" id="addNamaAnak1" class="form-control" placeholder="Nama Anak 1">
-                      </div>
-                  </div>
-                  <div class="col-md-4">
-                      <div class="form-group">
-                          <label for="addNamaAnak2">Nama Anak 2</label>
-                          <input type="text" name="nama_anak_2" id="addNamaAnak2" class="form-control" placeholder="Nama Anak 2">
-                      </div>
-                  </div>
-                  <div class="col-md-4">
-                      <div class="form-group">
-                          <label for="addNamaAnak3">Nama Anak 3</label>
-                          <input type="text" name="nama_anak_3" id="addNamaAnak3" class="form-control" placeholder="Nama Anak 3">
-                      </div>
-                  </div>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-              <button type="submit" class="btn btn-success">
-                  <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                  Simpan
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <form id="add-guru-form" method="POST" class="needs-validation" novalidate>
+                <input type="hidden" name="case" value="CreateGuru">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalAddLabel">Tambah Data Guru/Karyawan</h5>
+                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Data Pekerjaan -->
+                        <h6 class="mb-2">Data Pekerjaan</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addNip">NIP <span class="text-danger">*</span></label>
+                                    <input type="text" name="nip" id="addNip" class="form-control" required placeholder="Masukkan NIP">
+                                    <div class="invalid-feedback">NIP wajib diisi.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addNama">Nama <span class="text-danger">*</span></label>
+                                    <input type="text" name="nama" id="addNama" class="form-control" required placeholder="Nama lengkap">
+                                    <div class="invalid-feedback">Nama wajib diisi.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addJenjang">Jenjang <span class="text-danger">*</span></label>
+                                    <select name="jenjang" id="addJenjang" class="form-control" required>
+                                        <option value="">-- Pilih Jenjang --</option>
+                                        <option value="TK">TK</option>
+                                        <option value="SD">SD</option>
+                                        <option value="SMP">SMP</option>
+                                        <option value="SMA">SMA</option>
+                                        <option value="SMK">SMK</option>
+                                    </select>
+                                    <div class="invalid-feedback">Jenjang wajib dipilih.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addJobTitle">Job Title</label>
+                                    <input type="text" name="job_title" id="addJobTitle" class="form-control" placeholder="Contoh: Guru, Staff, dll">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Field Role dan Tanggal Bergabung -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addRole">Role <span class="text-danger">*</span></label>
+                                    <select name="role" id="addRole" class="form-control" required>
+                                        <option value="">-- Pilih Role --</option>
+                                        <option value="P">Pendidik (Guru)</option>
+                                        <option value="TK">Tenaga Kependidikan</option>
+                                        <option value="M">Manajerial</option>
+                                    </select>
+                                    <div class="invalid-feedback">Role wajib dipilih.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addJoinStart">Tanggal Bergabung <span class="text-danger">*</span></label>
+                                    <input type="date" name="join_start" id="addJoinStart" class="form-control" required>
+                                    <div class="invalid-feedback">Tanggal Bergabung wajib diisi.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addRemark">Remark</label>
+                                    <input type="text" name="remark" id="addRemark" class="form-control" placeholder="Catatan tambahan">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addPendidikan">Pendidikan</label>
+                                    <input type="text" name="pendidikan" id="addPendidikan" class="form-control" placeholder="Contoh: S1, D3">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Data Pribadi -->
+                        <h6 class="mt-4 mb-2">Data Pribadi</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addJK">Jenis Kelamin</label>
+                                    <select name="jk" id="addJK" class="form-control">
+                                        <option value="">-- Pilih Jenis Kelamin --</option>
+                                        <option value="L">Laki-laki</option>
+                                        <option value="P">Perempuan</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addTglLahir">Tanggal Lahir</label>
+                                    <input type="date" name="tgl_lahir" id="addTglLahir" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addUsia">Usia</label>
+                                    <input type="number" name="usia" id="addUsia" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addReligion">Agama</label>
+                                    <input type="text" name="religion" id="addReligion" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Data Kontak -->
+                        <h6 class="mt-4 mb-2">Data Kontak</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addAlamatDomisili">Alamat Domisili</label>
+                                    <textarea name="alamat_domisili" id="addAlamatDomisili" class="form-control"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addAlamatKTP">Alamat KTP</label>
+                                    <textarea name="alamat_ktp" id="addAlamatKTP" class="form-control"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addNoRekening">No Rekening</label>
+                                    <input type="text" name="no_rekening" id="addNoRekening" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addNoHP">No Handphone</label>
+                                    <input type="text" name="no_hp" id="addNoHP" class="form-control" placeholder="08xxx">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addEmail">Email</label>
+                                    <input type="email" name="email" id="addEmail" class="form-control" placeholder="contoh@domain.com">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Data Lainnya -->
+                        <h6 class="mt-4 mb-2">Data Lainnya</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addStatusPerkawinan">Status Perkawinan <span class="text-danger">*</span></label>
+                                    <select name="status_perkawinan" id="addStatusPerkawinan" class="form-control" required>
+                                        <option value="">-- Pilih Status --</option>
+                                        <option value="Menikah">Menikah</option>
+                                        <option value="Belum Menikah">Belum Menikah</option>
+                                    </select>
+                                    <div class="invalid-feedback">Status Perkawinan wajib dipilih.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Pasangan dan Anak -->
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addNamaPasangan">Nama Pasangan</label>
+                                    <input type="text" name="nama_pasangan" id="addNamaPasangan" class="form-control" placeholder="Nama Pasangan">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="addJumlahAnak">Jumlah Anak</label>
+                                    <input type="number" name="jumlah_anak" id="addJumlahAnak" class="form-control" placeholder="Jumlah Anak">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="addNamaAnak1">Nama Anak 1</label>
+                                    <input type="text" name="nama_anak_1" id="addNamaAnak1" class="form-control" placeholder="Nama Anak 1">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="addNamaAnak2">Nama Anak 2</label>
+                                    <input type="text" name="nama_anak_2" id="addNamaAnak2" class="form-control" placeholder="Nama Anak 2">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="addNamaAnak3">Nama Anak 3</label>
+                                    <input type="text" name="nama_anak_3" id="addNamaAnak3" class="form-control" placeholder="Nama Anak 3">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            Simpan
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- MODAL: Edit -->
     <div class="modal fade" id="modalEdit" tabindex="-1">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form id="edit-guru-form" method="POST" class="needs-validation" novalidate>
-          <input type="hidden" name="case" value="UpdateGuru">
-          <input type="hidden" name="id" id="editId">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-          <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit Data Guru/Karyawan</h5>
-          <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <form id="edit-guru-form" method="POST" class="needs-validation" novalidate>
+                <input type="hidden" name="case" value="UpdateGuru">
+                <input type="hidden" name="id" id="editId">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Data Guru/Karyawan</h5>
+                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6 class="mb-2">Data Pekerjaan</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="editNip">NIP <span class="text-danger">*</span></label>
+                                <input type="text" name="nip" id="editNip" class="form-control" required>
+                                <div class="invalid-feedback">NIP wajib diisi.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editUid">UID</label>
+                                <input type="text" name="uid" id="editUid" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label for="editNama">Nama <span class="text-danger">*</span></label>
+                                <input type="text" name="nama" id="editNama" class="form-control" required>
+                                <div class="invalid-feedback">Nama wajib diisi.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editJenjang">Jenjang <span class="text-danger">*</span></label>
+                                <select name="jenjang" id="editJenjang" class="form-control" required>
+                                    <option value="">-- Pilih Jenjang --</option>
+                                    <option value="TK">TK</option>
+                                    <option value="SD">SD</option>
+                                    <option value="SMP">SMP</option>
+                                    <option value="SMA">SMA</option>
+                                    <option value="SMK">SMK</option>
+                                </select>
+                                <div class="invalid-feedback">Jenjang wajib dipilih.</div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label for="editRole">Role <span class="text-danger">*</span></label>
+                                <select name="role" id="editRole" class="form-control" required>
+                                    <option value="">-- Pilih Role --</option>
+                                    <option value="P">Pendidik</option>
+                                    <option value="TK">Tenaga Kependidikan</option>
+                                    <option value="M">Manajerial</option>
+                                </select>
+                                <div class="invalid-feedback">Role wajib dipilih.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editJobTitle">Job Title</label>
+                                <input type="text" name="job_title" id="editJobTitle" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="editRemark">Remark</label>
+                                    <input type="text" name="remark" id="editRemark" class="form-control" placeholder="Catatan tambahan">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Tanggal Bergabung -->
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label for="editJoinStart">Tanggal Bergabung</label>
+                                <input type="date" name="join_start" id="editJoinStart" class="form-control">
+                            </div>
+                        </div>
+                        <h6 class="mt-4 mb-2">Data Pribadi</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="editJK">Jenis Kelamin</label>
+                                <select name="jk" id="editJK" class="form-control">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="L">Laki-laki</option>
+                                    <option value="P">Perempuan</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editTglLahir">Tanggal Lahir</label>
+                                <input type="date" name="tgl_lahir" id="editTglLahir" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label for="editUsia">Usia</label>
+                                <input type="number" name="usia" id="editUsia" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editReligion">Agama</label>
+                                <input type="text" name="religion" id="editReligion" class="form-control">
+                            </div>
+                        </div>
+                        <!-- Tambahan: Pendidikan -->
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label for="editPendidikan">Pendidikan</label>
+                                <input type="text" name="pendidikan" id="editPendidikan" class="form-control" placeholder="Contoh: S1">
+                            </div>
+                        </div>
+                        <!-- Data Kontak -->
+                        <h6 class="mt-4 mb-2">Data Kontak</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="editAlamatDomisili">Alamat Domisili</label>
+                                <textarea name="alamat_domisili" id="editAlamatDomisili" class="form-control"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editAlamatKTP">Alamat KTP</label>
+                                <textarea name="alamat_ktp" id="editAlamatKTP" class="form-control"></textarea>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label for="editNoRekening">No Rekening</label>
+                                <input type="text" name="no_rekening" id="editNoRekening" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editNoHP">No HP</label>
+                                <input type="text" name="no_hp" id="editNoHP" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label for="editEmail">Email</label>
+                                <input type="email" name="email" id="editEmail" class="form-control">
+                            </div>
+                        </div>
+                        <!-- Data Lainnya -->
+                        <h6 class="mt-4 mb-2">Data Lainnya</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="editStatusPerkawinan">Status Perkawinan <span class="text-danger">*</span></label>
+                                    <select name="status_perkawinan" id="editStatusPerkawinan" class="form-control" required>
+                                        <option value="">-- Pilih Status --</option>
+                                        <option value="Menikah">Menikah</option>
+                                        <option value="Belum Menikah">Belum Menikah</option>
+                                    </select>
+                                    <div class="invalid-feedback">Status Perkawinan wajib dipilih.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="editNamaPasangan">Nama Pasangan</label>
+                                    <input type="text" name="nama_pasangan" id="editNamaPasangan" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="editJumlahAnak">Jumlah Anak</label>
+                                    <input type="number" name="jumlah_anak" id="editJumlahAnak" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="editNamaAnak1">Nama Anak 1</label>
+                                    <input type="text" name="nama_anak_1" id="editNamaAnak1" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="editNamaAnak2">Nama Anak 2</label>
+                                    <input type="text" name="nama_anak_2" id="editNamaAnak2" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="editNamaAnak3">Nama Anak 3</label>
+                                    <input type="text" name="nama_anak_3" id="editNamaAnak3" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <label for="editPassword">Password Baru (Opsional)</label>
+                                <input type="password" name="password" id="editPassword" class="form-control" placeholder="Kosongkan jika tidak ingin mengubah password">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm d-none"></span>
+                            Update
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-        <div class="modal-body">
-          <h6 class="mb-2">Data Pekerjaan</h6>
-          <div class="row">
-            <div class="col-md-6">
-              <label for="editNip">NIP <span class="text-danger">*</span></label>
-              <input type="text" name="nip" id="editNip" class="form-control" required>
-              <div class="invalid-feedback">NIP wajib diisi.</div>
-            </div>
-            <div class="col-md-6">
-              <label for="editUid">UID</label>
-              <input type="text" name="uid" id="editUid" class="form-control" readonly>
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="editNama">Nama <span class="text-danger">*</span></label>
-              <input type="text" name="nama" id="editNama" class="form-control" required>
-              <div class="invalid-feedback">Nama wajib diisi.</div>
-            </div>
-            <div class="col-md-6">
-              <label for="editJenjang">Jenjang <span class="text-danger">*</span></label>
-              <select name="jenjang" id="editJenjang" class="form-control" required>
-                <option value="">-- Pilih Jenjang --</option>
-                <option value="TK">TK</option>
-                <option value="SD">SD</option>
-                <option value="SMP">SMP</option>
-                <option value="SMA">SMA</option>
-                <option value="SMK">SMK</option>
-              </select>
-              <div class="invalid-feedback">Jenjang wajib dipilih.</div>
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="editRole">Role <span class="text-danger">*</span></label>
-              <select name="role" id="editRole" class="form-control" required>
-                <option value="">-- Pilih Role --</option>
-                <option value="P">Pendidik</option>
-                <option value="TK">Tenaga Kependidikan</option>
-                <option value="M">Manajerial</option>
-              </select>
-              <div class="invalid-feedback">Role wajib dipilih.</div>
-            </div>
-            <div class="col-md-6">
-              <label for="editJobTitle">Job Title</label>
-              <input type="text" name="job_title" id="editJobTitle" class="form-control">
-            </div>
-            <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="editRemark">Remark</label>
-                      <input type="text" name="remark" id="editRemark" class="form-control" placeholder="Catatan tambahan">
-                  </div>
-              </div>
-          </div>
-          <!-- Tanggal Bergabung -->
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="editJoinStart">Tanggal Bergabung</label>
-              <input type="date" name="join_start" id="editJoinStart" class="form-control">
-            </div>
-          </div>
-          <h6 class="mt-4 mb-2">Data Pribadi</h6>
-          <div class="row">
-            <div class="col-md-6">
-              <label for="editJK">Jenis Kelamin</label>
-              <select name="jk" id="editJK" class="form-control">
-                <option value="">-- Pilih --</option>
-                <option value="L">Laki-laki</option>
-                <option value="P">Perempuan</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="editTglLahir">Tanggal Lahir</label>
-              <input type="date" name="tgl_lahir" id="editTglLahir" class="form-control">
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="editUsia">Usia</label>
-              <input type="number" name="usia" id="editUsia" class="form-control">
-            </div>
-            <div class="col-md-6">
-              <label for="editReligion">Agama</label>
-              <input type="text" name="religion" id="editReligion" class="form-control">
-            </div>
-          </div>
-          <!-- Tambahan: Pendidikan -->
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="editPendidikan">Pendidikan</label>
-              <input type="text" name="pendidikan" id="editPendidikan" class="form-control" placeholder="Contoh: S1">
-            </div>
-          </div>
-          <!-- Data Kontak -->
-          <h6 class="mt-4 mb-2">Data Kontak</h6>
-          <div class="row">
-            <div class="col-md-6">
-              <label for="editAlamatDomisili">Alamat Domisili</label>
-              <textarea name="alamat_domisili" id="editAlamatDomisili" class="form-control"></textarea>
-            </div>
-            <div class="col-md-6">
-              <label for="editAlamatKTP">Alamat KTP</label>
-              <textarea name="alamat_ktp" id="editAlamatKTP" class="form-control"></textarea>
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="editNoRekening">No Rekening</label>
-              <input type="text" name="no_rekening" id="editNoRekening" class="form-control">
-            </div>
-            <div class="col-md-6">
-              <label for="editNoHP">No HP</label>
-              <input type="text" name="no_hp" id="editNoHP" class="form-control">
-            </div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <label for="editEmail">Email</label>
-              <input type="email" name="email" id="editEmail" class="form-control">
-            </div>
-          </div>
-          <!-- Data Lainnya -->
-          <h6 class="mt-4 mb-2">Data Lainnya</h6>
-          <div class="row">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="editStatusPerkawinan">Status Perkawinan <span class="text-danger">*</span></label>
-                      <select name="status_perkawinan" id="editStatusPerkawinan" class="form-control" required>
-                        <option value="">-- Pilih Status --</option>
-                        <option value="Menikah">Menikah</option>
-                        <option value="Belum Menikah">Belum Menikah</option>
-                      </select>
-                      <div class="invalid-feedback">Status Perkawinan wajib dipilih.</div>
-                  </div>
-              </div>
-          </div>
-          <div class="row mt-2">
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="editNamaPasangan">Nama Pasangan</label>
-                      <input type="text" name="nama_pasangan" id="editNamaPasangan" class="form-control">
-                  </div>
-              </div>
-              <div class="col-md-6">
-                  <div class="form-group">
-                      <label for="editJumlahAnak">Jumlah Anak</label>
-                      <input type="number" name="jumlah_anak" id="editJumlahAnak" class="form-control">
-                  </div>
-              </div>
-          </div>
-          <div class="row mt-2">
-              <div class="col-md-4">
-                  <div class="form-group">
-                      <label for="editNamaAnak1">Nama Anak 1</label>
-                      <input type="text" name="nama_anak_1" id="editNamaAnak1" class="form-control">
-                  </div>
-              </div>
-              <div class="col-md-4">
-                  <div class="form-group">
-                      <label for="editNamaAnak2">Nama Anak 2</label>
-                      <input type="text" name="nama_anak_2" id="editNamaAnak2" class="form-control">
-                  </div>
-              </div>
-              <div class="col-md-4">
-                  <div class="form-group">
-                      <label for="editNamaAnak3">Nama Anak 3</label>
-                      <input type="text" name="nama_anak_3" id="editNamaAnak3" class="form-control">
-                  </div>
-              </div>
-          </div>
-          <hr>
-          <div class="row">
-            <div class="col-md-12">
-              <label for="editPassword">Password Baru (Opsional)</label>
-              <input type="password" name="password" id="editPassword" class="form-control" placeholder="Kosongkan jika tidak ingin mengubah password">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-primary">
-            <span class="spinner-border spinner-border-sm d-none"></span>
-            Update
-          </button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
+    </div>
 
     <!-- MODAL: View Detail -->
     <div class="modal fade" id="modalView" tabindex="-1">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Detail Data Guru/Karyawan</h5>
-            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-          </div>
-          <div class="modal-body" style="color: #000;">
-        <h6>Data Pekerjaan</h6>
-        <table class="table table-sm">
-          <tr><th>NIP</th><td id="detailNip"></td></tr>
-          <tr><th>UID</th><td id="detailUid"></td></tr>
-          <tr><th>Nama</th><td id="detailNama"></td></tr>
-          <tr><th>Jenjang</th><td id="detailJenjang"></td></tr>
-          <tr><th>Job Title</th><td id="detailJobTitle"></td></tr>
-          <tr><th>Role</th><td id="detailRole"></td></tr>
-          <tr><th>Status Kerja</th><td id="detailStatusKerja"></td></tr>
-          <tr><th>Tanggal Bergabung</th><td id="detailJoinStart"></td></tr>
-          <tr><th>Masa Kerja</th><td id="detailMasaKerja"></td></tr>
-          <tr><th>Pendidikan</th><td id="detailPendidikan"></td></tr>
-          <tr><th>Salary Indeks Level</th><td id="detailSalaryIndexId"></td></tr>
-        </table>
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detail Data Guru/Karyawan</h5>
+                    <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body" style="color: #000;">
+                    <h6>Data Pekerjaan</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>NIP</th>
+                            <td id="detailNip"></td>
+                        </tr>
+                        <tr>
+                            <th>UID</th>
+                            <td id="detailUid"></td>
+                        </tr>
+                        <tr>
+                            <th>Nama</th>
+                            <td id="detailNama"></td>
+                        </tr>
+                        <tr>
+                            <th>Jenjang</th>
+                            <td id="detailJenjang"></td>
+                        </tr>
+                        <tr>
+                            <th>Job Title</th>
+                            <td id="detailJobTitle"></td>
+                        </tr>
+                        <tr>
+                            <th>Role</th>
+                            <td id="detailRole"></td>
+                        </tr>
+                        <tr>
+                            <th>Status Kerja</th>
+                            <td id="detailStatusKerja"></td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Bergabung</th>
+                            <td id="detailJoinStart"></td>
+                        </tr>
+                        <tr>
+                            <th>Masa Kerja</th>
+                            <td id="detailMasaKerja"></td>
+                        </tr>
+                        <tr>
+                            <th>Pendidikan</th>
+                            <td id="detailPendidikan"></td>
+                        </tr>
+                        <tr>
+                            <th>Salary Indeks Level</th>
+                            <td id="detailSalaryIndexId"></td>
+                        </tr>
+                    </table>
 
-        <h6 class="mt-3">Data Pribadi</h6>
-        <table class="table table-sm">
-          <tr><th>Jenis Kelamin</th><td id="detailJK"></td></tr>
-          <tr><th>Tanggal Lahir</th><td id="detailTglLahir"></td></tr>
-          <tr><th>Usia</th><td id="detailUsia"></td></tr>
-          <tr><th>Agama</th><td id="detailReligion"></td></tr>
-        </table>
+                    <h6 class="mt-3">Data Pribadi</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Jenis Kelamin</th>
+                            <td id="detailJK"></td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Lahir</th>
+                            <td id="detailTglLahir"></td>
+                        </tr>
+                        <tr>
+                            <th>Usia</th>
+                            <td id="detailUsia"></td>
+                        </tr>
+                        <tr>
+                            <th>Agama</th>
+                            <td id="detailReligion"></td>
+                        </tr>
+                    </table>
 
-        <h6 class="mt-3">Data Kontak</h6>
-        <table class="table table-sm">
-          <tr><th>Alamat Domisili</th><td id="detailAlamatDomisili"></td></tr>
-          <tr><th>Alamat KTP</th><td id="detailAlamatKTP"></td></tr>
-          <tr><th>No Rekening</th><td id="detailNoRekening"></td></tr>
-          <tr><th>No HP</th><td id="detailNoHP"></td></tr>
-          <tr><th>Email</th><td id="detailEmail"></td></tr>
-        </table>
+                    <h6 class="mt-3">Data Kontak</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Alamat Domisili</th>
+                            <td id="detailAlamatDomisili"></td>
+                        </tr>
+                        <tr>
+                            <th>Alamat KTP</th>
+                            <td id="detailAlamatKTP"></td>
+                        </tr>
+                        <tr>
+                            <th>No Rekening</th>
+                            <td id="detailNoRekening"></td>
+                        </tr>
+                        <tr>
+                            <th>No HP</th>
+                            <td id="detailNoHP"></td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td id="detailEmail"></td>
+                        </tr>
+                    </table>
 
-        <h6 class="mt-3">Data Lainnya</h6>
-        <table class="table table-sm">
-          <tr><th>Remark</th><td id="detailRemark"></td></tr>
-          <tr><th>Status Perkawinan</th><td id="detailStatusPerkawinan"></td></tr>
-          <tr><th>Nama Pasangan</th><td id="detailNamaPasangan"></td></tr>
-          <tr><th>Jumlah Anak</th><td id="detailJumlahAnak"></td></tr>
-          <tr><th>Nama Anak 1</th><td id="detailNamaAnak1"></td></tr>
-          <tr><th>Nama Anak 2</th><td id="detailNamaAnak2"></td></tr>
-          <tr><th>Nama Anak 3</th><td id="detailNamaAnak3"></td></tr>
-        </table>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-      </div>
+                    <h6 class="mt-3">Data Lainnya</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Remark</th>
+                            <td id="detailRemark"></td>
+                        </tr>
+                        <tr>
+                            <th>Status Perkawinan</th>
+                            <td id="detailStatusPerkawinan"></td>
+                        </tr>
+                        <tr>
+                            <th>Nama Pasangan</th>
+                            <td id="detailNamaPasangan"></td>
+                        </tr>
+                        <tr>
+                            <th>Jumlah Anak</th>
+                            <td id="detailJumlahAnak"></td>
+                        </tr>
+                        <tr>
+                            <th>Nama Anak 1</th>
+                            <td id="detailNamaAnak1"></td>
+                        </tr>
+                        <tr>
+                            <th>Nama Anak 2</th>
+                            <td id="detailNamaAnak2"></td>
+                        </tr>
+                        <tr>
+                            <th>Nama Anak 3</th>
+                            <td id="detailNamaAnak3"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
     <!-- MODAL: Delete -->
     <div class="modal fade" id="modalDelete" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <form id="delete-guru-form">
-            <input type="hidden" name="case" value="DeleteGuru">
-            <input type="hidden" name="id" id="delId">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-            <div class="modal-header">
-              <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
-              <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="delete-guru-form">
+                    <input type="hidden" name="case" value="DeleteGuru">
+                    <input type="hidden" name="id" id="delId">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Hapus Data Guru/Karyawan</h5>
+                        <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Anda yakin ingin menghapus data berikut?</p>
+                        <p><strong id="delNama"></strong></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger">
+                            <span class="spinner-border spinner-border-sm d-none"></span>
+                            Hapus
+                        </button>
+                    </div>
+                </form>
             </div>
-            <div class="modal-body">
-              <p>Anda yakin ingin menghapus data berikut?</p>
-              <p><strong id="delNama"></strong></p>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-              <button type="submit" class="btn btn-danger">
-                <span class="spinner-border spinner-border-sm d-none"></span>
-                Hapus
-              </button>
-            </div>
-          </form>
         </div>
-      </div>
     </div>
 
     <!-- MODAL: Atur Gaji Pokok -->
     <div class="modal fade" id="modalGajiPokok" tabindex="-1" aria-labelledby="modalGajiPokokLabel" aria-hidden="true">
-      <div class="modal-dialog modal-md">
-        <form id="gaji-pokok-form" method="POST" class="modal-content">
-          <input type="hidden" name="case" value="update_gaji_pokok">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalGajiPokokLabel">Atur Gaji Pokok</h5>
-            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-          </div>
-          <div class="modal-body">
-            <div class="text-center mb-3">
-              <!-- Ubah tombol ini menjadi tanpa data-bs-toggle/data-bs-target -->
-              <button type="button" id="btnGajiStrataGuru" class="btn btn-secondary me-2">
-                <i class="fas fa-chart-bar"></i> Atur Gaji Strata Guru
-              </button>
-              <button type="button" id="btnGajiStrataKaryawan" class="btn btn-secondary">
-                <i class="fas fa-chart-bar"></i> Atur Gaji Strata Karyawan
-              </button>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-success">
-              <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-              Simpan
-            </button>
-          </div>
-        </form>
-      </div>
+        <div class="modal-dialog modal-md">
+            <form id="gaji-pokok-form" method="POST" class="modal-content">
+                <input type="hidden" name="case" value="update_gaji_pokok">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalGajiPokokLabel">Atur Gaji Pokok</h5>
+                    <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <!-- Ubah tombol ini menjadi tanpa data-bs-toggle/data-bs-target -->
+                        <button type="button" id="btnGajiStrataGuru" class="btn btn-secondary me-2">
+                            <i class="fas fa-chart-bar"></i> Atur Gaji Strata Guru
+                        </button>
+                        <button type="button" id="btnGajiStrataKaryawan" class="btn btn-secondary">
+                            <i class="fas fa-chart-bar"></i> Atur Gaji Strata Karyawan
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- MODAL: Atur Gaji Strata Guru -->
     <div class="modal fade" id="modalGajiStrataGuru" tabindex="-1" aria-labelledby="modalGajiStrataGuruLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form id="gaji-strata-form-guru" method="POST" class="modal-content">
-          <input type="hidden" name="case" value="update_gaji_strata_guru">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalGajiStrataGuruLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Guru)</h5>
-            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-          </div>
-          <div class="modal-body">
-            <div class="table-responsive">
-              <table class="table table-bordered">
-                <thead>
-                  <tr>
-                    <th>Jenjang</th>
-                    <th>Strata Pendidikan</th>
-                    <th>Gaji Pokok (Rp)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($guruConfig as $jenjang => $strataArr): ?>
-                    <?php $first = true; ?>
-                    <?php foreach ($strataArr as $strata): ?>
-                      <tr>
-                        <?php if ($first): ?>
-                          <td rowspan="<?= count($strataArr) ?>"><?= htmlspecialchars($jenjang) ?></td>
-                          <?php $first = false; ?>
-                        <?php endif; ?>
-                        <td><?= htmlspecialchars($strata) ?></td>
-                        <td>
-                          <input type="number" step="0.01" 
-                            name="<?= strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata) ?>" 
-                            class="form-control" 
-                            value="<?= isset($guruStrata[$jenjang][$strata]) ? $guruStrata[$jenjang][$strata] : '' ?>" required>
-                        </td>
-                      </tr>
-                    <?php endforeach; ?>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-primary">
-              <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-              Simpan
-            </button>
-          </div>
-        </form>
-      </div>
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <form id="gaji-strata-form-guru" method="POST" class="modal-content">
+                <input type="hidden" name="case" value="update_gaji_strata_guru">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalGajiStrataGuruLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Guru)</h5>
+                    <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Jenjang</th>
+                                    <th>Strata Pendidikan</th>
+                                    <th>Gaji Pokok (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($guruConfig as $jenjang => $strataArr): ?>
+                                    <?php $first = true; ?>
+                                    <?php foreach ($strataArr as $strata): ?>
+                                        <tr>
+                                            <?php if ($first): ?>
+                                                <td rowspan="<?= count($strataArr) ?>"><?= htmlspecialchars($jenjang) ?></td>
+                                                <?php $first = false; ?>
+                                            <?php endif; ?>
+                                            <td><?= htmlspecialchars($strata) ?></td>
+                                            <td>
+                                                <input type="number" step="0.01"
+                                                    name="<?= strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata) ?>"
+                                                    class="form-control"
+                                                    value="<?= isset($guruStrata[$jenjang][$strata]) ? $guruStrata[$jenjang][$strata] : '' ?>" required>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- MODAL: Atur Gaji Strata Karyawan -->
     <div class="modal fade" id="modalGajiStrataKaryawan" tabindex="-1" aria-labelledby="modalGajiStrataKaryawanLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form id="gaji-strata-form-karyawan" method="POST" class="modal-content">
-          <input type="hidden" name="case" value="update_gaji_strata_karyawan">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalGajiStrataKaryawanLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Karyawan)</h5>
-            <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-          </div>
-          <div class="modal-body">
-            <div class="table-responsive">
-              <table class="table table-bordered">
-                <thead>
-                  <tr>
-                    <th>Jenjang</th>
-                    <th>Strata Pendidikan</th>
-                    <th>Gaji Pokok (Rp)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($karyawanConfig as $jenjang => $strataArr): ?>
-                    <?php $first = true; ?>
-                    <?php foreach ($strataArr as $strata): ?>
-                      <tr>
-                        <?php if ($first): ?>
-                          <td rowspan="<?= count($strataArr) ?>"><?= htmlspecialchars($jenjang) ?></td>
-                          <?php $first = false; ?>
-                        <?php endif; ?>
-                        <td><?= htmlspecialchars($strata) ?></td>
-                        <td>
-                          <input type="number" step="0.01" 
-                            name="<?= strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata) ?>" 
-                            class="form-control" 
-                            value="<?= isset($karyawanStrata[$jenjang][$strata]) ? $karyawanStrata[$jenjang][$strata] : '' ?>" required>
-                        </td>
-                      </tr>
-                    <?php endforeach; ?>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-primary">
-              <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-              Simpan
-            </button>
-          </div>
-        </form>
-      </div>
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <form id="gaji-strata-form-karyawan" method="POST" class="modal-content">
+                <input type="hidden" name="case" value="update_gaji_strata_karyawan">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalGajiStrataKaryawanLabel">Atur Gaji Pokok Berdasarkan Strata Pendidikan (Karyawan)</h5>
+                    <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Jenjang</th>
+                                    <th>Strata Pendidikan</th>
+                                    <th>Gaji Pokok (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($karyawanConfig as $jenjang => $strataArr): ?>
+                                    <?php $first = true; ?>
+                                    <?php foreach ($strataArr as $strata): ?>
+                                        <tr>
+                                            <?php if ($first): ?>
+                                                <td rowspan="<?= count($strataArr) ?>"><?= htmlspecialchars($jenjang) ?></td>
+                                                <?php $first = false; ?>
+                                            <?php endif; ?>
+                                            <td><?= htmlspecialchars($strata) ?></td>
+                                            <td>
+                                                <input type="number" step="0.01"
+                                                    name="<?= strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata) ?>"
+                                                    class="form-control"
+                                                    value="<?= isset($karyawanStrata[$jenjang][$strata]) ? $karyawanStrata[$jenjang][$strata] : '' ?>" required>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- JavaScript Dependencies -->
@@ -1594,99 +1699,100 @@ function getGajiPokokByRole($conn, $role) {
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-        }
-    });
-    function showToast(message, icon = 'success') {
-        Toast.fire({
-            icon: icon,
-            title: message
-        });
-    }
-
-    function getStatusBadge(status) {
-        let s = (status || '').toLowerCase();
-        if (s === 'tetap') {
-            return '<span class="badge bg-success">Tetap</span>';
-        } else if (s === 'kontrak') {
-            return '<span class="badge bg-warning text-dark">Kontrak</span>';
-        } else {
-            return '<span class="badge bg-secondary">' + (status || '') + '</span>';
-        }
-    }
-
-    $(document).ready(function() {
-        let currentPage = 1;
-        let pageSize    = 10; 
-
-        loadGuru(1);
-
-        $('#btnApplyFilter').on('click', function(){
-            loadGuru(1);
-        });
-        $('#btnResetFilter').on('click', function(){
-            $('#filterForm')[0].reset();
-            loadGuru(1);
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
         });
 
-        function loadGuru(page) {
-            currentPage = page;
-            let start = (currentPage - 1) * pageSize;
-
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: {
-                    case: 'LoadingGuru',
-                    start: start,
-                    length: pageSize,
-                    jenjang: $('#filterJenjang').val(),
-                    role: $('#filterRole').val(),
-                    status_kerja: $('#filterStatus').val(),
-                    csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
-                },
-                dataType: "json",
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                success: function(res) {
-                    $('#loadingSpinner').hide();
-                    if (res.data) {
-                        generateCards(res.data);
-                        generatePagination(res.recordsTotal);
-                    } else {
-                        showToast('Data kosong atau gagal di-load.', 'warning');
-                        $('#employeeCards').empty();
-                        $('#paginationContainer').empty();
-                    }
-                },
-                error: function() {
-                    $('#loadingSpinner').hide();
-                    showToast('Terjadi kesalahan saat memuat data.', 'error');
-                }
+        function showToast(message, icon = 'success') {
+            Toast.fire({
+                icon: icon,
+                title: message
             });
         }
 
-        let baseUrl = "<?= getBaseUrl(); ?>";
-    
-        function generateCards(data) {
-            let container = $('#employeeCards');
-            container.empty();
+        function getStatusBadge(status) {
+            let s = (status || '').toLowerCase();
+            if (s === 'tetap') {
+                return '<span class="badge bg-success">Tetap</span>';
+            } else if (s === 'kontrak') {
+                return '<span class="badge bg-warning text-dark">Kontrak</span>';
+            } else {
+                return '<span class="badge bg-secondary">' + (status || '') + '</span>';
+            }
+        }
 
-            data.forEach(item => {
-                let photoUrl = item.foto_profil && item.foto_profil !== ''
-                         ? item.foto_profil
-                         : baseUrl + "/assets/img/undraw_profile.svg";
+        $(document).ready(function() {
+            let currentPage = 1;
+            let pageSize = 10;
 
-                let cardHtml = `
+            loadGuru(1);
+
+            $('#btnApplyFilter').on('click', function() {
+                loadGuru(1);
+            });
+            $('#btnResetFilter').on('click', function() {
+                $('#filterForm')[0].reset();
+                loadGuru(1);
+            });
+
+            function loadGuru(page) {
+                currentPage = page;
+                let start = (currentPage - 1) * pageSize;
+
+                $.ajax({
+                    url: "manage_guru_karyawan.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: 'LoadingGuru',
+                        start: start,
+                        length: pageSize,
+                        jenjang: $('#filterJenjang').val(),
+                        role: $('#filterRole').val(),
+                        status_kerja: $('#filterStatus').val(),
+                        csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        $('#loadingSpinner').show();
+                    },
+                    success: function(res) {
+                        $('#loadingSpinner').hide();
+                        if (res.data) {
+                            generateCards(res.data);
+                            generatePagination(res.recordsTotal);
+                        } else {
+                            showToast('Data kosong atau gagal di-load.', 'warning');
+                            $('#employeeCards').empty();
+                            $('#paginationContainer').empty();
+                        }
+                    },
+                    error: function() {
+                        $('#loadingSpinner').hide();
+                        showToast('Terjadi kesalahan saat memuat data.', 'error');
+                    }
+                });
+            }
+
+            let baseUrl = "<?= getBaseUrl(); ?>";
+
+            function generateCards(data) {
+                let container = $('#employeeCards');
+                container.empty();
+
+                data.forEach(item => {
+                    let photoUrl = item.foto_profil && item.foto_profil !== '' ?
+                        item.foto_profil :
+                        baseUrl + "/assets/img/undraw_profile.svg";
+
+                    let cardHtml = `
                 <div class="col">
                   <div class="card shadow-sm text-center p-3 h-100">
                     <img src="${photoUrl}"
@@ -1714,376 +1820,389 @@ function getGajiPokokByRole($conn, $role) {
                   </div>
                 </div>
                 `;
-                container.append(cardHtml);
-            });
-        }
+                    container.append(cardHtml);
+                });
+            }
 
-        function generatePagination(totalRecords) {
-            let totalPages = Math.ceil(totalRecords / pageSize);
-            let pagination = $('#paginationContainer');
-            pagination.empty();
+            function generatePagination(totalRecords) {
+                let totalPages = Math.ceil(totalRecords / pageSize);
+                let pagination = $('#paginationContainer');
+                pagination.empty();
 
-            for (let i = 1; i <= totalPages; i++) {
-                let li = $('<li>').addClass('page-item').append(
-                    $('<a>').addClass('page-link').text(i).attr('href', '#').on('click', function(e){
-                        e.preventDefault();
-                        loadGuru(i);
-                    })
-                );
-                if (i === currentPage) {
-                    li.addClass('active');
-                }
-                pagination.append(li);
-            }
-        }
-        
-        $('#addStatusPerkawinan').on('change', function(){
-            if ($(this).val() === 'Belum Menikah') {
-                $('#addNamaPasangan, #addJumlahAnak, #addNamaAnak1, #addNamaAnak2, #addNamaAnak3')
-                    .prop('disabled', true)
-                    .val('-');
-            } else {
-                $('#addNamaPasangan, #addJumlahAnak, #addNamaAnak1, #addNamaAnak2, #addNamaAnak3')
-                    .prop('disabled', false)
-                    .val('');
-            }
-        });
-        
-        $('#editStatusPerkawinan').on('change', function(){
-            if ($(this).val() === 'Belum Menikah') {
-                $('#editNamaPasangan, #editJumlahAnak, #editNamaAnak1, #editNamaAnak2, #editNamaAnak3')
-                    .prop('disabled', true)
-                    .val('-');
-            } else {
-                $('#editNamaPasangan, #editJumlahAnak, #editNamaAnak1, #editNamaAnak2, #editNamaAnak3')
-                    .prop('disabled', false)
-                    .val('');
-            }
-        });
-        
-        // View Detail
-        $(document).on('click', '.btn-view', function() {
-            var id = $(this).data('id');
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: { case: 'GetGuruDetail', id: id, csrf_token: "<?= htmlspecialchars($csrf_token); ?>" },
-                dataType: "json",
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                success: function(response) {
-                    $('#loadingSpinner').hide();
-                    if(response.code == 0) {
-                        $('#detailNip').text(response.result.nip);
-                        $('#detailUid').text(response.result.uid);
-                        $('#detailNama').text(response.result.nama);
-                        $('#detailJenjang').text(response.result.jenjang);
-                        $('#detailJobTitle').text(response.result.job_title);
-                        $('#detailRole').text(response.result.role);
-                        $('#detailStatusKerja').html(getStatusBadge(response.result.status_kerja));
-                        $('#detailJoinStart').text(response.result.join_start);
-                        $('#detailMasaKerja').text(response.result.masa_kerja);
-                        $('#detailPendidikan').text(response.result.pendidikan);
-                        $('#detailSalaryIndexId').text(response.result.salary_level);
-                        $('#detailJK').text(response.result.jk);
-                        $('#detailTglLahir').text(response.result.tanggal_lahir);
-                        $('#detailUsia').text(response.result.usia);
-                        $('#detailReligion').text(response.result.religion);
-                        $('#detailAlamatDomisili').text(response.result.alamat_domisili);
-                        $('#detailAlamatKTP').text(response.result.alamat_ktp);
-                        $('#detailNoRekening').text(response.result.no_rekening);
-                        $('#detailNoHP').text(response.result.no_hp);
-                        $('#detailEmail').text(response.result.email);
-                        $('#detailRemark').text(response.result.remark || '');
-                        $('#detailStatusPerkawinan').text(response.result.status_perkawinan);
-                        $('#detailNamaPasangan').text(response.result.nama_pasangan || '');
-                        $('#detailJumlahAnak').text(response.result.jumlah_anak || 0);
-                        $('#detailNamaAnak1').text(response.result.nama_anak_1 || '');
-                        $('#detailNamaAnak2').text(response.result.nama_anak_2 || '');
-                        $('#detailNamaAnak3').text(response.result.nama_anak_3 || '');
-                        $('#modalView').modal('show');
-                    } else {
-                        showToast(response.result, 'error');
+                for (let i = 1; i <= totalPages; i++) {
+                    let li = $('<li>').addClass('page-item').append(
+                        $('<a>').addClass('page-link').text(i).attr('href', '#').on('click', function(e) {
+                            e.preventDefault();
+                            loadGuru(i);
+                        })
+                    );
+                    if (i === currentPage) {
+                        li.addClass('active');
                     }
-                },
-                error: function(){
-                    $('#loadingSpinner').hide();
-                    showToast('Terjadi kesalahan saat mengambil detail.', 'error');
+                    pagination.append(li);
                 }
-            });
-        });
-
-        // Edit
-        $(document).on('click', '.btn-edit', function() {
-            var id = $(this).data('id');
-            var modal = $('#modalEdit');
-            var form = $('#edit-guru-form');
-            form[0].reset();
-            form.removeClass('was-validated');
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: { case: 'GetGuruDetail', id: id, csrf_token: "<?= htmlspecialchars($csrf_token); ?>" },
-                dataType: "json",
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                success: function(response) {
-                    $('#loadingSpinner').hide();
-                    if(response.code == 0) {
-                        $('#editId').val(response.result.id);
-                        $('#editNip').val(response.result.nip);
-                        $('#editUid').val(response.result.uid);
-                        $('#editNama').val(response.result.nama);
-                        $('#editJenjang').val((response.result.jenjang || '').toUpperCase());
-                        $('#editJobTitle').val(response.result.job_title || '');
-                        $('#editRole').val(response.result.role || '');
-                        $('#editJK').val(response.result.jk || '');
-                        $('#editTglLahir').val(response.result.tanggal_lahir || '');
-                        $('#editUsia').val(response.result.usia || '');
-                        $('#editReligion').val(response.result.religion || '');
-                        $('#editAlamatDomisili').val(response.result.alamat_domisili || '');
-                        $('#editAlamatKTP').val(response.result.alamat_ktp || '');
-                        $('#editNoRekening').val(response.result.no_rekening || '');
-                        $('#editNoHP').val(response.result.no_hp || '');
-                        $('#editEmail').val(response.result.email || '');
-                        $('#editPendidikan').val(response.result.pendidikan || '');
-                        $('#editStatusPerkawinan').val(response.result.status_perkawinan || '');
-                        $('#editRemark').val(response.result.remark || '');
-                        $('#editEmail').val(response.result.email || '');
-                        $('#editNamaPasangan').val(response.result.nama_pasangan || '');
-                        $('#editJumlahAnak').val(response.result.jumlah_anak || 0);
-                        $('#editNamaAnak1').val(response.result.nama_anak_1 || '');
-                        $('#editNamaAnak2').val(response.result.nama_anak_2 || '');
-                        $('#editNamaAnak3').val(response.result.nama_anak_3 || '');
-                        $('#editJoinStart').val(response.result.join_start || '');
-                        modal.modal('show');
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    $('#loadingSpinner').hide();
-                    showToast('Terjadi kesalahan saat mengambil detail.', 'error');
-                }
-            });
-        });
-
-        $(document).on('click', '.btn-delete', function() {
-            var id = $(this).data('id');
-            $('#delId').val(id);
-            $('#delNama').text('ID: ' + id);
-            $('#modalDelete').modal('show');
-        });
-
-        $('#delete-guru-form').on('submit', function(e) {
-            e.preventDefault();
-            var id = $('#delId').val();
-            if (!id) {
-                showToast('ID tidak ditemukan.', 'error');
-                return;
             }
-            var form = $(this);
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: { case: 'DeleteGuru', id: id, csrf_token: "<?= htmlspecialchars($csrf_token); ?>" },
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response) {
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalDelete').modal('hide');
-                        loadGuru(currentPage);
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menghapus data.', 'error');
+
+            $('#addStatusPerkawinan').on('change', function() {
+                if ($(this).val() === 'Belum Menikah') {
+                    $('#addNamaPasangan, #addJumlahAnak, #addNamaAnak1, #addNamaAnak2, #addNamaAnak3')
+                        .prop('disabled', true)
+                        .val('-');
+                } else {
+                    $('#addNamaPasangan, #addJumlahAnak, #addNamaAnak1, #addNamaAnak2, #addNamaAnak3')
+                        .prop('disabled', false)
+                        .val('');
                 }
             });
-        });
 
-        $('#edit-guru-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: form.serialize(),
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalEdit').modal('hide');
-                        loadGuru(currentPage);
-                    } else {
-                        showToast(response.result, 'error');
-                    }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat mengupdate data.', 'error');
+            $('#editStatusPerkawinan').on('change', function() {
+                if ($(this).val() === 'Belum Menikah') {
+                    $('#editNamaPasangan, #editJumlahAnak, #editNamaAnak1, #editNamaAnak2, #editNamaAnak3')
+                        .prop('disabled', true)
+                        .val('-');
+                } else {
+                    $('#editNamaPasangan, #editJumlahAnak, #editNamaAnak1, #editNamaAnak2, #editNamaAnak3')
+                        .prop('disabled', false)
+                        .val('');
                 }
             });
-        });
 
-        $('#add-guru-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: form.serialize(),
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalAdd').modal('hide');
-                        loadGuru(1);
-                        form[0].reset();
-                        form.removeClass('was-validated');
-                    } else {
-                        showToast(response.result, 'error');
+            // View Detail
+            $(document).on('click', '.btn-view', function() {
+                var id = $(this).data('id');
+                $.ajax({
+                    url: "manage_guru_karyawan.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: 'GetGuruDetail',
+                        id: id,
+                        csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        $('#loadingSpinner').show();
+                    },
+                    success: function(response) {
+                        $('#loadingSpinner').hide();
+                        if (response.code == 0) {
+                            $('#detailNip').text(response.result.nip);
+                            $('#detailUid').text(response.result.uid);
+                            $('#detailNama').text(response.result.nama);
+                            $('#detailJenjang').text(response.result.jenjang);
+                            $('#detailJobTitle').text(response.result.job_title);
+                            $('#detailRole').text(response.result.role);
+                            $('#detailStatusKerja').html(getStatusBadge(response.result.status_kerja));
+                            $('#detailJoinStart').text(response.result.join_start);
+                            $('#detailMasaKerja').text(response.result.masa_kerja);
+                            $('#detailPendidikan').text(response.result.pendidikan);
+                            $('#detailSalaryIndexId').text(response.result.salary_level);
+                            $('#detailJK').text(response.result.jk);
+                            $('#detailTglLahir').text(response.result.tanggal_lahir);
+                            $('#detailUsia').text(response.result.usia);
+                            $('#detailReligion').text(response.result.religion);
+                            $('#detailAlamatDomisili').text(response.result.alamat_domisili);
+                            $('#detailAlamatKTP').text(response.result.alamat_ktp);
+                            $('#detailNoRekening').text(response.result.no_rekening);
+                            $('#detailNoHP').text(response.result.no_hp);
+                            $('#detailEmail').text(response.result.email);
+                            $('#detailRemark').text(response.result.remark || '');
+                            $('#detailStatusPerkawinan').text(response.result.status_perkawinan);
+                            $('#detailNamaPasangan').text(response.result.nama_pasangan || '');
+                            $('#detailJumlahAnak').text(response.result.jumlah_anak || 0);
+                            $('#detailNamaAnak1').text(response.result.nama_anak_1 || '');
+                            $('#detailNamaAnak2').text(response.result.nama_anak_2 || '');
+                            $('#detailNamaAnak3').text(response.result.nama_anak_3 || '');
+                            $('#modalView').modal('show');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        $('#loadingSpinner').hide();
+                        showToast('Terjadi kesalahan saat mengambil detail.', 'error');
                     }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menambah data.', 'error');
-                }
+                });
             });
-        });
 
-        $('#gaji-strata-form-guru').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: form.serialize(),
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalGajiStrataGuru').modal('hide');
-                    } else {
-                        showToast(response.result, 'error');
+            // Edit
+            $(document).on('click', '.btn-edit', function() {
+                var id = $(this).data('id');
+                var modal = $('#modalEdit');
+                var form = $('#edit-guru-form');
+                form[0].reset();
+                form.removeClass('was-validated');
+                $.ajax({
+                    url: "manage_guru_karyawan.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: 'GetGuruDetail',
+                        id: id,
+                        csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        $('#loadingSpinner').show();
+                    },
+                    success: function(response) {
+                        $('#loadingSpinner').hide();
+                        if (response.code == 0) {
+                            $('#editId').val(response.result.id);
+                            $('#editNip').val(response.result.nip);
+                            $('#editUid').val(response.result.uid);
+                            $('#editNama').val(response.result.nama);
+                            $('#editJenjang').val((response.result.jenjang || '').toUpperCase());
+                            $('#editJobTitle').val(response.result.job_title || '');
+                            $('#editRole').val(response.result.role || '');
+                            $('#editJK').val(response.result.jk || '');
+                            $('#editTglLahir').val(response.result.tanggal_lahir || '');
+                            $('#editUsia').val(response.result.usia || '');
+                            $('#editReligion').val(response.result.religion || '');
+                            $('#editAlamatDomisili').val(response.result.alamat_domisili || '');
+                            $('#editAlamatKTP').val(response.result.alamat_ktp || '');
+                            $('#editNoRekening').val(response.result.no_rekening || '');
+                            $('#editNoHP').val(response.result.no_hp || '');
+                            $('#editEmail').val(response.result.email || '');
+                            $('#editPendidikan').val(response.result.pendidikan || '');
+                            $('#editStatusPerkawinan').val(response.result.status_perkawinan || '');
+                            $('#editRemark').val(response.result.remark || '');
+                            $('#editEmail').val(response.result.email || '');
+                            $('#editNamaPasangan').val(response.result.nama_pasangan || '');
+                            $('#editJumlahAnak').val(response.result.jumlah_anak || 0);
+                            $('#editNamaAnak1').val(response.result.nama_anak_1 || '');
+                            $('#editNamaAnak2').val(response.result.nama_anak_2 || '');
+                            $('#editNamaAnak3').val(response.result.nama_anak_3 || '');
+                            $('#editJoinStart').val(response.result.join_start || '');
+                            modal.modal('show');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        $('#loadingSpinner').hide();
+                        showToast('Terjadi kesalahan saat mengambil detail.', 'error');
                     }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat mengupdate gaji strata Guru.', 'error');
-                }
+                });
             });
-        });
 
-        $('#gaji-strata-form-karyawan').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            $.ajax({
-                url: "manage_guru_karyawan.php?ajax=1",
-                type: "POST",
-                data: form.serialize(),
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result);
-                        $('#modalGajiStrataKaryawan').modal('hide');
-                    } else {
-                        showToast(response.result, 'error');
+            $(document).on('click', '.btn-delete', function() {
+                var id = $(this).data('id');
+                $('#delId').val(id);
+                $('#delNama').text('ID: ' + id);
+                $('#modalDelete').modal('show');
+            });
+
+            $('#delete-guru-form').on('submit', function(e) {
+                e.preventDefault();
+                var id = $('#delId').val();
+                if (!id) {
+                    showToast('ID tidak ditemukan.', 'error');
+                    return;
+                }
+                var form = $(this);
+                $.ajax({
+                    url: "manage_guru_karyawan.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: 'DeleteGuru',
+                        id: id,
+                        csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result);
+                            $('#modalDelete').modal('hide');
+                            loadGuru(currentPage);
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menghapus data.', 'error');
                     }
-                },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat mengupdate gaji strata Karyawan.', 'error');
+                });
+            });
+
+            $('#edit-guru-form').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
                 }
+                $.ajax({
+                    url: "manage_guru_karyawan.php?ajax=1",
+                    type: "POST",
+                    data: form.serialize(),
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result);
+                            $('#modalEdit').modal('hide');
+                            loadGuru(currentPage);
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat mengupdate data.', 'error');
+                    }
+                });
             });
-        });
 
-        // Tambahan: Event binding untuk tombol di dalam modalGajiPokok agar tidak terjadi nested modal
-        $('#btnGajiStrataGuru').on('click', function(){
-            $('#modalGajiPokok').modal('hide');
-            // Pastikan modalGajiStrataGuru sudah terinisialisasi
-            $('#modalGajiStrataGuru').modal('show');
-        });
-        $('#btnGajiStrataKaryawan').on('click', function(){
-            $('#modalGajiPokok').modal('hide');
-            $('#modalGajiStrataKaryawan').modal('show');
-        });
+            $('#add-guru-form').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
+                }
+                $.ajax({
+                    url: "manage_guru_karyawan.php?ajax=1",
+                    type: "POST",
+                    data: form.serialize(),
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result);
+                            $('#modalAdd').modal('hide');
+                            loadGuru(1);
+                            form[0].reset();
+                            form.removeClass('was-validated');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menambah data.', 'error');
+                    }
+                });
+            });
 
-        // Navigasi ke halaman lain
-        $(document).on('click', '#btnManageSalaryIndices', function(e) {
-            e.preventDefault();
-            var url = $(this).data('href');
-            $('#content-wrapper').fadeOut(300, function() {
-                window.location.href = url;
+            $('#gaji-strata-form-guru').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
+                }
+                $.ajax({
+                    url: "manage_guru_karyawan.php?ajax=1",
+                    type: "POST",
+                    data: form.serialize(),
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result);
+                            $('#modalGajiStrataGuru').modal('hide');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat mengupdate gaji strata Guru.', 'error');
+                    }
+                });
+            });
+
+            $('#gaji-strata-form-karyawan').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
+                }
+                $.ajax({
+                    url: "manage_guru_karyawan.php?ajax=1",
+                    type: "POST",
+                    data: form.serialize(),
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result);
+                            $('#modalGajiStrataKaryawan').modal('hide');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat mengupdate gaji strata Karyawan.', 'error');
+                    }
+                });
+            });
+
+            // Tambahan: Event binding untuk tombol di dalam modalGajiPokok agar tidak terjadi nested modal
+            $('#btnGajiStrataGuru').on('click', function() {
+                $('#modalGajiPokok').modal('hide');
+                // Pastikan modalGajiStrataGuru sudah terinisialisasi
+                $('#modalGajiStrataGuru').modal('show');
+            });
+            $('#btnGajiStrataKaryawan').on('click', function() {
+                $('#modalGajiPokok').modal('hide');
+                $('#modalGajiStrataKaryawan').modal('show');
+            });
+
+            // Navigasi ke halaman lain
+            $(document).on('click', '#btnManageSalaryIndices', function(e) {
+                e.preventDefault();
+                var url = $(this).data('href');
+                $('#content-wrapper').fadeOut(300, function() {
+                    window.location.href = url;
+                });
+            });
+            $(document).on('click', '#btnManageHolidays', function(e) {
+                e.preventDefault();
+                var url = $(this).data('href');
+                $('#content-wrapper').fadeOut(300, function() {
+                    window.location.href = url;
+                });
             });
         });
-        $(document).on('click', '#btnManageHolidays', function(e) {
-            e.preventDefault();
-            var url = $(this).data('href');
-            $('#content-wrapper').fadeOut(300, function() {
-                window.location.href = url;
-            });
-        });
-    });
     </script>
 </body>
+
 </html>

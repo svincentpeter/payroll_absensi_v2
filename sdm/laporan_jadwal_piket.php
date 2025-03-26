@@ -18,7 +18,7 @@ $csrf_token = $_SESSION['csrf_token'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     // Verifikasi CSRF token
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $id_jadwal = intval($_POST['id_jadwal'] ?? 0);
     if ($id_jadwal > 0) {
         $sql = "DELETE FROM jadwal_piket WHERE id_jadwal = ?";
@@ -123,7 +123,8 @@ foreach ($laporan as $lap) {
 }
 
 // Fungsi terjemahan bulan & hari
-function translate_month($month_eng) {
+function translate_month($month_eng)
+{
     $months = [
         'January'   => 'Januari',
         'February'  => 'Februari',
@@ -140,7 +141,8 @@ function translate_month($month_eng) {
     ];
     return $months[$month_eng] ?? $month_eng;
 }
-function translate_day($day_eng) {
+function translate_day($day_eng)
+{
     $days = [
         'Mon' => 'Senin',
         'Tue' => 'Selasa',
@@ -175,13 +177,14 @@ foreach ($all_dates as $date => $info) {
     $full_month = $info['month'] . " " . $info['year'];
     $months[$full_month][] = $info;
 }
-uksort($months, function($a, $b) {
+uksort($months, function ($a, $b) {
     // Urutkan berdasarkan waktu (gunakan strtotime)
     return strtotime($a) <=> strtotime($b);
 });
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Laporan Jadwal Piket Guru</title>
@@ -201,51 +204,63 @@ uksort($months, function($a, $b) {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
+
         thead th {
             background-color: #343a40;
             color: #fff;
             text-align: center;
             vertical-align: middle;
         }
+
         /* Tabel pivot jadwal */
-        th, td {
+        th,
+        td {
             vertical-align: middle !important;
             white-space: nowrap;
         }
+
         /* Untuk table.dataTable agar border hitam (jika diperlukan) */
         table.dataTable,
         table.dataTable thead th,
         table.dataTable tbody td {
             border: 1px solid #000 !important;
         }
+
         .dataTables_wrapper .dataTables_paginate .paginate_button {
             border: 1px solid #000 !important;
         }
+
         /* Agar border tabel pivot juga jadi hitam */
-        .table.table-bordered, 
-        .table.table-bordered thead th, 
+        .table.table-bordered,
+        .table.table-bordered thead th,
         .table.table-bordered tbody td {
             border: 1px solid #000 !important;
         }
+
         /* Efek transisi fade out */
         .smooth-transition {
             transition: opacity 0.3s ease;
         }
+
         /* Filter Card mirip rekap_payroll */
         .card-filter-header {
-            background-color: #4e73df; 
+            background-color: #4e73df;
             color: #fff;
             border-top-left-radius: 0.5rem;
             border-top-right-radius: 0.5rem;
         }
+
         .form-select {
-            min-width: 160px; /* perlebar select agar tulisan tidak terpotong */
+            min-width: 160px;
+            /* perlebar select agar tulisan tidak terpotong */
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -326,8 +341,8 @@ uksort($months, function($a, $b) {
                                         <i class="fas fa-plus"></i> Input Jadwal Piket
                                     </a>
                                     <a href="tambah_jadwal_piket.php" class="btn btn-warning smooth-transition">
-        <i class="fas fa-user-plus"></i> Tambah Jadwal Piket
-    </a>
+                                        <i class="fas fa-user-plus"></i> Tambah Jadwal Piket
+                                    </a>
                                 </div>
                             </form>
                         </div>
@@ -335,14 +350,14 @@ uksort($months, function($a, $b) {
                     <!-- End Filter Section -->
 
                     <!-- Notifikasi -->
-                    <?php if(isset($_SESSION['laporan_success'])): ?>
+                    <?php if (isset($_SESSION['laporan_success'])): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <?= htmlspecialchars($_SESSION['laporan_success']); ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         <?php unset($_SESSION['laporan_success']); ?>
                     <?php endif; ?>
-                    <?php if(isset($_SESSION['laporan_error'])): ?>
+                    <?php if (isset($_SESSION['laporan_error'])): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <?= htmlspecialchars($_SESSION['laporan_error']); ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -394,25 +409,25 @@ uksort($months, function($a, $b) {
                                                     <?php foreach ($all_dates as $date => $info): ?>
                                                         <td>
                                                             <?php
-                                                                if (isset($data[$date])) {
-                                                                    $status = strtolower($data[$date]);
-                                                                    switch ($status) {
-                                                                        case 'pending':
-                                                                            echo '<span class="badge bg-warning text-dark">Pending</span>';
-                                                                            break;
-                                                                        case 'tidak hadir':
-                                                                            echo '<span class="badge bg-danger">Tidak Hadir</span>';
-                                                                            break;
-                                                                        case 'hadir':
-                                                                            echo '<span class="badge bg-success">Hadir</span>';
-                                                                            break;
-                                                                        default:
-                                                                            echo htmlspecialchars($data[$date]);
-                                                                            break;
-                                                                    }
-                                                                } else {
-                                                                    echo '';
+                                                            if (isset($data[$date])) {
+                                                                $status = strtolower($data[$date]);
+                                                                switch ($status) {
+                                                                    case 'pending':
+                                                                        echo '<span class="badge bg-warning text-dark">Pending</span>';
+                                                                        break;
+                                                                    case 'tidak hadir':
+                                                                        echo '<span class="badge bg-danger">Tidak Hadir</span>';
+                                                                        break;
+                                                                    case 'hadir':
+                                                                        echo '<span class="badge bg-success">Hadir</span>';
+                                                                        break;
+                                                                    default:
+                                                                        echo htmlspecialchars($data[$date]);
+                                                                        break;
                                                                 }
+                                                            } else {
+                                                                echo '';
+                                                            }
                                                             ?>
                                                         </td>
                                                     <?php endforeach; ?>
@@ -452,23 +467,24 @@ uksort($months, function($a, $b) {
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
-    $(document).ready(function() {
-        // Fade out alert
-        setTimeout(function() {
-            $(".alert").fadeTo(500, 0).slideUp(500, function() {
-                $(this).remove();
-            });
-        }, 3000);
+        $(document).ready(function() {
+            // Fade out alert
+            setTimeout(function() {
+                $(".alert").fadeTo(500, 0).slideUp(500, function() {
+                    $(this).remove();
+                });
+            }, 3000);
 
-        // Smooth transition
-        $(document).on('click', 'a.smooth-transition', function(e) {
-            e.preventDefault();
-            var url = $(this).attr('href');
-            $('#wrapper').fadeOut(300, function() {
-                window.location.href = url;
+            // Smooth transition
+            $(document).on('click', 'a.smooth-transition', function(e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                $('#wrapper').fadeOut(300, function() {
+                    window.location.href = url;
+                });
             });
         });
-    });
     </script>
 </body>
+
 </html>

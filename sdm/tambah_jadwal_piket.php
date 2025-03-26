@@ -26,14 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_jadwal'])) {
     $waktu_piket = trim($_POST['waktu_piket'] ?? '08:00 - 13:00');
     $tanggal     = trim($_POST['tanggal'] ?? '');
     $status      = trim($_POST['status'] ?? 'pending');
-    
+
     // Validasi minimal
     if (empty($nip) || empty($tanggal)) {
         $_SESSION['crud_error'] = "NIP dan Tanggal tidak boleh kosong.";
         header("Location: tambah_jadwal_piket.php");
         exit();
     }
-    
+
     // Pastikan NIP ada di anggota_sekolah
     $sqlCekNIP = "SELECT nama FROM anggota_sekolah WHERE nip = ?";
     $stmtCek = $conn->prepare($sqlCekNIP);
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_jadwal'])) {
         }
         $stmt->close();
     }
-    
+
     header("Location: tambah_jadwal_piket.php");
     exit();
 }
@@ -141,7 +141,7 @@ $sqlAll = "SELECT * FROM jadwal_piket ORDER BY tanggal DESC, id_jadwal DESC";
 $resAll = $conn->query($sqlAll);
 $all_jadwal = [];
 if ($resAll && $resAll->num_rows > 0) {
-    while($row = $resAll->fetch_assoc()) {
+    while ($row = $resAll->fetch_assoc()) {
         $all_jadwal[] = $row;
     }
 }
@@ -153,7 +153,7 @@ $sqlGuru = "SELECT nip, nama, role FROM anggota_sekolah
 $resGuru = $conn->query($sqlGuru);
 $listGuru = [];
 if ($resGuru && $resGuru->num_rows > 0) {
-    while($r = $resGuru->fetch_assoc()) {
+    while ($r = $resGuru->fetch_assoc()) {
         $listGuru[] = $r;
     }
 }
@@ -161,6 +161,7 @@ if ($resGuru && $resGuru->num_rows > 0) {
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>CRUD Jadwal Piket</title>
@@ -173,22 +174,29 @@ if ($resGuru && $resGuru->num_rows > 0) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         .table-hover tbody tr:hover {
-            background-color: #f8f9fc; /* abu2 tipis */
+            background-color: #f8f9fc;
+            /* abu2 tipis */
         }
+
         .smooth-transition {
             transition: background-color 0.3s, transform 0.2s;
         }
+
         .smooth-transition:hover {
             transform: scale(1.02);
         }
-        th, td {
+
+        th,
+        td {
             vertical-align: middle !important;
         }
+
         label.form-label {
             font-weight: 600;
         }
     </style>
 </head>
+
 <body id="page-top">
     <div class="container py-4">
         <div class="mb-3">
@@ -200,14 +208,14 @@ if ($resGuru && $resGuru->num_rows > 0) {
         <h1 class="h3 mb-4 text-dark"><i class="fas fa-calendar"></i> Tambah Jadwal Piket (CRUD)</h1>
 
         <!-- Notif -->
-        <?php if(isset($_SESSION['crud_success'])): ?>
+        <?php if (isset($_SESSION['crud_success'])): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <?= htmlspecialchars($_SESSION['crud_success']); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
             <?php unset($_SESSION['crud_success']); ?>
         <?php endif; ?>
-        <?php if(isset($_SESSION['crud_error'])): ?>
+        <?php if (isset($_SESSION['crud_error'])): ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <?= htmlspecialchars($_SESSION['crud_error']); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -218,7 +226,7 @@ if ($resGuru && $resGuru->num_rows > 0) {
         <!-- FORM CREATE / EDIT -->
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                <?php if($edit_data): ?>
+                <?php if ($edit_data): ?>
                     <h5 class="card-title mb-0"><i class="fas fa-edit"></i> Edit Jadwal (ID: <?= $edit_data['id_jadwal']; ?>)</h5>
                 <?php else: ?>
                     <h5 class="card-title mb-0"><i class="fas fa-plus"></i> Tambah Jadwal Baru</h5>
@@ -234,12 +242,12 @@ if ($resGuru && $resGuru->num_rows > 0) {
                         <label for="nip" class="form-label">Pilih Guru/Karyawan</label>
                         <select name="nip" id="nip" class="form-select" required>
                             <option value="">-- Pilih --</option>
-                            <?php foreach($listGuru as $g): ?>
+                            <?php foreach ($listGuru as $g): ?>
                                 <?php
-                                    $selected = '';
-                                    if($edit_data && $edit_data['nip'] == $g['nip']) {
-                                        $selected = 'selected';
-                                    }
+                                $selected = '';
+                                if ($edit_data && $edit_data['nip'] == $g['nip']) {
+                                    $selected = 'selected';
+                                }
                                 ?>
                                 <option value="<?= htmlspecialchars($g['nip']); ?>" <?= $selected; ?>>
                                     <?= htmlspecialchars($g['nama']); ?> (<?= htmlspecialchars($g['nip']); ?>) [<?= $g['role']; ?>]
@@ -253,7 +261,7 @@ if ($resGuru && $resGuru->num_rows > 0) {
                     <div class="col-md-4">
                         <label for="tanggal" class="form-label">Tanggal Piket</label>
                         <input type="date" name="tanggal" id="tanggal" class="form-control" required
-                               value="<?= $edit_data['tanggal'] ?? ''; ?>">
+                            value="<?= $edit_data['tanggal'] ?? ''; ?>">
                         <div class="invalid-feedback">Harap pilih tanggal.</div>
                     </div>
 
@@ -261,19 +269,19 @@ if ($resGuru && $resGuru->num_rows > 0) {
                     <div class="col-md-4">
                         <label for="waktu_piket" class="form-label">Waktu Piket</label>
                         <input type="text" name="waktu_piket" id="waktu_piket" class="form-control"
-                               value="<?= $edit_data['waktu_piket'] ?? '08:00 - 13:00'; ?>">
+                            value="<?= $edit_data['waktu_piket'] ?? '08:00 - 13:00'; ?>">
                     </div>
 
                     <!-- Field Status -->
                     <div class="col-md-4">
                         <label for="status" class="form-label">Status</label>
                         <?php
-                            $currentStatus = $edit_data['status'] ?? 'pending';
+                        $currentStatus = $edit_data['status'] ?? 'pending';
                         ?>
                         <select name="status" id="status" class="form-select">
-                            <option value="pending"     <?= ($currentStatus=='pending') ? 'selected' : ''; ?>>Pending</option>
-                            <option value="hadir"       <?= ($currentStatus=='hadir') ? 'selected' : ''; ?>>Hadir</option>
-                            <option value="tidak hadir" <?= ($currentStatus=='tidak hadir') ? 'selected' : ''; ?>>Tidak Hadir</option>
+                            <option value="pending" <?= ($currentStatus == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                            <option value="hadir" <?= ($currentStatus == 'hadir') ? 'selected' : ''; ?>>Hadir</option>
+                            <option value="tidak hadir" <?= ($currentStatus == 'tidak hadir') ? 'selected' : ''; ?>>Tidak Hadir</option>
                         </select>
                     </div>
 
@@ -294,7 +302,7 @@ if ($resGuru && $resGuru->num_rows > 0) {
                 <h5 class="mb-0"><i class="fas fa-table"></i> Daftar Jadwal Piket Terkini</h5>
             </div>
             <div class="card-body table-responsive">
-                <?php if(empty($all_jadwal)): ?>
+                <?php if (empty($all_jadwal)): ?>
                     <div class="alert alert-info">Belum ada data jadwal sama sekali.</div>
                 <?php else: ?>
                     <table class="table table-bordered table-hover align-middle">
@@ -312,42 +320,42 @@ if ($resGuru && $resGuru->num_rows > 0) {
                         </thead>
                         <tbody>
                             <?php
-                            $no=1;
-                            foreach($all_jadwal as $jd):
+                            $no = 1;
+                            foreach ($all_jadwal as $jd):
                             ?>
-                            <tr>
-                                <td><?= $no++; ?></td>
-                                <td><?= $jd['id_jadwal']; ?></td>
-                                <td><?= htmlspecialchars($jd['nip']); ?></td>
-                                <td><?= htmlspecialchars($jd['nama_guru']); ?></td>
-                                <td><?= htmlspecialchars($jd['tanggal']); ?></td>
-                                <td><?= htmlspecialchars($jd['waktu_piket']); ?></td>
-                                <td>
-                                    <?php
+                                <tr>
+                                    <td><?= $no++; ?></td>
+                                    <td><?= $jd['id_jadwal']; ?></td>
+                                    <td><?= htmlspecialchars($jd['nip']); ?></td>
+                                    <td><?= htmlspecialchars($jd['nama_guru']); ?></td>
+                                    <td><?= htmlspecialchars($jd['tanggal']); ?></td>
+                                    <td><?= htmlspecialchars($jd['waktu_piket']); ?></td>
+                                    <td>
+                                        <?php
                                         $st = strtolower($jd['status']);
-                                        if($st==='pending') {
+                                        if ($st === 'pending') {
                                             echo '<span class="badge bg-warning text-dark">Pending</span>';
-                                        } elseif($st==='hadir') {
+                                        } elseif ($st === 'hadir') {
                                             echo '<span class="badge bg-success">Hadir</span>';
-                                        } elseif($st==='tidak hadir') {
+                                        } elseif ($st === 'tidak hadir') {
                                             echo '<span class="badge bg-danger">Tidak Hadir</span>';
                                         } else {
                                             echo htmlspecialchars($jd['status']);
                                         }
-                                    ?>
-                                </td>
-                                <td>
-                                    <a href="tambah_jadwal_piket.php?edit_id=<?= $jd['id_jadwal']; ?>"
-                                       class="btn btn-sm btn-primary smooth-transition">
-                                       <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    <a href="tambah_jadwal_piket.php?delete_id=<?= $jd['id_jadwal']; ?>"
-                                       class="btn btn-sm btn-danger"
-                                       onclick="return confirm('Apakah yakin ingin menghapus jadwal ID: <?= $jd['id_jadwal']; ?> ?');">
-                                       <i class="fas fa-trash"></i> Hapus
-                                    </a>
-                                </td>
-                            </tr>
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <a href="tambah_jadwal_piket.php?edit_id=<?= $jd['id_jadwal']; ?>"
+                                            class="btn btn-sm btn-primary smooth-transition">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <a href="tambah_jadwal_piket.php?delete_id=<?= $jd['id_jadwal']; ?>"
+                                            class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Apakah yakin ingin menghapus jadwal ID: <?= $jd['id_jadwal']; ?> ?');">
+                                            <i class="fas fa-trash"></i> Hapus
+                                        </a>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -362,17 +370,20 @@ if ($resGuru && $resGuru->num_rows > 0) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script>
-    (function() {
-        'use strict';
-        // Fade out alert setelah 3 detik
-        setTimeout(function(){
-            let alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(el) {
-                el.classList.add('fade');
-                setTimeout(function(){ el.remove(); }, 500);
-            });
-        }, 3000);
-    })();
+        (function() {
+            'use strict';
+            // Fade out alert setelah 3 detik
+            setTimeout(function() {
+                let alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(el) {
+                    el.classList.add('fade');
+                    setTimeout(function() {
+                        el.remove();
+                    }, 500);
+                });
+            }, 3000);
+        })();
     </script>
 </body>
+
 </html>

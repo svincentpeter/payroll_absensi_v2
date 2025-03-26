@@ -1,8 +1,8 @@
 <?php
 // File: /payroll_absensi_v2/keuangan/notifikasi_keuangan.php
 
-require_once __DIR__ . '/../koneksi.php';    
-require_once __DIR__ . '/../helpers.php';     
+require_once __DIR__ . '/../koneksi.php';
+require_once __DIR__ . '/../helpers.php';
 
 start_session_safe();
 
@@ -53,6 +53,7 @@ $stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Notifikasi Keuangan</title>
@@ -62,6 +63,7 @@ $stmt->close();
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
+
 <body id="page-top">
 
   <!-- Page Wrapper -->
@@ -73,10 +75,10 @@ $stmt->close();
 
     <!-- Content Wrapper -->
     <div id="content-wrapper" class="d-flex flex-column">
-    <?php 
-                // Jika punya breadcrumb.php, sertakan
-                include __DIR__ . '/../breadcrumb.php'; 
-                ?>
+      <?php
+      // Jika punya breadcrumb.php, sertakan
+      include __DIR__ . '/../breadcrumb.php';
+      ?>
       <!-- Main Content -->
       <div id="content">
 
@@ -138,12 +140,12 @@ $stmt->close();
           <!-- Notifikasi List -->
           <?php if (!empty($groupedData)): ?>
             <?php foreach ($groupedData as $row): ?>
-              <?php 
-                $jenjang = $row['jenjang'] ?: 'Tidak Diketahui';
-                $p_count = (int) $row['p_count'];
-                $tk_count= (int) $row['tk_count'];
-                $m_count = (int) $row['m_count'];
-                $total   = $p_count + $tk_count + $m_count;
+              <?php
+              $jenjang = $row['jenjang'] ?: 'Tidak Diketahui';
+              $p_count = (int) $row['p_count'];
+              $tk_count = (int) $row['tk_count'];
+              $m_count = (int) $row['m_count'];
+              $total   = $p_count + $tk_count + $m_count;
               ?>
               <!-- Card Notifikasi -->
               <div class="card mb-3 shadow-sm">
@@ -211,9 +213,10 @@ $stmt->close();
   <!-- End Page Wrapper -->
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
 </body>
+
 </html>
 <?php
 $conn->close();

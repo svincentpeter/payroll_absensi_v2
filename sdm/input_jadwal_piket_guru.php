@@ -29,21 +29,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
         header("Location: input_jadwal_piket_guru.php");
         exit();
     }
-    
+
     $jumlah_guru = intval($_POST['jumlah_guru'] ?? 0);
     if ($jumlah_guru < 1 || $jumlah_guru > 5) {
         $_SESSION['error_message'] = "Pilih jumlah guru yang valid (1 sampai 5).";
         header("Location: input_jadwal_piket_guru.php");
         exit();
     }
-    
+
     $selected_guru = $_POST['guru'] ?? [];
     if (count($selected_guru) != $jumlah_guru) {
         $_SESSION['error_message'] = "Pastikan untuk memilih $jumlah_guru guru.";
         header("Location: input_jadwal_piket_guru.php");
         exit();
     }
-    
+
     // Ambil tanggal sesuai tipe jadwal
     if ($schedule_type === '1') {
         $dates_juni = trim($_POST['tanggal_juni'] ?? '');
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
             exit();
         }
     }
-    
+
     // Ambil data guru (nip, nama)
     $dataGuru = [];
     $sqlGuru = "SELECT nip, nama FROM anggota_sekolah WHERE nip = ?";
@@ -86,14 +86,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
         }
     }
     $stmtGuru->close();
-    
+
     // Contoh jam piket
     $waktu_piket = "08:00 - 13:00";
-    
+
     // Simpan ke tabel jadwal_piket (transaksi)
     try {
         $conn->begin_transaction();
-        
+
         if ($schedule_type === '1') {
             // Jadwal 1 (Juni & Juli)
             foreach ($arr_juni as $tanggal) {
@@ -110,10 +110,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
                     $res = $stmt->get_result()->fetch_assoc();
                     $stmt->close();
                     if ($res['jumlah'] > 0) continue;
-                    
+
                     $month_name = date("F", strtotime($tanggal));
                     $year_value = date("Y", strtotime($tanggal));
-                    
+
                     $sql_insert = "INSERT INTO jadwal_piket (nip, nama_guru, waktu_piket, tanggal, bulan, tahun, status)
                                    VALUES (?, ?, ?, ?, ?, ?, 'pending')";
                     $stmt = $conn->prepare($sql_insert);
@@ -136,10 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
                     $res = $stmt->get_result()->fetch_assoc();
                     $stmt->close();
                     if ($res['jumlah'] > 0) continue;
-                    
+
                     $month_name = date("F", strtotime($tanggal));
                     $year_value = date("Y", strtotime($tanggal));
-                    
+
                     $sql_insert = "INSERT INTO jadwal_piket (nip, nama_guru, waktu_piket, tanggal, bulan, tahun, status)
                                    VALUES (?, ?, ?, ?, ?, ?, 'pending')";
                     $stmt = $conn->prepare($sql_insert);
@@ -164,10 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
                     $res = $stmt->get_result()->fetch_assoc();
                     $stmt->close();
                     if ($res['jumlah'] > 0) continue;
-                    
+
                     $month_name = date("F", strtotime($tanggal));
                     $year_value = date("Y", strtotime($tanggal));
-                    
+
                     $sql_insert = "INSERT INTO jadwal_piket (nip, nama_guru, waktu_piket, tanggal, bulan, tahun, status)
                                    VALUES (?, ?, ?, ?, ?, ?, 'pending')";
                     $stmt = $conn->prepare($sql_insert);
@@ -190,10 +190,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
                     $res = $stmt->get_result()->fetch_assoc();
                     $stmt->close();
                     if ($res['jumlah'] > 0) continue;
-                    
+
                     $month_name = date("F", strtotime($tanggal));
                     $year_value = date("Y", strtotime($tanggal));
-                    
+
                     $sql_insert = "INSERT INTO jadwal_piket (nip, nama_guru, waktu_piket, tanggal, bulan, tahun, status)
                                    VALUES (?, ?, ?, ?, ?, ?, 'pending')";
                     $stmt = $conn->prepare($sql_insert);
@@ -203,20 +203,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
                 }
             }
         }
-        
+
         $conn->commit();
         $_SESSION['success_message'] = "Jadwal piket berhasil disimpan.";
     } catch (Exception $e) {
         $conn->rollback();
         $_SESSION['error_message'] = $e->getMessage();
     }
-    
+
     header("Location: input_jadwal_piket_guru.php");
     exit();
 }
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Input Jadwal Piket Guru (SDM) - Payroll</title>
@@ -231,29 +232,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
     <style>
         /* Agar mirip dengan style manage_salary_indices */
-        body { padding-top: 20px; }
+        body {
+            padding-top: 20px;
+        }
+
         #main-content {
             transition: opacity 0.3s ease;
         }
+
         .back-btn {
             margin-bottom: 20px;
             transition: background-color 0.3s, transform 0.2s;
         }
+
         .back-btn:hover {
             transform: scale(1.05);
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
-        .month-field { display: none; }
+
+        .month-field {
+            display: none;
+        }
+
         /* Minimalkan form field agar rapih seperti contoh */
-        .form-label { font-weight: 600; }
+        .form-label {
+            font-weight: 600;
+        }
+
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Container utama (tanpa sidebar) -->
     <div class="container" id="main-content">
@@ -276,14 +291,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
             </div>
             <div class="card-body">
                 <!-- Notifikasi -->
-                <?php if(isset($_SESSION['success_message'])): ?>
+                <?php if (isset($_SESSION['success_message'])): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <?= htmlspecialchars($_SESSION['success_message']); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     <?php unset($_SESSION['success_message']); ?>
                 <?php endif; ?>
-                <?php if(isset($_SESSION['error_message'])): ?>
+                <?php if (isset($_SESSION['error_message'])): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <?= htmlspecialchars($_SESSION['error_message']); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -365,84 +380,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_schedule'])) {
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
     <script>
-    $(document).ready(function() {
-        // Inisialisasi datepicker
-        $('.datepicker').datepicker({
-            format: "yyyy-mm-dd",
-            multidate: true,
-            todayHighlight: true,
-            autoclose: false
-        });
+        $(document).ready(function() {
+            // Inisialisasi datepicker
+            $('.datepicker').datepicker({
+                format: "yyyy-mm-dd",
+                multidate: true,
+                todayHighlight: true,
+                autoclose: false
+            });
 
-        // Tampilkan field tanggal sesuai tipe jadwal
-        $('#schedule_type').on('change', function() {
-            var selected = $(this).val();
-            if (selected == '1') {
-                $('#field_jadwal_1').show();
-                $('#field_jadwal_2').hide();
-            } else if (selected == '2') {
-                $('#field_jadwal_1').hide();
-                $('#field_jadwal_2').show();
-            } else {
-                $('.month-field').hide();
-            }
-        }).trigger('change');
+            // Tampilkan field tanggal sesuai tipe jadwal
+            $('#schedule_type').on('change', function() {
+                var selected = $(this).val();
+                if (selected == '1') {
+                    $('#field_jadwal_1').show();
+                    $('#field_jadwal_2').hide();
+                } else if (selected == '2') {
+                    $('#field_jadwal_1').hide();
+                    $('#field_jadwal_2').show();
+                } else {
+                    $('.month-field').hide();
+                }
+            }).trigger('change');
 
-        // Dinamis: Tampilkan dropdown guru sesuai jumlah
-        $('#jumlah_guru').on('change', function() {
-            var jumlah = parseInt($(this).val());
-            var container = $('#guru_container');
-            container.empty();
-            if (jumlah > 0) {
-                for (var i = 1; i <= jumlah; i++) {
-                    var selectHTML = '<div class="mb-2">' +
-                        '<label class="form-label">Pilih Guru ' + i + ':</label>' +
-                        '<select name="guru[]" class="form-control" required>' +
-                        '<option value="">-- Pilih Guru --</option>';
-                    <?php
+            // Dinamis: Tampilkan dropdown guru sesuai jumlah
+            $('#jumlah_guru').on('change', function() {
+                var jumlah = parseInt($(this).val());
+                var container = $('#guru_container');
+                container.empty();
+                if (jumlah > 0) {
+                    for (var i = 1; i <= jumlah; i++) {
+                        var selectHTML = '<div class="mb-2">' +
+                            '<label class="form-label">Pilih Guru ' + i + ':</label>' +
+                            '<select name="guru[]" class="form-control" required>' +
+                            '<option value="">-- Pilih Guru --</option>';
+                        <?php
                         // Ambil data guru dari tabel anggota_sekolah dan buat opsi
                         $guru_options = "";
                         $sql = "SELECT nip, nama FROM anggota_sekolah ORDER BY nama ASC";
                         $res = $conn->query($sql);
                         while ($row = $res->fetch_assoc()) {
-                            $guru_options .= '<option value="' . htmlspecialchars($row['nip']) . '">' 
-                                             . htmlspecialchars($row['nama']) 
-                                             . ' (' . htmlspecialchars($row['nip']) . ')</option>';
+                            $guru_options .= '<option value="' . htmlspecialchars($row['nip']) . '">'
+                                . htmlspecialchars($row['nama'])
+                                . ' (' . htmlspecialchars($row['nip']) . ')</option>';
                         }
-                    ?>
-                    selectHTML += '<?= $guru_options; ?>';
-                    selectHTML += '</select></div>';
-                    container.append(selectHTML);
+                        ?>
+                        selectHTML += '<?= $guru_options; ?>';
+                        selectHTML += '</select></div>';
+                        container.append(selectHTML);
+                    }
                 }
-            }
-        }).trigger('change');
+            }).trigger('change');
 
-        // Tombol Back
-        $('#btnBack').on('click', function(e) {
-            e.preventDefault();
-            var url = $(this).data('href');
-            $('#main-content').fadeOut(300, function() {
-                window.location.href = url;
-            });
-        });
-
-        // Fade out alert
-        setTimeout(function() {
-            $(".alert").fadeTo(500, 0).slideUp(500, function() {
-                $(this).remove();
-            });
-        }, 3000);
-
-        // Validasi form
-        $('form.needs-validation').on('submit', function(e) {
-            var form = this;
-            if (!form.checkValidity()) {
+            // Tombol Back
+            $('#btnBack').on('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
-            }
-            $(form).addClass('was-validated');
+                var url = $(this).data('href');
+                $('#main-content').fadeOut(300, function() {
+                    window.location.href = url;
+                });
+            });
+
+            // Fade out alert
+            setTimeout(function() {
+                $(".alert").fadeTo(500, 0).slideUp(500, function() {
+                    $(this).remove();
+                });
+            }, 3000);
+
+            // Validasi form
+            $('form.needs-validation').on('submit', function(e) {
+                var form = this;
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                $(form).addClass('was-validated');
+            });
         });
-    });
     </script>
 </body>
+
 </html>

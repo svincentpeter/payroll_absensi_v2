@@ -29,7 +29,8 @@ if (!$resultLogs) {
 }
 
 // 3. Fungsi Pendukung untuk Audit Logs Preview
-function getActivityIcon($action) {
+function getActivityIcon($action)
+{
     $actionLower = strtolower($action);
     if (strpos($actionLower, 'login') !== false) {
         return '<i class="fas fa-sign-in-alt"></i>';
@@ -45,7 +46,8 @@ function getActivityIcon($action) {
     return '<i class="fas fa-info-circle"></i>';
 }
 
-function getActivityColor($action) {
+function getActivityColor($action)
+{
     $actionLower = strtolower($action);
     if (strpos($actionLower, 'login') !== false) {
         return '#1cc88a'; // hijau
@@ -61,7 +63,8 @@ function getActivityColor($action) {
     return '#4e73df'; // biru default
 }
 
-function getRoleIcon($role) {
+function getRoleIcon($role)
+{
     $role = strtolower($role);
     switch ($role) {
         case 'superadmin':
@@ -81,6 +84,7 @@ function getRoleIcon($role) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Superadmin</title>
@@ -98,12 +102,14 @@ function getRoleIcon($role) {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         /* Timeline Styles */
         .vertical-timeline {
             position: relative;
             padding: 20px 0;
             margin: 0;
         }
+
         .vertical-timeline::before {
             content: "";
             position: absolute;
@@ -114,14 +120,17 @@ function getRoleIcon($role) {
             background: #4e73df;
             border-radius: 2px;
         }
+
         .vertical-timeline-item {
             position: relative;
             margin-bottom: 20px;
             padding-left: 70px;
         }
+
         .vertical-timeline-item:last-child {
             margin-bottom: 0;
         }
+
         .vertical-timeline-icon {
             position: absolute;
             left: 12px;
@@ -135,6 +144,7 @@ function getRoleIcon($role) {
             line-height: 32px;
             font-size: 18px;
         }
+
         .vertical-timeline-content {
             background: #ffffff;
             padding: 15px;
@@ -143,6 +153,7 @@ function getRoleIcon($role) {
             position: relative;
             margin-bottom: 10px;
         }
+
         .vertical-timeline-content h5 {
             margin-top: 0;
             margin-bottom: 5px;
@@ -150,29 +161,35 @@ function getRoleIcon($role) {
             font-weight: bold;
             color: #2e59d9;
         }
+
         .vertical-timeline-content p {
             margin: 0;
             font-size: 0.9rem;
             color: #858796;
         }
+
         .timeline-meta {
             font-size: 0.8rem;
             color: #6e707e;
             margin-top: 5px;
         }
+
         @media (max-width: 768px) {
             .vertical-timeline {
                 padding-left: 10px;
             }
+
             .vertical-timeline-item {
                 padding-left: 60px;
             }
+
             .vertical-timeline-icon {
                 left: 5px;
             }
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -195,7 +212,7 @@ function getRoleIcon($role) {
                 <div class="container-fluid">
                     <!-- Page Heading -->
                     <h1 class="h3 mb-4 text-gray-800">Dashboard Superadmin</h1>
-                    
+
                     <!-- Notifikasi jika ada -->
                     <?php if (isset($_SESSION['notif_success'])): ?>
                         <div class="alert alert-success">
@@ -251,19 +268,19 @@ function getRoleIcon($role) {
                                     $dateStr     = date("d M Y, H:i", strtotime($row['created_at']));
                                     $color       = getActivityColor($actionText);
                                 ?>
-                                <div class="vertical-timeline-item">
-                                    <div class="vertical-timeline-icon" style="border-color: <?php echo $color; ?>; color: <?php echo $color; ?>;">
-                                        <?php echo getActivityIcon($actionText); ?>
+                                    <div class="vertical-timeline-item">
+                                        <div class="vertical-timeline-icon" style="border-color: <?php echo $color; ?>; color: <?php echo $color; ?>;">
+                                            <?php echo getActivityIcon($actionText); ?>
+                                        </div>
+                                        <div class="vertical-timeline-content" style="border-left-color: <?php echo $color; ?>;">
+                                            <h5><?php echo $actionText; ?></h5>
+                                            <p><?php echo $detailsText; ?></p>
+                                            <p class="timeline-meta">
+                                                <?php echo getRoleIcon($roleText) . ' <strong>' . $username . '</strong> (' . ucfirst($roleText) . ')'; ?>
+                                                <span class="float-end"><?php echo $dateStr; ?></span>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div class="vertical-timeline-content" style="border-left-color: <?php echo $color; ?>;">
-                                        <h5><?php echo $actionText; ?></h5>
-                                        <p><?php echo $detailsText; ?></p>
-                                        <p class="timeline-meta">
-                                            <?php echo getRoleIcon($roleText) . ' <strong>' . $username . '</strong> (' . ucfirst($roleText) . ')'; ?>
-                                            <span class="float-end"><?php echo $dateStr; ?></span>
-                                        </p>
-                                    </div>
-                                </div>
                                 <?php endwhile; ?>
                             </div>
                             <div class="text-end">
@@ -294,6 +311,7 @@ function getRoleIcon($role) {
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

@@ -23,7 +23,7 @@ require_once __DIR__ . '/../koneksi.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_guru'])) {
     // Verifikasi CSRF token
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $nip_to_delete = trim($_POST['nip'] ?? '');
     if (!empty($nip_to_delete)) {
         $sql = "DELETE FROM jadwal_piket WHERE nip = ?";
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_guru'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     // Verifikasi CSRF token
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $id_jadwal = intval($_POST['id_jadwal'] ?? 0);
     if ($id_jadwal > 0) {
         $sql = "DELETE FROM jadwal_piket WHERE id_jadwal = ?";
@@ -154,7 +154,8 @@ foreach ($laporan as $lap) {
 }
 
 // Fungsi untuk menerjemahkan nama bulan dari Inggris ke Indonesia
-function translate_month($month_eng) {
+function translate_month($month_eng)
+{
     $months = [
         'January' => 'Januari',
         'February' => 'Februari',
@@ -173,7 +174,8 @@ function translate_month($month_eng) {
 }
 
 // Fungsi untuk menerjemahkan hari dari Inggris ke Indonesia
-function translate_day($day_eng) {
+function translate_day($day_eng)
+{
     $days = [
         'Mon' => 'Senin',
         'Tue' => 'Selasa',
@@ -224,7 +226,7 @@ $monthMapping = [
     'November'  => 11,
     'Desember'  => 12
 ];
-uksort($months, function($a, $b) use ($monthMapping) {
+uksort($months, function ($a, $b) use ($monthMapping) {
     list($monthA, $yearA) = explode(' ', $a);
     list($monthB, $yearB) = explode(' ', $b);
     $yearA = (int)$yearA;
@@ -235,7 +237,7 @@ uksort($months, function($a, $b) use ($monthMapping) {
     return $yearA <=> $yearB;
 });
 foreach ($months as $month => &$days) {
-    usort($days, function($a, $b) {
+    usort($days, function ($a, $b) {
         return strtotime($a['formatted_date']) - strtotime($b['formatted_date']);
     });
 }
@@ -243,7 +245,9 @@ unset($days);
 
 // Ambil data request tukar jadwal untuk guru tujuan
 if (!empty($laporan)) {
-    $jadwal_ids = array_map(function($j) { return $j['id_jadwal']; }, $laporan);
+    $jadwal_ids = array_map(function ($j) {
+        return $j['id_jadwal'];
+    }, $laporan);
     $placeholders = implode(',', array_fill(0, count($jadwal_ids), '?'));
     $sql = "SELECT ptj.*, 
                    jp_pengaju.nama_guru AS nama_guru_pengaju, 
@@ -296,6 +300,7 @@ $stmt_guru->close();
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Laporan Jadwal Piket Guru</title>
@@ -305,17 +310,53 @@ $stmt_guru->close();
     <!-- SB Admin 2 CSS (pastikan kompatibel dengan Bootstrap 5) -->
     <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
     <style>
-        .badge-pending { background-color: #ffc107; color: #212529; }
-        .badge-tidak-hadir { background-color: #dc3545; color: #fff; }
-        .badge-hadir { background-color: #28a745; color: #fff; }
-        .badge-info { background-color: #17a2b8; color: #fff; }
-        .badge-secondary { background-color: #6c757d; color: #fff; }
-        th, td { vertical-align: middle !important; white-space: nowrap; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .table thead th { background-color: #f8f9fc; color: #5a5c69; border-bottom: 2px solid #e3e6f0; }
-        .table tbody tr:nth-child(even) { background-color: #f8f9fc; }
+        .badge-pending {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .badge-tidak-hadir {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .badge-hadir {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        .badge-info {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+
+        .badge-secondary {
+            background-color: #6c757d;
+            color: #fff;
+        }
+
+        th,
+        td {
+            vertical-align: middle !important;
+            white-space: nowrap;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .table thead th {
+            background-color: #f8f9fc;
+            color: #5a5c69;
+            border-bottom: 2px solid #e3e6f0;
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: #f8f9fc;
+        }
     </style>
 </head>
+
 <body id="page-top">
     <div id="wrapper">
         <?php include __DIR__ . '/../sidebar.php'; ?>
@@ -334,7 +375,7 @@ $stmt_guru->close();
                 <!-- End Topbar -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">Laporan Jadwal Piket Guru</h1>
-                    
+
                     <!-- Tampilkan Notifikasi -->
                     <?php if (isset($_SESSION['laporan_success'])): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -343,7 +384,7 @@ $stmt_guru->close();
                         </div>
                         <?php unset($_SESSION['laporan_success']); ?>
                     <?php endif; ?>
-                    
+
                     <?php if (isset($_SESSION['laporan_error'])): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <?= htmlspecialchars($_SESSION['laporan_error']); ?>
@@ -384,7 +425,7 @@ $stmt_guru->close();
                             <?php endif; ?>
                         </tbody>
                     </table>
-                    
+
                     <!-- Tampilan Filter Laporan -->
                     <h2>Laporan Jadwal Piket Guru</h2>
                     <form method="GET" action="laporan_jadwal_piket.php" class="row gy-2 gx-3 align-items-center mb-4">
@@ -423,7 +464,7 @@ $stmt_guru->close();
                             <button type="submit" class="btn btn-primary">Filter</button>
                         </div>
                     </form>
-                    
+
                     <?php
                     if ($start_year > $end_year) {
                         echo "<div class='alert alert-danger'>Tahun akhir tidak boleh lebih kecil dari tahun awal.</div>";
@@ -509,6 +550,7 @@ $stmt_guru->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

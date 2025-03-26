@@ -88,6 +88,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title><?= htmlspecialchars($dashboard_title) ?></title>
@@ -103,49 +104,61 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
         body {
             background-color: #f8f9fc;
         }
+
         .welcome-message {
             margin-bottom: 20px;
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .stat-card .card-body p {
             font-size: 1.2rem;
             font-weight: 600;
             margin: 0;
         }
+
         .gradient-hadir {
             background: linear-gradient(135deg, #e0ffe0 0%, #90ee90 100%);
             color: #064d06;
         }
+
         .gradient-izin {
             background: linear-gradient(135deg, #d6f5ff 0%, #80dfff 100%);
             color: #064b5c;
         }
+
         .gradient-cuti {
             background: linear-gradient(135deg, #fff8d6 0%, #ffe680 100%);
             color: #665400;
         }
+
         .gradient-tanpa {
             background: linear-gradient(135deg, #ffd6d6 0%, #ff9f9f 100%);
             color: #5e0000;
         }
+
         .gradient-sakit {
             background: linear-gradient(135deg, #f0f0f0 0%, #dcdcdc 100%);
             color: #333;
         }
+
         .icon-size {
             font-size: 1.5rem;
         }
+
         .ringkasan-gaji .text-xs {
             font-size: 0.75rem;
         }
+
         .ringkasan-gaji .h5 {
             font-size: 1rem;
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -190,8 +203,8 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                     <?php
                     if (isset($_SESSION['success_message'])) {
                         echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>"
-                             . htmlspecialchars($_SESSION['success_message']) .
-                             "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button></div>";
+                            . htmlspecialchars($_SESSION['success_message']) .
+                            "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button></div>";
                         unset($_SESSION['success_message']);
                     }
                     ?>
@@ -398,11 +411,11 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                             $holidayDate = date('d M Y', strtotime($holiday['holiday_date']));
                                             $badgeClass = ($holiday['holiday_type'] == 'wajib') ? 'bg-danger' : 'bg-secondary';
                                             echo '<li class="list-group-item d-flex justify-content-between align-items-center">'
-                                                 . htmlspecialchars($holiday['holiday_title']) . ' - ' . $holidayDate
-                                                 . '<span class="badge ' . $badgeClass . '">'
-                                                 . ucfirst($holiday['holiday_type'])
-                                                 . '</span>'
-                                                 . '</li>';
+                                                . htmlspecialchars($holiday['holiday_title']) . ' - ' . $holidayDate
+                                                . '<span class="badge ' . $badgeClass . '">'
+                                                . ucfirst($holiday['holiday_type'])
+                                                . '</span>'
+                                                . '</li>';
                                         }
                                         echo '</ul>';
                                     } else {
@@ -430,8 +443,8 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                         echo '<table class="table table-sm table-bordered">';
                                         echo '<thead class="table-light"><tr><th>Waktu Piket</th><th>Status</th></tr></thead><tbody>';
                                         while ($schedule = $resultSchedule->fetch_assoc()) {
-                                            echo '<tr><td>' . htmlspecialchars($schedule['waktu_piket']) . '</td><td>' 
-                                                 . htmlspecialchars(ucfirst($schedule['status'])) . '</td></tr>';
+                                            echo '<tr><td>' . htmlspecialchars($schedule['waktu_piket']) . '</td><td>'
+                                                . htmlspecialchars(ucfirst($schedule['status'])) . '</td></tr>';
                                         }
                                         echo '</tbody></table>';
                                     } else {
@@ -459,7 +472,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                             $resultPayroll = $stmtPayroll->get_result();
                             if ($resultPayroll->num_rows > 0) {
                                 $payroll = $resultPayroll->fetch_assoc();
-                                ?>
+                            ?>
                                 <div class="row text-center">
                                     <div class="col-sm-3 mb-2">
                                         <div class="card border-left-primary shadow-sm h-100 py-2">
@@ -513,7 +526,7 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
                                 <p class="mt-2 text-center">
                                     Payroll terakhir diproses pada: <?= date('d M Y H:i', strtotime($payroll['tgl_payroll'])); ?>
                                 </p>
-                                <?php
+                            <?php
                             } else {
                                 echo '<p class="text-center">Payroll belum diproses untuk periode ini.</p>';
                             }
@@ -551,15 +564,23 @@ $sumSakit    = (int)($sumData['total_sakit'] ?? 0);
     <script>
         function updateDateTime() {
             var now = new Date();
-            var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            var options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
             var dateString = now.toLocaleDateString('id-ID', options);
-            var timeString = now.toLocaleTimeString('id-ID', { hour12: false });
+            var timeString = now.toLocaleTimeString('id-ID', {
+                hour12: false
+            });
             document.getElementById('currentDateTime').innerHTML = dateString + ' - ' + timeString;
         }
         setInterval(updateDateTime, 1000);
         updateDateTime();
     </script>
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

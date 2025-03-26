@@ -1,19 +1,22 @@
 <?php
 // File: helpers.php
 
-function start_session_safe() {
+function start_session_safe()
+{
     if (session_status() == PHP_SESSION_NONE) {
         session_start();
     }
 }
 
-function sanitize_input($data) {
+function sanitize_input($data)
+{
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
 // Alias bersihkan_input()
 if (!function_exists('bersihkan_input')) {
-    function bersihkan_input($data) {
+    function bersihkan_input($data)
+    {
         return sanitize_input($data);
     }
 }
@@ -21,7 +24,8 @@ if (!function_exists('bersihkan_input')) {
 /**
  * Mengirim respons JSON dan mengakhiri eksekusi script.
  */
-function send_response($code, $result) {
+function send_response($code, $result)
+{
     // === HAPUS DEBUG ===
     // if ($code !== 0) {
     //     error_log("Response Code $code: " . json_encode($result));
@@ -31,13 +35,15 @@ function send_response($code, $result) {
     exit();
 }
 
-function generate_csrf_token() {
+function generate_csrf_token()
+{
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 }
 
-function verify_csrf_token($token) {
+function verify_csrf_token($token)
+{
     if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
         send_response(403, 'Token CSRF tidak valid.');
     }
@@ -47,7 +53,8 @@ function verify_csrf_token($token) {
  * Mencatat error ke dalam file log, jika memang error serius.
  * (Tetap kita biarkan, karena bisa dipakai saat benar‐benar error.)
  */
-function log_error($message) {
+function log_error($message)
+{
     $error_log_path = __DIR__ . '/error.log';
     error_log("[" . date('Y-m-d H:i:s') . "] " . $message . "\n", 3, $error_log_path);
 }
@@ -55,7 +62,8 @@ function log_error($message) {
 /**
  * Menambahkan catatan audit log ke database.
  */
-function add_audit_log($conn, $user_nip, $action, $details) {
+function add_audit_log($conn, $user_nip, $action, $details)
+{
     if (empty($user_nip)) {
         return true;
     }
@@ -78,7 +86,8 @@ function add_audit_log($conn, $user_nip, $action, $details) {
     return true;
 }
 
-function translateJenis($jenis) {
+function translateJenis($jenis)
+{
     $translations = [
         'earnings'   => 'Pendapatan',
         'deductions' => 'Potongan'
@@ -86,7 +95,8 @@ function translateJenis($jenis) {
     return $translations[$jenis] ?? 'Tidak Dikenal';
 }
 
-function init_error_handling() {
+function init_error_handling()
+{
     ini_set('display_errors', 0);
     ini_set('display_startup_errors', 0);
     ini_set('log_errors', 1);
@@ -95,7 +105,8 @@ function init_error_handling() {
     error_reporting(E_ALL);
 }
 
-function getIndonesianMonthName($monthNumber) {
+function getIndonesianMonthName($monthNumber)
+{
     $monthNumber = intval($monthNumber);
     $bulan = [
         1  => 'Januari',
@@ -118,7 +129,8 @@ function getIndonesianMonthName($monthNumber) {
     return $bulan[$monthNumber] ?? 'Tidak Diketahui';
 }
 
-function monthNameToInt($monthName) {
+function monthNameToInt($monthName)
+{
     $lower = strtolower($monthName);
     $map = [
         'januari'   => 1,
@@ -137,11 +149,13 @@ function monthNameToInt($monthName) {
     return $map[$lower] ?? 0;
 }
 
-function formatNominal($nominal) {
+function formatNominal($nominal)
+{
     return 'Rp ' . number_format($nominal, 2, ',', '.');
 }
 
-function getBadgeRole($role) {
+function getBadgeRole($role)
+{
     switch ($role) {
         case 'P':
             return '<span class="badge bg-primary">Pendidik</span>';
@@ -154,18 +168,26 @@ function getBadgeRole($role) {
     }
 }
 
-function getBadgeJenjang($jenjang) {
+function getBadgeJenjang($jenjang)
+{
     switch ($jenjang) {
-        case 'TK': return '<span class="badge bg-success">TK</span>';
-        case 'SD': return '<span class="badge bg-primary">SD</span>';
-        case 'SMP':return '<span class="badge bg-info text-dark">SMP</span>';
-        case 'SMA':return '<span class="badge bg-warning text-dark">SMA</span>';
-        case 'SMK':return '<span class="badge bg-secondary">SMK</span>';
-        default:   return '<span class="badge bg-light text-dark">' . htmlspecialchars($jenjang) . '</span>';
+        case 'TK':
+            return '<span class="badge bg-success">TK</span>';
+        case 'SD':
+            return '<span class="badge bg-primary">SD</span>';
+        case 'SMP':
+            return '<span class="badge bg-info text-dark">SMP</span>';
+        case 'SMA':
+            return '<span class="badge bg-warning text-dark">SMA</span>';
+        case 'SMK':
+            return '<span class="badge bg-secondary">SMK</span>';
+        default:
+            return '<span class="badge bg-light text-dark">' . htmlspecialchars($jenjang) . '</span>';
     }
 }
 
-function getBadgeStatusKerja($status) {
+function getBadgeStatusKerja($status)
+{
     if (strtolower($status) === 'tetap') {
         return '<span class="badge bg-success">Tetap</span>';
     } else if (strtolower($status) === 'kontrak') {
@@ -175,7 +197,8 @@ function getBadgeStatusKerja($status) {
     }
 }
 
-function authorize($allowedRoles, $redirectUrl = null) {
+function authorize($allowedRoles, $redirectUrl = null)
+{
     start_session_safe();
     $userRole     = $_SESSION['role'] ?? '';
     $userJobTitle = $_SESSION['job_title'] ?? '';
@@ -191,7 +214,7 @@ function authorize($allowedRoles, $redirectUrl = null) {
             break;
         }
         if ($userRole === 'M' && strpos($allowedRole, 'M:') === 0) {
-            $allowedDetail = trim(substr($allowedRole, 2)); 
+            $allowedDetail = trim(substr($allowedRole, 2));
             $allowedDetailNormalized = strtolower(str_replace('_', ' ', $allowedDetail));
             $userJobTitleNormalized = strtolower(str_replace('_', ' ', trim($userJobTitle)));
             if ($allowedDetailNormalized === $userJobTitleNormalized) {
@@ -214,11 +237,12 @@ function authorize($allowedRoles, $redirectUrl = null) {
     }
 }
 
-function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
+function getProfilePhotoUrl($nama, $jenjang, $role, $id)
+{
     $fileName = strtolower(preg_replace('/\s+/', '_', $nama))
-              . '_' . strtolower(preg_replace('/\s+/', '_', $jenjang))
-              . '_' . strtolower($role)
-              . '_' . $id . '.jpg';
+        . '_' . strtolower(preg_replace('/\s+/', '_', $jenjang))
+        . '_' . strtolower($role)
+        . '_' . $id . '.jpg';
     $filePath = __DIR__ . '/uploads/profile_pics/' . $fileName;
 
     if (file_exists($filePath)) {
@@ -229,7 +253,8 @@ function getProfilePhotoUrl($nama, $jenjang, $role, $id) {
 }
 
 if (!function_exists('updateSalaryIndexForUser')) {
-    function updateSalaryIndexForUser($conn, $userId) {
+    function updateSalaryIndexForUser($conn, $userId)
+    {
         // Initialize variables to avoid undefined warnings
         $role = '';
         $join_start = '';
@@ -250,7 +275,7 @@ if (!function_exists('updateSalaryIndexForUser')) {
             return false;
         }
         $stmt->close();
-        
+
         // Hitung lama kerja dalam tahun
         $years = 0;
         if (!empty($join_start) && $join_start != '0000-00-00') {
@@ -268,7 +293,7 @@ if (!function_exists('updateSalaryIndexForUser')) {
         $salaryIndexId = 0;
         $baseSalary = 0.0;
         $level = '';
-    
+
         // Cari salary index yang sesuai
         $stmt3 = $conn->prepare("SELECT id, base_salary, level FROM salary_indices WHERE min_years <= ? AND (max_years IS NULL OR ? <= max_years) ORDER BY min_years DESC LIMIT 1");
         if (!$stmt3) {
@@ -284,7 +309,7 @@ if (!function_exists('updateSalaryIndexForUser')) {
             return false;
         }
         $stmt3->close();
-        
+
         // Tentukan gaji pokok
         $gaji_pokok = $baseSalary; // Default to base salary
         if ($role === 'P' && !empty($pendidikan)) {
@@ -317,7 +342,8 @@ if (!function_exists('updateSalaryIndexForUser')) {
     }
 }
 
-function normalizePendidikan($pendidikan) {
+function normalizePendidikan($pendidikan)
+{
     $pendidikan = strtoupper($pendidikan);
     if (strpos($pendidikan, 'D3') !== false) {
         return 'D3';
@@ -332,7 +358,8 @@ function normalizePendidikan($pendidikan) {
     }
 }
 
-function updateSalaryIndexForAll($conn) {
+function updateSalaryIndexForAll($conn)
+{
     $sql = "SELECT id FROM anggota_sekolah WHERE role IN ('P', 'TK')";
     $res = mysqli_query($conn, $sql);
     if (!$res) {
@@ -347,7 +374,8 @@ function updateSalaryIndexForAll($conn) {
     return true;
 }
 
-function getRecommendedSalaryIndex($conn, $joinStart) {
+function getRecommendedSalaryIndex($conn, $joinStart)
+{
     if (empty($joinStart) || $joinStart == '0000-00-00') {
         return [
             'salary_index_id' => 0,
@@ -366,7 +394,7 @@ function getRecommendedSalaryIndex($conn, $joinStart) {
     } catch (\Exception $e) {
         return [
             'salary_index_id' => 0,
-            'explanation' => 'Error parsing date: '.$e->getMessage()
+            'explanation' => 'Error parsing date: ' . $e->getMessage()
         ];
     }
 
@@ -380,7 +408,7 @@ function getRecommendedSalaryIndex($conn, $joinStart) {
     if (!$stmt) {
         return [
             'salary_index_id' => 0,
-            'explanation' => 'Query error: '.$conn->error
+            'explanation' => 'Query error: ' . $conn->error
         ];
     }
     $stmt->bind_param("ii", $masaKerjaTahun, $masaKerjaTahun);
@@ -390,7 +418,7 @@ function getRecommendedSalaryIndex($conn, $joinStart) {
         $row = $res2->fetch_assoc();
         return [
             'salary_index_id' => (int)$row['id'],
-            'explanation' => 'Cocok dengan level: '.$row['level']
+            'explanation' => 'Cocok dengan level: ' . $row['level']
         ];
     } else {
         return [
@@ -401,7 +429,8 @@ function getRecommendedSalaryIndex($conn, $joinStart) {
 }
 
 if (!function_exists('translate_month_dashboard')) {
-    function translate_month_dashboard($month_eng) {
+    function translate_month_dashboard($month_eng)
+    {
         $months = [
             'January'   => 'Januari',
             'February'  => 'Februari',
@@ -421,7 +450,8 @@ if (!function_exists('translate_month_dashboard')) {
 }
 
 if (!function_exists('translate_day_dashboard')) {
-    function translate_day_dashboard($day_eng) {
+    function translate_day_dashboard($day_eng)
+    {
         $days = [
             'Mon' => 'Senin',
             'Tue' => 'Selasa',
@@ -436,18 +466,21 @@ if (!function_exists('translate_day_dashboard')) {
 }
 
 if (!function_exists('translate_month')) {
-    function translate_month($month_eng) {
+    function translate_month($month_eng)
+    {
         return translate_month_dashboard($month_eng);
     }
 }
 
 if (!function_exists('translate_day')) {
-    function translate_day($day_eng) {
+    function translate_day($day_eng)
+    {
         return translate_day_dashboard($day_eng);
     }
 }
 
-function getOrderedJenjang(): array {
+function getOrderedJenjang(): array
+{
     return [
         'TK',
         'SD',
@@ -460,17 +493,19 @@ function getOrderedJenjang(): array {
 }
 
 if (!function_exists('getBaseUrl')) {
-    function getBaseUrl() {
+    function getBaseUrl()
+    {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
-                     || $_SERVER['SERVER_PORT'] == 443)
-                    ? "https://" : "http://";
+            || $_SERVER['SERVER_PORT'] == 443)
+            ? "https://" : "http://";
         $host = $_SERVER['HTTP_HOST'];
         $subfolder = '/payroll_absensi_v2';
         return $protocol . $host . $subfolder;
     }
 }
 
-function close_db_connection() {
+function close_db_connection()
+{
     global $conn;
     if (isset($conn) && $conn instanceof mysqli) {
         try {

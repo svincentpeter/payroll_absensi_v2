@@ -42,7 +42,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 // 2. Fungsi-Fungsi
 // =========================
 
-function LoadingPayrollHistory($conn) {
+function LoadingPayrollHistory($conn)
+{
     $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
     $length  = isset($_POST['length']) ? intval($_POST['length']) : 10;
@@ -91,7 +92,7 @@ function LoadingPayrollHistory($conn) {
             $types  .= "s";
         }
     }
-    
+
 
     // Filtered Count
     $sqlFilteredCount = "SELECT COUNT(*) as total " . $sqlBase;
@@ -135,7 +136,7 @@ function LoadingPayrollHistory($conn) {
     $orderBy = " ORDER BY p.id DESC";
     if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
         $columnIndex = intval($_POST['order'][0]['column']);
-        $allowedCols = ['id','nama','jenjang','bulan','tahun','gaji_pokok','total_pendapatan','total_potongan','gaji_bersih'];
+        $allowedCols = ['id', 'nama', 'jenjang', 'bulan', 'tahun', 'gaji_pokok', 'total_pendapatan', 'total_potongan', 'gaji_bersih'];
         if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedCols)) {
             $colData = $_POST['columns'][$columnIndex]['data'];
             $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
@@ -206,7 +207,7 @@ function LoadingPayrollHistory($conn) {
                 </li>
             </ul>
         </div>';
-    
+
 
         $data[] = [
             "id"               => htmlspecialchars($row['id']),    // ID auto increment di payroll_final
@@ -232,7 +233,8 @@ function LoadingPayrollHistory($conn) {
     exit();
 }
 
-function ViewPayrollDetail($conn) {
+function ViewPayrollDetail($conn)
+{
     $id_payroll_final = isset($_POST['id_payroll']) ? intval($_POST['id_payroll']) : 0;
     if ($id_payroll_final <= 0) {
         send_response(1, 'ID Payroll Final tidak valid.');
@@ -325,6 +327,7 @@ function ViewPayrollDetail($conn) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>History Payroll - Payroll Management System</title>
@@ -348,6 +351,7 @@ function ViewPayrollDetail($conn) {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         /* Tabel */
         thead th {
             background-color: #343a40;
@@ -356,18 +360,23 @@ function ViewPayrollDetail($conn) {
             vertical-align: middle;
             white-space: nowrap;
         }
-        #payrollTable th, #payrollTable td {
+
+        #payrollTable th,
+        #payrollTable td {
             font-size: 14px;
             vertical-align: middle;
             white-space: nowrap;
         }
+
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
+
         /* Perlebar select agar teks tidak terpotong */
         .form-select {
             min-width: 160px;
         }
+
         /* Loading Spinner */
         #loadingSpinner {
             display: none;
@@ -376,6 +385,7 @@ function ViewPayrollDetail($conn) {
             left: 50%;
             z-index: 9999;
         }
+
         /* Responsive tambahan untuk form filter */
         @media (max-width: 768px) {
             .row .col-auto {
@@ -385,6 +395,7 @@ function ViewPayrollDetail($conn) {
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -418,18 +429,18 @@ function ViewPayrollDetail($conn) {
                             <form id="filterPayrollForm" class="row gy-2 gx-3 align-items-center">
                                 <!-- Jenjang -->
                                 <div class="col-auto">
-                                <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang Pendidikan:</strong></label>
-                <select class="form-control" id="filterJenjang" name="jenjang">
-                    <option value="">Semua Jenjang</option>
-                    <?php
-                    // Ambil daftar jenjang yang telah didefinisikan di helper
-                    $jenjangList = getOrderedJenjang();
-                    foreach ($jenjangList as $jenjang) {
-                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
-                    }
-                    ?>
-                </select>
-            </div>
+                                    <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang Pendidikan:</strong></label>
+                                    <select class="form-control" id="filterJenjang" name="jenjang">
+                                        <option value="">Semua Jenjang</option>
+                                        <?php
+                                        // Ambil daftar jenjang yang telah didefinisikan di helper
+                                        $jenjangList = getOrderedJenjang();
+                                        foreach ($jenjangList as $jenjang) {
+                                            echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
 
                                 <!-- Bulan -->
                                 <div class="col-auto">
@@ -572,186 +583,228 @@ function ViewPayrollDetail($conn) {
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
 
     <script>
-    $(document).ready(function() {
-        // Inisialisasi DataTable
-        var payrollTable = $('#payrollTable').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: "payroll_history.php?ajax=1",
-                type: "POST",
-                data: function(d) {
-                    d.case    = 'LoadingPayrollHistory';
-                    d.jenjang = $('#filterJenjang').val();
-                    d.bulan   = $('#filterBulan').val();
-                    d.tahun   = $('#filterTahun').val();
-                },
-                beforeSend: function() {
-                    $('#loadingSpinner').show();
-                },
-                complete: function() {
-                    $('#loadingSpinner').hide();
-                },
-                error: function() {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Terjadi kesalahan saat memuat data payroll.'
-                    });
-                }
-            },
-            columns: [
-                { data: 'id',               name: 'id' },
-                { data: 'nama',             name: 'nama' },
-                { data: 'jenjang',          name: 'jenjang' },
-                { data: 'bulan',            name: 'bulan' },
-                { data: 'tahun',            name: 'tahun' },
-                { data: 'gaji_pokok',       name: 'gaji_pokok' },
-                { data: 'total_pendapatan', name: 'total_pendapatan' },
-                { data: 'total_potongan',   name: 'total_potongan' },
-                { data: 'gaji_bersih',      name: 'gaji_bersih' },
-                { data: 'aksi', orderable:false, searchable:false }
-            ],
-            order: [[0, 'desc']],
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-            },
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="fas fa-file-excel"></i> Export Excel',
-                    className: 'btn btn-success btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8] }
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="fas fa-file-pdf"></i> Export PDF',
-                    className: 'btn btn-danger btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8] },
-                    customize: function(doc) {
-                        doc.styles.tableHeader.fillColor = '#343a40';
-                        doc.styles.tableHeader.color = 'white';
-                        doc.defaultStyle.fontSize = 10;
-                    }
-                },
-                {
-                    extend: 'print',
-                    text: '<i class="fas fa-print"></i> Print',
-                    className: 'btn btn-info btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5,6,7,8] }
-                }
-            ],
-            responsive: true,
-            autoWidth: false
-        });
-
-        // Filter
-        $('#btnApplyFilterPayroll').on('click', function(){
-            payrollTable.ajax.reload();
-        });
-        $('#btnResetFilterPayroll').on('click', function(){
-            $('#filterPayrollForm')[0].reset();
-            payrollTable.ajax.reload();
-        });
-
-        // Detail Payroll
-        $(document).on('click', '.btn-view-full-detail', function() {
-            var idPayroll = $(this).data('id');
-            if (idPayroll) {
-                $.ajax({
+        $(document).ready(function() {
+            // Inisialisasi DataTable
+            var payrollTable = $('#payrollTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
                     url: "payroll_history.php?ajax=1",
                     type: "POST",
-                    dataType: "json",
-                    data: {
-                        case: 'ViewPayrollDetail',
-                        id_payroll: idPayroll
+                    data: function(d) {
+                        d.case = 'LoadingPayrollHistory';
+                        d.jenjang = $('#filterJenjang').val();
+                        d.bulan = $('#filterBulan').val();
+                        d.tahun = $('#filterTahun').val();
                     },
                     beforeSend: function() {
-                        $('#detailPayrollContent').html('<p>Memuat detail payroll...</p>');
-                        var detailModal = new bootstrap.Modal(document.getElementById('detailPayrollModal'));
-                        detailModal.show();
+                        $('#loadingSpinner').show();
                     },
-                    success: function(response) {
-                        if (response.code === 0) {
-                            var d = response.result;
-                            var html = '<table class="table table-bordered">';
-                            html += '<tr><th>ID Payroll</th><td>' + d.id + '</td></tr>';
-                            html += '<tr><th>UID</th><td>' + (d.uid || '-') + '</td></tr>';
-                            html += '<tr><th>NIP</th><td>' + (d.nip || '-') + '</td></tr>';
-                            html += '<tr><th>Nama</th><td>' + d.nama + '</td></tr>';
-                            html += '<tr><th>Jenjang</th><td>' + d.jenjang + '</td></tr>';
-                            html += '<tr><th>Role</th><td>' + (d.role || '-') + '</td></tr>';
-                            html += '<tr><th>Job Title</th><td>' + (d.job_title || '-') + '</td></tr>';
-                            html += '<tr><th>Status Kerja</th><td>' + (d.status_kerja || '-') + '</td></tr>';
-                            html += '<tr><th>Masa Kerja</th><td>' + d.masa_kerja + '</td></tr>';
-                            html += '<tr><th>No Rekening</th><td>' + (d.no_rekening || '-') + '</td></tr>';
-                            html += '<tr><th>Email</th><td>' + (d.email || '-') + '</td></tr>';
-                            html += '<tr><th>Jenis Kelamin</th><td>' + (d.jenis_kelamin || '-') + '</td></tr>';
-                            html += '<tr><th>Agama</th><td>' + (d.agama || '-') + '</td></tr>';
-                            html += '<tr><th>Gaji Pokok</th><td>' + d.gaji_pokok + '</td></tr>';
-                            html += '<tr><th>Total Pendapatan</th><td>' + d.total_pendapatan;
-                            
-                            var earnings = [];
-                            if (d.payheads_detail && d.payheads_detail.length > 0) {
-                                d.payheads_detail.forEach(function(ph) {
-                                    if (ph.jenis === 'earnings') {
-                                        earnings.push(ph);
-                                    }
-                                });
-                            }
-                            if (earnings.length > 0) {
-                                html += '<div class="row mt-2">';
-                                earnings.forEach(function(ph) {
-                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
-                                    html += '<div class="col-12 mb-1">';
-                                    html += '<span class="badge bg-success me-2">' + ph.nama_payhead + '</span>';
-                                    html += '<span class="text-success">Rp ' + nominal + '</span>';
-                                    html += '</div>';
-                                });
-                                html += '</div>';
-                            }
-                            html += '</td></tr>';
-                            html += '<tr><th>Total Potongan</th><td>' + d.total_potongan;
-                            
-                            var deductions = [];
-                            if (d.payheads_detail && d.payheads_detail.length > 0) {
-                                d.payheads_detail.forEach(function(ph) {
-                                    if (ph.jenis === 'deductions') {
-                                        deductions.push(ph);
-                                    }
-                                });
-                            }
-                            if (deductions.length > 0) {
-                                html += '<div class="row mt-2">';
-                                deductions.forEach(function(ph) {
-                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
-                                    html += '<div class="col-12 mb-1">';
-                                    html += '<span class="badge bg-danger me-2">' + ph.nama_payhead + '</span>';
-                                    html += '<span class="text-danger">Rp ' + nominal + '</span>';
-                                    html += '</div>';
-                                });
-                                html += '</div>';
-                            }
-                            html += '</td></tr>';
-                            html += '<tr><th>Gaji Bersih</th><td>' + d.gaji_bersih + '</td></tr>';
-                            html += '<tr><th>Bulan</th><td>' + d.bulan + '</td></tr>';
-                            html += '<tr><th>Tahun</th><td>' + d.tahun + '</td></tr>';
-                            html += '</table>';
-                            $('#detailPayrollContent').html(html);
-                        } else {
-                            $('#detailPayrollContent').html('<p>' + response.result + '</p>');
-                        }
+                    complete: function() {
+                        $('#loadingSpinner').hide();
                     },
                     error: function() {
-                        $('#detailPayrollContent').html('<p>Terjadi kesalahan saat memuat detail payroll.</p>');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan saat memuat data payroll.'
+                        });
                     }
-                });
-            }
+                },
+                columns: [{
+                        data: 'id',
+                        name: 'id'
+                    },
+                    {
+                        data: 'nama',
+                        name: 'nama'
+                    },
+                    {
+                        data: 'jenjang',
+                        name: 'jenjang'
+                    },
+                    {
+                        data: 'bulan',
+                        name: 'bulan'
+                    },
+                    {
+                        data: 'tahun',
+                        name: 'tahun'
+                    },
+                    {
+                        data: 'gaji_pokok',
+                        name: 'gaji_pokok'
+                    },
+                    {
+                        data: 'total_pendapatan',
+                        name: 'total_pendapatan'
+                    },
+                    {
+                        data: 'total_potongan',
+                        name: 'total_potongan'
+                    },
+                    {
+                        data: 'gaji_bersih',
+                        name: 'gaji_bersih'
+                    },
+                    {
+                        data: 'aksi',
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                order: [
+                    [0, 'desc']
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
+                },
+                dom: 'Bfrtip',
+                buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="fas fa-file-excel"></i> Export Excel',
+                        className: 'btn btn-success btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        }
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: '<i class="fas fa-file-pdf"></i> Export PDF',
+                        className: 'btn btn-danger btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        },
+                        customize: function(doc) {
+                            doc.styles.tableHeader.fillColor = '#343a40';
+                            doc.styles.tableHeader.color = 'white';
+                            doc.defaultStyle.fontSize = 10;
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        text: '<i class="fas fa-print"></i> Print',
+                        className: 'btn btn-info btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                        }
+                    }
+                ],
+                responsive: true,
+                autoWidth: false
+            });
+
+            // Filter
+            $('#btnApplyFilterPayroll').on('click', function() {
+                payrollTable.ajax.reload();
+            });
+            $('#btnResetFilterPayroll').on('click', function() {
+                $('#filterPayrollForm')[0].reset();
+                payrollTable.ajax.reload();
+            });
+
+            // Detail Payroll
+            $(document).on('click', '.btn-view-full-detail', function() {
+                var idPayroll = $(this).data('id');
+                if (idPayroll) {
+                    $.ajax({
+                        url: "payroll_history.php?ajax=1",
+                        type: "POST",
+                        dataType: "json",
+                        data: {
+                            case: 'ViewPayrollDetail',
+                            id_payroll: idPayroll
+                        },
+                        beforeSend: function() {
+                            $('#detailPayrollContent').html('<p>Memuat detail payroll...</p>');
+                            var detailModal = new bootstrap.Modal(document.getElementById('detailPayrollModal'));
+                            detailModal.show();
+                        },
+                        success: function(response) {
+                            if (response.code === 0) {
+                                var d = response.result;
+                                var html = '<table class="table table-bordered">';
+                                html += '<tr><th>ID Payroll</th><td>' + d.id + '</td></tr>';
+                                html += '<tr><th>UID</th><td>' + (d.uid || '-') + '</td></tr>';
+                                html += '<tr><th>NIP</th><td>' + (d.nip || '-') + '</td></tr>';
+                                html += '<tr><th>Nama</th><td>' + d.nama + '</td></tr>';
+                                html += '<tr><th>Jenjang</th><td>' + d.jenjang + '</td></tr>';
+                                html += '<tr><th>Role</th><td>' + (d.role || '-') + '</td></tr>';
+                                html += '<tr><th>Job Title</th><td>' + (d.job_title || '-') + '</td></tr>';
+                                html += '<tr><th>Status Kerja</th><td>' + (d.status_kerja || '-') + '</td></tr>';
+                                html += '<tr><th>Masa Kerja</th><td>' + d.masa_kerja + '</td></tr>';
+                                html += '<tr><th>No Rekening</th><td>' + (d.no_rekening || '-') + '</td></tr>';
+                                html += '<tr><th>Email</th><td>' + (d.email || '-') + '</td></tr>';
+                                html += '<tr><th>Jenis Kelamin</th><td>' + (d.jenis_kelamin || '-') + '</td></tr>';
+                                html += '<tr><th>Agama</th><td>' + (d.agama || '-') + '</td></tr>';
+                                html += '<tr><th>Gaji Pokok</th><td>' + d.gaji_pokok + '</td></tr>';
+                                html += '<tr><th>Total Pendapatan</th><td>' + d.total_pendapatan;
+
+                                var earnings = [];
+                                if (d.payheads_detail && d.payheads_detail.length > 0) {
+                                    d.payheads_detail.forEach(function(ph) {
+                                        if (ph.jenis === 'earnings') {
+                                            earnings.push(ph);
+                                        }
+                                    });
+                                }
+                                if (earnings.length > 0) {
+                                    html += '<div class="row mt-2">';
+                                    earnings.forEach(function(ph) {
+                                        var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {
+                                            minimumFractionDigits: 2
+                                        });
+                                        html += '<div class="col-12 mb-1">';
+                                        html += '<span class="badge bg-success me-2">' + ph.nama_payhead + '</span>';
+                                        html += '<span class="text-success">Rp ' + nominal + '</span>';
+                                        html += '</div>';
+                                    });
+                                    html += '</div>';
+                                }
+                                html += '</td></tr>';
+                                html += '<tr><th>Total Potongan</th><td>' + d.total_potongan;
+
+                                var deductions = [];
+                                if (d.payheads_detail && d.payheads_detail.length > 0) {
+                                    d.payheads_detail.forEach(function(ph) {
+                                        if (ph.jenis === 'deductions') {
+                                            deductions.push(ph);
+                                        }
+                                    });
+                                }
+                                if (deductions.length > 0) {
+                                    html += '<div class="row mt-2">';
+                                    deductions.forEach(function(ph) {
+                                        var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {
+                                            minimumFractionDigits: 2
+                                        });
+                                        html += '<div class="col-12 mb-1">';
+                                        html += '<span class="badge bg-danger me-2">' + ph.nama_payhead + '</span>';
+                                        html += '<span class="text-danger">Rp ' + nominal + '</span>';
+                                        html += '</div>';
+                                    });
+                                    html += '</div>';
+                                }
+                                html += '</td></tr>';
+                                html += '<tr><th>Gaji Bersih</th><td>' + d.gaji_bersih + '</td></tr>';
+                                html += '<tr><th>Bulan</th><td>' + d.bulan + '</td></tr>';
+                                html += '<tr><th>Tahun</th><td>' + d.tahun + '</td></tr>';
+                                html += '</table>';
+                                $('#detailPayrollContent').html(html);
+                            } else {
+                                $('#detailPayrollContent').html('<p>' + response.result + '</p>');
+                            }
+                        },
+                        error: function() {
+                            $('#detailPayrollContent').html('<p>Terjadi kesalahan saat memuat detail payroll.</p>');
+                        }
+                    });
+                }
+            });
         });
-    });
     </script>
 </body>
+
 </html>
 <?php
 $conn->close();

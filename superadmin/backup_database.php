@@ -66,6 +66,7 @@ function directDownloadBackup()
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Backup Database - Superadmin</title>
@@ -80,6 +81,7 @@ function directDownloadBackup()
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -146,23 +148,24 @@ function directDownloadBackup()
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-    $(document).ready(function() {
-        $("#btnBackup").click(function() {
-            Swal.fire({
-                title: 'Backup Database',
-                text: "Apakah Anda yakin ingin melakukan backup database?",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Ya, Backup!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Arahkan browser ke URL download
-                    window.location.href = 'backup_database.php?download=1';
-                }
+        $(document).ready(function() {
+            $("#btnBackup").click(function() {
+                Swal.fire({
+                    title: 'Backup Database',
+                    text: "Apakah Anda yakin ingin melakukan backup database?",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Backup!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Arahkan browser ke URL download
+                        window.location.href = 'backup_database.php?download=1';
+                    }
+                });
             });
         });
-    });
     </script>
 </body>
+
 </html>

@@ -76,10 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Verifikasi password dengan MD5
             if (md5($password_input) === $row['password']) {
                 // Simpan data di session
-                $_SESSION['id']   = $row['id']; 
+                $_SESSION['id']   = $row['id'];
                 $_SESSION['nip']  = $row['nip'];
                 $_SESSION['nama'] = $row['nama'];
-                
+
                 // Tentukan role dan simpan job_title
                 $jobTitle    = strtolower($row['job_title'] ?? '');
                 $anggotaRole = $row['role'] ?? '';
@@ -87,8 +87,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($anggotaRole === 'M') { // User manajerial
                     $_SESSION['role']      = 'M';
                     $_SESSION['job_title'] = $row['job_title'];
-                    
-                    add_audit_log($conn, $row['nip'], 'Login',
+
+                    add_audit_log(
+                        $conn,
+                        $row['nip'],
+                        'Login',
                         "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai M dengan job_title '{$row['job_title']}'."
                     );
                     if (strpos($jobTitle, 'superadmin') !== false) {
@@ -149,12 +152,13 @@ ob_end_flush(); // Akhiri output buffering
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Login - Sekolah Nusaputera</title>
     <!-- Agar tampilan responsive di mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <!-- Bootstrap CSS (opsional, jika Anda menggunakannya) -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome (untuk ikon) -->
@@ -169,6 +173,7 @@ ob_end_flush(); // Akhiri output buffering
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Poppins', sans-serif;
             min-height: 100vh;
@@ -177,7 +182,7 @@ ob_end_flush(); // Akhiri output buffering
             /* Background gradient atau bisa diganti dengan background-image */
             background: linear-gradient(to right, #74c0fc, #4e73df);
         }
-        
+
 
         /* BAGIAN KIRI (SPLIT SCREEN) */
         .left {
@@ -190,25 +195,32 @@ ob_end_flush(); // Akhiri output buffering
             padding: 3rem;
             overflow: hidden;
         }
+
         /* Contoh: Menambahkan gambar background di sisi kiri */
         .left::before {
             content: "";
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: url('https://images.unsplash.com/photo-1603575448363-9229ef31cde6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80') center center / cover no-repeat;
             opacity: 0.75;
         }
+
         .left-content {
             position: relative;
             z-index: 1;
             max-width: 450px;
             text-align: center;
         }
+
         .left-content h1 {
             font-size: 2.2rem;
             margin-bottom: 1rem;
             font-weight: 700;
         }
+
         .left-content p {
             font-size: 1rem;
             line-height: 1.6;
@@ -245,10 +257,12 @@ ob_end_flush(); // Akhiri output buffering
         .logo-container {
             margin-bottom: 1.5rem;
         }
+
         .logo-container img {
             width: 90px;
             height: auto;
         }
+
         .tagline {
             font-size: 0.9rem;
             color: #555;
@@ -278,6 +292,7 @@ ob_end_flush(); // Akhiri output buffering
             text-align: left;
             margin-bottom: 1.2rem;
         }
+
         .form-group label {
             font-weight: 600;
             color: #333;
@@ -295,20 +310,23 @@ ob_end_flush(); // Akhiri output buffering
             height: 45px;
             padding: 0 10px;
         }
+
         .icon-input-container i {
             color: #888;
             font-size: 1rem;
             margin-right: 8px;
         }
+
         .icon-input-container .form-control {
             border: none;
             box-shadow: none;
             height: 100%;
             padding: 0;
         }
+
         .icon-input-container:focus-within {
             border-color: #4e73df;
-            box-shadow: 0 0 5px rgba(78,115,223,0.3);
+            box-shadow: 0 0 5px rgba(78, 115, 223, 0.3);
         }
 
         /* TOMBOL LOGIN */
@@ -325,9 +343,10 @@ ob_end_flush(); // Akhiri output buffering
             margin-top: 0.5rem;
             transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
         }
+
         .btn-login:hover {
             background-color: #2e59d9;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             transform: translateY(-2px);
         }
 
@@ -336,12 +355,14 @@ ob_end_flush(); // Akhiri output buffering
             .left {
                 display: none;
             }
+
             .right {
                 flex: unset;
                 width: 100%;
                 height: auto;
                 padding: 1rem;
             }
+
             .login-form {
                 margin: 0 auto;
                 max-width: 400px;
@@ -349,6 +370,7 @@ ob_end_flush(); // Akhiri output buffering
         }
     </style>
 </head>
+
 <body>
 
     <!-- BAGIAN KIRI -->
@@ -384,15 +406,14 @@ ob_end_flush(); // Akhiri output buffering
                     <label for="username">NIP</label>
                     <div class="icon-input-container">
                         <i class="fas fa-user"></i>
-                        <input 
-                            type="text" 
-                            class="form-control" 
-                            id="username" 
-                            name="username" 
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="username"
+                            name="username"
                             required
                             value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
-                            placeholder="Masukkan NIP Anda..."
-                        >
+                            placeholder="Masukkan NIP Anda...">
                     </div>
                 </div>
 
@@ -400,14 +421,13 @@ ob_end_flush(); // Akhiri output buffering
                     <label for="password">Password</label>
                     <div class="icon-input-container">
                         <i class="fas fa-lock"></i>
-                        <input 
-                            type="password" 
-                            class="form-control" 
-                            id="password" 
-                            name="password" 
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="password"
+                            name="password"
                             required
-                            placeholder="Masukkan password Anda..."
-                        >
+                            placeholder="Masukkan password Anda...">
                     </div>
                 </div>
 
@@ -420,4 +440,5 @@ ob_end_flush(); // Akhiri output buffering
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

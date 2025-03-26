@@ -64,7 +64,7 @@ $stmt->close();
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $id_jadwal = intval($_POST['id_jadwal'] ?? 0);
     $new_status = strtolower(trim($_POST['update_status'] ?? ''));
     if ($id_jadwal > 0 && in_array($new_status, ['hadir', 'tidak hadir'])) {
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $id_jadwal_pengaju = intval($_POST['id_jadwal_pengaju'] ?? 0);
     $guru_nip_tujuan = trim($_POST['guru_nip_tujuan'] ?? '');
     if ($id_jadwal_pengaju > 0 && !empty($guru_nip_tujuan)) {
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
             header("Location: dashboard_jadwal.php");
             exit();
         }
-        
+
         // Cari jadwal tujuan pending guru tujuan (jika ada)
         $sql_tujuan = "SELECT id_jadwal FROM jadwal_piket WHERE nip = ? AND status = 'pending' ORDER BY tanggal ASC LIMIT 1";
         $stmt = $conn->prepare($sql_tujuan);
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
         $data_tujuan = $result_tujuan->fetch_assoc();
         $stmt->close();
         $id_jadwal_tujuan = $data_tujuan ? $data_tujuan['id_jadwal'] : NULL;
-        
+
         // Ambil tanggal dari jadwal pengaju
         $sql_jadwal = "SELECT tanggal, waktu_piket FROM jadwal_piket WHERE id_jadwal = ?";
         $stmt = $conn->prepare($sql_jadwal);
@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
             exit();
         }
         $tanggal_request = $jadwal_pengaju['tanggal'];
-        
+
         // Cek apakah request sudah ada
         if ($id_jadwal_tujuan === NULL) {
             $sql_check = "SELECT COUNT(*) AS total FROM permintaan_tukar_jadwal 
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
         $result_check = $stmt->get_result();
         $count = $result_check->fetch_assoc()['total'];
         $stmt->close();
-        
+
         if ($count == 0) {
             // Simpan request tukar jadwal
             $sql_insert = "INSERT INTO permintaan_tukar_jadwal 
@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_request'])) {
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $action = $_POST['action'];
     $id_request = intval($_POST['id_request'] ?? 0);
     if ($id_request > 0) {
@@ -196,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_
         $result = $stmt->get_result();
         $request = $result->fetch_assoc();
         $stmt->close();
-        
+
         if ($request) {
             // Pastikan hanya guru tujuan yang dapat merespon
             if ($request['nip_tujuan'] !== $nip) {
@@ -215,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_
                     $result_jp = $stmt->get_result();
                     $jadwal_pengaju = $result_jp->fetch_assoc();
                     $stmt->close();
-                    
+
                     if (!$jadwal_pengaju) {
                         $_SESSION['absensi_error'] = "Data jadwal pengaju tidak ditemukan.";
                         header("Location: dashboard_jadwal.php");
@@ -230,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_
                     $data_nama = $result_nama->fetch_assoc();
                     $nama_tujuan = $data_nama['nama'] ?? '';
                     $stmt->close();
-                    
+
                     if (empty($nama_tujuan)) {
                         $_SESSION['absensi_error'] = "Nama guru tujuan tidak ditemukan.";
                         header("Location: dashboard_jadwal.php");
@@ -252,9 +252,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_
                         $stmt->bind_param("ii", $jadwal_id, $id_request);
                         $stmt->execute();
                         $stmt->close();
-                        
-                        $_SESSION['absensi_success'] = "Request diterima. Jadwal pada tanggal " 
-                            . date('d F Y', strtotime($jadwal_pengaju['tanggal'])) 
+
+                        $_SESSION['absensi_success'] = "Request diterima. Jadwal pada tanggal "
+                            . date('d F Y', strtotime($jadwal_pengaju['tanggal']))
                             . " kini telah dipindahkan ke Anda.";
                     } else {
                         $_SESSION['absensi_error'] = "Gagal mengupdate jadwal untuk guru tujuan.";
@@ -263,21 +263,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_
                     // Skema: tukar jadwal antar 2 guru
                     $id_pengaju = $request['id_jadwal_pengaju'];
                     $id_tujuan = $request['id_jadwal_tujuan'];
-                    
+
                     $conn->begin_transaction();
                     try {
                         $sql_update = "UPDATE jadwal_piket SET nip = ?, nama_guru = ? WHERE id_jadwal = ?";
                         $stmt = $conn->prepare($sql_update);
-                        
+
                         // 1) Update jadwal pengaju => jadi milik guru tujuan
                         $stmt->bind_param("ssi", $request['nip_tujuan'], '', $id_pengaju);
                         $stmt->execute();
-                        
+
                         // 2) Update jadwal tujuan => jadi milik guru pengaju
                         $stmt->bind_param("ssi", $nip, '', $id_tujuan);
                         $stmt->execute();
                         $stmt->close();
-                        
+
                         // 3) Update status request
                         $sql_update_status = "UPDATE permintaan_tukar_jadwal 
                                              SET status = 'Diterima' 
@@ -286,7 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_
                         $stmt->bind_param("i", $id_request);
                         $stmt->execute();
                         $stmt->close();
-                        
+
                         $conn->commit();
                         $_SESSION['absensi_success'] = "Request tukar jadwal telah diterima dan jadwal telah ditukar.";
                     } catch (Exception $e) {
@@ -340,7 +340,9 @@ $stmt->close();
 // Ambil data request tukar jadwal (jika diperlukan di tampilan)
 $swap_requests = [];
 if (!empty($jadwal)) {
-    $jadwal_ids = array_map(function($j) { return $j['id_jadwal']; }, $jadwal);
+    $jadwal_ids = array_map(function ($j) {
+        return $j['id_jadwal'];
+    }, $jadwal);
     $placeholders = implode(',', array_fill(0, count($jadwal_ids), '?'));
     $sql = "SELECT ptj.*, 
                    jp_pengaju.nama_guru AS nama_guru_pengaju, 
@@ -380,6 +382,7 @@ if (!empty($jadwal)) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Jadwal Piket</title>
@@ -400,26 +403,55 @@ if (!empty($jadwal)) {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         /* Custom Badge (opsional) */
-        .badge-pending      { background-color: #ffc107; color: #212529; }
-        .badge-tidak-hadir  { background-color: #dc3545; color: #fff; }
-        .badge-hadir        { background-color: #28a745; color: #fff; }
-        .badge-secondary    { background-color: #6c757d; color: #fff; }
-        .badge-info         { background-color: #17a2b8; color: #fff; }
-
-        th, td { vertical-align: middle !important; white-space: nowrap; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-
-        .table thead th { 
-            background-color: #f8f9fc; 
-            color: #5a5c69; 
-            border-bottom: 2px solid #e3e6f0; 
+        .badge-pending {
+            background-color: #ffc107;
+            color: #212529;
         }
-        .table tbody tr:nth-child(even) { 
-            background-color: #f8f9fc; 
+
+        .badge-tidak-hadir {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .badge-hadir {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        .badge-secondary {
+            background-color: #6c757d;
+            color: #fff;
+        }
+
+        .badge-info {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+
+        th,
+        td {
+            vertical-align: middle !important;
+            white-space: nowrap;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .table thead th {
+            background-color: #f8f9fc;
+            color: #5a5c69;
+            border-bottom: 2px solid #e3e6f0;
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: #f8f9fc;
         }
     </style>
 </head>
+
 <body id="page-top">
 
     <!-- Wrapper SB Admin 2 -->
@@ -464,9 +496,9 @@ if (!empty($jadwal)) {
                             <?php endif; ?>
 
                             <div class="table-responsive">
-                                <table 
-                                    id="tableJadwal" 
-                                    class="table table-bordered table-striped text-center" 
+                                <table
+                                    id="tableJadwal"
+                                    class="table table-bordered table-striped text-center"
                                     style="width:100%">
                                     <thead>
                                         <tr>
@@ -549,22 +581,22 @@ if (!empty($jadwal)) {
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <?php 
-                                                        $sql_req = "SELECT status FROM permintaan_tukar_jadwal 
+                                                    <?php
+                                                    $sql_req = "SELECT status FROM permintaan_tukar_jadwal 
                                                                     WHERE id_jadwal_pengaju = ? 
                                                                     ORDER BY tanggal_permintaan DESC 
                                                                     LIMIT 1";
-                                                        $stmt_req = $conn->prepare($sql_req);
-                                                        $stmt_req->bind_param("i", $j['id_jadwal']);
-                                                        $stmt_req->execute();
-                                                        $result_req = $stmt_req->get_result();
-                                                        if ($result_req->num_rows > 0) {
-                                                            $row_req = $result_req->fetch_assoc();
-                                                            echo '<span class="badge bg-info text-white">' . htmlspecialchars($row_req['status']) . '</span>';
-                                                        } else {
-                                                            echo '<span class="badge bg-secondary">-</span>';
-                                                        }
-                                                        $stmt_req->close();
+                                                    $stmt_req = $conn->prepare($sql_req);
+                                                    $stmt_req->bind_param("i", $j['id_jadwal']);
+                                                    $stmt_req->execute();
+                                                    $result_req = $stmt_req->get_result();
+                                                    if ($result_req->num_rows > 0) {
+                                                        $row_req = $result_req->fetch_assoc();
+                                                        echo '<span class="badge bg-info text-white">' . htmlspecialchars($row_req['status']) . '</span>';
+                                                    } else {
+                                                        echo '<span class="badge bg-secondary">-</span>';
+                                                    }
+                                                    $stmt_req->close();
                                                     ?>
                                                 </td>
                                             </tr>
@@ -574,7 +606,7 @@ if (!empty($jadwal)) {
                             </div> <!-- End table-responsive -->
                         </div> <!-- End card-body -->
                     </div> <!-- End card -->
-                    
+
                 </div> <!-- End .container-fluid -->
             </div> <!-- End #content -->
         </div> <!-- End #content-wrapper -->
@@ -582,26 +614,26 @@ if (!empty($jadwal)) {
 
     <!-- Modal (opsional) untuk Menanggapi Request Tukar Jadwal -->
     <div class="modal fade" id="respondSwapModal" tabindex="-1" aria-labelledby="respondSwapModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <form method="POST" action="dashboard_jadwal.php">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="respondSwapModalLabel">Tanggapi Request Tukar Jadwal</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
-              <input type="hidden" name="id_request" id="id_request">
-              <p>Apakah Anda ingin menerima atau menolak request tukar jadwal ini?</p>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-              <button type="submit" name="action" value="accept" class="btn btn-success">Terima</button>
-              <button type="submit" name="action" value="reject" class="btn btn-danger">Tolak</button>
-            </div>
-          </div>
-        </form>
-      </div>
+        <div class="modal-dialog">
+            <form method="POST" action="dashboard_jadwal.php">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="respondSwapModalLabel">Tanggapi Request Tukar Jadwal</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                        <input type="hidden" name="id_request" id="id_request">
+                        <p>Apakah Anda ingin menerima atau menolak request tukar jadwal ini?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" name="action" value="accept" class="btn btn-success">Terima</button>
+                        <button type="submit" name="action" value="reject" class="btn btn-danger">Tolak</button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- JavaScript: jQuery 3.6.0, Bootstrap 5.3.3, SB Admin 2, DataTables & RowGroup -->
@@ -619,7 +651,10 @@ if (!empty($jadwal)) {
         $(document).ready(function() {
             // Inisialisasi DataTables dengan RowGroup
             $('#tableJadwal').DataTable({
-                "lengthMenu": [ [5, 10, 25, -1], [5, 10, 25, "All"] ],
+                "lengthMenu": [
+                    [5, 10, 25, -1],
+                    [5, 10, 25, "All"]
+                ],
                 "pageLength": 5,
                 "ordering": false,
                 "language": {
@@ -628,15 +663,16 @@ if (!empty($jadwal)) {
                 // Gunakan kolom pertama (hidden) sebagai data grouping
                 rowGroup: {
                     dataSrc: 0,
-                    startRender: function ( rows, group ) {
+                    startRender: function(rows, group) {
                         return $('<tr/>')
                             .append('<td colspan="9" class="fw-bold text-start">' + group + '</td>');
                     }
                 },
                 // Definisikan kolom (pastikan kolom pertama diset tidak terlihat)
-                "columnDefs": [
-                    { "visible": false, "targets": 0 }
-                ]
+                "columnDefs": [{
+                    "visible": false,
+                    "targets": 0
+                }]
             });
 
             // Jika menggunakan modal untuk respon request tukar jadwal
@@ -648,6 +684,7 @@ if (!empty($jadwal)) {
     </script>
 
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

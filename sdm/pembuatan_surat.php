@@ -37,7 +37,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             case 'ViewSuratDetail':
                 ViewSuratDetail($conn);
                 break;
-                
+
             default:
                 send_response(404, 'Kasus tidak ditemukan.');
         }
@@ -54,7 +54,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 /**
  * Memuat data surat secara server-side (DataTables).
  */
-function LoadingSurat($conn) {
+function LoadingSurat($conn)
+{
     // DataTables parameters
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
@@ -92,11 +93,11 @@ function LoadingSurat($conn) {
     if (!empty($search)) {
         $sqlFilter .= " AND (ls.judul LIKE ? OR ls.isi LIKE ? OR penerima.nama LIKE ?)";
         $sqlFilterCount .= " AND (ls.judul LIKE ? OR ls.isi LIKE ? OR penerima.nama LIKE ?)";
-        $searchParam = "%".$search."%";
+        $searchParam = "%" . $search . "%";
 
-        $params[] = $searchParam; 
-        $params[] = $searchParam; 
-        $params[] = $searchParam; 
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
         $types   .= "sss";
     }
 
@@ -162,20 +163,20 @@ function LoadingSurat($conn) {
     while ($row = $dataQuery->fetch_assoc()) {
         // Buat ringkasan isi
         $isiSingkat = mb_strimwidth(strip_tags($row['isi']), 0, 50, "...");
-    
+
         // Badge status
         if ($row['status'] === 'terkirim') {
             $badgeStatus = '<span class="badge bg-primary" style="color: #000 !important;">Terkirim</span>';
         } else {
             $badgeStatus = '<span class="badge bg-success" style="color: #000 !important;">Dibaca</span>';
         }
-    
+
         // Tanggal
         $tanggal = date('d M Y H:i', strtotime($row['tanggal_keluar']));
-    
+
         // Jika id_penerima = 0, tampilkan "Semua Anggota"
         $nama_penerima = ($row['id_penerima'] == 0) ? 'Semua Anggota' : ($row['nama_penerima'] ?? '-');
-    
+
         // Tombol aksi (View Detail & Delete)
         $aksi = '
         <div class="dropdown">
@@ -195,7 +196,7 @@ function LoadingSurat($conn) {
             </li>
           </ul>
         </div>';
-    
+
         $data[] = [
             "no"             => $no++,
             "nama_penerima"  => $nama_penerima,
@@ -206,7 +207,7 @@ function LoadingSurat($conn) {
             "aksi"           => $aksi
         ];
     }
-    
+
     $stmtData->close();
 
     echo json_encode([
@@ -221,7 +222,8 @@ function LoadingSurat($conn) {
 /**
  * Menambahkan Surat baru.
  */
-function AddSurat($conn) {
+function AddSurat($conn)
+{
     $id_pengirim = $_SESSION['id'] ?? 0; // ID user yang login
     $id_penerima = isset($_POST['id_penerima']) ? intval($_POST['id_penerima']) : 0;
     $judul       = isset($_POST['judul']) ? trim($_POST['judul']) : '';
@@ -263,7 +265,8 @@ function AddSurat($conn) {
 /**
  * Menghapus Surat.
  */
-function DeleteSurat($conn) {
+function DeleteSurat($conn)
+{
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
         send_response(2, 'ID surat tidak valid.');
@@ -291,7 +294,8 @@ function DeleteSurat($conn) {
 /**
  * Mengambil detail surat berdasarkan ID.
  */
-function ViewSuratDetail($conn) {
+function ViewSuratDetail($conn)
+{
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
         send_response(1, 'ID surat tidak valid.');
@@ -321,6 +325,7 @@ function ViewSuratDetail($conn) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Manajemen Surat</title>
@@ -340,20 +345,27 @@ function ViewSuratDetail($conn) {
 
     <style>
         /* Aturan global untuk semua font menjadi hitam */
-        body, label, button, input, textarea {
+        body,
+        label,
+        button,
+        input,
+        textarea {
             color: #000 !important;
         }
-        
-.card-header {
+
+        .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
+
         .table-responsive {
             overflow-x: auto;
         }
+
         #loadingSpinner {
             display: none;
             position: fixed;
@@ -361,11 +373,14 @@ function ViewSuratDetail($conn) {
             height: 100px;
             width: 100px;
             margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
         }
-        
     </style>
 </head>
+
 <body id="page-top">
 
     <!-- Page Wrapper -->
@@ -384,30 +399,30 @@ function ViewSuratDetail($conn) {
                 <!-- End of Topbar -->
 
                 <!-- Breadcrumb (opsional) -->
-                <?php 
+                <?php
                 // Jika punya breadcrumb.php, sertakan
-                include __DIR__ . '/../breadcrumb.php'; 
+                include __DIR__ . '/../breadcrumb.php';
                 ?>
 
                 <!-- Page Content -->
                 <div class="container-fluid">
                     <!-- Judul Halaman -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 text-gray-800 mb-0">
-            <i class="fas fa-envelope-open-text me-2"></i>Manajemen Surat
-        </h1>
-        <button id="btnTemplateSurat" class="btn btn-info">
-            <i class="fas fa-file-alt"></i> Kelola Template Surat
-        </button>
-    </div>
+                        <h1 class="h3 text-gray-800 mb-0">
+                            <i class="fas fa-envelope-open-text me-2"></i>Manajemen Surat
+                        </h1>
+                        <button id="btnTemplateSurat" class="btn btn-info">
+                            <i class="fas fa-file-alt"></i> Kelola Template Surat
+                        </button>
+                    </div>
 
                     <!-- Card: Form Tambah Surat -->
                     <div class="card mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-    <h6 class="m-0 fw-bold text-white">
-      <i class="fas fa-plus-circle me-2"></i> Buat Surat
-    </h6>
-  </div>
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-plus-circle me-2"></i> Buat Surat
+                            </h6>
+                        </div>
                         <div class="card-body">
                             <form id="formAddSurat" class="row g-3 needs-validation" novalidate>
                                 <!-- Field "case" untuk AJAX di server -->
@@ -425,7 +440,7 @@ function ViewSuratDetail($conn) {
                                         $sqlPenerima = "SELECT id, nama, role FROM anggota_sekolah WHERE role IN ('P','TK')";
                                         $resPenerima = $conn->query($sqlPenerima);
                                         while ($p = $resPenerima->fetch_assoc()) {
-                                            echo '<option value="'.$p['id'].'">'.$p['nama'].' ('.$p['role'].')</option>';
+                                            echo '<option value="' . $p['id'] . '">' . $p['nama'] . ' (' . $p['role'] . ')</option>';
                                         }
                                         ?>
                                     </select>
@@ -463,11 +478,11 @@ function ViewSuratDetail($conn) {
 
                     <!-- Tabel Data Surat -->
                     <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-    <h6 class="m-0 fw-bold text-white">
-      <i class="fas fa-envelope me-1"></i> Daftar Surat
-    </h6>
-  </div>
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-envelope me-1"></i> Daftar Surat
+                            </h6>
+                        </div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table id="tableSurat" class="table table-sm table-bordered table-hover table-striped display nowrap" style="width:100%">
@@ -534,28 +549,28 @@ function ViewSuratDetail($conn) {
     </div>
 
     <!-- MODAL: View Detail Surat -->
-<div class="modal fade" id="modalViewSurat" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Detail Surat</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-      </div>
-      <div class="modal-body">
-        <h5 id="viewJudul"></h5>
-        <p><strong>Nama Penerima:</strong> <span id="viewNamaPenerima"></span></p>
-        <p><strong>Tanggal Keluar:</strong> <span id="viewTanggal"></span></p>
-        <hr>
-        <div id="viewIsi" style="white-space: pre-wrap;"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="fas fa-times"></i> Tutup
-        </button>
-      </div>
+    <div class="modal fade" id="modalViewSurat" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detail Surat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <h5 id="viewJudul"></h5>
+                    <p><strong>Nama Penerima:</strong> <span id="viewNamaPenerima"></span></p>
+                    <p><strong>Tanggal Keluar:</strong> <span id="viewTanggal"></span></p>
+                    <hr>
+                    <div id="viewIsi" style="white-space: pre-wrap;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
 
     <!-- Loading Spinner -->
@@ -585,228 +600,258 @@ function ViewSuratDetail($conn) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-    $(document).ready(function() {
+        $(document).ready(function() {
 
-        // Inisialisasi Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-            }
-        });
-
-        function showToast(message, icon = 'success') {
-            Toast.fire({ icon: icon, title: message });
-        }
-
-        // DataTables
-        var tableSurat = $('#tableSurat').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: "pembuatan_surat.php?ajax=1",
-                type: "POST",
-                data: function(d){
-                    d.case = "LoadingSurat";
-                },
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                complete: function(){
-                    $('#loadingSpinner').hide();
-                },
-                error: function(){
-                    showToast('Gagal memuat data surat.', 'error');
+            // Inisialisasi Toast
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
                 }
-            },
-            columns: [
-                { data: "no", orderable: false },
-                { data: "nama_penerima" },
-                { data: "judul" },
-                { data: "isi" },
-                { data: "tanggal_keluar" },
-                { data: "status" },
-                { data: "aksi", orderable: false }
-            ],
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-            },
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="fas fa-file-excel"></i> Export Excel',
-                    className: 'btn btn-success btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5] }
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="fas fa-file-pdf"></i> Export PDF',
-                    className: 'btn btn-danger btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5] },
-                    customize: function (doc) {
-                        doc.styles.tableHeader.fillColor = '#343a40';
-                        doc.styles.tableHeader.color = 'white';
-                        doc.defaultStyle.fontSize = 9;
-                    }
-                },
-                {
-                    extend: 'print',
-                    text: '<i class="fas fa-print"></i> Print',
-                    className: 'btn btn-info btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5] }
-                }
-            ],
-            responsive: true,
-            autoWidth: false
-        });
+            });
 
-        // Validasi form bootstrap 5
-        (function() {
-            'use strict';
-            window.addEventListener('load', function() {
-                var forms = document.getElementsByClassName('needs-validation');
-                Array.prototype.filter.call(forms, function(form) {
-                    form.addEventListener('submit', function(event) {
-                        if (form.checkValidity() === false) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        form.classList.add('was-validated');
-                    }, false);
+            function showToast(message, icon = 'success') {
+                Toast.fire({
+                    icon: icon,
+                    title: message
                 });
-            }, false);
-        })();
-
-        // Form Tambah Surat
-        $('#formAddSurat').on('submit', function(e){
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
             }
-            var formData = form.serialize();
-            $.ajax({
-                url: "pembuatan_surat.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(res){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if (res.code == 0) {
-                        showToast(res.result, 'success');
-                        form[0].reset();
-                        form.removeClass('was-validated');
-                        tableSurat.ajax.reload(null, false);
-                    } else {
-                        showToast(res.result, 'error');
+
+            // DataTables
+            var tableSurat = $('#tableSurat').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "pembuatan_surat.php?ajax=1",
+                    type: "POST",
+                    data: function(d) {
+                        d.case = "LoadingSurat";
+                    },
+                    beforeSend: function() {
+                        $('#loadingSpinner').show();
+                    },
+                    complete: function() {
+                        $('#loadingSpinner').hide();
+                    },
+                    error: function() {
+                        showToast('Gagal memuat data surat.', 'error');
                     }
                 },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menambah surat.', 'error');
-                }
-            });
-        });
-
-        // Tombol Delete -> Munculkan Modal
-        $(document).on('click', '.btn-delete', function() {
-            var id = $(this).data('id');
-            $('#delete_id').val(id);
-            $('#deleteModal').modal('show');
-        });
-
-        // Form Delete
-        $('#formDeleteSurat').on('submit', function(e){
-            e.preventDefault();
-            var form = $(this);
-            var id = $('#delete_id').val();
-            if (!id) {
-                showToast('ID surat tidak ditemukan.', 'error');
-                return;
-            }
-            $.ajax({
-                url: "pembuatan_surat.php?ajax=1",
-                type: "POST",
-                data: { case: 'DeleteSurat', id: id },
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(res){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if (res.code == 0) {
-                        showToast(res.result, 'success');
-                        $('#deleteModal').modal('hide');
-                        tableSurat.ajax.reload(null, false);
-                    } else {
-                        showToast(res.result, 'error');
+                columns: [{
+                        data: "no",
+                        orderable: false
+                    },
+                    {
+                        data: "nama_penerima"
+                    },
+                    {
+                        data: "judul"
+                    },
+                    {
+                        data: "isi"
+                    },
+                    {
+                        data: "tanggal_keluar"
+                    },
+                    {
+                        data: "status"
+                    },
+                    {
+                        data: "aksi",
+                        orderable: false
                     }
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
                 },
-                error: function(){
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menghapus surat.', 'error');
-                }
+                dom: 'Bfrtip',
+                buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="fas fa-file-excel"></i> Export Excel',
+                        className: 'btn btn-success btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: '<i class="fas fa-file-pdf"></i> Export PDF',
+                        className: 'btn btn-danger btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        },
+                        customize: function(doc) {
+                            doc.styles.tableHeader.fillColor = '#343a40';
+                            doc.styles.tableHeader.color = 'white';
+                            doc.defaultStyle.fontSize = 9;
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        text: '<i class="fas fa-print"></i> Print',
+                        className: 'btn btn-info btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    }
+                ],
+                responsive: true,
+                autoWidth: false
             });
+
+            // Validasi form bootstrap 5
+            (function() {
+                'use strict';
+                window.addEventListener('load', function() {
+                    var forms = document.getElementsByClassName('needs-validation');
+                    Array.prototype.filter.call(forms, function(form) {
+                        form.addEventListener('submit', function(event) {
+                            if (form.checkValidity() === false) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+                            form.classList.add('was-validated');
+                        }, false);
+                    });
+                }, false);
+            })();
+
+            // Form Tambah Surat
+            $('#formAddSurat').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
+                }
+                var formData = form.serialize();
+                $.ajax({
+                    url: "pembuatan_surat.php?ajax=1",
+                    type: "POST",
+                    data: formData,
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(res) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (res.code == 0) {
+                            showToast(res.result, 'success');
+                            form[0].reset();
+                            form.removeClass('was-validated');
+                            tableSurat.ajax.reload(null, false);
+                        } else {
+                            showToast(res.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menambah surat.', 'error');
+                    }
+                });
+            });
+
+            // Tombol Delete -> Munculkan Modal
+            $(document).on('click', '.btn-delete', function() {
+                var id = $(this).data('id');
+                $('#delete_id').val(id);
+                $('#deleteModal').modal('show');
+            });
+
+            // Form Delete
+            $('#formDeleteSurat').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                var id = $('#delete_id').val();
+                if (!id) {
+                    showToast('ID surat tidak ditemukan.', 'error');
+                    return;
+                }
+                $.ajax({
+                    url: "pembuatan_surat.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: 'DeleteSurat',
+                        id: id
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(res) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (res.code == 0) {
+                            showToast(res.result, 'success');
+                            $('#deleteModal').modal('hide');
+                            tableSurat.ajax.reload(null, false);
+                        } else {
+                            showToast(res.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menghapus surat.', 'error');
+                    }
+                });
+            });
+
+            $(document).on('click', '#btnTemplateSurat', function(e) {
+                e.preventDefault();
+                var url = "template_surat.php"; // pastikan path sesuai dengan struktur proyek Anda
+                $('#content-wrapper').fadeOut(300, function() {
+                    window.location.href = url;
+                });
+            });
+
+            // Event handler untuk tombol View Detail
+            $(document).on('click', '.btn-view', function() {
+                var suratId = $(this).data('id');
+                $.ajax({
+                    url: "pembuatan_surat.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: 'ViewSuratDetail',
+                        id: suratId
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        // Opsi: tampilkan loading jika diperlukan
+                    },
+                    success: function(response) {
+                        if (response.code === 0) {
+                            // Isi modal dengan detail surat
+                            $('#viewJudul').text(response.result.judul);
+                            $('#viewNamaPenerima').text(response.result.nama_penerima || '-');
+                            $('#viewTanggal').text(response.result.tanggal_keluar);
+                            $('#viewIsi').text(response.result.isi);
+                            // Tampilkan modal
+                            $('#modalViewSurat').modal('show');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan saat mengambil detail surat.', 'error');
+                    }
+                });
+            });
+
+
         });
-
-        $(document).on('click', '#btnTemplateSurat', function(e) {
-    e.preventDefault();
-    var url = "template_surat.php"; // pastikan path sesuai dengan struktur proyek Anda
-    $('#content-wrapper').fadeOut(300, function() {
-        window.location.href = url;
-    });
-});
-
-    // Event handler untuk tombol View Detail
-$(document).on('click', '.btn-view', function(){
-    var suratId = $(this).data('id');
-    $.ajax({
-        url: "pembuatan_surat.php?ajax=1",
-        type: "POST",
-        data: { case: 'ViewSuratDetail', id: suratId },
-        dataType: "json",
-        beforeSend: function(){
-            // Opsi: tampilkan loading jika diperlukan
-        },
-        success: function(response){
-            if(response.code === 0) {
-                // Isi modal dengan detail surat
-                $('#viewJudul').text(response.result.judul);
-                $('#viewNamaPenerima').text(response.result.nama_penerima || '-');
-                $('#viewTanggal').text(response.result.tanggal_keluar);
-                $('#viewIsi').text(response.result.isi);
-                // Tampilkan modal
-                $('#modalViewSurat').modal('show');
-            } else {
-                showToast(response.result, 'error');
-            }
-        },
-        error: function(){
-            showToast('Terjadi kesalahan saat mengambil detail surat.', 'error');
-        }
-    });
-});
-
-
-    });
     </script>
 
 </body>
+
 </html>

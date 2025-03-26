@@ -21,7 +21,8 @@ if (empty($nip)) {
 /**
  * Fungsi untuk menerjemahkan nama bulan dan hari ke Bahasa Indonesia.
  */
-function translate_month_dashboard($month_eng) {
+function translate_month_dashboard($month_eng)
+{
     $months = [
         'January'   => 'Januari',
         'February'  => 'Februari',
@@ -39,7 +40,8 @@ function translate_month_dashboard($month_eng) {
     return $months[$month_eng] ?? $month_eng;
 }
 
-function translate_day_dashboard($day_eng) {
+function translate_day_dashboard($day_eng)
+{
     $days = [
         'Mon' => 'Senin',
         'Tue' => 'Selasa',
@@ -53,12 +55,14 @@ function translate_day_dashboard($day_eng) {
 }
 
 if (!function_exists('translate_month')) {
-    function translate_month($month_eng) {
+    function translate_month($month_eng)
+    {
         return translate_month_dashboard($month_eng);
     }
 }
 if (!function_exists('translate_day')) {
-    function translate_day($day_eng) {
+    function translate_day($day_eng)
+    {
         return translate_day_dashboard($day_eng);
     }
 }
@@ -84,7 +88,7 @@ $has_schedule = !empty($jadwal_guru);
  * Jika guru memiliki jadwal, gunakan id_jadwal dari jadwal_guru untuk membuat filter.
  */
 if ($has_schedule) {
-    $jadwal_ids = array_map(function($j) {
+    $jadwal_ids = array_map(function ($j) {
         return $j['id_jadwal'];
     }, $jadwal_guru);
     $placeholders = implode(',', array_fill(0, count($jadwal_ids), '?'));
@@ -132,7 +136,7 @@ if ($has_schedule) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_request'])) {
     // Verifikasi CSRF token
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $action = $_POST['action']; // "accept" atau "reject"
     $id_request = intval($_POST['id_request'] ?? 0);
     if ($id_request > 0) {
@@ -254,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
     // Verifikasi CSRF token
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    
+
     $id_jadwal_pengaju = intval($_POST['id_jadwal_pengaju'] ?? 0);
     $guru_nip_tujuan = trim($_POST['guru_nip_tujuan'] ?? '');
     if ($id_jadwal_pengaju > 0 && !empty($guru_nip_tujuan)) {
@@ -272,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
         $data_tujuan = $result_tujuan->fetch_assoc();
         $stmt->close();
         $id_jadwal_tujuan = $data_tujuan ? $data_tujuan['id_jadwal'] : NULL;
-        
+
         // Ambil data jadwal pengaju (tanggal dan waktu_piket)
         $sql_jadwal = "SELECT tanggal, waktu_piket FROM jadwal_piket WHERE id_jadwal = ?";
         $stmt = $conn->prepare($sql_jadwal);
@@ -288,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
         }
         $tanggal_request = $jadwal_pengaju['tanggal'];
         $waktu_piket = $jadwal_pengaju['waktu_piket'];
-        
+
         // Jika guru tujuan sudah terdaftar di jadwal pada tanggal dan waktu tersebut, cek jumlah guru
         if ($id_jadwal_tujuan !== NULL) {
             $sql_count = "SELECT COUNT(*) AS total FROM jadwal_piket WHERE tanggal = ? AND waktu_piket = ?";
@@ -306,7 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
                 exit();
             }
         }
-        
+
         // Cek apakah request sudah ada untuk jadwal ini
         if ($id_jadwal_tujuan === NULL) {
             $sql_check = "SELECT COUNT(*) AS total FROM permintaan_tukar_jadwal WHERE id_jadwal_pengaju = ? AND id_jadwal_tujuan IS NULL";
@@ -363,7 +367,9 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 
 if (!empty($jadwal)) {
-    $jadwal_ids = array_map(function($j) { return $j['id_jadwal']; }, $jadwal);
+    $jadwal_ids = array_map(function ($j) {
+        return $j['id_jadwal'];
+    }, $jadwal);
     $placeholders = implode(',', array_fill(0, count($jadwal_ids), '?'));
     $sql = "SELECT ptj.*, 
                    jp_pengaju.nama_guru AS nama_guru_pengaju, 
@@ -405,6 +411,7 @@ if (!empty($jadwal)) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Request Tukar Jadwal Piket</title>
@@ -414,12 +421,28 @@ if (!empty($jadwal)) {
     <!-- SB Admin 2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
     <style>
-        .badge-pending { background-color: #ffc107; color: #212529; }
-        .badge-diterima { background-color: #28a745; color: #fff; }
-        .badge-ditolak { background-color: #dc3545; color: #fff; }
-        .badge-secondary { background-color: #6c757d; color: #fff; }
+        .badge-pending {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .badge-diterima {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        .badge-ditolak {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .badge-secondary {
+            background-color: #6c757d;
+            color: #fff;
+        }
     </style>
 </head>
+
 <body id="page-top">
     <div id="wrapper">
         <?php include __DIR__ . '/../sidebar.php'; ?>
@@ -439,7 +462,7 @@ if (!empty($jadwal)) {
 
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">Request Tukar Jadwal Piket</h1>
-                    
+
                     <!-- Notifikasi -->
                     <?php if (isset($_SESSION['swap_success'])): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -448,7 +471,7 @@ if (!empty($jadwal)) {
                         </div>
                         <?php unset($_SESSION['swap_success']); ?>
                     <?php endif; ?>
-                    
+
                     <?php if (isset($_SESSION['swap_error'])): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <?= htmlspecialchars($_SESSION['swap_error']); ?>
@@ -456,7 +479,7 @@ if (!empty($jadwal)) {
                         </div>
                         <?php unset($_SESSION['swap_error']); ?>
                     <?php endif; ?>
-                    
+
                     <!-- Tampilan Request Tukar Jadwal (Untuk Guru Tujuan) -->
                     <div class="table-responsive">
                         <table class="table table-bordered text-center">
@@ -476,38 +499,39 @@ if (!empty($jadwal)) {
                                         <td colspan="6" class="text-center">Tidak ada request tukar jadwal.</td>
                                     </tr>
                                 <?php else: ?>
-                                    <?php $no = 1; foreach ($request_list as $req): ?>
-                                    <tr>
-                                        <td><?= $no++; ?></td>
-                                        <td><?= htmlspecialchars($req['id']); ?></td>
-                                        <td><?= htmlspecialchars($req['nama_guru_pengaju']); ?></td>
-                                        <td>
-                                            <?= htmlspecialchars(date('d F Y', strtotime($req['tanggal_piket']))); ?><br>
-                                            <?= htmlspecialchars(translate_day(date('D', strtotime($req['tanggal_piket'])))); ?>
-                                        </td>
-                                        <td><span class="badge badge-pending"><?= htmlspecialchars($req['status']); ?></span></td>
-                                        <td>
-                                            <form method="POST" action="request_tukar_jadwal.php" class="d-inline-block">
-                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
-                                                <input type="hidden" name="id_request" value="<?= $req['id']; ?>">
-                                                <input type="hidden" name="action" value="accept">
-                                                <button type="submit" class="btn btn-success btn-sm">Terima</button>
-                                            </form>
-                                            &nbsp;
-                                            <form method="POST" action="request_tukar_jadwal.php" class="d-inline-block">
-                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
-                                                <input type="hidden" name="id_request" value="<?= $req['id']; ?>">
-                                                <input type="hidden" name="action" value="reject">
-                                                <button type="submit" class="btn btn-danger btn-sm">Tolak</button>
-                                            </form>
-                                        </td>
-                                    </tr>
+                                    <?php $no = 1;
+                                    foreach ($request_list as $req): ?>
+                                        <tr>
+                                            <td><?= $no++; ?></td>
+                                            <td><?= htmlspecialchars($req['id']); ?></td>
+                                            <td><?= htmlspecialchars($req['nama_guru_pengaju']); ?></td>
+                                            <td>
+                                                <?= htmlspecialchars(date('d F Y', strtotime($req['tanggal_piket']))); ?><br>
+                                                <?= htmlspecialchars(translate_day(date('D', strtotime($req['tanggal_piket'])))); ?>
+                                            </td>
+                                            <td><span class="badge badge-pending"><?= htmlspecialchars($req['status']); ?></span></td>
+                                            <td>
+                                                <form method="POST" action="request_tukar_jadwal.php" class="d-inline-block">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                                                    <input type="hidden" name="id_request" value="<?= $req['id']; ?>">
+                                                    <input type="hidden" name="action" value="accept">
+                                                    <button type="submit" class="btn btn-success btn-sm">Terima</button>
+                                                </form>
+                                                &nbsp;
+                                                <form method="POST" action="request_tukar_jadwal.php" class="d-inline-block">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                                                    <input type="hidden" name="id_request" value="<?= $req['id']; ?>">
+                                                    <input type="hidden" name="action" value="reject">
+                                                    <button type="submit" class="btn btn-danger btn-sm">Tolak</button>
+                                                </form>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
-                    
+
                 </div><!-- End Container Fluid -->
             </div><!-- End Content -->
         </div><!-- End Content Wrapper -->
@@ -527,6 +551,7 @@ if (!empty($jadwal)) {
         });
     </script>
 </body>
+
 </html>
 <?php
 // Tutup koneksi database menggunakan fungsi dari helpers.php

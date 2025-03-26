@@ -30,7 +30,8 @@ if (empty($job_title) && !empty($nip)) {
 /**
  * Menentukan apakah link aktif atau tidak berdasarkan URL saat ini.
  */
-function isActive($menuUrl) {
+function isActive($menuUrl)
+{
     // Ambil path yang sedang diakses, misal "/guru/dashboard_guru.php"
     $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
@@ -46,7 +47,8 @@ function isActive($menuUrl) {
 /**
  * Membuat item menu collapse dengan submenu.
  */
-function renderCollapseMenu($id, $iconClass, $title, $items) {
+function renderCollapseMenu($id, $iconClass, $title, $items)
+{
     $isAnyActive = false;
     foreach ($items as $label => $url) {
         if (isActive($url)) {
@@ -80,19 +82,26 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     .sidebar {
         font-size: 0.9rem;
     }
+
     .sidebar .nav-item .nav-link {
-        padding: 0.65rem 1rem; /* Sedikit kurangi padding agar lebih ringkas */
+        padding: 0.65rem 1rem;
+        /* Sedikit kurangi padding agar lebih ringkas */
         transition: background-color 0.2s ease;
     }
+
     .sidebar .nav-item .nav-link i {
-        margin-right: 6px; /* jarak kecil di antara icon dan label */
+        margin-right: 6px;
+        /* jarak kecil di antara icon dan label */
     }
-    .sidebar .nav-item.active > .nav-link,
-    .sidebar .nav-item.active > .nav-link:hover {
+
+    .sidebar .nav-item.active>.nav-link,
+    .sidebar .nav-item.active>.nav-link:hover {
         background-color: #4e73df;
         color: #fff;
-        font-weight: 600; /* buat teks sedikit lebih tebal */
+        font-weight: 600;
+        /* buat teks sedikit lebih tebal */
     }
+
     .sidebar .collapse-inner a.collapse-item {
         padding: 0.5rem 1rem;
         font-size: 0.85rem;
@@ -104,16 +113,25 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 
     /* Panel informasi pengguna */
     .sidebar-user-info {
-        color: #fff;                /* Warna teks putih */
-        font-weight: 600;           /* Teks lebih tebal */
-        text-align: center;         /* Rata tengah */
-        padding: 0.75rem;           /* Ruang di sekitar konten */
-        border-bottom: 1px solid rgba(255, 255, 255, 0.3); /* Garis bawah tipis */
-        margin-bottom: 0.5rem;      /* Jarak dengan elemen berikutnya */
+        color: #fff;
+        /* Warna teks putih */
+        font-weight: 600;
+        /* Teks lebih tebal */
+        text-align: center;
+        /* Rata tengah */
+        padding: 0.75rem;
+        /* Ruang di sekitar konten */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        /* Garis bawah tipis */
+        margin-bottom: 0.5rem;
+        /* Jarak dengan elemen berikutnya */
     }
+
     .sidebar-user-info small {
-        font-weight: normal;        /* Boleh normal agar berbeda dengan nama */
-        display: block;            /* Set agar tiap info (job_title, NIP) di baris baru */
+        font-weight: normal;
+        /* Boleh normal agar berbeda dengan nama */
+        display: block;
+        /* Set agar tiap info (job_title, NIP) di baris baru */
     }
 </style>
 
@@ -133,23 +151,23 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     <hr class="sidebar-divider my-0">
 
     <!-- Panel Informasi Pengguna -->
-<div class="sidebar-user-info">
-    <?php
-    // Tampilkan user info + role
-    if (in_array($role, ['M', 'P', 'TK'])) {
-        // Nama atau username
-        echo '<strong>' . htmlspecialchars($nama ?: $username) . '</strong>';
-        // Tampilkan job_title
-        echo '<small>' . htmlspecialchars($job_title) . '</small>';
-        // Tampilkan NIP
-        echo '<small>NIP: ' . htmlspecialchars($nip) . '</small>';
-        echo '<small>Role: ' . htmlspecialchars($role) . '</small>';
-    } else {
-        echo '<strong>Pengguna</strong>';
-        echo '<small>Unknown</small>';
-    }
-    ?>
-</div>
+    <div class="sidebar-user-info">
+        <?php
+        // Tampilkan user info + role
+        if (in_array($role, ['M', 'P', 'TK'])) {
+            // Nama atau username
+            echo '<strong>' . htmlspecialchars($nama ?: $username) . '</strong>';
+            // Tampilkan job_title
+            echo '<small>' . htmlspecialchars($job_title) . '</small>';
+            // Tampilkan NIP
+            echo '<small>NIP: ' . htmlspecialchars($nip) . '</small>';
+            echo '<small>Role: ' . htmlspecialchars($role) . '</small>';
+        } else {
+            echo '<strong>Pengguna</strong>';
+            echo '<small>Unknown</small>';
+        }
+        ?>
+    </div>
 
     <!-- Divider -->
     <hr class="sidebar-divider">
@@ -168,7 +186,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
     // 1. Jika role bukan 'M', tapi misal 'P', 'TK' => tampilkan menu Guru/TK
     if ($role !== 'M') {
         if (in_array($role, ['P', 'TK'])) {
-            ?>
+    ?>
             <li class="nav-item <?= isActive('/guru/dashboard_guru.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/guru/dashboard_guru.php">
                     <i class="fas fa-home"></i>
@@ -205,17 +223,17 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                     <span>Slip Gaji</span>
                 </a>
             </li>
-            <?php
+        <?php
         } else {
             // Role tidak dikenal
-            ?>
+        ?>
             <li class="nav-item">
                 <a class="nav-link" href="#">
                     <i class="fas fa-question-circle"></i>
                     <span>Role tidak dikenal</span>
                 </a>
             </li>
-            <?php
+        <?php
         }
     }
     // 2. Jika role === 'M' => cek sub-role di job_title
@@ -224,14 +242,14 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
 
         // M:superadmin => menampilkan menu collapse (Kelola Sistem, Role SDM, Role Keuangan)
         if (strpos($normalizedJobTitle, 'superadmin') !== false) {
-            ?>
+        ?>
             <li class="nav-item <?= isActive('/superadmin/dashboard_superadmin.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/superadmin/dashboard_superadmin.php">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard Superadmin</span>
                 </a>
             </li>
-            <?php
+        <?php
             // Kelola Sistem (Collapse)
             $kelolaSistemItems = [
                 'Backup Database' => '/superadmin/backup_database.php',
@@ -268,7 +286,7 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
         }
         // M:keuangan => top-level
         elseif (strpos($normalizedJobTitle, 'keuangan') !== false) {
-            ?>
+        ?>
             <li class="nav-item <?= isActive('/keuangan/dashboard_keuangan.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/keuangan/dashboard_keuangan.php">
                     <i class="fas fa-chart-line"></i>
@@ -305,11 +323,11 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                     <span>Audit Logs Keuangan</span>
                 </a>
             </li>
-            <?php
+        <?php
         }
         // M:sdm => top-level
         elseif (strpos($normalizedJobTitle, 'sdm') !== false) {
-            ?>
+        ?>
             <li class="nav-item <?= isActive('/sdm/dashboard_sdm.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/sdm/dashboard_sdm.php">
                     <i class="fas fa-tachometer-alt"></i>
@@ -370,11 +388,11 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                     <span>Notifikasi SDM</span>
                 </a>
             </li>
-            <?php
+        <?php
         }
         // M:kepala sekolah => top-level
         elseif (strpos($normalizedJobTitle, 'kepala sekolah') !== false) {
-            ?>
+        ?>
             <li class="nav-item <?= isActive('/kepalasekolah/dashboard_kepala_sekolah.php'); ?>">
                 <a class="nav-link" href="<?= getBaseUrl() ?>/kepalasekolah/dashboard_kepala_sekolah.php">
                     <i class="fas fa-home"></i>
@@ -387,19 +405,18 @@ function renderCollapseMenu($id, $iconClass, $title, $items) {
                     <span>Laporan Ijin</span>
                 </a>
             </li>
-            <?php
-        } 
-        else {
+        <?php
+        } else {
             // Role manajerial tidak dikenali
             echo '<div class="sidebar-heading">Status</div>';
-            ?>
+        ?>
             <li class="nav-item">
                 <a class="nav-link" href="#">
                     <i class="fas fa-question-circle"></i>
                     <span>Menu Manajerial Tidak Dikenal</span>
                 </a>
             </li>
-            <?php
+    <?php
         }
     }
     ?>

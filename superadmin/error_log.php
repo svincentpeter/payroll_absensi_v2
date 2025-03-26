@@ -16,6 +16,7 @@ if (ob_get_length()) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Error Log Viewer</title>
@@ -29,9 +30,12 @@ if (ob_get_length()) {
     <style>
         .card {
             margin: 20px auto;
-            width: 95%;       /* Lebar card lebih lebar */
-            max-width: 1200px; /* Max-width ditingkatkan */
+            width: 95%;
+            /* Lebar card lebih lebar */
+            max-width: 1200px;
+            /* Max-width ditingkatkan */
         }
+
         pre {
             background-color: #f8f9fc;
             padding: 20px;
@@ -42,6 +46,7 @@ if (ob_get_length()) {
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -65,7 +70,7 @@ if (ob_get_length()) {
                             <i class="fas fa-exclamation-triangle"></i> Error Log Viewer
                         </h1>
                     </div>
-                    
+
                     <!-- Card untuk menampilkan error.log -->
                     <div class="card shadow mb-4">
                         <div class="card-header bg-primary text-white">
@@ -112,4 +117,5 @@ if (ob_get_length()) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
 </body>
+
 </html>

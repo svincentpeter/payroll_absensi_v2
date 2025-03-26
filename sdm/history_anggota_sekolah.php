@@ -33,7 +33,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 /**
  * Fungsi memuat data yang di-soft delete dengan format server-side DataTables.
  */
-function LoadingHistory($conn) {
+function LoadingHistory($conn)
+{
     $draw   = isset($_POST['draw'])   ? intval($_POST['draw'])   : 0;
     $start  = isset($_POST['start'])  ? intval($_POST['start'])  : 0;
     $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
@@ -139,7 +140,8 @@ function LoadingHistory($conn) {
     exit();
 }
 
-function RestoreAnggota($conn) {
+function RestoreAnggota($conn)
+{
     $id = (int)($_POST['id'] ?? 0);
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
@@ -160,7 +162,8 @@ function RestoreAnggota($conn) {
     }
 }
 
-function PermanentDelete($conn) {
+function PermanentDelete($conn)
+{
     $id = (int)($_POST['id'] ?? 0);
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
@@ -183,6 +186,7 @@ function PermanentDelete($conn) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>History Anggota Sekolah yang Dihapus</title>
@@ -201,23 +205,29 @@ function PermanentDelete($conn) {
         body {
             padding-top: 20px;
         }
+
         #main-content {
             transition: opacity 0.3s ease;
         }
+
         .back-btn {
             margin-bottom: 20px;
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         thead th {
             background-color: #343a40;
             color: #fff;
         }
+
         .dropdown-menu a {
             cursor: pointer;
         }
+
         #loadingSpinner {
             display: none;
             position: fixed;
@@ -225,10 +235,14 @@ function PermanentDelete($conn) {
             height: 100px;
             width: 100px;
             margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
         }
     </style>
 </head>
+
 <body>
     <div class="container" id="main-content">
         <!-- Tombol Kembali -->
@@ -286,136 +300,162 @@ function PermanentDelete($conn) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-    $(document).ready(function() {
-        // SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
+        $(document).ready(function() {
+            // SweetAlert2 Toast
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+
+            function showToast(message, icon = 'success') {
+                Toast.fire({
+                    icon: icon,
+                    title: message
+                });
             }
-        });
-        function showToast(message, icon = 'success') {
-            Toast.fire({ icon: icon, title: message });
-        }
 
-        // Inisialisasi DataTables
-        let historyTable = $('#historyTable').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: "history_anggota_sekolah.php?ajax=1",
-                type: "POST",
-                data: function(d) {
-                    d.case = 'LoadingHistory';
+            // Inisialisasi DataTables
+            let historyTable = $('#historyTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "history_anggota_sekolah.php?ajax=1",
+                    type: "POST",
+                    data: function(d) {
+                        d.case = 'LoadingHistory';
+                    },
+                    beforeSend: function() {
+                        $('#loadingSpinner').show();
+                    },
+                    complete: function() {
+                        $('#loadingSpinner').hide();
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan saat memuat data.', 'error');
+                    }
                 },
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                complete: function(){
-                    $('#loadingSpinner').hide();
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat memuat data.', 'error');
+                columns: [{
+                        data: "no",
+                        orderable: false
+                    },
+                    {
+                        data: "nama"
+                    },
+                    {
+                        data: "nip"
+                    },
+                    {
+                        data: "jenjang"
+                    },
+                    {
+                        data: "role"
+                    },
+                    {
+                        data: "deleted_at"
+                    },
+                    {
+                        data: "aksi",
+                        orderable: false
+                    }
+                ],
+                responsive: true,
+                autoWidth: false,
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
                 }
-            },
-            columns: [
-                { data: "no", orderable: false },
-                { data: "nama" },
-                { data: "nip" },
-                { data: "jenjang" },
-                { data: "role" },
-                { data: "deleted_at" },
-                { data: "aksi", orderable: false }
-            ],
-            responsive: true,
-            autoWidth: false,
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-            }
-        });
-
-        // Tombol Back
-        $('#btnBack').on('click', function(e) {
-            e.preventDefault();
-            var url = $(this).data('href');
-            $('#main-content').fadeOut(300, function() {
-                window.location.href = url;
             });
-        });
 
-        // Restore
-        $(document).on('click', '.btn-restore', function() {
-            let id = $(this).data('id');
-            Swal.fire({
-                title: 'Pulihkan Data?',
-                text: "Data akan dikembalikan ke daftar aktif.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Pulihkan!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: "history_anggota_sekolah.php?ajax=1",
-                        type: "POST",
-                        dataType: "json",
-                        data: { case: 'RestoreAnggota', id: id },
-                        success: function(response) {
-                            if(response.code == 0) {
-                                Swal.fire('Sukses', response.result, 'success');
-                                historyTable.ajax.reload(null, false);
-                            } else {
-                                Swal.fire('Error', response.result, 'error');
+            // Tombol Back
+            $('#btnBack').on('click', function(e) {
+                e.preventDefault();
+                var url = $(this).data('href');
+                $('#main-content').fadeOut(300, function() {
+                    window.location.href = url;
+                });
+            });
+
+            // Restore
+            $(document).on('click', '.btn-restore', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Pulihkan Data?',
+                    text: "Data akan dikembalikan ke daftar aktif.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Pulihkan!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "history_anggota_sekolah.php?ajax=1",
+                            type: "POST",
+                            dataType: "json",
+                            data: {
+                                case: 'RestoreAnggota',
+                                id: id
+                            },
+                            success: function(response) {
+                                if (response.code == 0) {
+                                    Swal.fire('Sukses', response.result, 'success');
+                                    historyTable.ajax.reload(null, false);
+                                } else {
+                                    Swal.fire('Error', response.result, 'error');
+                                }
+                            },
+                            error: function() {
+                                Swal.fire('Error', 'Terjadi kesalahan saat memulihkan data.', 'error');
                             }
-                        },
-                        error: function(){
-                            Swal.fire('Error', 'Terjadi kesalahan saat memulihkan data.', 'error');
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             });
-        });
 
-        // Hapus Permanen
-        $(document).on('click', '.btn-permanent-delete', function() {
-            let id = $(this).data('id');
-            Swal.fire({
-                title: 'Hapus Permanen?',
-                text: "Data tidak dapat dikembalikan!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Hapus!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: "history_anggota_sekolah.php?ajax=1",
-                        type: "POST",
-                        dataType: "json",
-                        data: { case: 'PermanentDelete', id: id },
-                        success: function(response) {
-                            if(response.code == 0) {
-                                Swal.fire('Sukses', response.result, 'success');
-                                historyTable.ajax.reload(null, false);
-                            } else {
-                                Swal.fire('Error', response.result, 'error');
+            // Hapus Permanen
+            $(document).on('click', '.btn-permanent-delete', function() {
+                let id = $(this).data('id');
+                Swal.fire({
+                    title: 'Hapus Permanen?',
+                    text: "Data tidak dapat dikembalikan!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Hapus!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "history_anggota_sekolah.php?ajax=1",
+                            type: "POST",
+                            dataType: "json",
+                            data: {
+                                case: 'PermanentDelete',
+                                id: id
+                            },
+                            success: function(response) {
+                                if (response.code == 0) {
+                                    Swal.fire('Sukses', response.result, 'success');
+                                    historyTable.ajax.reload(null, false);
+                                } else {
+                                    Swal.fire('Error', response.result, 'error');
+                                }
+                            },
+                            error: function() {
+                                Swal.fire('Error', 'Terjadi kesalahan saat menghapus data.', 'error');
                             }
-                        },
-                        error: function(){
-                            Swal.fire('Error', 'Terjadi kesalahan saat menghapus data.', 'error');
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             });
         });
-    });
     </script>
 </body>
+
 </html>

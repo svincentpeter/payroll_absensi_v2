@@ -71,7 +71,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
 // ======== Fungsi-Fungsi ========
 
-function LoadingRekapPayroll($conn) {
+function LoadingRekapPayroll($conn)
+{
     // Parameter DataTables
     $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
     $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
@@ -148,43 +149,43 @@ function LoadingRekapPayroll($conn) {
 
     // --- Ambil daftar payheads secara terpisah untuk Pendapatan dan Potongan ---
     $earningPayheads = [];
-$resultEarnings = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='earnings' ORDER BY nama_payhead ASC");
-if ($resultEarnings) {
-    while ($row = $resultEarnings->fetch_assoc()) {
-        $earningPayheads[] = $row['nama_payhead'];
+    $resultEarnings = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='earnings' ORDER BY nama_payhead ASC");
+    if ($resultEarnings) {
+        while ($row = $resultEarnings->fetch_assoc()) {
+            $earningPayheads[] = $row['nama_payhead'];
+        }
     }
-}
-$deductionPayheads = [];
-$resultDeductions = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='deductions' ORDER BY nama_payhead ASC");
-if ($resultDeductions) {
-    while ($row = $resultDeductions->fetch_assoc()) {
-        $deductionPayheads[] = $row['nama_payhead'];
+    $deductionPayheads = [];
+    $resultDeductions = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='deductions' ORDER BY nama_payhead ASC");
+    if ($resultDeductions) {
+        while ($row = $resultDeductions->fetch_assoc()) {
+            $deductionPayheads[] = $row['nama_payhead'];
+        }
     }
-}
-// Gabungkan: Pendapatan (earnings) terlebih dahulu, lalu Potongan (deductions)
-$payheads = array_merge($earningPayheads, $deductionPayheads);
+    // Gabungkan: Pendapatan (earnings) terlebih dahulu, lalu Potongan (deductions)
+    $payheads = array_merge($earningPayheads, $deductionPayheads);
 
-// --- Membangun subquery untuk agregasi detail payroll ---
-$dynamicCases = [];
-foreach ($payheads as $ph) {
-    $escaped = $conn->real_escape_string($ph);
-    $alias = "payhead_" . md5($ph);
-    $dynamicCases[] = "SUM(CASE WHEN nama_payhead = '$escaped' THEN amount ELSE 0 END) AS `$alias`";
-}
+    // --- Membangun subquery untuk agregasi detail payroll ---
+    $dynamicCases = [];
+    foreach ($payheads as $ph) {
+        $escaped = $conn->real_escape_string($ph);
+        $alias = "payhead_" . md5($ph);
+        $dynamicCases[] = "SUM(CASE WHEN nama_payhead = '$escaped' THEN amount ELSE 0 END) AS `$alias`";
+    }
 
-// Handle empty payheads by adding a dummy column
-if (empty($dynamicCases)) {
-    $dynamicSelectSubquery = '0 AS dummy'; // Prevents empty SELECT clause
-} else {
-    $dynamicSelectSubquery = implode(", ", $dynamicCases);
-}
+    // Handle empty payheads by adding a dummy column
+    if (empty($dynamicCases)) {
+        $dynamicSelectSubquery = '0 AS dummy'; // Prevents empty SELECT clause
+    } else {
+        $dynamicSelectSubquery = implode(", ", $dynamicCases);
+    }
 
-// Bagian SELECT dinamis outer query (mengambil hasil agregasi detail)
-$outerDynamicSelect = "";
-foreach ($payheads as $ph) {
-    $alias = "payhead_" . md5($ph);
-    $outerDynamicSelect .= ", SUM(IFNULL(agg_detail.`$alias`, 0)) AS `$alias` ";
-}
+    // Bagian SELECT dinamis outer query (mengambil hasil agregasi detail)
+    $outerDynamicSelect = "";
+    foreach ($payheads as $ph) {
+        $alias = "payhead_" . md5($ph);
+        $outerDynamicSelect .= ", SUM(IFNULL(agg_detail.`$alias`, 0)) AS `$alias` ";
+    }
 
     // Query utama: ambil data payroll_final dan LEFT JOIN hasil agregasi detail
     $sqlData = "
@@ -290,7 +291,8 @@ foreach ($payheads as $ph) {
     exit();
 }
 
-function ViewRekapPayrollDetail($conn) {
+function ViewRekapPayrollDetail($conn)
+{
     $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
     if (empty($jenjang)) {
         send_response(1, 'Jenjang tidak valid.');
@@ -390,6 +392,7 @@ function ViewRekapPayrollDetail($conn) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Rekap Payroll</title>
@@ -411,19 +414,24 @@ function ViewRekapPayrollDetail($conn) {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
+
         thead th {
             background-color: #343a40;
             color: #fff;
             text-align: center;
             vertical-align: middle;
         }
-        #rekapPayrollTable th, #rekapPayrollTable td {
+
+        #rekapPayrollTable th,
+        #rekapPayrollTable td {
             font-size: 14px;
             vertical-align: middle;
         }
+
         #loadingSpinner {
             position: fixed;
             top: 50%;
@@ -431,17 +439,20 @@ function ViewRekapPayrollDetail($conn) {
             z-index: 9999;
             display: none;
         }
+
         .card-filter-header {
             background-color: #4e73df;
             color: #fff;
             border-top-left-radius: 0.5rem;
             border-top-right-radius: 0.5rem;
         }
+
         .form-select {
             min-width: 160px;
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
@@ -648,212 +659,235 @@ function ViewRekapPayrollDetail($conn) {
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <script>
-    // Siapkan array kolom dinamis berdasarkan payhead (sesuai header yang telah disusun: Pendapatan lalu Potongan)
-    var dynamicColumns = [];
-    <?php
-    foreach ($headerPayheads as $ph) {
-        $colKey = "payhead_" . md5($ph);
-        echo "dynamicColumns.push({ data: '$colKey', name: '$colKey' });\n";
-    }
-    ?>
-
-    $(document).ready(function(){
-        // Inisialisasi tooltip Bootstrap 5
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-            new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
-            }
-        });
-        function showToast(message, icon = 'success') {
-            Toast.fire({ icon: icon, title: message });
+        // Siapkan array kolom dinamis berdasarkan payhead (sesuai header yang telah disusun: Pendapatan lalu Potongan)
+        var dynamicColumns = [];
+        <?php
+        foreach ($headerPayheads as $ph) {
+            $colKey = "payhead_" . md5($ph);
+            echo "dynamicColumns.push({ data: '$colKey', name: '$colKey' });\n";
         }
+        ?>
 
-        var csrfToken = '<?php echo $csrf_token; ?>';
+        $(document).ready(function() {
+            // Inisialisasi tooltip Bootstrap 5
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
 
-        // Inisialisasi DataTables dengan kolom dinamis
-        var rekapPayrollTable = $('#rekapPayrollTable').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: 'rekap_payroll.php?ajax=1',
-                type: 'POST',
-                data: function(d) {
-                    d.case = 'LoadingRekapPayroll';
-                    d.csrf_token = csrfToken;
-                    d.jenjang = $('#filterJenjang').val();
-                    d.bulan   = $('#filterBulan').val();
-                    d.tahun   = $('#filterTahun').val();
-                    d.show_all = $('#filterShowAll').val();
-                },
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                complete: function(){
-                    $('#loadingSpinner').hide();
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan load data rekap payroll.', 'error');
+            // SweetAlert2 Toast
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
                 }
-            },
-            columns: [
-                { data:'jenjang', name:'jenjang' },
-                { data:'total_gaji_pokok', name:'total_gaji_pokok' },
-            ].concat(dynamicColumns).concat([
-                { data:'total_gaji_bersih', name:'total_gaji_bersih' },
-                { data:'aksi', orderable:false, searchable:false }
-            ]),
-            order: [[0,'asc']],
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-            },
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="fas fa-file-excel"></i> Export Excel',
-                    className: 'btn btn-success btn-sm',
-                    exportOptions: { columns: ':visible:not(:last-child)' }
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="fas fa-file-pdf"></i> Export PDF',
-                    className: 'btn btn-danger btn-sm',
-                    exportOptions: { columns: ':visible:not(:last-child)' },
-                    customize: function (doc) {
-                        doc.styles.tableHeader.fillColor = '#343a40';
-                        doc.styles.tableHeader.color = 'white';
-                        doc.defaultStyle.fontSize = 10;
+            });
+
+            function showToast(message, icon = 'success') {
+                Toast.fire({
+                    icon: icon,
+                    title: message
+                });
+            }
+
+            var csrfToken = '<?php echo $csrf_token; ?>';
+
+            // Inisialisasi DataTables dengan kolom dinamis
+            var rekapPayrollTable = $('#rekapPayrollTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: 'rekap_payroll.php?ajax=1',
+                    type: 'POST',
+                    data: function(d) {
+                        d.case = 'LoadingRekapPayroll';
+                        d.csrf_token = csrfToken;
+                        d.jenjang = $('#filterJenjang').val();
+                        d.bulan = $('#filterBulan').val();
+                        d.tahun = $('#filterTahun').val();
+                        d.show_all = $('#filterShowAll').val();
+                    },
+                    beforeSend: function() {
+                        $('#loadingSpinner').show();
+                    },
+                    complete: function() {
+                        $('#loadingSpinner').hide();
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan load data rekap payroll.', 'error');
                     }
                 },
-                {
-                    extend: 'print',
-                    text: '<i class="fas fa-print"></i> Print',
-                    className: 'btn btn-info btn-sm',
-                    exportOptions: { columns: ':visible:not(:last-child)' }
-                }
-            ],
-            responsive: true
-        });
+                columns: [{
+                        data: 'jenjang',
+                        name: 'jenjang'
+                    },
+                    {
+                        data: 'total_gaji_pokok',
+                        name: 'total_gaji_pokok'
+                    },
+                ].concat(dynamicColumns).concat([{
+                        data: 'total_gaji_bersih',
+                        name: 'total_gaji_bersih'
+                    },
+                    {
+                        data: 'aksi',
+                        orderable: false,
+                        searchable: false
+                    }
+                ]),
+                order: [
+                    [0, 'asc']
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
+                },
+                dom: 'Bfrtip',
+                buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="fas fa-file-excel"></i> Export Excel',
+                        className: 'btn btn-success btn-sm',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: '<i class="fas fa-file-pdf"></i> Export PDF',
+                        className: 'btn btn-danger btn-sm',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        },
+                        customize: function(doc) {
+                            doc.styles.tableHeader.fillColor = '#343a40';
+                            doc.styles.tableHeader.color = 'white';
+                            doc.defaultStyle.fontSize = 10;
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        text: '<i class="fas fa-print"></i> Print',
+                        className: 'btn btn-info btn-sm',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    }
+                ],
+                responsive: true
+            });
 
-        // Ketika filter Bulan berubah, jika ada pilihan maka set show_all menjadi 0
-        $('#filterBulan').on('change', function(){
-            if ($(this).val()) {
-                $('#filterShowAll').val("0");
-            }
-        });
-
-        // Tombol Terapkan Filter
-        $('#btnApplyFilter').on('click', function(){
-            // Jika bulan tidak dipilih, pastikan nilai show_all tetap 0 (tidak menampilkan data)
-            if (!$('#filterBulan').val()) {
-                $('#filterShowAll').val("0");
-            }
-            $.ajax({
-                url: 'rekap_payroll.php?ajax=1',
-                type: 'POST',
-                data: {
-                    case: 'AddAuditLog',
-                    csrf_token: csrfToken,
-                    action: 'ApplyFilter',
-                    details: `Filter diterapkan: Jenjang=${$('#filterJenjang').val()||'Semua'}, Bulan=${$('#filterBulan').val()||'-- tidak dipilih --'}, Tahun=${$('#filterTahun').val()||'Semua'}.`
+            // Ketika filter Bulan berubah, jika ada pilihan maka set show_all menjadi 0
+            $('#filterBulan').on('change', function() {
+                if ($(this).val()) {
+                    $('#filterShowAll').val("0");
                 }
             });
-            rekapPayrollTable.ajax.reload();
-        });
 
-        // Tombol Reset Filter
-        $('#btnResetFilter').on('click', function(){
-            $('#filterForm')[0].reset();
-            // Pastikan show_all kembali ke 0 (default tidak tampilkan data kecuali diaktifkan)
-            $('#filterShowAll').val("0");
-            rekapPayrollTable.ajax.reload();
-        });
-
-        // Tombol Tampilkan Semua Rekapan
-        $('#btnShowAll').on('click', function(){
-            // Set nilai show_all menjadi 1 dan kosongkan filter bulan
-            $('#filterShowAll').val("1");
-            $('#filterBulan').val("");
-            $.ajax({
-                url: 'rekap_payroll.php?ajax=1',
-                type: 'POST',
-                data: {
-                    case: 'AddAuditLog',
-                    csrf_token: csrfToken,
-                    action: 'ShowAllRecap',
-                    details: 'Menampilkan semua rekapan (semua bulan).'
+            // Tombol Terapkan Filter
+            $('#btnApplyFilter').on('click', function() {
+                // Jika bulan tidak dipilih, pastikan nilai show_all tetap 0 (tidak menampilkan data)
+                if (!$('#filterBulan').val()) {
+                    $('#filterShowAll').val("0");
                 }
-            });
-            rekapPayrollTable.ajax.reload();
-        });
-
-        // Tombol Export Data (Excel)
-        $('#btnExportData').on('click', function(){
-            rekapPayrollTable.button('.buttons-excel').trigger();
-            $.ajax({
-                url: 'rekap_payroll.php?ajax=1',
-                type: 'POST',
-                data: {
-                    case: 'AddAuditLog',
-                    csrf_token: csrfToken,
-                    action: 'ExportData',
-                    details: 'Data diekspor ke Excel.'
-                }
-            });
-        });
-
-        // Detail Rekap Payroll
-        $(document).on('click', '.btn-view-rekap-detail', function(){
-            var jenjang = $(this).data('jenjang');
-            if (jenjang) {
                 $.ajax({
                     url: 'rekap_payroll.php?ajax=1',
                     type: 'POST',
                     data: {
-                        case: 'ViewRekapPayrollDetail',
-                        jenjang: jenjang,
-                        csrf_token: csrfToken
-                    },
-                    beforeSend: function(){
-                        $('#detailRekapContent').html('<p>Memuat detail rekap payroll...</p>');
-                        var detailModal = new bootstrap.Modal(document.getElementById('detailRekapModal'));
-                        detailModal.show();
-                    },
-                    success: function(response){
-                        if (response.code === 0) {
-                            $('#detailRekapContent').html(response.result);
-                        } else {
-                            $('#detailRekapContent').html('<p>' + response.result + '</p>');
-                        }
-                    },
-                    error: function(){
-                        $('#detailRekapContent').html('<p>Terjadi kesalahan saat memuat detail rekap payroll.</p>');
+                        case: 'AddAuditLog',
+                        csrf_token: csrfToken,
+                        action: 'ApplyFilter',
+                        details: `Filter diterapkan: Jenjang=${$('#filterJenjang').val()||'Semua'}, Bulan=${$('#filterBulan').val()||'-- tidak dipilih --'}, Tahun=${$('#filterTahun').val()||'Semua'}.`
                     }
                 });
-            }
-        });
+                rekapPayrollTable.ajax.reload();
+            });
 
-        // Trigger filter on Enter key
-        $('#filterForm').on('keypress', function(e){
-            if(e.which === 13){
-                $('#btnApplyFilter').click();
-            }
+            // Tombol Reset Filter
+            $('#btnResetFilter').on('click', function() {
+                $('#filterForm')[0].reset();
+                // Pastikan show_all kembali ke 0 (default tidak tampilkan data kecuali diaktifkan)
+                $('#filterShowAll').val("0");
+                rekapPayrollTable.ajax.reload();
+            });
+
+            // Tombol Tampilkan Semua Rekapan
+            $('#btnShowAll').on('click', function() {
+                // Set nilai show_all menjadi 1 dan kosongkan filter bulan
+                $('#filterShowAll').val("1");
+                $('#filterBulan').val("");
+                $.ajax({
+                    url: 'rekap_payroll.php?ajax=1',
+                    type: 'POST',
+                    data: {
+                        case: 'AddAuditLog',
+                        csrf_token: csrfToken,
+                        action: 'ShowAllRecap',
+                        details: 'Menampilkan semua rekapan (semua bulan).'
+                    }
+                });
+                rekapPayrollTable.ajax.reload();
+            });
+
+            // Tombol Export Data (Excel)
+            $('#btnExportData').on('click', function() {
+                rekapPayrollTable.button('.buttons-excel').trigger();
+                $.ajax({
+                    url: 'rekap_payroll.php?ajax=1',
+                    type: 'POST',
+                    data: {
+                        case: 'AddAuditLog',
+                        csrf_token: csrfToken,
+                        action: 'ExportData',
+                        details: 'Data diekspor ke Excel.'
+                    }
+                });
+            });
+
+            // Detail Rekap Payroll
+            $(document).on('click', '.btn-view-rekap-detail', function() {
+                var jenjang = $(this).data('jenjang');
+                if (jenjang) {
+                    $.ajax({
+                        url: 'rekap_payroll.php?ajax=1',
+                        type: 'POST',
+                        data: {
+                            case: 'ViewRekapPayrollDetail',
+                            jenjang: jenjang,
+                            csrf_token: csrfToken
+                        },
+                        beforeSend: function() {
+                            $('#detailRekapContent').html('<p>Memuat detail rekap payroll...</p>');
+                            var detailModal = new bootstrap.Modal(document.getElementById('detailRekapModal'));
+                            detailModal.show();
+                        },
+                        success: function(response) {
+                            if (response.code === 0) {
+                                $('#detailRekapContent').html(response.result);
+                            } else {
+                                $('#detailRekapContent').html('<p>' + response.result + '</p>');
+                            }
+                        },
+                        error: function() {
+                            $('#detailRekapContent').html('<p>Terjadi kesalahan saat memuat detail rekap payroll.</p>');
+                        }
+                    });
+                }
+            });
+
+            // Trigger filter on Enter key
+            $('#filterForm').on('keypress', function(e) {
+                if (e.which === 13) {
+                    $('#btnApplyFilter').click();
+                }
+            });
         });
-    });
     </script>
 </body>
+
 </html>

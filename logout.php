@@ -41,4 +41,3 @@ session_destroy();
 // Redirect ke halaman login menggunakan getBaseUrl()
 header("Location: " . getBaseUrl() . "/login.php");
 exit();
-?>

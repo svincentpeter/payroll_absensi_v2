@@ -13,13 +13,14 @@ define('DATE_FORMAT', 'F d, Y');
  * Fungsi untuk mengembalikan full role (M:sdm, M:keuangan, dsb.)
  * berdasarkan session['role'] dan session['job_title'].
  */
-function getFullRoleNavbar() {
+function getFullRoleNavbar()
+{
     $userRole     = $_SESSION['role'] ?? '';
     $userJobTitle = $_SESSION['job_title'] ?? '';
 
     if ($userRole !== 'M') {
         // Bukan manajerial, langsung kembalikan
-        return $userRole; 
+        return $userRole;
     }
     // Jika role = 'M', cek job_title
     $normalized = strtolower(trim($userJobTitle));
@@ -109,8 +110,8 @@ if (in_array($fullRole, ['M:sdm', 'M:superadmin'])) {
     if ($currentDay >= 20 && $currentDay < 24) {
         $daysLeft = 24 - $currentDay;
         // jika sdmNotification sudah ada isinya, tambahkan pemisah " | "
-        $sdmNotification .= ($sdmNotification ? " | " : "") 
-             . "Finalisasi payroll berakhir dalam {$daysLeft} hari";
+        $sdmNotification .= ($sdmNotification ? " | " : "")
+            . "Finalisasi payroll berakhir dalam {$daysLeft} hari";
         $sdmCount = 1;
     }
 }
@@ -152,7 +153,7 @@ if (in_array($fullRole, ['M:keuangan', 'M:superadmin'])) {
 }
 
 // 3. Notifikasi untuk Guru (role P, TK, dsb.)
-if (in_array($fullRole, ['P','TK','guru'])) {
+if (in_array($fullRole, ['P', 'TK', 'guru'])) {
     // (Contoh) Cek pengajuan_ijin status 'Diterima' atau 'Ditolak' 
     // yang notified=0 => artinya user belum tahu
     $sqlGuru = "SELECT COUNT(*) AS pending 
@@ -262,7 +263,8 @@ $messageCount = count($messages);
 $latestMessages = $messages;
 
 /** Fungsi formatBadge */
-function formatBadge($count) {
+function formatBadge($count)
+{
     if ($count < 1) return "";
     return ($count === 1) ? "1" : ($count . "+");
 }
@@ -279,8 +281,8 @@ function formatBadge($count) {
     <form class="d-none d-sm-inline-block form-inline me-auto ms-md-3 my-2 my-md-0 mw-100 navbar-search">
         <div class="input-group">
             <input type="text" class="form-control bg-light border-0 small"
-                   placeholder="Search for..." aria-label="Search"
-                   aria-describedby="searchAddon">
+                placeholder="Search for..." aria-label="Search"
+                aria-describedby="searchAddon">
             <span class="input-group-text bg-primary text-white" id="searchAddon">
                 <i class="fas fa-search fa-sm"></i>
             </span>
@@ -293,7 +295,7 @@ function formatBadge($count) {
         <!-- Nav Item - Alerts -->
         <li class="nav-item dropdown no-arrow mx-1">
             <a class="nav-link dropdown-toggle position-relative" href="#" id="alertsDropdown"
-               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-bell fa-fw"></i>
                 <?php if ($totalAlerts > 0): ?>
                     <span class="badge bg-danger badge-counter">
@@ -303,7 +305,7 @@ function formatBadge($count) {
             </a>
             <!-- Dropdown Notifikasi -->
             <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in"
-                 aria-labelledby="alertsDropdown">
+                aria-labelledby="alertsDropdown">
                 <h6 class="dropdown-header">Alerts Center</h6>
 
                 <!-- Notif SDM -->
@@ -369,7 +371,7 @@ function formatBadge($count) {
                 <!-- Notif Backup DB (superadmin) -->
                 <?php if (!empty($backupAlert) && $fullRole === 'M:superadmin'): ?>
                     <a class="dropdown-item d-flex align-items-center backup-alert-item"
-                       href="<?= $baseUrl; ?>/payroll/superadmin/backup_database.php">
+                        href="<?= $baseUrl; ?>/payroll/superadmin/backup_database.php">
                         <div class="me-3">
                             <div class="icon-circle bg-danger">
                                 <i class="fas fa-database text-white"></i>
@@ -386,14 +388,22 @@ function formatBadge($count) {
                 <?php if (!empty($manualNotifications)): ?>
                     <?php foreach ($manualNotifications as $mn):
                         switch ($mn['notification_type'] ?? 'info') {
-                            case 'warning': $alertClass = 'alert-warning'; break;
-                            case 'success': $alertClass = 'alert-success'; break;
-                            case 'error':   $alertClass = 'alert-danger'; break;
-                            default:        $alertClass = 'alert-info'; break;
+                            case 'warning':
+                                $alertClass = 'alert-warning';
+                                break;
+                            case 'success':
+                                $alertClass = 'alert-success';
+                                break;
+                            case 'error':
+                                $alertClass = 'alert-danger';
+                                break;
+                            default:
+                                $alertClass = 'alert-info';
+                                break;
                         }
                     ?>
-                        <a class="dropdown-item d-flex align-items-center" 
-                           href="<?= htmlspecialchars($mn['link'] ?? '#'); ?>">
+                        <a class="dropdown-item d-flex align-items-center"
+                            href="<?= htmlspecialchars($mn['link'] ?? '#'); ?>">
                             <div class="me-3">
                                 <div class="icon-circle <?= $alertClass; ?>">
                                     <i class="fas fa-bell text-white"></i>
@@ -433,7 +443,7 @@ function formatBadge($count) {
         <!-- Nav Item - Messages -->
         <li class="nav-item dropdown no-arrow mx-1">
             <a class="nav-link dropdown-toggle position-relative" href="#" id="messagesDropdown"
-               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-envelope fa-fw"></i>
                 <?php if ($messageCount > 0): ?>
                     <span class="badge bg-danger badge-counter">
@@ -442,14 +452,14 @@ function formatBadge($count) {
                 <?php endif; ?>
             </a>
             <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in"
-                 aria-labelledby="messagesDropdown">
+                aria-labelledby="messagesDropdown">
                 <h6 class="dropdown-header">Messages Center</h6>
 
                 <?php if (!empty($latestMessages)): ?>
                     <?php foreach ($latestMessages as $msg): ?>
                         <a class="dropdown-item d-flex align-items-center message-item"
-                           href="<?= getBaseUrl(); ?>/pesan.php"
-                           data-id="<?= htmlspecialchars($msg['id'] ?? 0); ?>">
+                            href="<?= getBaseUrl(); ?>/pesan.php"
+                            data-id="<?= htmlspecialchars($msg['id'] ?? 0); ?>">
                             <div class="me-3">
                                 <div class="icon-circle bg-primary">
                                     <i class="fas fa-envelope text-white"></i>
@@ -484,7 +494,7 @@ function formatBadge($count) {
         <!-- Nav Item - User Information -->
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown"
-               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="me-2 d-none d-lg-inline text-gray-600 small">
                     <?= htmlspecialchars($nama); ?>
                 </span>
@@ -513,42 +523,47 @@ function formatBadge($count) {
 <!-- jQuery dan script untuk update notifikasi backup & messages -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script>
-$(document).ready(function(){
-    // Backup alert - superadmin
-    $('.backup-alert-item').on('click', function(){
-        $.post("<?= $baseUrl; ?>/navbar.php", { dismissed: 1 }, function(resp){
-            console.log("Backup alert dismissed =>", resp);
+    $(document).ready(function() {
+        // Backup alert - superadmin
+        $('.backup-alert-item').on('click', function() {
+            $.post("<?= $baseUrl; ?>/navbar.php", {
+                dismissed: 1
+            }, function(resp) {
+                console.log("Backup alert dismissed =>", resp);
+            });
         });
-    });
 
-    // Tandai pesan sebagai dibaca
-    $('.message-item').on('click', function(e){
-        e.preventDefault();
-        var $this = $(this);
-        var pesanId = $this.data('id');
-        $.ajax({
-            url: "<?= $baseUrl; ?>/laporan_surat.php?ajax=1",
-            type: "POST",
-            data: { case: "UpdateStatus", id: pesanId },
-            dataType: "json",
-            success: function(response) {
-                if(response.code === 0){
-                    $this.fadeOut(300, function(){
-                        $(this).remove();
-                        var $badge = $('.badge-counter');
-                        var currentCount = parseInt($badge.text());
-                        if(!isNaN(currentCount) && currentCount > 1){
-                            $badge.text(currentCount - 1);
-                        } else {
-                            $badge.remove();
-                        }
-                    });
+        // Tandai pesan sebagai dibaca
+        $('.message-item').on('click', function(e) {
+            e.preventDefault();
+            var $this = $(this);
+            var pesanId = $this.data('id');
+            $.ajax({
+                url: "<?= $baseUrl; ?>/laporan_surat.php?ajax=1",
+                type: "POST",
+                data: {
+                    case: "UpdateStatus",
+                    id: pesanId
+                },
+                dataType: "json",
+                success: function(response) {
+                    if (response.code === 0) {
+                        $this.fadeOut(300, function() {
+                            $(this).remove();
+                            var $badge = $('.badge-counter');
+                            var currentCount = parseInt($badge.text());
+                            if (!isNaN(currentCount) && currentCount > 1) {
+                                $badge.text(currentCount - 1);
+                            } else {
+                                $badge.remove();
+                            }
+                        });
+                    }
+                },
+                error: function() {
+                    console.log("Gagal memperbarui status pesan.");
                 }
-            },
-            error: function() {
-                console.log("Gagal memperbarui status pesan.");
-            }
+            });
         });
     });
-});
 </script>

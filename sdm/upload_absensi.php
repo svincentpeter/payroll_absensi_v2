@@ -11,7 +11,8 @@ use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 /**
  * Fungsi untuk mengonversi string tanggal Excel "dd-mm-yyyy" ke format MySQL "yyyy-mm-dd".
  */
-function convertStringTglToMysqlDate($str) {
+function convertStringTglToMysqlDate($str)
+{
     // Misal di Excel tulis "09-12-2024" → "2024-12-09"
     // Jika formatnya berbeda, sesuaikan DateTime::createFromFormat()
     $date = DateTime::createFromFormat('d-m-Y', $str);
@@ -25,7 +26,8 @@ function convertStringTglToMysqlDate($str) {
  * Fungsi untuk parse jam ke format TIME "HH:ii:ss".
  * Mencoba beberapa pola umum (e.g. "6:28:18", "6:28 AM", "13:05:22" dll.)
  */
-function parseTimeString($timeStr) {
+function parseTimeString($timeStr)
+{
     $timeStr = trim($timeStr);
     if ($timeStr === '') {
         return '00:00:00';
@@ -45,7 +47,8 @@ function parseTimeString($timeStr) {
 /**
  * Fungsi untuk membuat datetime "YYYY-MM-DD HH:ii:ss" dari (tanggal) + (string jam).
  */
-function parseDateTimeString($mysqlDate, $timeStr) {
+function parseDateTimeString($mysqlDate, $timeStr)
+{
     // $mysqlDate contohnya "2024-12-09"
     // $timeStr contohnya "6:28 AM"
     $timeFormatted = parseTimeString($timeStr); // ex: "06:28:00"
@@ -60,7 +63,8 @@ function parseDateTimeString($mysqlDate, $timeStr) {
  * Fungsi untuk mengimpor data absensi dari file Excel.
  * Departemen diisi dari form, bukan dari Excel.
  */
-function impor_absensi($conn, $file, $departemen) {
+function impor_absensi($conn, $file, $departemen)
+{
     // Validasi departemen yang dipilih dari form
     $allowed_departemen = ['TK', 'SD', 'SMP', 'SMA', 'SMK'];
     $departemen_val_upper = strtoupper($departemen);
@@ -142,7 +146,7 @@ function impor_absensi($conn, $file, $departemen) {
     $header = array_shift($data);
 
     // Normalisasi nama header
-    $normalized_header = array_map(function($col_name) {
+    $normalized_header = array_map(function ($col_name) {
         return strtolower(trim($col_name));
     }, $header);
 
@@ -178,7 +182,8 @@ function impor_absensi($conn, $file, $departemen) {
     }
 
     // Fungsi untuk memilih satu kolom paling sesuai (jika duplikat)
-    function _chooseBestColumn(array $columnIndexes, array $dataRows) {
+    function _chooseBestColumn(array $columnIndexes, array $dataRows)
+    {
         if (count($columnIndexes) === 0) {
             return null;
         }
@@ -295,7 +300,7 @@ function impor_absensi($conn, $file, $departemen) {
         $scan_i1_raw    = isset($row[$expected_headers['scan istirahat_1']]) ? $row[$expected_headers['scan istirahat_1']] : '';
         $scan_i2_raw    = isset($row[$expected_headers['scan istirahat_2']]) ? $row[$expected_headers['scan istirahat_2']] : '';
         $jam_pulang_raw = isset($row[$expected_headers['jam pulang']]) ? $row[$expected_headers['jam pulang']] : '';
-        $scan_pulang_raw= isset($row[$expected_headers['scan pulang']]) ? $row[$expected_headers['scan pulang']] : '';
+        $scan_pulang_raw = isset($row[$expected_headers['scan pulang']]) ? $row[$expected_headers['scan pulang']] : '';
 
         // (1) Konversi tanggal
         $tanggal = convertStringTglToMysqlDate($tanggal_str);
@@ -359,7 +364,7 @@ function impor_absensi($conn, $file, $departemen) {
             $pin,                 // VARCHAR
             $nip,                 // VARCHAR
             $nama,                // VARCHAR
-            $departemen_val_upper,// VARCHAR (diisi dari form)
+            $departemen_val_upper, // VARCHAR (diisi dari form)
             $lembur,              // TINYINT
             $jam_masuk,           // TIME
             $scan_masuk,          // DATETIME
@@ -379,7 +384,7 @@ function impor_absensi($conn, $file, $departemen) {
                 'status' => 'success',
                 'reason' => ''
             ];
-            
+
             // Catat periode yang terpengaruh
             $bulan = date('n', strtotime($tanggal));
             $tahun = date('Y', strtotime($tanggal));
@@ -409,7 +414,8 @@ function impor_absensi($conn, $file, $departemen) {
     // Update rekap absensi untuk setiap periode yang terpengaruh
     foreach ($affected_periods as $period) {
         $stmt_rekap = $conn->prepare("CALL UpdateRekapAbsensi(?, ?, ?)");
-        $stmt_rekap->bind_param("iii", 
+        $stmt_rekap->bind_param(
+            "iii",
             $period['id_anggota'],
             $period['bulan'],
             $period['tahun']
@@ -422,24 +428,24 @@ function impor_absensi($conn, $file, $departemen) {
     // [1] Kumpulkan semua tanggal yang berhasil diimpor
     $dates = [];
     foreach ($affected_periods as $period) {
-        $dates[] = date('Y-m-d', strtotime($period['tahun'].'-'.$period['bulan'].'-01'));
+        $dates[] = date('Y-m-d', strtotime($period['tahun'] . '-' . $period['bulan'] . '-01'));
     }
-    
+
     // [2] Cari rentang tanggal terbaru
     if (!empty($dates)) {
         $min_date = min($dates);
         $max_date = max($dates);
-        
+
         // [3] Panggil UpdateRekapMingguan
         $stmt_rekap = $conn->prepare("CALL UpdateRekapMingguan(?, ?)");
         $stmt_rekap->bind_param("ss", $min_date, $max_date);
         $stmt_rekap->execute();
-        
+
         // Tambahkan log audit untuk tracking (pastikan fungsi add_audit_log() sudah ada)
         add_audit_log(
-            $conn, 
-            $_SESSION['nip'] ?? 'system', 
-            'UpdateRekapMingguan', 
+            $conn,
+            $_SESSION['nip'] ?? 'system',
+            'UpdateRekapMingguan',
             "Update rekap dari $min_date hingga $max_date"
         );
     }
@@ -471,9 +477,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hasilImport = impor_absensi($conn, $file, $departemen);
         if ($hasilImport['status'] === 'ok') {
             $message = "Proses impor selesai. " .
-                       "Total baris: " . $hasilImport['total_rows'] . 
-                       ", Sukses: " . $hasilImport['success_count'] . 
-                       ", Gagal: " . $hasilImport['fail_count'];
+                "Total baris: " . $hasilImport['total_rows'] .
+                ", Sukses: " . $hasilImport['success_count'] .
+                ", Gagal: " . $hasilImport['fail_count'];
 
             if (!empty($hasilImport['details']) && is_array($hasilImport['details'])) {
                 $logDetails = $hasilImport['details'];
@@ -491,6 +497,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Upload Absensi</title>
@@ -500,33 +507,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom styles (sesuaikan dengan kebutuhan) -->
     <style>
-        body { padding-top: 20px; }
+        body {
+            padding-top: 20px;
+        }
+
         #main-content {
             transition: opacity 0.3s ease;
         }
+
         .back-btn {
             margin-bottom: 20px;
             transition: background-color 0.3s, transform 0.2s;
         }
+
         .back-btn:hover {
             transform: scale(1.05);
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
+
         ::placeholder {
             color: #6c757d;
             opacity: 1;
         }
+
         .spinner-border {
             vertical-align: middle;
         }
     </style>
 </head>
+
 <body id="page-top">
     <!-- Container Utama Tanpa Sidebar/Navbar -->
     <div class="container" id="main-content">
@@ -550,7 +567,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if (!empty($hasilImport['rekap_periode'])): ?>
             <div class="alert alert-success mt-3">
                 <i class="fas fa-calendar-check"></i> Rekap mingguan telah diperbarui:<br>
-                Periode: <?= date('d M Y', strtotime($hasilImport['rekap_periode'][0])) ?> - 
+                Periode: <?= date('d M Y', strtotime($hasilImport['rekap_periode'][0])) ?> -
                 <?= date('d M Y', strtotime($hasilImport['rekap_periode'][1])) ?>
             </div>
         <?php endif; ?>
@@ -663,8 +680,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "url": "https://cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
                 },
                 "dom": 'Bfrtip',
-                "buttons": [
-                    {
+                "buttons": [{
                         extend: 'copyHtml5',
                         text: '<i class="fas fa-copy"></i> Copy',
                         className: 'btn btn-secondary btn-sm'
@@ -702,12 +718,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
 
             // Fade out alert setelah 3 detik
-            window.setTimeout(function () {
-                $(".alert").fadeTo(500, 0).slideUp(500, function () {
+            window.setTimeout(function() {
+                $(".alert").fadeTo(500, 0).slideUp(500, function() {
                     $(this).remove();
                 });
             }, 3000);
         });
     </script>
 </body>
+
 </html>

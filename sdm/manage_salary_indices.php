@@ -71,7 +71,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 // ==============================================================================
 // 3. Fungsi CRUD untuk Salary Indices dengan Audit Log
 // ==============================================================================
-function LoadingSalaryIndices($conn) {
+function LoadingSalaryIndices($conn)
+{
     error_log("Memulai LoadingSalaryIndices");
     // Parameter DataTables
     $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
@@ -200,7 +201,8 @@ function LoadingSalaryIndices($conn) {
     exit();
 }
 
-function AddSalaryIndex($conn) {
+function AddSalaryIndex($conn)
+{
     $level       = isset($_POST['level']) ? trim($_POST['level']) : '';
     $min_years   = isset($_POST['min_years']) ? intval($_POST['min_years']) : 0;
     $max_years   = (isset($_POST['max_years']) && $_POST['max_years'] !== '') ? intval($_POST['max_years']) : null;
@@ -241,7 +243,8 @@ function AddSalaryIndex($conn) {
     exit();
 }
 
-function GetSalaryIndexDetail($conn) {
+function GetSalaryIndexDetail($conn)
+{
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
@@ -274,7 +277,8 @@ function GetSalaryIndexDetail($conn) {
     exit();
 }
 
-function UpdateSalaryIndex($conn) {
+function UpdateSalaryIndex($conn)
+{
     $id = isset($_POST['edit_id']) ? intval($_POST['edit_id']) : 0;
     $level = isset($_POST['edit_level']) ? trim($_POST['edit_level']) : '';
     $min_years = isset($_POST['edit_min_years']) ? intval($_POST['edit_min_years']) : 0;
@@ -317,7 +321,8 @@ function UpdateSalaryIndex($conn) {
     exit();
 }
 
-function DeleteSalaryIndex($conn) {
+function DeleteSalaryIndex($conn)
+{
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
     if ($id <= 0) {
         send_response(3, 'ID tidak valid.');
@@ -340,13 +345,14 @@ function DeleteSalaryIndex($conn) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Manajemen Indeks/Kenaikan Gaji Pokok - Payroll</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    
+
     <!-- DataTables CSS (Bootstrap 5) -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.1.1/css/buttons.bootstrap5.min.css">
@@ -356,39 +362,52 @@ function DeleteSalaryIndex($conn) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         /* Styling khusus tanpa sidebar dan navbar */
-        body { padding-top: 20px; }
+        body {
+            padding-top: 20px;
+        }
+
         #main-content {
             transition: opacity 0.3s ease;
         }
+
         .back-btn {
             margin-bottom: 20px;
         }
+
         .btn {
             transition: background-color 0.3s, transform 0.2s;
         }
+
         .btn:hover {
             transform: scale(1.05);
         }
+
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
+
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
-        #salaryIndicesTable.table-sm th, #salaryIndicesTable.table-sm td {
+
+        #salaryIndicesTable.table-sm th,
+        #salaryIndicesTable.table-sm td {
             font-size: 13px;
             vertical-align: middle;
             white-space: nowrap;
         }
+
         thead th {
             background-color: #343a40;
             color: white;
             text-align: left;
         }
+
         .table-responsive {
             overflow-x: auto;
         }
+
         #loadingSpinner {
             display: none;
             position: fixed;
@@ -396,10 +415,14 @@ function DeleteSalaryIndex($conn) {
             height: 100px;
             width: 100px;
             margin: auto;
-            top: 0; left: 0; bottom: 0; right: 0;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
         }
     </style>
 </head>
+
 <body>
     <!-- Container Utama Tanpa Sidebar/Navbar -->
     <div class="container" id="main-content">
@@ -600,258 +623,286 @@ function DeleteSalaryIndex($conn) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-    $(document).ready(function() {
-        // Inisialisasi SweetAlert2 Toast
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
+        $(document).ready(function() {
+            // Inisialisasi SweetAlert2 Toast
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+
+            function showToast(message, icon = 'success') {
+                Toast.fire({
+                    icon: icon,
+                    title: message
+                });
             }
-        });
-        function showToast(message, icon = 'success') {
-            Toast.fire({
-                icon: icon,
-                title: message
-            });
-        }
 
-        // Inisialisasi DataTable untuk Salary Indices
-        var salaryIndicesTable = $('#salaryIndicesTable').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: "manage_salary_indices.php?ajax=1",
-                type: "POST",
-                data: function(d) {
-                    d.case = 'LoadingSalaryIndices';
-                },
-                beforeSend: function(){
-                    $('#loadingSpinner').show();
-                },
-                complete: function(){
-                    $('#loadingSpinner').hide();
-                },
-                error: function(){
-                    showToast('Terjadi kesalahan saat memuat data.', 'error');
-                }
-            },
-            columns: [
-                { data: "no", orderable: false },
-                { data: "level" },
-                { data: "min_years" },
-                { data: "max_years" },
-                { data: "base_salary" },
-                { data: "description" },
-                { data: "aksi", orderable: false }
-            ],
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
-            },
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="fas fa-file-excel"></i> Export Excel',
-                    className: 'btn btn-success btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5] }
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="fas fa-file-pdf"></i> Export PDF',
-                    className: 'btn btn-danger btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5] },
-                    customize: function (doc) {
-                        doc.styles.tableHeader.fillColor = '#343a40';
-                        doc.styles.tableHeader.color = 'white';
-                        doc.defaultStyle.fontSize = 10;
+            // Inisialisasi DataTable untuk Salary Indices
+            var salaryIndicesTable = $('#salaryIndicesTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "manage_salary_indices.php?ajax=1",
+                    type: "POST",
+                    data: function(d) {
+                        d.case = 'LoadingSalaryIndices';
+                    },
+                    beforeSend: function() {
+                        $('#loadingSpinner').show();
+                    },
+                    complete: function() {
+                        $('#loadingSpinner').hide();
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan saat memuat data.', 'error');
                     }
                 },
-                {
-                    extend: 'print',
-                    text: '<i class="fas fa-print"></i> Print',
-                    className: 'btn btn-info btn-sm',
-                    exportOptions: { columns: [0,1,2,3,4,5] }
-                },
-                {
-                    extend: 'colvis',
-                    text: '<i class="fas fa-columns"></i> Kolom',
-                    className: 'btn btn-warning btn-sm'
-                }
-            ],
-            responsive: true,
-            autoWidth: false
-        });
-
-        // Tombol Back dengan transisi smooth
-        $('#btnBack').on('click', function(e) {
-            e.preventDefault();
-            var url = $(this).data('href');
-            $('#main-content').fadeOut(300, function() {
-                window.location.href = url;
-            });
-        });
-
-        // Form: Tambah Indeks Gaji
-        $('#add-salary-index-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "manage_salary_indices.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response) {
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#addSalaryIndexModal').modal('hide');
-                        salaryIndicesTable.ajax.reload(null, false);
-                        form[0].reset();
-                        form.removeClass('was-validated');
-                    } else {
-                        showToast(response.result, 'error');
+                columns: [{
+                        data: "no",
+                        orderable: false
+                    },
+                    {
+                        data: "level"
+                    },
+                    {
+                        data: "min_years"
+                    },
+                    {
+                        data: "max_years"
+                    },
+                    {
+                        data: "base_salary"
+                    },
+                    {
+                        data: "description"
+                    },
+                    {
+                        data: "aksi",
+                        orderable: false
                     }
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
                 },
-                error: function() {
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menambah data.', 'error');
-                }
-            });
-        });
-
-        // Modal Edit: Buka dan ambil detail data
-        $(document).on('click', '.btn-edit', function() {
-            var id = $(this).data('id');
-            var modal = $('#editSalaryIndexModal');
-            var form = $('#edit-salary-index-form');
-            form[0].reset();
-            form.removeClass('was-validated');
-            $.ajax({
-                url: "manage_salary_indices.php?ajax=1",
-                type: "POST",
-                data: { id: id, case: 'GetSalaryIndexDetail' },
-                dataType: "json",
-                success: function(response) {
-                    if(response.code == 0) {
-                        $('#edit_id').val(response.result.id);
-                        $('#edit_level').val(response.result.level);
-                        $('#edit_min_years').val(response.result.min_years);
-                        $('#edit_max_years').val(response.result.max_years);
-                        $('#edit_base_salary').val(response.result.base_salary);
-                        $('#edit_description').val(response.result.description);
-                        modal.modal('show');
-                    } else {
-                        showToast(response.result, 'error');
+                dom: 'Bfrtip',
+                buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="fas fa-file-excel"></i> Export Excel',
+                        className: 'btn btn-success btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: '<i class="fas fa-file-pdf"></i> Export PDF',
+                        className: 'btn btn-danger btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        },
+                        customize: function(doc) {
+                            doc.styles.tableHeader.fillColor = '#343a40';
+                            doc.styles.tableHeader.color = 'white';
+                            doc.defaultStyle.fontSize = 10;
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        text: '<i class="fas fa-print"></i> Print',
+                        className: 'btn btn-info btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5]
+                        }
+                    },
+                    {
+                        extend: 'colvis',
+                        text: '<i class="fas fa-columns"></i> Kolom',
+                        className: 'btn btn-warning btn-sm'
                     }
-                },
-                error: function() {
-                    showToast('Terjadi kesalahan saat mengambil detail data.', 'error');
-                }
+                ],
+                responsive: true,
+                autoWidth: false
             });
-        });
 
-        // Form: Update Indeks Gaji
-        $('#edit-salary-index-form').on('submit', function(e) {
-            e.preventDefault();
-            var form = $(this);
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                form.addClass('was-validated');
-                return;
-            }
-            var formData = form.serialize();
-            $.ajax({
-                url: "manage_salary_indices.php?ajax=1",
-                type: "POST",
-                data: formData,
-                dataType: "json",
-                beforeSend: function(){
-                    form.find('button[type="submit"]').prop('disabled', true);
-                    form.find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response) {
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#editSalaryIndexModal').modal('hide');
-                        salaryIndicesTable.ajax.reload(null, false);
-                        form[0].reset();
-                        form.removeClass('was-validated');
-                    } else {
-                        showToast(response.result, 'error');
+            // Tombol Back dengan transisi smooth
+            $('#btnBack').on('click', function(e) {
+                e.preventDefault();
+                var url = $(this).data('href');
+                $('#main-content').fadeOut(300, function() {
+                    window.location.href = url;
+                });
+            });
+
+            // Form: Tambah Indeks Gaji
+            $('#add-salary-index-form').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
+                }
+                var formData = form.serialize();
+                $.ajax({
+                    url: "manage_salary_indices.php?ajax=1",
+                    type: "POST",
+                    data: formData,
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result, 'success');
+                            $('#addSalaryIndexModal').modal('hide');
+                            salaryIndicesTable.ajax.reload(null, false);
+                            form[0].reset();
+                            form.removeClass('was-validated');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menambah data.', 'error');
                     }
-                },
-                error: function() {
-                    form.find('button[type="submit"]').prop('disabled', false);
-                    form.find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat update data.', 'error');
-                }
+                });
             });
-        });
 
-        // Modal Hapus: Buka modal hapus
-        $(document).on('click', '.btn-delete', function() {
-            var id = $(this).data('id');
-            $('#delete_id').val(id);
-            var level = $(this).closest('tr').find('td:eq(1)').text();
-            $('#delete_level').text(level);
-            $('#deleteSalaryIndexModal').modal('show');
-        });
-
-        // Form: Hapus Indeks Gaji
-        $('#delete-salary-index-form').on('submit', function(e) {
-            e.preventDefault();
-            var id = $('#delete_id').val();
-            if (!id) {
-                showToast('ID tidak ditemukan.', 'error');
-                return;
-            }
-            $.ajax({
-                url: "manage_salary_indices.php?ajax=1",
-                type: "POST",
-                data: { id: id, case: 'DeleteSalaryIndex' },
-                dataType: "json",
-                beforeSend: function(){
-                    $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', true);
-                    $('#delete-salary-index-form').find('.spinner-border').removeClass('d-none');
-                },
-                success: function(response) {
-                    $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', false);
-                    $('#delete-salary-index-form').find('.spinner-border').addClass('d-none');
-                    if(response.code == 0) {
-                        showToast(response.result, 'success');
-                        $('#deleteSalaryIndexModal').modal('hide');
-                        salaryIndicesTable.ajax.reload(null, false);
-                    } else {
-                        showToast(response.result, 'error');
+            // Modal Edit: Buka dan ambil detail data
+            $(document).on('click', '.btn-edit', function() {
+                var id = $(this).data('id');
+                var modal = $('#editSalaryIndexModal');
+                var form = $('#edit-salary-index-form');
+                form[0].reset();
+                form.removeClass('was-validated');
+                $.ajax({
+                    url: "manage_salary_indices.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        id: id,
+                        case: 'GetSalaryIndexDetail'
+                    },
+                    dataType: "json",
+                    success: function(response) {
+                        if (response.code == 0) {
+                            $('#edit_id').val(response.result.id);
+                            $('#edit_level').val(response.result.level);
+                            $('#edit_min_years').val(response.result.min_years);
+                            $('#edit_max_years').val(response.result.max_years);
+                            $('#edit_base_salary').val(response.result.base_salary);
+                            $('#edit_description').val(response.result.description);
+                            modal.modal('show');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan saat mengambil detail data.', 'error');
                     }
-                },
-                error: function() {
-                    $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', false);
-                    $('#delete-salary-index-form').find('.spinner-border').addClass('d-none');
-                    showToast('Terjadi kesalahan saat menghapus data.', 'error');
+                });
+            });
+
+            // Form: Update Indeks Gaji
+            $('#edit-salary-index-form').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    form.addClass('was-validated');
+                    return;
                 }
+                var formData = form.serialize();
+                $.ajax({
+                    url: "manage_salary_indices.php?ajax=1",
+                    type: "POST",
+                    data: formData,
+                    dataType: "json",
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result, 'success');
+                            $('#editSalaryIndexModal').modal('hide');
+                            salaryIndicesTable.ajax.reload(null, false);
+                            form[0].reset();
+                            form.removeClass('was-validated');
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat update data.', 'error');
+                    }
+                });
+            });
+
+            // Modal Hapus: Buka modal hapus
+            $(document).on('click', '.btn-delete', function() {
+                var id = $(this).data('id');
+                $('#delete_id').val(id);
+                var level = $(this).closest('tr').find('td:eq(1)').text();
+                $('#delete_level').text(level);
+                $('#deleteSalaryIndexModal').modal('show');
+            });
+
+            // Form: Hapus Indeks Gaji
+            $('#delete-salary-index-form').on('submit', function(e) {
+                e.preventDefault();
+                var id = $('#delete_id').val();
+                if (!id) {
+                    showToast('ID tidak ditemukan.', 'error');
+                    return;
+                }
+                $.ajax({
+                    url: "manage_salary_indices.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        id: id,
+                        case: 'DeleteSalaryIndex'
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', true);
+                        $('#delete-salary-index-form').find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(response) {
+                        $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', false);
+                        $('#delete-salary-index-form').find('.spinner-border').addClass('d-none');
+                        if (response.code == 0) {
+                            showToast(response.result, 'success');
+                            $('#deleteSalaryIndexModal').modal('hide');
+                            salaryIndicesTable.ajax.reload(null, false);
+                        } else {
+                            showToast(response.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        $('#delete-salary-index-form').find('button[type="submit"]').prop('disabled', false);
+                        $('#delete-salary-index-form').find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menghapus data.', 'error');
+                    }
+                });
             });
         });
-    });
     </script>
 </body>
+
 </html>
