@@ -5,7 +5,7 @@
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 generate_csrf_token();
-authorize('M:Kepala Sekolah'); // Pastikan role yang diizinkan 'kepala_sekolah'
+authorize('kepala sekolah');
 
 // Koneksi database
 require_once __DIR__ . '/../koneksi.php';

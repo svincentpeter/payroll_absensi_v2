@@ -1,6 +1,14 @@
 <?php
 // File: helpers.php
 
+/************************************
+ * 1. SESSION & KEAMANAN
+ ************************************/
+
+/**
+ * Memulai sesi PHP secara aman.
+ * Cek status sesi, jika belum dimulai, maka panggil session_start().
+ */
 function start_session_safe()
 {
     if (session_status() == PHP_SESSION_NONE) {
@@ -8,12 +16,19 @@ function start_session_safe()
     }
 }
 
+/**
+ * Membersihkan input dari karakter yang tidak diinginkan.
+ * Menghilangkan spasi berlebih dan meng-encode karakter khusus untuk mencegah XSS.
+ *
+ * @param string $data Input data.
+ * @return string Data yang telah disanitasi.
+ */
 function sanitize_input($data)
 {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
-// Alias bersihkan_input()
+// Alias untuk fungsi sanitize_input()
 if (!function_exists('bersihkan_input')) {
     function bersihkan_input($data)
     {
@@ -23,10 +38,14 @@ if (!function_exists('bersihkan_input')) {
 
 /**
  * Mengirim respons JSON dan mengakhiri eksekusi script.
+ *
+ * @param int   $code   Kode status.
+ * @param mixed $result Data hasil response.
  */
 function send_response($code, $result)
 {
     // === HAPUS DEBUG ===
+    // Jika diperlukan, aktifkan pencatatan error untuk non-0 code
     // if ($code !== 0) {
     //     error_log("Response Code $code: " . json_encode($result));
     // }
@@ -35,6 +54,10 @@ function send_response($code, $result)
     exit();
 }
 
+/**
+ * Menghasilkan token CSRF dan menyimpannya ke dalam session.
+ * Token ini digunakan untuk mengamankan form dari serangan CSRF.
+ */
 function generate_csrf_token()
 {
     if (empty($_SESSION['csrf_token'])) {
@@ -42,6 +65,11 @@ function generate_csrf_token()
     }
 }
 
+/**
+ * Memverifikasi token CSRF yang diberikan dengan yang ada di session.
+ *
+ * @param string $token Token CSRF yang dikirimkan.
+ */
 function verify_csrf_token($token)
 {
     if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
@@ -49,9 +77,14 @@ function verify_csrf_token($token)
     }
 }
 
+/************************************
+ * 2. LOGGING & AUDITING
+ ************************************/
+
 /**
- * Mencatat error ke dalam file log, jika memang error serius.
- * (Tetap kita biarkan, karena bisa dipakai saat benar‐benar error.)
+ * Mencatat pesan error ke file log.
+ *
+ * @param string $message Pesan error yang akan dicatat.
  */
 function log_error($message)
 {
@@ -61,6 +94,12 @@ function log_error($message)
 
 /**
  * Menambahkan catatan audit log ke database.
+ *
+ * @param mysqli $conn       Koneksi database.
+ * @param string $user_nip   Nomor induk pegawai (NIP).
+ * @param string $action     Aksi yang dilakukan.
+ * @param string $details    Rincian atau keterangan aksi.
+ * @return bool True jika berhasil, false jika gagal.
  */
 function add_audit_log($conn, $user_nip, $action, $details)
 {
@@ -86,6 +125,40 @@ function add_audit_log($conn, $user_nip, $action, $details)
     return true;
 }
 
+/**
+ * Inisialisasi penanganan error.
+ * Menonaktifkan display error di browser dan mengaktifkan logging error.
+ */
+function init_error_handling()
+{
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+    ini_set('log_errors', 1);
+    ini_set('error_log', __DIR__ . '/error.log');
+    error_reporting(E_ALL);
+}
+
+/************************************
+ * 3. FORMAT & UTILITY TEKS/ANGKA
+ ************************************/
+
+/**
+ * Mengubah angka menjadi format nominal Rupiah.
+ *
+ * @param float $nominal Angka nominal.
+ * @return string Format Rupiah, misalnya "Rp 1.234,56".
+ */
+function formatNominal($nominal)
+{
+    return 'Rp ' . number_format($nominal, 2, ',', '.');
+}
+
+/**
+ * Menerjemahkan jenis ke dalam bahasa Indonesia.
+ *
+ * @param string $jenis 'earnings' atau 'deductions'.
+ * @return string 'Pendapatan' atau 'Potongan'.
+ */
 function translateJenis($jenis)
 {
     $translations = [
@@ -95,16 +168,12 @@ function translateJenis($jenis)
     return $translations[$jenis] ?? 'Tidak Dikenal';
 }
 
-function init_error_handling()
-{
-    ini_set('display_errors', 0);
-    ini_set('display_startup_errors', 0);
-    ini_set('log_errors', 1);
-    // Path error_log masih kita biarkan, untuk log error fatal
-    ini_set('error_log', __DIR__ . '/error.log');
-    error_reporting(E_ALL);
-}
-
+/**
+ * Mengubah nama bulan angka (1-12) menjadi nama bulan dalam bahasa Indonesia.
+ *
+ * @param int $monthNumber Nomor bulan.
+ * @return string Nama bulan atau 'Tidak Diketahui' jika tidak valid.
+ */
 function getIndonesianMonthName($monthNumber)
 {
     $monthNumber = intval($monthNumber);
@@ -123,12 +192,16 @@ function getIndonesianMonthName($monthNumber)
         12 => 'Desember'
     ];
     // === HAPUS DEBUG ===
-    // if (!isset($bulan[$monthNumber])) {
-    //     error_log("Bulan tidak ditemukan untuk angka: " . json_encode($monthNumber));
-    // }
+    // Jika nomor bulan tidak ditemukan, bisa dicatat log.
     return $bulan[$monthNumber] ?? 'Tidak Diketahui';
 }
 
+/**
+ * Mengubah nama bulan dalam bahasa Indonesia menjadi angka (1-12).
+ *
+ * @param string $monthName Nama bulan.
+ * @return int Nomor bulan atau 0 jika tidak valid.
+ */
 function monthNameToInt($monthName)
 {
     $lower = strtolower($monthName);
@@ -149,11 +222,91 @@ function monthNameToInt($monthName)
     return $map[$lower] ?? 0;
 }
 
-function formatNominal($nominal)
-{
-    return 'Rp ' . number_format($nominal, 2, ',', '.');
+/**
+ * Menerjemahkan nama bulan berbahasa Inggris ke bahasa Indonesia untuk dashboard.
+ *
+ * @param string $month_eng Nama bulan dalam bahasa Inggris.
+ * @return string Nama bulan dalam bahasa Indonesia.
+ */
+if (!function_exists('translate_month_dashboard')) {
+    function translate_month_dashboard($month_eng)
+    {
+        $months = [
+            'January'   => 'Januari',
+            'February'  => 'Februari',
+            'March'     => 'Maret',
+            'April'     => 'April',
+            'May'       => 'Mei',
+            'June'      => 'Juni',
+            'July'      => 'Juli',
+            'August'    => 'Agustus',
+            'September' => 'September',
+            'October'   => 'Oktober',
+            'November'  => 'November',
+            'December'  => 'Desember'
+        ];
+        return $months[$month_eng] ?? $month_eng;
+    }
 }
 
+/**
+ * Alias untuk translate_month_dashboard.
+ *
+ * @param string $month_eng Nama bulan dalam bahasa Inggris.
+ * @return string Nama bulan dalam bahasa Indonesia.
+ */
+if (!function_exists('translate_month')) {
+    function translate_month($month_eng)
+    {
+        return translate_month_dashboard($month_eng);
+    }
+}
+
+/**
+ * Menerjemahkan nama hari singkat berbahasa Inggris ke bahasa Indonesia untuk dashboard.
+ *
+ * @param string $day_eng Nama hari singkat (contoh: Mon, Tue).
+ * @return string Nama hari dalam bahasa Indonesia.
+ */
+if (!function_exists('translate_day_dashboard')) {
+    function translate_day_dashboard($day_eng)
+    {
+        $days = [
+            'Mon' => 'Senin',
+            'Tue' => 'Selasa',
+            'Wed' => 'Rabu',
+            'Thu' => 'Kamis',
+            'Fri' => 'Jumat',
+            'Sat' => 'Sabtu',
+            'Sun' => 'Minggu'
+        ];
+        return $days[$day_eng] ?? $day_eng;
+    }
+}
+
+/**
+ * Alias untuk translate_day_dashboard.
+ *
+ * @param string $day_eng Nama hari singkat.
+ * @return string Nama hari dalam bahasa Indonesia.
+ */
+if (!function_exists('translate_day')) {
+    function translate_day($day_eng)
+    {
+        return translate_day_dashboard($day_eng);
+    }
+}
+
+/************************************
+ * 4. BADGE / LABEL UTILITY
+ ************************************/
+
+/**
+ * Menghasilkan badge HTML berdasarkan peran user.
+ *
+ * @param string $role Kode peran (misal: 'P', 'TK', 'M').
+ * @return string HTML badge.
+ */
 function getBadgeRole($role)
 {
     switch ($role) {
@@ -168,9 +321,18 @@ function getBadgeRole($role)
     }
 }
 
+/**
+ * Menghasilkan badge HTML berdasarkan jenjang pendidikan.
+ *
+ * @param string $jenjang Jenjang pendidikan.
+ * @return string HTML badge.
+ */
 function getBadgeJenjang($jenjang)
 {
-    switch ($jenjang) {
+    // Normalisasi input dengan uppercase
+    $jenjangUpper = strtoupper(trim($jenjang));
+
+    switch ($jenjangUpper) {
         case 'TK':
             return '<span class="badge bg-success">TK</span>';
         case 'SD':
@@ -180,12 +342,23 @@ function getBadgeJenjang($jenjang)
         case 'SMA':
             return '<span class="badge bg-warning text-dark">SMA</span>';
         case 'SMK':
+        case 'SMK 1':
+        case 'SMK 2':
             return '<span class="badge bg-secondary">SMK</span>';
+        case 'UNIVERSITAS STIVERA':
+        case 'STIFERA':
+            return '<span class="badge bg-dark">Universitas Stivera</span>';
         default:
             return '<span class="badge bg-light text-dark">' . htmlspecialchars($jenjang) . '</span>';
     }
 }
 
+/**
+ * Menghasilkan badge HTML untuk status kerja karyawan.
+ *
+ * @param string $status Status kerja (misal: 'tetap' atau 'kontrak').
+ * @return string HTML badge.
+ */
 function getBadgeStatusKerja($status)
 {
     if (strtolower($status) === 'tetap') {
@@ -197,6 +370,17 @@ function getBadgeStatusKerja($status)
     }
 }
 
+/************************************
+ * 5. OTORISASI & AKSES
+ ************************************/
+
+/**
+ * Mengecek apakah user memiliki hak akses untuk halaman tertentu.
+ * Jika tidak memenuhi, user akan dialihkan ke URL yang ditentukan (default: login.php).
+ *
+ * @param mixed  $allowedRoles Array atau string peran yang diizinkan.
+ * @param string $redirectUrl  URL untuk redirect jika akses ditolak.
+ */
 function authorize($allowedRoles, $redirectUrl = null)
 {
     start_session_safe();
@@ -209,19 +393,30 @@ function authorize($allowedRoles, $redirectUrl = null)
     $allowed = false;
 
     foreach ($allowedRoles as $allowedRole) {
-        if ($allowedRole === $userRole) {
-            $allowed = true;
-            break;
-        }
-        if ($userRole === 'M' && strpos($allowedRole, 'M:') === 0) {
-            $allowedDetail = trim(substr($allowedRole, 2));
-            $allowedDetailNormalized = strtolower(str_replace('_', ' ', $allowedDetail));
-            $userJobTitleNormalized = strtolower(str_replace('_', ' ', trim($userJobTitle)));
-            if ($allowedDetailNormalized === $userJobTitleNormalized) {
+        // Jika parameter authorize adalah 'kepala sekolah', 
+        // periksa apakah job_title mengandung "kepala sekolah"
+        if ($allowedRole === 'kepala sekolah') {
+            if (stripos($userJobTitle, 'kepala sekolah') !== false) {
                 $allowed = true;
                 break;
             }
         }
+        // Jika role langsung cocok
+        if ($allowedRole === $userRole) {
+            $allowed = true;
+            break;
+        }
+        // Jika role user adalah 'M' (Manajerial) dan allowedRole diawali dengan 'M:'
+        if ($userRole === 'M' && strpos($allowedRole, 'M:') === 0) {
+            $allowedDetail = trim(substr($allowedRole, 2));
+            $allowedDetailNormalized = strtolower(str_replace('_', ' ', $allowedDetail));
+            $userJobTitleNormalized = strtolower(str_replace('_', ' ', trim($userJobTitle)));
+            if (strpos($userJobTitleNormalized, $allowedDetailNormalized) !== false) {
+                $allowed = true;
+                break;
+            }
+        }
+        // Jika allowedRole adalah 'M' dan user juga 'M'
         if ($allowedRole === 'M' && $userRole === 'M') {
             $allowed = true;
             break;
@@ -237,6 +432,74 @@ function authorize($allowedRoles, $redirectUrl = null)
     }
 }
 
+
+/**
+ * Menghasilkan URL dasar aplikasi.
+ * Menggabungkan protocol, host, dan subfolder aplikasi.
+ *
+ * @return string URL dasar aplikasi.
+ */
+if (!function_exists('getBaseUrl')) {
+    function getBaseUrl()
+    {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
+            || $_SERVER['SERVER_PORT'] == 443)
+            ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'];
+        $subfolder = '/payroll_absensi_v2';
+        return $protocol . $host . $subfolder;
+    }
+}
+
+/**
+ * Menentukan halaman dashboard yang sesuai berdasarkan role dan job title user.
+ *
+ * @param string $role     Kode role user.
+ * @param string $jobTitle Jabatan atau title user.
+ * @return mixed Route dashboard atau false jika tidak cocok.
+ */
+function getDashboardRoute($role, $jobTitle)
+{
+    // Jika mode non-admin aktif, override dan kembalikan dashboard_guru.php
+    if (!empty($_SESSION['non_admin_mode']) && $_SESSION['non_admin_mode'] === true) {
+        return "guru/dashboard_guru.php";
+    }
+
+    $jobTitleLower = strtolower($jobTitle);
+    if ($role === 'M') {
+        if (strpos($jobTitleLower, 'superadmin') !== false) {
+            return "superadmin/dashboard_superadmin.php";
+        } elseif (strpos($jobTitleLower, 'sdm') !== false) {
+            return "sdm/dashboard_sdm.php";
+        } elseif (strpos($jobTitleLower, 'keuangan') !== false) {
+            return "keuangan/dashboard_keuangan.php";
+        }
+    } elseif ($role === 'P' || $role === 'TK') {
+        // Untuk role P dan TK, jika job_title mengandung "kepala sekolah", tetap arahkan ke guru/dashboard_guru.php
+        if (strpos($jobTitleLower, 'kepala sekolah') !== false) {
+            return "guru/dashboard_guru.php";
+        } else {
+            return "guru/dashboard_guru.php";
+        }
+    }
+    return false;
+}
+
+
+/************************************
+ * 6. PROFIL & UPLOAD
+ ************************************/
+
+/**
+ * Menghasilkan URL foto profil berdasarkan nama, jenjang, role, dan ID user.
+ * Jika foto tidak ditemukan, mengembalikan URL gambar default.
+ *
+ * @param string $nama   Nama user.
+ * @param string $jenjang Jenjang pendidikan.
+ * @param string $role    Role user.
+ * @param int    $id      ID user.
+ * @return string URL foto profil.
+ */
 function getProfilePhotoUrl($nama, $jenjang, $role, $id)
 {
     $fileName = strtolower(preg_replace('/\s+/', '_', $nama))
@@ -252,16 +515,28 @@ function getProfilePhotoUrl($nama, $jenjang, $role, $id)
     }
 }
 
+/************************************
+ * 7. MANAJEMEN GAJI & INDEKS SALARY
+ ************************************/
+
+/**
+ * Menghitung masa kerja, menentukan salary index yang sesuai, 
+ * dan mengupdate data user terkait salary index di database.
+ *
+ * @param mysqli $conn   Koneksi database.
+ * @param int    $userId ID user.
+ * @return bool True jika update berhasil, false jika gagal.
+ */
 if (!function_exists('updateSalaryIndexForUser')) {
     function updateSalaryIndexForUser($conn, $userId)
     {
-        // Initialize variables to avoid undefined warnings
+        // Inisialisasi variabel untuk menghindari warning
         $role = '';
         $join_start = '';
         $pendidikan = '';
         $jenjang = '';
 
-        // Ambil data user: role, join_start, pendidikan, dan jenjang
+        // Ambil data user dari tabel anggota_sekolah
         $stmt = $conn->prepare("SELECT role, join_start, pendidikan, jenjang FROM anggota_sekolah WHERE id = ?");
         if (!$stmt) {
             error_log("Prepare error (masa kerja): " . $conn->error);
@@ -276,7 +551,7 @@ if (!function_exists('updateSalaryIndexForUser')) {
         }
         $stmt->close();
 
-        // Hitung lama kerja dalam tahun
+        // Hitung lama kerja dalam tahun menggunakan DateTime
         $years = 0;
         if (!empty($join_start) && $join_start != '0000-00-00') {
             try {
@@ -289,12 +564,12 @@ if (!function_exists('updateSalaryIndexForUser')) {
             }
         }
 
-        // Initialize salary index variables
+        // Inisialisasi variabel salary index
         $salaryIndexId = 0;
         $baseSalary = 0.0;
         $level = '';
 
-        // Cari salary index yang sesuai
+        // Cari salary index yang sesuai berdasarkan masa kerja
         $stmt3 = $conn->prepare("SELECT id, base_salary, level FROM salary_indices WHERE min_years <= ? AND (max_years IS NULL OR ? <= max_years) ORDER BY min_years DESC LIMIT 1");
         if (!$stmt3) {
             error_log("Prepare error (salary_indices): " . $conn->error);
@@ -310,10 +585,10 @@ if (!function_exists('updateSalaryIndexForUser')) {
         }
         $stmt3->close();
 
-        // Tentukan gaji pokok
-        $gaji_pokok = $baseSalary; // Default to base salary
+        // Tentukan gaji pokok, khusus untuk role 'P' (Pendidik)
+        $gaji_pokok = $baseSalary; // Default ke base salary
         if ($role === 'P' && !empty($pendidikan)) {
-            $guru_salary = 0.0; // Initialize variable
+            $guru_salary = 0.0;
             $stmtStrata = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_strata_guru WHERE jenjang=? AND strata=? LIMIT 1");
             if ($stmtStrata) {
                 $stmtStrata->bind_param("ss", $jenjang, $pendidikan);
@@ -326,6 +601,7 @@ if (!function_exists('updateSalaryIndexForUser')) {
             }
         }
 
+        // Update data user dengan salary index yang telah dihitung
         $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, salary_index_level = ?, gaji_pokok = ?, masa_kerja_efektif = ? WHERE id = ?");
         if (!$stmtUpdate) {
             error_log("Prepare error (update anggota): " . $conn->error);
@@ -342,6 +618,12 @@ if (!function_exists('updateSalaryIndexForUser')) {
     }
 }
 
+/**
+ * Menormalisasi input pendidikan agar konsisten (misal: S1, S2, dll).
+ *
+ * @param string $pendidikan Input pendidikan.
+ * @return string Pendidikan yang telah dinormalisasi.
+ */
 function normalizePendidikan($pendidikan)
 {
     $pendidikan = strtoupper($pendidikan);
@@ -358,6 +640,12 @@ function normalizePendidikan($pendidikan)
     }
 }
 
+/**
+ * Melakukan update salary index untuk semua user dengan role 'P' atau 'TK'.
+ *
+ * @param mysqli $conn Koneksi database.
+ * @return bool True jika semua update berhasil.
+ */
 function updateSalaryIndexForAll($conn)
 {
     $sql = "SELECT id FROM anggota_sekolah WHERE role IN ('P', 'TK')";
@@ -374,6 +662,13 @@ function updateSalaryIndexForAll($conn)
     return true;
 }
 
+/**
+ * Mengembalikan rekomendasi salary index berdasarkan tanggal bergabung.
+ *
+ * @param mysqli $conn      Koneksi database.
+ * @param string $joinStart Tanggal bergabung user.
+ * @return array Array dengan salary_index_id dan penjelasan.
+ */
 function getRecommendedSalaryIndex($conn, $joinStart)
 {
     if (empty($joinStart) || $joinStart == '0000-00-00') {
@@ -428,57 +723,15 @@ function getRecommendedSalaryIndex($conn, $joinStart)
     }
 }
 
-if (!function_exists('translate_month_dashboard')) {
-    function translate_month_dashboard($month_eng)
-    {
-        $months = [
-            'January'   => 'Januari',
-            'February'  => 'Februari',
-            'March'     => 'Maret',
-            'April'     => 'April',
-            'May'       => 'Mei',
-            'June'      => 'Juni',
-            'July'      => 'Juli',
-            'August'    => 'Agustus',
-            'September' => 'September',
-            'October'   => 'Oktober',
-            'November'  => 'November',
-            'December'  => 'Desember'
-        ];
-        return $months[$month_eng] ?? $month_eng;
-    }
-}
+/************************************
+ * 8. LAIN-LAIN
+ ************************************/
 
-if (!function_exists('translate_day_dashboard')) {
-    function translate_day_dashboard($day_eng)
-    {
-        $days = [
-            'Mon' => 'Senin',
-            'Tue' => 'Selasa',
-            'Wed' => 'Rabu',
-            'Thu' => 'Kamis',
-            'Fri' => 'Jumat',
-            'Sat' => 'Sabtu',
-            'Sun' => 'Minggu'
-        ];
-        return $days[$day_eng] ?? $day_eng;
-    }
-}
-
-if (!function_exists('translate_month')) {
-    function translate_month($month_eng)
-    {
-        return translate_month_dashboard($month_eng);
-    }
-}
-
-if (!function_exists('translate_day')) {
-    function translate_day($day_eng)
-    {
-        return translate_day_dashboard($day_eng);
-    }
-}
-
+/**
+ * Mengembalikan urutan jenjang pendidikan yang telah ditentukan.
+ *
+ * @return array Urutan jenjang.
+ */
 function getOrderedJenjang(): array
 {
     return [
@@ -488,22 +741,13 @@ function getOrderedJenjang(): array
         'SMA',
         'SMK 1',
         'SMK 2',
-        'STIFERA'
+        'Universitas Stivera'
     ];
 }
 
-if (!function_exists('getBaseUrl')) {
-    function getBaseUrl()
-    {
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
-            || $_SERVER['SERVER_PORT'] == 443)
-            ? "https://" : "http://";
-        $host = $_SERVER['HTTP_HOST'];
-        $subfolder = '/payroll_absensi_v2';
-        return $protocol . $host . $subfolder;
-    }
-}
-
+/**
+ * Menutup koneksi database global (jika masih terbuka).
+ */
 function close_db_connection()
 {
     global $conn;
@@ -513,7 +757,7 @@ function close_db_connection()
                 $conn->close();
             }
         } catch (Throwable $e) {
-            // abaikan
+            // Abaikan error penutupan koneksi
         }
         $conn = null;
     }

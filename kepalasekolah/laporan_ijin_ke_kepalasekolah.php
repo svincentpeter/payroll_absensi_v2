@@ -8,7 +8,7 @@
     require_once '../helpers.php';
     start_session_safe();
     generate_csrf_token();
-    authorize('M:Kepala Sekolah');
+    authorize('kepala sekolah');
 
 
     // Koneksi database

@@ -3,24 +3,25 @@
 
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
-init_error_handling();
-// Pastikan hanya guru/karyawan yang dapat mengakses halaman ini
-authorize(['P', 'TK'], '/payroll_absensi_v2/login.php');
+generate_csrf_token();
 
-// Ambil ID anggota dari session (sesuai dengan struktur login untuk guru/karyawan)
-$id_anggota = $_SESSION['id'] ?? 0;
-if ($id_anggota <= 0) {
-    die("ID User tidak valid atau belum login.");
+// Jika user sedang dalam mode non-admin, bypass otorisasi khusus,
+// sehingga admin (meskipun role-nya bukan hanya 'P' atau 'TK') bisa mengakses halaman ini.
+if (!($_SESSION['non_admin_mode'] ?? false)) {
+    // Jika tidak dalam mode non-admin, otorisasi hanya untuk role Pendidik dan Tenaga Kependidikan.
+    authorize(['P', 'TK']);
 }
 
-generate_csrf_token();
-$csrf_token = $_SESSION['csrf_token'];
-
-$nonce = '';
-
+// Koneksi database
 require_once __DIR__ . '/../koneksi.php';
-if (ob_get_length()) {
-    ob_end_clean();
+
+// Ambil data dari session
+$nip  = $_SESSION['nip'] ?? '';
+$nama = $_SESSION['nama'] ?? '';
+$id_anggota = $_SESSION['id'] ?? ''; // Pastikan ID anggota disimpan di session saat login
+
+if (empty($nip) || empty($id_anggota)) {
+    die("NIP atau ID anggota tidak ditemukan dalam session.");
 }
 
 // =========================
@@ -87,7 +88,7 @@ function LoadingPayrollHistory($conn, $id_anggota)
             CAST(p.total_potongan AS CHAR) LIKE ? OR 
             CAST(p.gaji_bersih AS CHAR) LIKE ?
         )";
-        $searchParam = "%{$search}%";
+        $searchParam = "%" . $search . "%";
         // 8 parameter
         for ($i = 0; $i < 8; $i++) {
             $params[] = $searchParam;
@@ -192,7 +193,7 @@ function LoadingPayrollHistory($conn, $id_anggota)
             </button>
             <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
                 <li>
-                    <a class="dropdown-item" href="payroll-details.php?id_payroll=' . htmlspecialchars($row['id']) . '">
+                    <a class="dropdown-item" href="payroll-details.php?id=' . htmlspecialchars($row['id']) . '">
                         <i class="fas fa-file-invoice"></i> Lihat Slip Gaji
                     </a>
                 </li>
@@ -244,7 +245,7 @@ function ViewPayrollDetail($conn)
                si.level AS salary_index_level, si.base_salary AS salary_index_base
           FROM payroll_final p
           JOIN anggota_sekolah a ON p.id_anggota = a.id
-     LEFT JOIN salary_indices si ON a.salary_index_id = si.id
+          LEFT JOIN salary_indices si ON a.salary_index_id = si.id
          WHERE p.id = ?
          LIMIT 1
     ");
@@ -312,35 +313,28 @@ function ViewPayrollDetail($conn)
 
     send_response(0, $row);
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <title>Slip Gaji Saya - Payroll Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
     <!-- Bootstrap CSS & SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
-
     <!-- DataTables CSS (Bootstrap 5) -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
-
     <!-- Font Awesome & Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-
     <style>
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
         }
-
         thead th {
             background-color: #343a40;
             color: #fff;
@@ -348,18 +342,15 @@ function ViewPayrollDetail($conn)
             vertical-align: middle;
             white-space: nowrap;
         }
-
         #payrollTable th,
         #payrollTable td {
             font-size: 14px;
             vertical-align: middle;
             white-space: nowrap;
         }
-
         .table-hover tbody tr:hover {
             background-color: #e2e6ea;
         }
-
         /* Loading Spinner */
         #loadingSpinner {
             display: none;
@@ -370,14 +361,12 @@ function ViewPayrollDetail($conn)
         }
     </style>
 </head>
-
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
         <!-- Sidebar (misalnya include sidebar untuk user, jika ada) -->
         <?php include __DIR__ . '/../sidebar.php'; ?>
         <!-- End of Sidebar -->
-
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
@@ -386,14 +375,12 @@ function ViewPayrollDetail($conn)
                 <?php include __DIR__ . '/../navbar.php'; ?>
                 <!-- Breadcrumb (opsional) -->
                 <?php include __DIR__ . '/../breadcrumb.php'; ?>
-
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <h1 class="h3 mb-4 text-gray-800">
                         <i class="fas fa-history"></i> History Slip Gaji Saya
                     </h1>
-
-                    <!-- Filter Section (opsional, hanya bulan dan tahun) -->
+                    <!-- Filter Section -->
                     <div class="card mb-4 shadow">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
                             <h6 class="m-0 fw-bold text-white">
@@ -402,7 +389,6 @@ function ViewPayrollDetail($conn)
                         </div>
                         <div class="card-body bg-light">
                             <form id="filterPayrollForm" class="row gy-2 gx-3 align-items-center">
-                                <!-- Bulan -->
                                 <div class="col-auto">
                                     <label for="filterBulan" class="form-label mb-0"><strong>Bulan:</strong></label>
                                     <select class="form-select" id="filterBulan" name="bulan">
@@ -414,7 +400,6 @@ function ViewPayrollDetail($conn)
                                         ?>
                                     </select>
                                 </div>
-                                <!-- Tahun -->
                                 <div class="col-auto">
                                     <label for="filterTahun" class="form-label mb-0"><strong>Tahun:</strong></label>
                                     <select class="form-select" id="filterTahun" name="tahun">
@@ -433,7 +418,6 @@ function ViewPayrollDetail($conn)
                                         ?>
                                     </select>
                                 </div>
-                                <!-- Tombol -->
                                 <div class="col-auto d-flex align-items-end">
                                     <button type="button" class="btn btn-primary me-2" id="btnApplyFilterPayroll">
                                         <i class="fas fa-filter"></i> Terapkan Filter
@@ -445,8 +429,6 @@ function ViewPayrollDetail($conn)
                             </form>
                         </div>
                     </div>
-                    <!-- End Filter Section -->
-
                     <!-- Tabel History Slip Gaji -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -478,7 +460,6 @@ function ViewPayrollDetail($conn)
                     </div>
                 </div>
                 <!-- End Page Content -->
-
                 <!-- Loading Spinner -->
                 <div id="loadingSpinner">
                     <div class="spinner-border text-primary" role="status">
@@ -487,7 +468,6 @@ function ViewPayrollDetail($conn)
                 </div>
             </div>
             <!-- End Main Content -->
-
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
@@ -499,7 +479,6 @@ function ViewPayrollDetail($conn)
         <!-- End Content Wrapper -->
     </div>
     <!-- End Page Wrapper -->
-
     <!-- Modal: Detail Slip Gaji -->
     <div class="modal fade" id="detailPayrollModal" tabindex="-1" aria-labelledby="detailPayrollModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -519,12 +498,10 @@ function ViewPayrollDetail($conn)
             </div>
         </div>
     </div>
-
     <!-- JS Dependencies -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" nonce="<?php echo $nonce; ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
-
     <!-- DataTables & Extensions -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
@@ -537,10 +514,8 @@ function ViewPayrollDetail($conn)
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
-
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
         $(document).ready(function() {
             var payrollTable = $('#payrollTable').DataTable({
@@ -568,70 +543,35 @@ function ViewPayrollDetail($conn)
                         });
                     }
                 },
-                columns: [{
-                        data: 'id',
-                        name: 'id'
-                    },
-                    {
-                        data: 'nama',
-                        name: 'nama'
-                    },
-                    {
-                        data: 'jenjang',
-                        name: 'jenjang'
-                    },
-                    {
-                        data: 'bulan',
-                        name: 'bulan'
-                    },
-                    {
-                        data: 'tahun',
-                        name: 'tahun'
-                    },
-                    {
-                        data: 'gaji_pokok',
-                        name: 'gaji_pokok'
-                    },
-                    {
-                        data: 'total_pendapatan',
-                        name: 'total_pendapatan'
-                    },
-                    {
-                        data: 'total_potongan',
-                        name: 'total_potongan'
-                    },
-                    {
-                        data: 'gaji_bersih',
-                        name: 'gaji_bersih'
-                    },
-                    {
-                        data: 'aksi',
-                        orderable: false,
-                        searchable: false
-                    }
+                columns: [
+                    { data: 'id', name: 'id' },
+                    { data: 'nama', name: 'nama' },
+                    { data: 'jenjang', name: 'jenjang' },
+                    { data: 'bulan', name: 'bulan' },
+                    { data: 'tahun', name: 'tahun' },
+                    { data: 'gaji_pokok', name: 'gaji_pokok' },
+                    { data: 'total_pendapatan', name: 'total_pendapatan' },
+                    { data: 'total_potongan', name: 'total_potongan' },
+                    { data: 'gaji_bersih', name: 'gaji_bersih' },
+                    { data: 'aksi', orderable: false, searchable: false }
                 ],
-                order: [
-                    [0, 'desc']
-                ],
+                order: [[0, 'desc']],
                 language: {
                     url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
                 },
                 dom: 'Bfrtip',
-                buttons: [{
+                buttons: [
+                    {
                         extend: 'excelHtml5',
                         text: '<i class="fas fa-file-excel"></i> Export Excel',
                         className: 'btn btn-success btn-sm',
-                        exportOptions: {
-                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-                        }
+                        exportOptions: { columns: [0,1,2,3,4,5,6,7,8] }
                     },
                     {
                         extend: 'pdfHtml5',
                         text: '<i class="fas fa-file-pdf"></i> Export PDF',
                         className: 'btn btn-danger btn-sm',
-                        exportOptions: {
-                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-                        },
+                        exportOptions: { columns: [0,1,2,3,4,5,6,7,8] },
                         customize: function(doc) {
                             doc.styles.tableHeader.fillColor = '#343a40';
                             doc.styles.tableHeader.color = 'white';
@@ -642,9 +582,7 @@ function ViewPayrollDetail($conn)
                         extend: 'print',
                         text: '<i class="fas fa-print"></i> Print',
                         className: 'btn btn-info btn-sm',
-                        exportOptions: {
-                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-                        }
+                        exportOptions: { columns: [0,1,2,3,4,5,6,7,8] }
                     }
                 ],
                 responsive: true,
@@ -668,10 +606,7 @@ function ViewPayrollDetail($conn)
                         url: "hasil-slip_gaji.php?ajax=1",
                         type: "POST",
                         dataType: "json",
-                        data: {
-                            case: 'ViewPayrollDetail',
-                            id_payroll: idPayroll
-                        },
+                        data: { case: 'ViewPayrollDetail', id_payroll: idPayroll },
                         beforeSend: function() {
                             $('#detailPayrollContent').html('<p>Memuat detail slip gaji...</p>');
                             var detailModal = new bootstrap.Modal(document.getElementById('detailPayrollModal'));
@@ -687,7 +622,6 @@ function ViewPayrollDetail($conn)
                                 html += '<tr><th>Jenjang</th><td>' + d.jenjang + '</td></tr>';
                                 html += '<tr><th>Gaji Pokok</th><td>' + d.gaji_pokok + '</td></tr>';
                                 html += '<tr><th>Total Pendapatan</th><td>' + d.total_pendapatan;
-
                                 var earnings = [];
                                 if (d.payheads_detail && d.payheads_detail.length > 0) {
                                     d.payheads_detail.forEach(function(ph) {
@@ -699,9 +633,7 @@ function ViewPayrollDetail($conn)
                                 if (earnings.length > 0) {
                                     html += '<div class="row mt-2">';
                                     earnings.forEach(function(ph) {
-                                        var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {
-                                            minimumFractionDigits: 2
-                                        });
+                                        var nominal = parseFloat(ph.amount).toLocaleString('id-ID', { minimumFractionDigits: 2 });
                                         html += '<div class="col-12 mb-1">';
                                         html += '<span class="badge bg-success me-2">' + ph.nama_payhead + '</span>';
                                         html += '<span class="text-success">Rp ' + nominal + '</span>';
@@ -711,7 +643,6 @@ function ViewPayrollDetail($conn)
                                 }
                                 html += '</td></tr>';
                                 html += '<tr><th>Total Potongan</th><td>' + d.total_potongan;
-
                                 var deductions = [];
                                 if (d.payheads_detail && d.payheads_detail.length > 0) {
                                     d.payheads_detail.forEach(function(ph) {
@@ -723,9 +654,7 @@ function ViewPayrollDetail($conn)
                                 if (deductions.length > 0) {
                                     html += '<div class="row mt-2">';
                                     deductions.forEach(function(ph) {
-                                        var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {
-                                            minimumFractionDigits: 2
-                                        });
+                                        var nominal = parseFloat(ph.amount).toLocaleString('id-ID', { minimumFractionDigits: 2 });
                                         html += '<div class="col-12 mb-1">';
                                         html += '<span class="badge bg-danger me-2">' + ph.nama_payhead + '</span>';
                                         html += '<span class="text-danger">Rp ' + nominal + '</span>';
@@ -752,7 +681,6 @@ function ViewPayrollDetail($conn)
         });
     </script>
 </body>
-
 </html>
 <?php
 $conn->close();

@@ -606,39 +606,46 @@ $namaKaryawan = get_nama_karyawan($conn);
                         </script>
                         <?php unset($_SESSION['notif_error']); ?>
                     <?php endif; ?>
+<!-- Filter Section: Departemen & Upload Absensi -->
+<div class="card mb-4 shadow">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 fw-bold text-white">
+            <i class="fas fa-search"></i> Filter Departemen
+        </h6>
+    </div>
+    <div class="card-body" style="background-color: #f8f9fa;">
+        <form method="GET" class="row gy-2 gx-3 align-items-center">
+            <!-- Pilih Bulan -->
+            <div class="col-auto">
+                <label for="bulan" class="form-label mb-0"><strong>Pilih Bulan:</strong></label>
+                <input type="month" name="bulan" id="bulan" class="form-control" value="<?php echo bersihkan_input($bulan); ?>">
+            </div>
+            <!-- Departemen -->
+            <div class="col-auto">
+                <label for="departemen" class="form-label mb-0"><strong>Departemen:</strong></label>
+                <select name="departemen" id="departemen" class="form-control">
+                <option value="">Semua</option>
+<?php foreach (getOrderedJenjang() as $jenjang): ?>
+    <option value="<?php echo $jenjang; ?>" <?php if ($departemen === $jenjang) echo 'selected'; ?>>
+        <?php echo $jenjang; ?>
+    </option>
+<?php endforeach; ?>
 
-                    <!-- Filter Form -->
-                    <div class="d-flex justify-content-between mb-3">
-                        <form method="GET" class="form-inline">
-                            <label for="bulan" class="me-2 text-dark">
-                                <i class="fas fa-calendar-alt me-1"></i>Pilih Bulan:
-                            </label>
-                            <input type="month" name="bulan" id="bulan" class="form-control me-3"
-                                value="<?php echo bersihkan_input($bulan); ?>">
+                </select>
+            </div>
+            <!-- Tombol: Tampilkan & Upload Absensi -->
+            <div class="col-auto d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Tampilkan
+                </button>
+                <a href="upload_absensi.php" id="btnUploadAbsensi" class="btn btn-success">
+                    <i class="fas fa-upload"></i> Upload Absensi
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
 
-                            <label for="departemen" class="me-2 text-dark">
-                                <i class="fas fa-building me-1"></i>Departemen:
-                            </label>
-                            <select name="departemen" id="departemen" class="form-control me-3">
-                                <option value="">Semua</option>
-                                <option value="TK" <?php if ($departemen === 'TK') echo 'selected'; ?>>TK</option>
-                                <option value="SD" <?php if ($departemen === 'SD') echo 'selected'; ?>>SD</option>
-                                <option value="SMP" <?php if ($departemen === 'SMP') echo 'selected'; ?>>SMP</option>
-                                <option value="SMA" <?php if ($departemen === 'SMA') echo 'selected'; ?>>SMA</option>
-                                <option value="SMK 1" <?php if ($departemen === 'SMK 1') echo 'selected'; ?>>SMK 1</option>
-                                <option value="SMK 2" <?php if ($departemen === 'SMK 2') echo 'selected'; ?>>SMK 2</option>
-                                <option value="STIFERA" <?php if ($departemen === 'STIFERA') echo 'selected'; ?>>STIFERA</option>
-                            </select>
-
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Tampilkan
-                            </button>
-                        </form>
-
-                        <a href="upload_absensi.php" id="btnUploadAbsensi" class="btn btn-success smooth-transition">
-                            <i class="fas fa-upload"></i> Upload Absensi
-                        </a>
-                    </div>
 
 
                     <!-- Kalender (opsional) -->

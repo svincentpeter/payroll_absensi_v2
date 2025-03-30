@@ -1,21 +1,24 @@
 <?php
 // request_tukar_jadwal.php
 
-// Inisiasi session dan CSRF token serta otorisasi menggunakan helpers.php
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 generate_csrf_token();
-// Hanya izinkan pengguna dengan role Pendidik (P) dan Tenaga Kependidikan (TK)
-authorize(['P', 'TK']);
+
+// Jika user sedang dalam mode non-admin, bypass otorisasi khusus,
+// sehingga admin (meski role-nya tidak hanya 'P' atau 'TK') bisa mengakses halaman ini.
+if (!($_SESSION['non_admin_mode'] ?? false)) {
+    // Jika tidak dalam mode non-admin, otorisasi hanya untuk role Pendidik dan Tenaga Kependidikan.
+    authorize(['P', 'TK']);
+}
 
 // Koneksi database
 require_once __DIR__ . '/../koneksi.php';
 
-// Ambil NIP dari session (pastikan sudah login)
-$nip = $_SESSION['nip'] ?? '';
+$nip  = $_SESSION['nip'] ?? '';
+$nama = $_SESSION['nama'] ?? '';
 if (empty($nip)) {
-    header("Location: ../../login.php");
-    exit();
+    die("NIP tidak ditemukan dalam session.");
 }
 
 /**

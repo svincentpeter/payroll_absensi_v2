@@ -27,7 +27,7 @@ if (empty($nip)) {
 }
 
 // Ambil data pengguna berdasarkan NIP
-$queryUser = "SELECT id, nama, role FROM anggota_sekolah WHERE nip = ?";
+$queryUser = "SELECT id, nama, role, job_title FROM anggota_sekolah WHERE nip = ? LIMIT 1";
 $stmtUser = $conn->prepare($queryUser);
 $stmtUser->bind_param("s", $nip);
 $stmtUser->execute();
@@ -35,24 +35,35 @@ $resultUser = $stmtUser->get_result();
 $userData = $resultUser->fetch_assoc();
 $stmtUser->close();
 
-// Jika data tidak ditemukan atau role bukan 'P' (pendidik) atau 'TK' (tenaga kependidikan), redirect ke halaman login
-if (!$userData || !in_array($userData['role'], ['P', 'TK'])) {
+// Jika data tidak ditemukan, redirect ke halaman login
+if (!$userData) {
     header("Location: " . getBaseUrl() . "/login.php");
     exit();
 }
 
+// Simpan role dan job_title asli dari database ke session
+$_SESSION['role'] = $userData['role'];       // Misalnya: 'P' atau 'TK'
+$_SESSION['job_title'] = $userData['job_title']; // Misalnya: "Guru Matematika", "Wali Kelas", dll.
+
+// Gunakan fungsi mapping untuk menentukan dashboard yang seharusnya diakses
+$expectedRoute = getDashboardRoute($userData['role'], $userData['job_title']);
+
+// Karena halaman ini adalah dashboard guru, kita periksa apakah expected route-nya "guru/dashboard_guru.php"
+if ($expectedRoute !== "guru/dashboard_guru.php") {
+    // Jika tidak sesuai, redirect ke dashboard yang tepat
+    header("Location: " . getBaseUrl() . "/" . $expectedRoute);
+    exit();
+}
+
 $nama_pengguna = $userData['nama'] ?? 'Nama Tidak Diketahui';
-$db_role       = $userData['role'];
 $id_anggota    = $userData['id'];
 
-// Simpan role di session
-$_SESSION['role'] = $db_role;
-
 // Catat audit log untuk akses dashboard
-add_audit_log($conn, $nip, 'AccessDashboard', 'Mengakses dashboard.');
+add_audit_log($conn, $nip, 'AccessDashboard', 'Mengakses dashboard Guru.');
 
-// Tentukan judul dashboard
-$dashboard_title = ($db_role === 'P') ? 'Dashboard Guru' : 'Dashboard Karyawan';
+// Karena role P dan TK menggunakan halaman dashboard guru di sistem ini,
+// kita tetapkan judul dashboard secara statis.
+$dashboard_title = 'Dashboard Guru';
 
 // Ambil parameter filter bulan dan tahun, default ke bulan dan tahun saat ini
 $filterMonth = isset($_GET['bulan']) ? (int)$_GET['bulan'] : (int)date('m');

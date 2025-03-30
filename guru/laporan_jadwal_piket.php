@@ -7,17 +7,21 @@ require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 generate_csrf_token();
 
-// (Opsional) Tambahkan otorisasi jika halaman ini hanya boleh diakses oleh role tertentu, misalnya:
-authorize(['P', 'TK']);
-
-// Aktifkan report error untuk debugging (nonaktifkan pada produksi)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Jika user sedang dalam mode non-admin, bypass otorisasi khusus,
+// sehingga admin (meski role-nya tidak hanya 'P' atau 'TK') bisa mengakses halaman ini.
+if (!($_SESSION['non_admin_mode'] ?? false)) {
+    // Jika tidak dalam mode non-admin, otorisasi hanya untuk role Pendidik dan Tenaga Kependidikan.
+    authorize(['P', 'TK']);
+}
 
 // Koneksi database
 require_once __DIR__ . '/../koneksi.php';
 
+$nip  = $_SESSION['nip'] ?? '';
+$nama = $_SESSION['nama'] ?? '';
+if (empty($nip)) {
+    die("NIP tidak ditemukan dalam session.");
+}
 // ---------- PROSES DELETE GURU ----------
 // Menghapus semua data jadwal piket untuk guru dengan NIP tertentu.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_guru'])) {

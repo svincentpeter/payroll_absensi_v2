@@ -10,44 +10,15 @@ require_once __DIR__ . '/helpers.php'; // Pastikan file ini tersedia
 
 $error = '';
 
-// Jika pengguna sudah login, langsung arahkan ke dashboard sesuai role
-if (isset($_SESSION['role'])) {
-    switch ($_SESSION['role']) {
-        case 'superadmin':
-            header("Location: superadmin/dashboard_superadmin.php");
-            exit();
-        case 'sdm':
-            header("Location: sdm/dashboard_sdm.php");
-            exit();
-        case 'keuangan':
-            header("Location: keuangan/dashboard_keuangan.php");
-            exit();
-        case 'guru':
-            header("Location: guru/dashboard_guru.php");
-            exit();
-        case 'karyawan':
-            header("Location: karyawan/dashboard_karyawan.php");
-            exit();
-        case 'kepala_sekolah':
-            header("Location: kepalasekolah/dashboard_kepala_sekolah.php");
-            exit();
-        case 'M':  // Jika sudah login sebagai manajerial, arahkan ke halaman sesuai job_title
-            $jobTitle = strtolower($_SESSION['job_title'] ?? '');
-            if (strpos($jobTitle, 'superadmin') !== false) {
-                header("Location: superadmin/dashboard_superadmin.php");
-            } elseif (strpos($jobTitle, 'sdm') !== false) {
-                header("Location: sdm/dashboard_sdm.php");
-            } elseif (strpos($jobTitle, 'keuangan') !== false) {
-                header("Location: keuangan/dashboard_keuangan.php");
-            } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
-                header("Location: kepalasekolah/dashboard_kepala_sekolah.php");
-            } else {
-                header("Location: logout.php");
-            }
-            exit();
-        default:
-            header("Location: logout.php");
-            exit();
+// Jika pengguna sudah login, langsung arahkan ke dashboard sesuai role dan job_title
+if (isset($_SESSION['role']) && isset($_SESSION['job_title'])) {
+    $route = getDashboardRoute($_SESSION['role'], $_SESSION['job_title']);
+    if ($route) {
+        header("Location: " . $route);
+        exit();
+    } else {
+        header("Location: logout.php");
+        exit();
     }
 }
 
@@ -55,6 +26,8 @@ if (isset($_SESSION['role'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nip_input      = trim($_POST['username']);
     $password_input = trim($_POST['password']);
+    // Baca pilihan mode login dari form
+    $login_mode = isset($_POST['login_mode']) ? trim($_POST['login_mode']) : 'admin';
 
     if (empty($nip_input) || empty($password_input)) {
         $error = "Username/NIP dan Password harus diisi.";
@@ -73,64 +46,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($row) {
-            // Verifikasi password dengan MD5
+            // Verifikasi password dengan MD5 (disarankan untuk upgrade ke password_hash())
             if (md5($password_input) === $row['password']) {
                 // Simpan data di session
-                $_SESSION['id']   = $row['id'];
-                $_SESSION['nip']  = $row['nip'];
-                $_SESSION['nama'] = $row['nama'];
+                $_SESSION['id']        = $row['id'];
+                $_SESSION['nip']       = $row['nip'];
+                $_SESSION['nama']      = $row['nama'];
+                $_SESSION['role']      = $row['role'];
+                $_SESSION['job_title'] = $row['job_title'];
 
-                // Tentukan role dan simpan job_title
-                $jobTitle    = strtolower($row['job_title'] ?? '');
-                $anggotaRole = $row['role'] ?? '';
+                // Set flag non_admin_mode berdasarkan pilihan dari form login
+                if ($login_mode === 'nonadmin') {
+                    $_SESSION['non_admin_mode'] = true;
+                } else {
+                    $_SESSION['non_admin_mode'] = false;
+                }
 
-                if ($anggotaRole === 'M') { // User manajerial
-                    $_SESSION['role']      = 'M';
-                    $_SESSION['job_title'] = $row['job_title'];
+                add_audit_log(
+                    $conn,
+                    $row['nip'],
+                    'Login',
+                    "Pengguna dengan NIP '{$row['nip']}' berhasil login dengan role '{$row['role']}' dan job_title '{$row['job_title']}'."
+                );
 
-                    add_audit_log(
-                        $conn,
-                        $row['nip'],
-                        'Login',
-                        "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai M dengan job_title '{$row['job_title']}'."
-                    );
-                    if (strpos($jobTitle, 'superadmin') !== false) {
-                        header("Location: superadmin/dashboard_superadmin.php");
-                        exit();
-                    } elseif (strpos($jobTitle, 'sdm') !== false) {
-                        header("Location: sdm/dashboard_sdm.php");
-                        exit();
-                    } elseif (strpos($jobTitle, 'keuangan') !== false) {
-                        header("Location: keuangan/dashboard_keuangan.php");
-                        exit();
-                    } elseif (strpos($jobTitle, 'kepala sekolah') !== false) {
-                        header("Location: kepalasekolah/dashboard_kepala_sekolah.php");
-                        exit();
-                    } else {
-                        $error = "Role managerial tidak dikenali.";
-                        add_audit_log($conn, $row['nip'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Role managerial tidak dikenali.");
-                    }
-                } elseif (
-                    strpos($jobTitle, 'guru') !== false ||
-                    strpos($jobTitle, 'wali') !== false ||
-                    $anggotaRole === 'P' ||
-                    $anggotaRole === 'TK'
-                ) {
-                    $_SESSION['role'] = 'guru';
-                    add_audit_log($conn, $row['nip'], 'Login', "Pengguna dengan NIP '{$row['nip']}' berhasil login sebagai guru.");
-                    header("Location: guru/dashboard_guru.php");
+                // Gunakan fungsi mapping untuk menentukan dashboard yang seharusnya diakses
+                $route = getDashboardRoute($row['role'], $row['job_title']);
+                if ($route) {
+                    header("Location: " . $route);
                     exit();
                 } else {
-                    $error = "Role anggota_sekolah tidak dikenali.";
-                    add_audit_log($conn, $row['nip'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Role anggota_sekolah tidak dikenali.");
+                    // Jika mapping tidak menemukan route yang cocok, logout user
+                    header("Location: logout.php");
+                    exit();
                 }
             } else {
                 $error = "Password salah.";
                 add_audit_log($conn, $row['nip'], 'LoginFailed', "Pengguna dengan NIP '{$row['nip']}' gagal login: Password salah.");
             }
-        } else {
-            $error = "NIP tidak ditemukan.";
-            add_audit_log($conn, NULL, 'LoginFailed', "Pengguna dengan NIP '{$nip_input}' gagal login: Tidak ditemukan di tabel anggota_sekolah.");
         }
     }
 
@@ -158,14 +110,12 @@ ob_end_flush(); // Akhiri output buffering
     <title>Login - Sekolah Nusaputera</title>
     <!-- Agar tampilan responsive di mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <!-- Bootstrap CSS (opsional, jika Anda menggunakannya) -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome (untuk ikon) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <!-- Google Font (contoh) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:400,500,600&display=swap">
-
     <style>
         /* RESET & GLOBAL STYLE */
         * {
@@ -179,10 +129,8 @@ ob_end_flush(); // Akhiri output buffering
             min-height: 100vh;
             display: flex;
             flex-direction: row;
-            /* Background gradient atau bisa diganti dengan background-image */
             background: linear-gradient(to right, #74c0fc, #4e73df);
         }
-
 
         /* BAGIAN KIRI (SPLIT SCREEN) */
         .left {
@@ -196,7 +144,6 @@ ob_end_flush(); // Akhiri output buffering
             overflow: hidden;
         }
 
-        /* Contoh: Menambahkan gambar background di sisi kiri */
         .left::before {
             content: "";
             position: absolute;
@@ -238,22 +185,18 @@ ob_end_flush(); // Akhiri output buffering
             background: #f8f9fc;
         }
 
-        /* CARD FORM */
         .login-form {
             width: 100%;
             max-width: 400px;
             border-radius: 15px;
             padding: 2rem;
-            position: relative;
             text-align: center;
-            /* Glassmorphism effect */
             background: rgba(255, 255, 255, 0.8);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        /* LOGO & TAGLINE */
         .logo-container {
             margin-bottom: 1.5rem;
         }
@@ -276,7 +219,6 @@ ob_end_flush(); // Akhiri output buffering
             font-weight: 700;
         }
 
-        /* ALERT ERROR */
         .alert-danger {
             color: #fff;
             background-color: #dc3545;
@@ -287,7 +229,6 @@ ob_end_flush(); // Akhiri output buffering
             padding: 0.75rem 1rem;
         }
 
-        /* FORM GROUP */
         .form-group {
             text-align: left;
             margin-bottom: 1.2rem;
@@ -300,7 +241,6 @@ ob_end_flush(); // Akhiri output buffering
             display: inline-block;
         }
 
-        /* INPUT DENGAN ICON */
         .icon-input-container {
             display: flex;
             align-items: center;
@@ -329,7 +269,6 @@ ob_end_flush(); // Akhiri output buffering
             box-shadow: 0 0 5px rgba(78, 115, 223, 0.3);
         }
 
-        /* TOMBOL LOGIN */
         .btn-login {
             width: 100%;
             height: 45px;
@@ -350,7 +289,6 @@ ob_end_flush(); // Akhiri output buffering
             transform: translateY(-2px);
         }
 
-        /* RESPONSIVE */
         @media(max-width: 768px) {
             .left {
                 display: none;
@@ -368,11 +306,14 @@ ob_end_flush(); // Akhiri output buffering
                 max-width: 400px;
             }
         }
+
+        .radio-group {
+            text-align: center;
+        }
     </style>
 </head>
 
 <body>
-
     <!-- BAGIAN KIRI -->
     <div class="left">
         <div class="left-content">
@@ -380,62 +321,56 @@ ob_end_flush(); // Akhiri output buffering
             <p>Selamat datang di portal login. Silakan masuk dengan NIP dan password Anda untuk mengakses sistem.</p>
         </div>
     </div>
-
     <!-- BAGIAN KANAN (FORM LOGIN) -->
     <div class="right">
         <div class="login-form">
-            <!-- Logo -->
             <div class="logo-container">
-                <!-- Ganti path logo sesuai kebutuhan -->
                 <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
                 <div class="tagline">Sekolah Nusaputera</div>
             </div>
-
             <h2>Login</h2>
-
-            <!-- TAMPILAN ERROR (JIKA ADA) -->
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger">
                     <?= htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
-
-            <!-- FORM LOGIN -->
+            <!-- Bagian Form Login -->
             <form action="login.php" method="POST">
                 <div class="form-group">
                     <label for="username">NIP</label>
                     <div class="icon-input-container">
                         <i class="fas fa-user"></i>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="username"
-                            name="username"
-                            required
+                        <input type="text" class="form-control" id="username" name="username" required
                             value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
                             placeholder="Masukkan NIP Anda...">
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="icon-input-container">
                         <i class="fas fa-lock"></i>
-                        <input
-                            type="password"
-                            class="form-control"
-                            id="password"
-                            name="password"
-                            required
+                        <input type="password" class="form-control" id="password" name="password" required
                             placeholder="Masukkan password Anda...">
+                    </div>
+                </div>
+                <!-- Ubah pilihan mode login dari dropdown menjadi radio button -->
+                <div class="form-group radio-group">
+                    <label>Pilih Mode Login:</label><br>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="login_mode" id="login_mode_admin" value="admin" checked>
+                        <label class="form-check-label" for="login_mode_admin">Admin</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="login_mode" id="login_mode_nonadmin" value="nonadmin">
+                        <label class="form-check-label" for="login_mode_nonadmin">Non-Admin</label>
                     </div>
                 </div>
 
                 <button type="submit" class="btn-login">Login</button>
             </form>
+
         </div>
     </div>
-
     <!-- Script (jika menggunakan Bootstrap) -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -257,40 +257,48 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class="h3 text-gray-800"><i class="fas fa-list-alt"></i> Audit Logs SDM</h1>
                     </div>
-
-                    <!-- Filter Form Card -->
-                    <div class="card mb-4">
-                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 fw-bold text-white">
-                                <i class="fas fa-filter"></i> Filter Audit Logs
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <form method="GET" id="filterForm" class="row g-3">
-                                <div class="col-md-3">
-                                    <label for="start_date" class="form-label">Start Date</label>
-                                    <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="end_date" class="form-label">End Date</label>
-                                    <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="role" class="form-label">Role</label>
-                                    <!-- Role SDM dipaksa -->
-                                    <input type="text" class="form-control" id="role" name="role" value="sdm" readonly>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="search" class="form-label">Search</label>
-                                    <input type="text" class="form-control" id="search" name="search" placeholder="Action or Details" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-                                </div>
-                                <div class="col-12 text-end">
-                                    <button type="submit" class="btn btn-primary mt-2"><i class="fas fa-search"></i> Filter</button>
-                                    <a href="audit_logs_sdm.php" class="btn btn-warning mt-2 ms-2"><i class="fas fa-sync-alt"></i> Reset</a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+<!-- Filter Audit Logs -->
+<div class="card mb-4 shadow">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 fw-bold text-white">
+            <i class="fas fa-filter"></i> Filter Audit Logs
+        </h6>
+    </div>
+    <div class="card-body" style="background-color: #f8f9fa;">
+        <form method="GET" id="filterForm" class="row gy-2 gx-3 align-items-center">
+            <!-- Start Date -->
+            <div class="col-auto">
+                <label for="start_date" class="form-label mb-0"><strong>Start Date:</strong></label>
+                <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
+            </div>
+            <!-- End Date -->
+            <div class="col-auto">
+                <label for="end_date" class="form-label mb-0"><strong>End Date:</strong></label>
+                <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
+            </div>
+            <!-- Role (SDM dipaksa) -->
+            <div class="col-auto">
+                <label for="role" class="form-label mb-0"><strong>Role:</strong></label>
+                <input type="text" class="form-control" id="role" name="role" value="sdm" readonly>
+            </div>
+            <!-- Search -->
+            <div class="col-auto">
+                <label for="search" class="form-label mb-0"><strong>Search:</strong></label>
+                <input type="text" class="form-control" id="search" name="search" placeholder="Action or Details" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+            </div>
+            <!-- Tombol -->
+            <div class="col-auto d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+                <a href="audit_logs_sdm.php" class="btn btn-warning">
+                    <i class="fas fa-sync-alt"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- End Filter Audit Logs -->
 
                     <!-- Audit Logs Timeline Card -->
                     <div class="card mb-4">

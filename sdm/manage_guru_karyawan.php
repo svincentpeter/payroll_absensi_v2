@@ -885,48 +885,60 @@ function getGajiPokokByRole($conn, $role)
                         </button>
                     </div>
 
-
-                    <!-- Filter -->
-                    <div class="card mb-4">
+                    <!-- Filter Section: Data Guru/Karyawan -->
+                    <div class="card mb-4 shadow">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
                             <h6 class="m-0 fw-bold text-white">
                                 <i class="fas fa-search"></i> Filter Data Guru/Karyawan
                             </h6>
                         </div>
-                        <div class="card-body">
-                            <form id="filterForm" method="GET" class="form-inline">
-                                <label class="me-2" for="filterJenjang">Jenjang:</label>
-                                <select class="form-control" id="filterJenjang" name="jenjang">
-                                    <option value="">Semua Jenjang</option>
-                                    <?php
-                                    $jenjangList = getOrderedJenjang();
-                                    foreach ($jenjangList as $jenjang) {
-                                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
-                                    }
-                                    ?>
-                                </select>
-                                <label class="me-2" for="filterRole">Role:</label>
-                                <select class="form-control me-2" id="filterRole" name="role">
-                                    <option value="">Semua Role</option>
-                                    <option value="P" <?= (isset($_GET['role']) && $_GET['role'] === 'P') ? 'selected' : ''; ?>>Pendidik</option>
-                                    <option value="TK" <?= (isset($_GET['role']) && $_GET['role'] === 'TK') ? 'selected' : ''; ?>>Tenaga Kependidikan</option>
-                                    <option value="M" <?= (isset($_GET['role']) && $_GET['role'] === 'M') ? 'selected' : ''; ?>>Manajerial</option>
-                                </select>
-                                <label class="me-2" for="filterStatus">Status Kerja:</label>
-                                <select class="form-control me-2" id="filterStatus" name="status_kerja">
-                                    <option value="">Semua Status</option>
-                                    <option value="Tetap" <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Tetap') ? 'selected' : ''; ?>>Tetap</option>
-                                    <option value="Kontrak" <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Kontrak') ? 'selected' : ''; ?>>Kontrak</option>
-                                </select>
-                                <button type="button" id="btnApplyFilter" class="btn btn-primary me-2">
-                                    <i class="fas fa-filter"></i> Terapkan
-                                </button>
-                                <button type="button" id="btnResetFilter" class="btn btn-secondary">
-                                    <i class="fas fa-undo"></i> Reset
-                                </button>
+                        <div class="card-body" style="background-color: #f8f9fa;">
+                            <form id="filterForm" method="GET" class="row gy-2 gx-3 align-items-center">
+                                <!-- Jenjang -->
+                                <div class="col-auto">
+                                    <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang:</strong></label>
+                                    <select class="form-control" id="filterJenjang" name="jenjang">
+                                        <option value="">Semua Jenjang</option>
+                                        <?php
+                                        $jenjangList = getOrderedJenjang();
+                                        foreach ($jenjangList as $jenjang) {
+                                            echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                <!-- Role -->
+                                <div class="col-auto">
+                                    <label for="filterRole" class="form-label mb-0"><strong>Role:</strong></label>
+                                    <select class="form-control" id="filterRole" name="role">
+                                        <option value="">Semua Role</option>
+                                        <option value="P" <?= (isset($_GET['role']) && $_GET['role'] === 'P') ? 'selected' : ''; ?>>Pendidik</option>
+                                        <option value="TK" <?= (isset($_GET['role']) && $_GET['role'] === 'TK') ? 'selected' : ''; ?>>Tenaga Kependidikan</option>
+                                        <option value="M" <?= (isset($_GET['role']) && $_GET['role'] === 'M') ? 'selected' : ''; ?>>Manajerial</option>
+                                    </select>
+                                </div>
+                                <!-- Status Kerja -->
+                                <div class="col-auto">
+                                    <label for="filterStatus" class="form-label mb-0"><strong>Status Kerja:</strong></label>
+                                    <select class="form-control" id="filterStatus" name="status_kerja">
+                                        <option value="">Semua Status</option>
+                                        <option value="Tetap" <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Tetap') ? 'selected' : ''; ?>>Tetap</option>
+                                        <option value="Kontrak" <?= (isset($_GET['status_kerja']) && $_GET['status_kerja'] === 'Kontrak') ? 'selected' : ''; ?>>Kontrak</option>
+                                    </select>
+                                </div>
+                                <!-- Tombol -->
+                                <div class="col-auto d-flex align-items-end">
+                                    <button type="button" id="btnApplyFilter" class="btn btn-primary me-2">
+                                        <i class="fas fa-filter"></i> Terapkan
+                                    </button>
+                                    <button type="button" id="btnResetFilter" class="btn btn-secondary">
+                                        <i class="fas fa-undo"></i> Reset
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
+                    <!-- End Filter Section -->
 
                     <!-- Daftar Karyawan/Guru dalam Grid -->
                     <div class="card shadow mb-4">
@@ -1000,11 +1012,11 @@ function getGajiPokokByRole($conn, $role)
                                     <label for="addJenjang">Jenjang <span class="text-danger">*</span></label>
                                     <select name="jenjang" id="addJenjang" class="form-control" required>
                                         <option value="">-- Pilih Jenjang --</option>
-                                        <option value="TK">TK</option>
-                                        <option value="SD">SD</option>
-                                        <option value="SMP">SMP</option>
-                                        <option value="SMA">SMA</option>
-                                        <option value="SMK">SMK</option>
+                                        <?php foreach ($jenjangList as $jenjang): ?>
+                                            <option value="<?= htmlspecialchars($jenjang) ?>">
+                                                <?= htmlspecialchars($jenjang) ?>
+                                            </option>
+                                        <?php endforeach; ?>
                                     </select>
                                     <div class="invalid-feedback">Jenjang wajib dipilih.</div>
                                 </div>
@@ -1215,16 +1227,18 @@ function getGajiPokokByRole($conn, $role)
                                 <div class="invalid-feedback">Nama wajib diisi.</div>
                             </div>
                             <div class="col-md-6">
-                                <label for="editJenjang">Jenjang <span class="text-danger">*</span></label>
-                                <select name="jenjang" id="editJenjang" class="form-control" required>
-                                    <option value="">-- Pilih Jenjang --</option>
-                                    <option value="TK">TK</option>
-                                    <option value="SD">SD</option>
-                                    <option value="SMP">SMP</option>
-                                    <option value="SMA">SMA</option>
-                                    <option value="SMK">SMK</option>
-                                </select>
-                                <div class="invalid-feedback">Jenjang wajib dipilih.</div>
+                                <div class="form-group">
+                                    <label for="editJenjang">Jenjang <span class="text-danger">*</span></label>
+                                    <select name="jenjang" id="editJenjang" class="form-control" required>
+                                        <option value="">-- Pilih Jenjang --</option>
+                                        <?php foreach ($jenjangList as $jenjang): ?>
+                                            <option value="<?= htmlspecialchars($jenjang) ?>">
+                                                <?= htmlspecialchars($jenjang) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="invalid-feedback">Jenjang wajib dipilih.</div>
+                                </div>
                             </div>
                         </div>
                         <div class="row mt-2">

@@ -62,6 +62,12 @@ $stmt->close();
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    .card-header {
+            background: linear-gradient(45deg, #0d47a1, #42a5f5);
+            color: white;
+        }
+  </style>
 </head>
 
 <body id="page-top">
@@ -91,46 +97,50 @@ $stmt->close();
           <h1 class="h3 mb-4 text-gray-800">
             <i class="fas fa-bell"></i> Notifikasi Keuangan
           </h1>
-
-          <!-- Card Filter -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <i class="bi bi-funnel-fill"></i> Filter Alerts
-            </div>
-            <div class="card-body">
-              <form method="GET" class="row g-3 align-items-end">
-                <div class="col-auto">
-                  <label for="filterMonth" class="form-label fw-bold">Bulan</label>
-                  <select name="filterMonth" id="filterMonth" class="form-select">
+<!-- Filter Section: Alerts -->
+<div class="card mb-4 shadow">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 fw-bold text-white">
+            <i class="fas fa-search"></i> Filter Alerts
+        </h6>
+    </div>
+    <div class="card-body" style="background-color: #f8f9fa;">
+        <form method="GET" class="row gy-2 gx-3 align-items-center">
+            <!-- Bulan -->
+            <div class="col-auto">
+                <label for="filterMonth" class="form-label mb-0"><strong>Bulan:</strong></label>
+                <select name="filterMonth" id="filterMonth" class="form-select">
                     <?php
                     for ($m = 1; $m <= 12; $m++):
-                      $selected = ($m == $filterMonth) ? 'selected' : '';
-                      echo "<option value='{$m}' {$selected}>" . getIndonesianMonthName($m) . "</option>";
+                        $selected = ($m == $filterMonth) ? 'selected' : '';
+                        echo "<option value='{$m}' {$selected}>" . getIndonesianMonthName($m) . "</option>";
                     endfor;
                     ?>
-                  </select>
-                </div>
-                <div class="col-auto">
-                  <label for="filterYear" class="form-label fw-bold">Tahun</label>
-                  <select name="filterYear" id="filterYear" class="form-select">
+                </select>
+            </div>
+            <!-- Tahun -->
+            <div class="col-auto">
+                <label for="filterYear" class="form-label mb-0"><strong>Tahun:</strong></label>
+                <select name="filterYear" id="filterYear" class="form-select">
                     <?php
                     $currentY = date('Y');
                     for ($y = $currentY - 2; $y <= $currentY + 2; $y++):
-                      $selected = ($y == $filterYear) ? 'selected' : '';
-                      echo "<option value='{$y}' {$selected}>{$y}</option>";
+                        $selected = ($y == $filterYear) ? 'selected' : '';
+                        echo "<option value='{$y}' {$selected}>{$y}</option>";
                     endfor;
                     ?>
-                  </select>
-                </div>
-                <div class="col-auto">
-                  <button type="submit" class="btn btn-primary mt-2">
-                    <i class="fas fa-filter"></i> Terapkan
-                  </button>
-                </div>
-              </form>
+                </select>
             </div>
-          </div>
-          <!-- End Card Filter -->
+            <!-- Tombol -->
+            <div class="col-auto d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-filter"></i> Terapkan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- End Filter Section -->
 
           <!-- Info Periode -->
           <div class="alert alert-info fw-bold">

@@ -3,14 +3,22 @@
 
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
-authorize(['P', 'TK']);
+generate_csrf_token();
 
+// Jika user sedang dalam mode non-admin, bypass otorisasi khusus,
+// sehingga admin (meski role-nya tidak hanya 'P' atau 'TK') bisa mengakses halaman ini.
+if (!($_SESSION['non_admin_mode'] ?? false)) {
+    // Jika tidak dalam mode non-admin, otorisasi hanya untuk role Pendidik dan Tenaga Kependidikan.
+    authorize(['P', 'TK']);
+}
+
+// Koneksi database
 require_once __DIR__ . '/../koneksi.php';
 
-// Ambil ID pengguna dari session
-$userId = $_SESSION['id'] ?? 0;
-if ($userId <= 0) {
-    die("ID User tidak valid atau belum login.");
+$nip  = $_SESSION['nip'] ?? '';
+$nama = $_SESSION['nama'] ?? '';
+if (empty($nip)) {
+    die("NIP tidak ditemukan dalam session.");
 }
 
 // Tangani permintaan AJAX (server-side DataTables)

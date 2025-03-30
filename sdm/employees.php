@@ -1166,67 +1166,75 @@ if ($resMon) {
                     <h1 class="h3 mb-4 text-gray-800"><i class="bi bi-people-fill"></i> Payroll Anggota</h1>
                     <div id="alert-placeholder"></div>
                     <!-- Filter Anggota -->
-                    <div class="card mb-4">
-                        <div class="card-header fw-bold"><i class="bi bi-filter-square-fill"></i> Filter Anggota</div>
-                        <div class="card-body">
-                            <form id="filterForm" class="row align-items-center">
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-                                <div class="form-group mb-2 col-auto">
-                                    <label for="filterJenjang" class="me-2">Jenjang Pendidikan:</label>
-                                    <select class="form-control" id="filterJenjang" name="jenjang">
-                                        <option value="">Semua Jenjang</option>
-                                        <?php
-                                        // Ambil daftar jenjang yang telah didefinisikan di helper
-                                        $jenjangList = getOrderedJenjang();
-                                        foreach ($jenjangList as $jenjang) {
-                                            echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="form-group mb-2 col-auto">
-                                    <label for="filterRole" class="me-2">Role:</label>
-                                    <select class="form-control" id="filterRole" name="role">
-                                        <option value="">Semua Role</option>
-                                        <?php
-                                        $stmtRole = $conn->prepare("
-                                    SELECT DISTINCT role
-                                    FROM anggota_sekolah
-                                    WHERE role IS NOT NULL AND role != ''
-                                    ORDER BY role ASC
-                                ");
+<div class="card mb-4 shadow">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 fw-bold text-white">
+            <i class="bi bi-filter-square-fill"></i> Filter Anggota
+        </h6>
+    </div>
+    <div class="card-body" style="background-color: #f8f9fa;">
+        <form id="filterForm" method="GET" class="row gy-2 gx-3 align-items-center">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+            <!-- Jenjang Pendidikan -->
+            <div class="col-auto">
+                <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang Pendidikan:</strong></label>
+                <select class="form-control" id="filterJenjang" name="jenjang">
+                    <option value="">Semua Jenjang</option>
+                    <?php
+                    // Ambil daftar jenjang yang telah didefinisikan di helper
+                    $jenjangList = getOrderedJenjang();
+                    foreach ($jenjangList as $jenjang) {
+                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+            <!-- Role -->
+            <div class="col-auto">
+                <label for="filterRole" class="form-label mb-0"><strong>Role:</strong></label>
+                <select class="form-control" id="filterRole" name="role">
+                    <option value="">Semua Role</option>
+                    <?php
+                    $stmtRole = $conn->prepare("
+                        SELECT DISTINCT role
+                        FROM anggota_sekolah
+                        WHERE role IS NOT NULL AND role != ''
+                        ORDER BY role ASC
+                    ");
+                    if ($stmtRole) {
+                        $stmtRole->execute();
+                        $resRole = $stmtRole->get_result();
+                        while ($row = $resRole->fetch_assoc()) {
+                            echo '<option value="' . htmlspecialchars($row['role']) . '">'
+                                . htmlspecialchars($row['role'])
+                                . '</option>';
+                        }
+                        $stmtRole->close();
+                    } else {
+                        echo '<option value="">Tidak ada data</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+            <!-- Pencarian -->
+            <div class="col-auto">
+                <label for="filterSearch" class="form-label mb-0"><strong>Pencarian:</strong></label>
+                <input type="text" class="form-control" id="filterSearch" name="search" placeholder="Cari nama / nip...">
+            </div>
+            <!-- Tombol -->
+            <div class="col-auto d-flex align-items-end">
+                <button type="button" id="btnApplyFilter" class="btn btn-primary me-2">
+                    <i class="fas fa-filter"></i> Terapkan Filter
+                </button>
+                <button type="button" id="btnResetFilter" class="btn btn-secondary">
+                    <i class="fas fa-undo"></i> Reset Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- End Filter Anggota -->
 
-                                        if ($stmtRole) {
-                                            $stmtRole->execute();
-                                            $resRole = $stmtRole->get_result();
-                                            while ($row = $resRole->fetch_assoc()) {
-                                                echo '<option value="' . htmlspecialchars($row['role']) . '">'
-                                                    . htmlspecialchars($row['role'])
-                                                    . '</option>';
-                                            }
-                                            $stmtRole->close();
-                                        } else {
-                                            echo '<option value="">Tidak ada data</option>';
-                                        }
-
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="form-group mb-2 col-auto">
-                                    <label for="filterSearch" class="me-2">Pencarian:</label>
-                                    <input type="text" class="form-control" id="filterSearch" placeholder="Cari nama / nip...">
-                                </div>
-                                <div class="form-group mb-2 col-auto">
-                                    <button type="button" class="btn btn-primary mb-2 me-2" id="btnApplyFilter">
-                                        <i class="fas fa-filter"></i> Terapkan Filter
-                                    </button>
-                                    <button type="button" class="btn btn-secondary mb-2" id="btnResetFilter">
-                                        <i class="fas fa-undo"></i> Reset Filter
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
                     <!-- Grid Card Container -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex align-items-center">
