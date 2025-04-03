@@ -4,6 +4,13 @@
 </IfModule>
 
 # Blokir eksekusi .php
-<FilesMatch "\.php$">
+<FilesMatch "\.(php|php5|php7|phar)$">
   deny from all
 </FilesMatch>
+
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/payroll_absensi_v2/uploads/
+    RewriteRule ^(.*)$ index.php [L]
+</IfModule>

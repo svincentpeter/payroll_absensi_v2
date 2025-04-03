@@ -40,11 +40,10 @@ $baseUrl  = getBaseUrl();
 $nip      = $_SESSION['nip'] ?? '';
 $fullRole = getFullRoleNavbar();
 
-// Foto profil default
-$foto = $_SESSION['foto_profil'] ?? ($baseUrl . '/assets/img/undraw_profile.svg');
-if (empty($foto)) {
-    $foto = $baseUrl . '/assets/img/undraw_profile.svg';
-}
+// Ambil data profil dari session (pastikan session sudah berisi data 'nama', 'jenjang', 'role', dan 'id')
+$jenjang = $_SESSION['jenjang'] ?? '';
+$foto = getProfilePhotoUrl($_SESSION['nama'] ?? '', $jenjang, $_SESSION['role'] ?? '', $_SESSION['id'] ?? 0);
+
 
 // ===============================
 // PENGAMBILAN NOTIFIKASI
@@ -498,7 +497,12 @@ function formatBadge($count)
                 <span class="me-2 d-none d-lg-inline text-gray-600 small">
                     <?= htmlspecialchars($nama); ?>
                 </span>
-                <img class="img-profile rounded-circle" src="<?= htmlspecialchars($foto); ?>" alt="Profile">
+                <img class="img-profile rounded-circle"
+     src="<?= htmlspecialchars($foto); ?>"
+     alt="Profile"
+     style="width:40px; height:40px; object-fit:cover;">
+
+
             </a>
             <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="userDropdown">
                 <a class="dropdown-item" href="<?= $baseUrl; ?>/profile.php">

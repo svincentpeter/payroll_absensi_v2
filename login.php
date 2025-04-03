@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($nip_input) || empty($password_input)) {
         $error = "Username/NIP dan Password harus diisi.";
     } else {
-        $stmt = $conn->prepare("SELECT id, nip, nama, password, job_title, role FROM anggota_sekolah WHERE nip = ? LIMIT 1");
+        $stmt = $conn->prepare("SELECT id, nip, nama, password, job_title, role, jenjang, foto_profil FROM anggota_sekolah WHERE nip = ? LIMIT 1");
         if ($stmt) {
             $stmt->bind_param("s", $nip_input);
             $stmt->execute();
@@ -49,11 +49,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Verifikasi password dengan MD5 (disarankan untuk upgrade ke password_hash())
             if (md5($password_input) === $row['password']) {
                 // Simpan data di session
-                $_SESSION['id']        = $row['id'];
-                $_SESSION['nip']       = $row['nip'];
-                $_SESSION['nama']      = $row['nama'];
-                $_SESSION['role']      = $row['role'];
-                $_SESSION['job_title'] = $row['job_title'];
+                $_SESSION['id']         = $row['id'];
+$_SESSION['nip']        = $row['nip'];
+$_SESSION['nama']       = $row['nama'];
+$_SESSION['role']       = $row['role'];
+$_SESSION['job_title']  = $row['job_title'];
+$_SESSION['jenjang']    = $row['jenjang'];         // Tambahkan baris ini
+$_SESSION['foto_profil']= $row['foto_profil'];      // Tambahkan baris ini (jika ingin menyimpan)
+
 
                 // Set flag non_admin_mode berdasarkan pilihan dari form login
                 if ($login_mode === 'nonadmin') {
