@@ -12,15 +12,598 @@ require_once __DIR__ . '/../koneksi.php';
 authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 $jenjangList = getOrderedJenjang();
 
-// Parameter bulan/tahun untuk filter tampilan payroll
+/*
+ |---------------------------------------------------------------------
+ | Bagian: Parameter Bulan/Tahun (untuk payroll)
+ |---------------------------------------------------------------------
+*/
 $selectedMonth = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : date('n');
 $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date('Y');
 
-/* ====================================================
-   FUNGSI-FUNGSI SERVER SIDE (NON-PAYROLL)
-   ==================================================== */
+/* =========================
+   FUNGSI-FUNGSI SERVER SIDE
+   ========================= */
 
-// Fungsi untuk memuat data anggota dengan subquery status payroll dan hitung rapel
+/**
+ * Proses payroll untuk anggota tertentu.
+ */
+function ProcessPayroll($conn)
+{
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    $id_anggota = intval($_POST['id_anggota'] ?? 0);
+    $bulan      = intval($_POST['selectedMonth'] ?? 0);
+    $tahun      = intval($_POST['selectedYear'] ?? 0);
+
+    if ($id_anggota <= 0 || $bulan <= 0 || $tahun <= 0) {
+        send_response(1, 'Parameter tidak valid untuk proses payroll.');
+    }
+
+    // 1) Hitung total earnings & deductions (status draft/revisi), kecuali rapel
+    $sqlSum = "
+        SELECT jenis, SUM(amount) AS total
+          FROM employee_payheads
+         WHERE id_anggota = ?
+           AND status IN ('draft','revisi')
+           AND IFNULL(is_rapel, 0) = 0
+        GROUP BY jenis
+    ";
+    $stmtSum = $conn->prepare($sqlSum);
+    $stmtSum->bind_param("i", $id_anggota);
+    if (!$stmtSum->execute()) {
+        $stmtSum->close();
+        send_response(1, 'Gagal menghitung total payheads (draft/revisi).');
+    }
+    $resSum = $stmtSum->get_result();
+
+    $totalEarnings   = 0;
+    $totalDeductions = 0;
+    while ($row = $resSum->fetch_assoc()) {
+        if ($row['jenis'] === 'earnings') {
+            $totalEarnings = floatval($row['total']);
+        } else {
+            $totalDeductions = floatval($row['total']);
+        }
+    }
+    $stmtSum->close();
+
+    // 2) Update salary index
+    updateSalaryIndexForUser($conn, $id_anggota);
+
+    // 3) Ambil data anggota
+    $stmtEmp = $conn->prepare("
+        SELECT gaji_pokok, salary_index_id, no_rekening
+          FROM anggota_sekolah
+         WHERE id = ?
+         LIMIT 1
+    ");
+    $stmtEmp->bind_param("i", $id_anggota);
+    if (!$stmtEmp->execute()) {
+        $stmtEmp->close();
+        send_response(1, 'Gagal mengambil data anggota.');
+    }
+    $resEmp = $stmtEmp->get_result();
+    if ($resEmp->num_rows == 0) {
+        $stmtEmp->close();
+        send_response(1, 'Anggota tidak ditemukan.');
+    }
+    $empData = $resEmp->fetch_assoc();
+    $stmtEmp->close();
+
+    $gajiPokokEmployee = floatval($empData['gaji_pokok']);
+    $no_rekening       = $empData['no_rekening'];
+    $salaryIndexBase   = 0;
+
+    // Ambil base_salary dari salary_index (jika ada)
+    if (!empty($empData['salary_index_id'])) {
+        $stmtIndex = $conn->prepare("
+            SELECT base_salary
+              FROM salary_indices
+             WHERE id = ?
+             LIMIT 1
+        ");
+        $stmtIndex->bind_param("i", $empData['salary_index_id']);
+        if ($stmtIndex->execute()) {
+            $resIndex = $stmtIndex->get_result();
+            if ($resIndex->num_rows > 0) {
+                $rowIndex = $resIndex->fetch_assoc();
+                $salaryIndexBase = floatval($rowIndex['base_salary']);
+            }
+        }
+        $stmtIndex->close();
+    }
+
+    // 4) Hitung gaji pokok total + gaji bersih (sementara)
+    $gajiPokok  = $gajiPokokEmployee + $salaryIndexBase;
+    $gajiBersih = $gajiPokok + $totalEarnings - $totalDeductions;
+
+    // 5) Insert payroll => status draft
+    $tglPayroll    = date('Y-m-d H:i:s');
+    $catatan       = '';
+    $statusPayroll = 'draft';
+
+    $stmtPayroll = $conn->prepare("
+        INSERT INTO payroll
+            (id_anggota, bulan, tahun, tgl_payroll,
+             gaji_pokok, total_pendapatan, total_potongan,
+             gaji_bersih, no_rekening, catatan, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    $stmtPayroll->bind_param(
+        "iiisddddsss",
+        $id_anggota,
+        $bulan,
+        $tahun,
+        $tglPayroll,
+        $gajiPokok,
+        $totalEarnings,
+        $totalDeductions,
+        $gajiBersih,
+        $no_rekening,
+        $catatan,
+        $statusPayroll
+    );
+    if (!$stmtPayroll->execute()) {
+        $stmtPayroll->close();
+        send_response(1, 'Gagal insert payroll (draft): ' . $stmtPayroll->error);
+    }
+    $newPayrollId = $stmtPayroll->insert_id;
+    $stmtPayroll->close();
+
+    // 6) Insert detail payhead ke payroll_detail => status draft
+    //    (kecuali is_rapel = 1, karena rapel belum dihitung di sini)
+    $sqlPH = "
+       SELECT id_payhead, jenis, amount
+         FROM employee_payheads
+        WHERE id_anggota = ?
+          AND status IN ('draft','revisi')
+          AND IFNULL(is_rapel, 0) = 0
+    ";
+    $stmtPH = $conn->prepare($sqlPH);
+    $stmtPH->bind_param("i", $id_anggota);
+    if (!$stmtPH->execute()) {
+        $stmtPH->close();
+        send_response(1, 'Gagal menyalin payheads ke payroll_detail: ' . $stmtPH->error);
+    }
+    $resPH = $stmtPH->get_result();
+    $stmtPH->close();
+
+    $sqlInsDetail = "
+   INSERT INTO payroll_detail (id_payroll, id_anggota, id_payhead, jenis, amount)
+   VALUES (?, ?, ?, ?, ?)
+";
+    $stmtDet = $conn->prepare($sqlInsDetail);
+
+    while ($ph = $resPH->fetch_assoc()) {
+        $pid   = intval($ph['id_payhead']);
+        $jenis = $ph['jenis'];
+        $amt   = floatval($ph['amount']);
+
+        // Perhatikan: sekarang bind 5 parameter (iiisd)
+        $stmtDet->bind_param("iiisd", $newPayrollId, $id_anggota, $pid, $jenis, $amt);
+        $stmtDet->execute();
+    }
+
+    $stmtDet->close();
+
+    // 7) Audit log
+    $user_nip   = $_SESSION['nip'] ?? '';
+    $detailsLog = "SDM memproses payroll => draft, anggota ID = $id_anggota, oleh $user_nip. (payroll_id=$newPayrollId)";
+    add_audit_log($conn, $user_nip, 'ProcessPayroll', $detailsLog);
+
+    // 8) Notifikasi ke keuangan & superadmin jika diproses oleh SDM
+    //    (opsional, sesuai kebutuhan)
+    if ($_SESSION['role'] === 'sdm') {
+        $sqlNotif = "SELECT id, nip FROM anggota_sekolah WHERE role IN ('keuangan','superadmin')";
+        $resNotif = $conn->query($sqlNotif);
+        if ($resNotif) {
+            while ($u = $resNotif->fetch_assoc()) {
+                $msg    = "Payroll (draft) untuk anggota ID $id_anggota telah diproses oleh SDM.";
+                $target = 'keuangan';
+                $stmtN  = $conn->prepare("
+                    INSERT INTO notifications (user_id, message, is_read, role_target)
+                    VALUES (?, ?, 0, ?)
+                ");
+                if ($stmtN) {
+                    $stmtN->bind_param("iss", $u['id'], $msg, $target);
+                    $stmtN->execute();
+                    $stmtN->close();
+                }
+            }
+        }
+    }
+
+    // 9) Kembalikan respon
+    send_response(0, 'Payroll berhasil diproses (status draft).');
+}
+
+/**
+ * Memeriksa apakah semua anggota sudah final payroll untuk bulan/tahun tertentu.
+ */
+function CheckPayrollCompletion($conn)
+{
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    $bulan = intval($_POST['selectedMonth'] ?? 0);
+    $tahun = intval($_POST['selectedYear']  ?? 0);
+    if ($bulan <= 0 || $tahun <= 0) {
+        send_response(1, 'Parameter bulan/tahun tidak valid.');
+    }
+    $sql = "SELECT jenjang, COUNT(*) as pending
+            FROM anggota_sekolah
+            WHERE id NOT IN (
+                SELECT id_anggota FROM payroll
+                WHERE bulan = ? AND tahun = ? AND status = 'final'
+            )
+            GROUP BY jenjang";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $bulan, $tahun);
+    if (!$stmt->execute()) {
+        send_response(1, 'Gagal menghitung anggota yang belum final.');
+    }
+    $res = $stmt->get_result();
+    $messages = [];
+    while ($r = $res->fetch_assoc()) {
+        if (intval($r['pending']) > 0) {
+            $messages[] = "Terdapat {$r['pending']} anggota jenjang '{$r['jenjang']}' yang belum selesai payroll.";
+        }
+    }
+    // [Audit log baru]
+    $user_nip   = $_SESSION['nip'] ?? '';
+    add_audit_log($conn, $user_nip, 'CheckPayrollCompletion', "Memeriksa completion payroll bulan=$bulan, tahun=$tahun");
+
+    if (empty($messages)) {
+        send_response(0, ['complete' => true, 'messages' => []]);
+    } else {
+        send_response(0, ['complete' => false, 'messages' => $messages]);
+    }
+}
+
+/**
+ * Mengambil rekap absensi untuk anggota pada periode tertentu.
+ */
+function ViewRekapAbsensi($conn)
+{
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    $id_anggota = intval($_POST['id'] ?? 0);
+    $bulan      = intval($_POST['selectedMonth'] ?? 0);
+    $tahun      = intval($_POST['selectedYear']  ?? 0);
+
+    $stmt = $conn->prepare("SELECT * FROM rekap_absensi
+                            WHERE id_anggota = ? AND bulan = ? AND tahun = ?
+                            LIMIT 1");
+    $stmt->bind_param("iii", $id_anggota, $bulan, $tahun);
+    if (!$stmt->execute()) {
+        send_response(1, 'Gagal mengambil rekap absensi.');
+    }
+    $res = $stmt->get_result();
+    // [Audit log baru]
+    $user_nip = $_SESSION['nip'] ?? '';
+    add_audit_log($conn, $user_nip, 'ViewRekapAbsensi', "id_anggota=$id_anggota, bulan=$bulan, tahun=$tahun");
+
+    if ($res->num_rows > 0) {
+        $rekap = $res->fetch_assoc();
+        send_response(0, $rekap);
+    } else {
+        send_response(0, [
+            'id'                     => 0,
+            'id_anggota'            => $id_anggota,
+            'bulan'                 => $bulan,
+            'tahun'                 => $tahun,
+            'total_hadir'           => 0,
+            'total_izin'            => 0,
+            'total_cuti'            => 0,
+            'total_tanpa_keterangan' => 0,
+            'total_sakit'           => 0
+        ]);
+    }
+}
+
+/**
+ * Mengedit atau menyimpan rekap absensi untuk anggota.
+ */
+function EditRekapAbsensi($conn)
+{
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    $id_anggota              = intval($_POST['id_anggota'] ?? 0);
+    $bulan                   = intval($_POST['bulan'] ?? 0);
+    $tahun                   = intval($_POST['tahun'] ?? 0);
+    $total_hadir             = intval($_POST['total_hadir'] ?? 0);
+    $total_izin              = intval($_POST['total_izin']  ?? 0);
+    $total_cuti              = intval($_POST['total_cuti']  ?? 0);
+    $total_tanpa_keterangan  = intval($_POST['total_tanpa_keterangan'] ?? 0);
+    $total_sakit             = intval($_POST['total_sakit'] ?? 0);
+
+    $stmtCek = $conn->prepare("SELECT id FROM rekap_absensi
+                               WHERE id_anggota = ? AND bulan = ? AND tahun = ?
+                               LIMIT 1");
+    $stmtCek->bind_param("iii", $id_anggota, $bulan, $tahun);
+    if (!$stmtCek->execute()) {
+        send_response(1, 'Gagal mengecek rekap absensi.');
+    }
+    $resCek = $stmtCek->get_result();
+    // [Audit log baru]
+    $user_nip = $_SESSION['nip'] ?? '';
+    $detail   = "EditRekapAbsensi for ID=$id_anggota, bulan=$bulan, tahun=$tahun";
+    add_audit_log($conn, $user_nip, 'EditRekapAbsensi', $detail);
+
+    if ($resCek->num_rows > 0) {
+        $row = $resCek->fetch_assoc();
+        $idRekap = $row['id'];
+        $stmtU = $conn->prepare("UPDATE rekap_absensi
+                                 SET total_hadir = ?, total_izin = ?,
+                                     total_cuti = ?, total_tanpa_keterangan = ?,
+                                     total_sakit = ?
+                                 WHERE id = ?");
+        $stmtU->bind_param(
+            "iiiiii",
+            $total_hadir,
+            $total_izin,
+            $total_cuti,
+            $total_tanpa_keterangan,
+            $total_sakit,
+            $idRekap
+        );
+        if ($stmtU->execute()) {
+            send_response(0, 'Rekap absensi berhasil diperbarui.');
+        } else {
+            send_response(1, 'Gagal memperbarui rekap absensi.');
+        }
+        $stmtU->close();
+    } else {
+        $stmtI = $conn->prepare("INSERT INTO rekap_absensi
+            (id_anggota, bulan, tahun, total_hadir, total_izin,
+             total_cuti, total_tanpa_keterangan, total_sakit)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmtI->bind_param(
+            "iiiiiiii",
+            $id_anggota,
+            $bulan,
+            $tahun,
+            $total_hadir,
+            $total_izin,
+            $total_cuti,
+            $total_tanpa_keterangan,
+            $total_sakit
+        );
+        if ($stmtI->execute()) {
+            send_response(0, 'Rekap absensi berhasil disimpan.');
+        } else {
+            send_response(1, 'Gagal menyimpan rekap absensi.');
+        }
+        $stmtI->close();
+    }
+}
+
+/**
+ * Mengambil semua data payheads.
+ */
+function GetAllPayheads($conn)
+{
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    $sql = "SELECT id, nama_payhead, jenis, nominal
+            FROM payheads
+            ORDER BY nama_payhead ASC";
+    $res = $conn->query($sql);
+    if (!$res) {
+        send_response(1, 'Query gagal GetAllPayheads.');
+    }
+    $payheads = [];
+    while ($row = $res->fetch_assoc()) {
+        $payheads[] = [
+            'id'                => $row['id'],
+            'nama_payhead'      => $row['nama_payhead'],
+            'jenis_payhead'     => $row['jenis'],
+            'jenis_payhead_idn' => translateJenis($row['jenis']),
+            'nominal'           => $row['nominal']
+        ];
+    }
+    // [Audit log baru]
+    $user_nip = $_SESSION['nip'] ?? '';
+    add_audit_log($conn, $user_nip, 'GetAllPayheads', "Mengambil semua payheads");
+
+    send_response(0, $payheads);
+}
+
+/**
+ * Menyimpan/memperbarui penetapan payheads ke employee (dipanggil dari payroll_page).
+ */
+function AssignPayheadsToEmployee($conn)
+{
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+
+    $empcode     = intval($_POST['empcode'] ?? 0);
+    $payheads    = isset($_POST['payheads']) ? json_decode($_POST['payheads'], true) : [];
+    $pay_amounts = isset($_POST['pay_amounts']) ? json_decode($_POST['pay_amounts'], true) : [];
+    $remarksArr  = $_POST['remarks'] ?? [];
+    $rapels      = isset($_POST['rapels']) ? json_decode($_POST['rapels'], true) : [];
+
+    // Audit log
+    $user_nip   = $_SESSION['nip'] ?? '';
+    $detailsLog = "AssignPayheadsToEmployee: empcode=$empcode, total payheads=" . count($payheads);
+    add_audit_log($conn, $user_nip, 'AssignPayheadsToEmployee', $detailsLog);
+
+    // Ambil nilai bulan & tahun (untuk data rapel)
+    $selectedMonth = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : date('n');
+    $selectedYear  = isset($_POST['selectedYear'])  ? intval($_POST['selectedYear'])  : date('Y');
+
+    if ($empcode <= 0) {
+        send_response(1, 'ID anggota tidak valid.');
+    }
+    if (empty($payheads)) {
+        send_response(1, 'Tidak ada payheads yang dipilih.');
+    }
+
+    // Ambil data payheads lama
+    $sqlOld = "SELECT * FROM employee_payheads WHERE id_anggota = ?";
+    $stmtOld = $conn->prepare($sqlOld);
+    $stmtOld->bind_param("i", $empcode);
+    $stmtOld->execute();
+    $resOld = $stmtOld->get_result();
+    $oldPayheads = [];
+    while ($op = $resOld->fetch_assoc()) {
+        $oldPayheads[$op['id_payhead']] = $op;
+    }
+    $stmtOld->close();
+
+    // Ambil NIP (untuk penamaan file)
+    $stmtNip = $conn->prepare("SELECT nip FROM anggota_sekolah WHERE id=? LIMIT 1");
+    $stmtNip->bind_param("i", $empcode);
+    $stmtNip->execute();
+    $resNip = $stmtNip->get_result();
+    if ($resNip->num_rows === 0) {
+        send_response(1, "Anggota dengan ID $empcode tidak ditemukan.");
+    }
+    $rowNip = $resNip->fetch_assoc();
+    $nip    = $rowNip['nip'];
+    $stmtNip->close();
+
+    // Ambil nilai bulan untuk nama file (opsional)
+    $bulanVal = isset($_POST['bulanVal']) ? intval($_POST['bulanVal']) : date('n');
+
+    // Siapkan statement untuk cek master payheads
+    $stmtGet = $conn->prepare("SELECT jenis, nama_payhead, nominal FROM payheads WHERE id = ? LIMIT 1");
+
+    // Siapkan statement untuk INSERT dan UPDATE (hanya sekali)
+    $sqlInsert = "INSERT INTO employee_payheads
+        (id_anggota, id_payhead, jenis, amount, status, remarks, support_doc_path, upload_file_blob, is_rapel)
+        VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?)";
+    $stmtIns = $conn->prepare($sqlInsert);
+
+    $sqlUpdate = "UPDATE employee_payheads
+        SET amount = ?, remarks = ?, support_doc_path = ?, upload_file_blob = ?, is_rapel = ?
+        WHERE id_anggota = ? AND id_payhead = ?";
+    $stmtUpd = $conn->prepare($sqlUpdate);
+
+    $conn->begin_transaction();
+    try {
+        // 1. Hapus payhead lama yang tidak lagi dipilih
+        foreach ($oldPayheads as $oldPid => $oldRow) {
+            if (!in_array($oldPid, $payheads)) {
+                $stmtDel = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota = ? AND id_payhead = ?");
+                $stmtDel->bind_param("ii", $empcode, $oldPid);
+                $stmtDel->execute();
+                $stmtDel->close();
+            }
+        }
+
+        // 2. Loop setiap payhead yang dipilih user
+        foreach ($payheads as $pid) {
+            $pidInt = intval($pid);
+            $rawAmount = $pay_amounts[$pidInt] ?? '0';
+            $numericAmount = floatval(str_replace(['.', ','], ['', '.'], $rawAmount));
+            $remarkForThis = $remarksArr[$pidInt] ?? '';
+            $isRapel = isset($rapels[$pidInt]) ? intval($rapels[$pidInt]) : 0;
+
+            // Data rapel tidak tersimpan di tabel, sehingga tidak digunakan pada query INSERT/UPDATE.
+            // Namun, variabel-variabel ini dapat digunakan untuk keperluan lain (misalnya file upload) jika diperlukan.
+            if ($isRapel) {
+                $rapelStartMonth = $selectedMonth;
+                $rapelStartYear  = $selectedYear;
+                $rapelMonthlyAmt = $numericAmount;
+            } else {
+                $rapelStartMonth = null;
+                $rapelStartYear  = null;
+                $rapelMonthlyAmt = 0.00;
+            }
+
+            $path_file = '';
+            $fileBlob  = null;
+            $nullBlob  = null; // untuk parameter BLOB
+
+            // Cek data master payheads
+            $stmtGet->bind_param("i", $pidInt);
+            $stmtGet->execute();
+            $resG = $stmtGet->get_result();
+            if ($resG->num_rows === 0) {
+                throw new Exception("Payhead ID $pidInt tidak ditemukan di master payheads.");
+            }
+            $rowG = $resG->fetch_assoc();
+            $jenisPay = $rowG['jenis'];
+
+            // Jika payhead sudah pernah ada, ambil data lama
+            $alreadyExists = isset($oldPayheads[$pidInt]);
+            if ($alreadyExists) {
+                $path_file = $oldPayheads[$pidInt]['support_doc_path'];
+                $fileBlob  = $oldPayheads[$pidInt]['upload_file_blob'];
+            }
+
+            // Proses file upload (jika ada)
+            $fArr = $_FILES['upload_file'] ?? null;
+            if ($fArr && isset($fArr['name'][$pidInt]) && !empty($fArr['name'][$pidInt])) {
+                $errCode = $fArr['error'][$pidInt];
+                $tmpName = $fArr['tmp_name'][$pidInt];
+                $fileName = $fArr['name'][$pidInt];
+                $fileSize = $fArr['size'][$pidInt];
+                if ($errCode === UPLOAD_ERR_OK) {
+                    if ($fileSize > 2097152) {
+                        throw new Exception("File payhead $pidInt: ukuran file > 2MB.");
+                    }
+                    $allowedExt = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+                    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                    if (!in_array($ext, $allowedExt)) {
+                        throw new Exception("File payhead $pidInt: ekstensi $ext tidak diizinkan.");
+                    }
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mimeType = finfo_file($finfo, $tmpName);
+                    finfo_close($finfo);
+                    $allowedMimes = [
+                        'application/pdf',
+                        'application/msword',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'image/jpeg',
+                        'image/png'
+                    ];
+                    if (!in_array($mimeType, $allowedMimes)) {
+                        throw new Exception("File payhead $pidInt: MIME $mimeType tidak valid.");
+                    }
+                    $folderUpload = __DIR__ . '/../uploads/payhead_support/';
+                    if (!is_dir($folderUpload)) {
+                        mkdir($folderUpload, 0755, true);
+                    }
+                    $namaBersih = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $rowG['nama_payhead']);
+                    $namaBersih = str_replace(' ', '_', trim($namaBersih));
+                    $newName = $nip . '_' . $bulanVal . '_' . $namaBersih . '.' . $ext;
+                    $destPath = $folderUpload . $newName;
+                    if (!move_uploaded_file($tmpName, $destPath)) {
+                        throw new Exception("Gagal upload file payhead $pidInt.");
+                    }
+                    $path_file = '/payroll_absensi_v2/uploads/payhead_support/' . $newName;
+                    $fileBlob = file_get_contents($destPath);
+                }
+            }
+
+            // 3. Jika payhead sudah ada, UPDATE; jika belum, INSERT
+            if ($alreadyExists) {
+                // Bind parameter dan eksekusi UPDATE
+                $stmtUpd->bind_param("dssbiii", $numericAmount, $remarkForThis, $path_file, $nullBlob, $isRapel, $empcode, $pidInt);
+                if ($fileBlob !== null) {
+                    $stmtUpd->send_long_data(3, $fileBlob);
+                }
+                $stmtUpd->execute();
+            } else {
+                // Bind parameter dan eksekusi INSERT
+                $stmtIns->bind_param("iisdssbi", $empcode, $pidInt, $jenisPay, $numericAmount, $remarkForThis, $path_file, $nullBlob, $isRapel);
+                if ($fileBlob !== null) {
+                    $stmtIns->send_long_data(6, $fileBlob);
+                }
+                $stmtIns->execute();
+            }
+        }
+
+        $stmtGet->close();
+        $stmtIns->close();
+        $stmtUpd->close();
+        $conn->commit();
+        send_response(0, 'Payheads berhasil disimpan/diupdate tanpa menghapus file lama yang masih dipakai.');
+    } catch (Exception $ex) {
+        $conn->rollback();
+        send_response(1, 'Gagal menugaskan payheads: ' . $ex->getMessage());
+    }
+}
+
+
+/**
+ * Memuat data employees (grid card) + status payroll
+ */
 function LoadingEmployees($conn)
 {
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -99,7 +682,7 @@ function LoadingEmployees($conn)
         $masaKerja = ($row['masa_kerja_tahun'] > 0 ? $row['masa_kerja_tahun'] . ' Thn ' : '')
             . ($row['masa_kerja_bulan'] > 0 ? $row['masa_kerja_bulan'] . ' Bln' : '');
         $masaKerja = trim($masaKerja) ?: '-';
-        $gajiPokokFmt = number_format($row['gaji_pokok'], 2, ',', '.');
+        $gajiPokokFmt = number_format($row['gaji_pokok'], 0, ',', '.');
 
         $statusPayroll = 'Belum Diproses';
         if (!empty($row['payroll_status'])) {
@@ -144,6 +727,9 @@ function LoadingEmployees($conn)
     exit();
 }
 
+/**
+ * Mengedit data anggota (khusus update no_rekening).
+ */
 function EditEmployee($conn)
 {
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -160,15 +746,21 @@ function EditEmployee($conn)
     if ($stmtU->execute()) {
         $stmtU->close();
         updateSalaryIndexForUser($conn, $id);
+
+        // [Audit log baru]
         $user_nip = $_SESSION['nip'] ?? '';
         $detail   = "EditEmployee: ID=$id, Update no_rekening=$no_rekening";
         add_audit_log($conn, $user_nip, 'EditEmployee', $detail);
+
         send_response(0, 'No Rekening anggota berhasil diperbarui.');
     } else {
         send_response(1, 'Gagal memperbarui No Rekening: ' . $stmtU->error);
     }
 }
 
+/**
+ * Mengambil detail lengkap data anggota, termasuk payheads dan perhitungan payroll.
+ */
 function ViewEmployeeDetail($conn)
 {
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -178,6 +770,9 @@ function ViewEmployeeDetail($conn)
     }
     $selectedMonth = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : date('n');
     $selectedYear  = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : date('Y');
+    
+    // Ambil parameter tambahan untuk include rapel (default 0 = tidak include)
+    $includeRapel = isset($_POST['includeRapel']) ? intval($_POST['includeRapel']) : 0;
 
     $stmt = $conn->prepare("
         SELECT a.*, si.level AS salary_index_level, si.base_salary AS salary_index_base,
@@ -204,16 +799,14 @@ function ViewEmployeeDetail($conn)
         $levelIndexVal = floatval($emp['salary_index_base']);
         updateSalaryIndexForUser($conn, $id);
 
-        // Ambil payheads termasuk is_rapel
+        // Ambil data payheads
         $stmtPH = $conn->prepare("
-    SELECT ep.id_payhead, ph.nama_payhead, ph.jenis AS jenis_payhead,
-           ep.amount, ep.support_doc_path, ep.is_rapel,
-           ep.remarks
-      FROM employee_payheads ep
-      JOIN payheads ph ON ep.id_payhead = ph.id
-     WHERE ep.id_anggota = ?
-");
-
+            SELECT ep.id_payhead, ph.nama_payhead, ph.jenis AS jenis_payhead,
+                   ep.amount, ep.support_doc_path, ep.is_rapel, ep.remarks
+              FROM employee_payheads ep
+              JOIN payheads ph ON ep.id_payhead = ph.id
+             WHERE ep.id_anggota = ?
+        ");
         if (!$stmtPH) {
             send_response(1, 'Prepare failed (payheads): ' . $conn->error);
         }
@@ -226,14 +819,18 @@ function ViewEmployeeDetail($conn)
         $totalPendapatan = 0;
         $totalPotongan   = 0;
         while ($rw = $resPH->fetch_assoc()) {
+            // Jika includeRapel = 0 (default untuk view detail), lewati data rapel
+            if (!$includeRapel && intval($rw['is_rapel']) === 1) {
+                continue;
+            }
             $assigned[] = [
-                'id_payhead'       => $rw['id_payhead'],
-                'nama_payhead'     => $rw['nama_payhead'],
-                'jenis_payhead'    => $rw['jenis_payhead'],
+                'id_payhead'        => $rw['id_payhead'],
+                'nama_payhead'      => $rw['nama_payhead'],
+                'jenis_payhead'     => $rw['jenis_payhead'],
                 'jenis_payhead_idn' => translateJenis($rw['jenis_payhead']),
-                'amount'           => $rw['amount'],
-                'support_doc_path' => $rw['support_doc_path'],
-                'is_rapel'         => $rw['is_rapel']
+                'amount'            => $rw['amount'],
+                'support_doc_path'  => $rw['support_doc_path'],
+                'is_rapel'          => $rw['is_rapel']
             ];
             if ($rw['jenis_payhead'] === 'earnings') {
                 $totalPendapatan += floatval($rw['amount']);
@@ -260,14 +857,14 @@ function ViewEmployeeDetail($conn)
             'status_kerja'       => $emp['status_kerja'],
             'masa_kerja'         => $masaKerja,
             'gaji_pokok_val'     => $gajiPokokVal,
-            'gaji_pokok'         => 'Rp ' . number_format($gajiPokokVal, 2, ',', '.'),
+            'gaji_pokok'         => 'Rp ' . number_format($gajiPokokVal, 0, ',', '.'),
             'no_rekening'        => $emp['no_rekening'],
             'email'              => $emp['email'],
             'jenis_kelamin'      => $emp['jenis_kelamin'],
             'agama'              => $emp['agama'],
             'masa_kerja_tahun'   => $emp['masa_kerja_tahun'],
             'masa_kerja_bulan'   => $emp['masa_kerja_bulan'],
-            'payheads'           => $assigned,
+            'payheads'           => $assigned, // hanya payheads non-rapel jika includeRapel=0
             'total_pendapatan'   => $totalPendapatan,
             'total_potongan'     => $totalPotongan,
             'salary_index_level' => $emp['salary_index_level'] ?: '-',
@@ -281,6 +878,9 @@ function ViewEmployeeDetail($conn)
     }
 }
 
+/**
+ * Mengambil data payhead berdasarkan ID.
+ */
 function GetPayheadById($conn)
 {
     verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -311,154 +911,9 @@ function GetPayheadById($conn)
     }
 }
 
-function ViewRekapAbsensi($conn)
-{
-    verify_csrf_token($_POST['csrf_token'] ?? '');
-    $id_anggota = intval($_POST['id'] ?? 0);
-    $bulan      = intval($_POST['selectedMonth'] ?? 0);
-    $tahun      = intval($_POST['selectedYear']  ?? 0);
-
-    $stmt = $conn->prepare("SELECT * FROM rekap_absensi
-                            WHERE id_anggota = ? AND bulan = ? AND tahun = ?
-                            LIMIT 1");
-    $stmt->bind_param("iii", $id_anggota, $bulan, $tahun);
-    if (!$stmt->execute()) {
-        send_response(1, 'Gagal mengambil rekap absensi.');
-    }
-    $res = $stmt->get_result();
-    // [Audit log baru]
-    $user_nip = $_SESSION['nip'] ?? '';
-    add_audit_log($conn, $user_nip, 'ViewRekapAbsensi', "id_anggota=$id_anggota, bulan=$bulan, tahun=$tahun");
-
-    if ($res->num_rows > 0) {
-        $rekap = $res->fetch_assoc();
-        send_response(0, $rekap);
-    } else {
-        send_response(0, [
-            'id'                     => 0,
-            'id_anggota'            => $id_anggota,
-            'bulan'                 => $bulan,
-            'tahun'                 => $tahun,
-            'total_hadir'           => 0,
-            'total_izin'            => 0,
-            'total_cuti'            => 0,
-            'total_tanpa_keterangan' => 0,
-            'total_sakit'           => 0
-        ]);
-    }
-}
-
-function EditRekapAbsensi($conn)
-{
-    verify_csrf_token($_POST['csrf_token'] ?? '');
-    $id_anggota              = intval($_POST['id_anggota'] ?? 0);
-    $bulan                   = intval($_POST['bulan'] ?? 0);
-    $tahun                   = intval($_POST['tahun'] ?? 0);
-    $total_hadir             = intval($_POST['total_hadir'] ?? 0);
-    $total_izin              = intval($_POST['total_izin']  ?? 0);
-    $total_cuti              = intval($_POST['total_cuti']  ?? 0);
-    $total_tanpa_keterangan  = intval($_POST['total_tanpa_keterangan'] ?? 0);
-    $total_sakit             = intval($_POST['total_sakit'] ?? 0);
-
-    $stmtCek = $conn->prepare("SELECT id FROM rekap_absensi
-                               WHERE id_anggota = ? AND bulan = ? AND tahun = ?
-                               LIMIT 1");
-    $stmtCek->bind_param("iii", $id_anggota, $bulan, $tahun);
-    if (!$stmtCek->execute()) {
-        send_response(1, 'Gagal mengecek rekap absensi.');
-    }
-    $resCek = $stmtCek->get_result();
-    // [Audit log baru]
-    $user_nip = $_SESSION['nip'] ?? '';
-    $detail   = "EditRekapAbsensi for ID=$id_anggota, bulan=$bulan, tahun=$tahun";
-    add_audit_log($conn, $user_nip, 'EditRekapAbsensi', $detail);
-
-    if ($resCek->num_rows > 0) {
-        $row = $resCek->fetch_assoc();
-        $idRekap = $row['id'];
-        $stmtU = $conn->prepare("UPDATE rekap_absensi
-                                 SET total_hadir = ?, total_izin = ?,
-                                     total_cuti = ?, total_tanpa_keterangan = ?,
-                                     total_sakit = ?
-                                 WHERE id = ?");
-        $stmtU->bind_param(
-            "iiiiii",
-            $total_hadir,
-            $total_izin,
-            $total_cuti,
-            $total_tanpa_keterangan,
-            $total_sakit,
-            $idRekap
-        );
-        if ($stmtU->execute()) {
-            send_response(0, 'Rekap absensi berhasil diperbarui.');
-        } else {
-            send_response(1, 'Gagal memperbarui rekap absensi.');
-        }
-        $stmtU->close();
-    } else {
-        $stmtI = $conn->prepare("INSERT INTO rekap_absensi
-            (id_anggota, bulan, tahun, total_hadir, total_izin,
-             total_cuti, total_tanpa_keterangan, total_sakit)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmtI->bind_param(
-            "iiiiiiii",
-            $id_anggota,
-            $bulan,
-            $tahun,
-            $total_hadir,
-            $total_izin,
-            $total_cuti,
-            $total_tanpa_keterangan,
-            $total_sakit
-        );
-        if ($stmtI->execute()) {
-            send_response(0, 'Rekap absensi berhasil disimpan.');
-        } else {
-            send_response(1, 'Gagal menyimpan rekap absensi.');
-        }
-        $stmtI->close();
-    }
-}
-
-function CheckPayrollCompletion($conn)
-{
-    verify_csrf_token($_POST['csrf_token'] ?? '');
-    $bulan = intval($_POST['selectedMonth'] ?? 0);
-    $tahun = intval($_POST['selectedYear'] ?? 0);
-    if ($bulan <= 0 || $tahun <= 0) {
-        send_response(1, 'Parameter bulan/tahun tidak valid.');
-    }
-    $sql = "SELECT jenjang, COUNT(*) as pending
-            FROM anggota_sekolah
-            WHERE id NOT IN (
-                SELECT id_anggota FROM payroll WHERE bulan = ? AND tahun = ? AND status = 'final'
-            )
-            GROUP BY jenjang";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ii", $bulan, $tahun);
-    if (!$stmt->execute()) {
-        send_response(1, 'Gagal menghitung anggota yang belum final.');
-    }
-    $res = $stmt->get_result();
-    $messages = [];
-    while ($r = $res->fetch_assoc()) {
-        if (intval($r['pending']) > 0) {
-            $messages[] = "Terdapat {$r['pending']} anggota jenjang '{$r['jenjang']}' yang belum selesai payroll.";
-        }
-    }
-    $user_nip = $_SESSION['nip'] ?? '';
-    add_audit_log($conn, $user_nip, 'CheckPayrollCompletion', "Memeriksa completion payroll bulan=$bulan, tahun=$tahun");
-    if (empty($messages)) {
-        send_response(0, ['complete' => true, 'messages' => []]);
-    } else {
-        send_response(0, ['complete' => false, 'messages' => $messages]);
-    }
-}
-
-/* ====================================================
-   AJAX HANDLER (NON-PAYROLL)
-   ==================================================== */
+/* =========================
+   AJAX HANDLER
+   ========================= */
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verify_csrf_token($_POST['csrf_token'] ?? '');
@@ -475,6 +930,15 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 break;
             case 'GetPayheadById':
                 GetPayheadById($conn);
+                break;
+            case 'GetAllPayheads':
+                GetAllPayheads($conn);
+                break;
+            case 'AssignPayheadsToEmployee':
+                AssignPayheadsToEmployee($conn);
+                break;
+            case 'ProcessPayroll':
+                ProcessPayroll($conn);
                 break;
             case 'CheckPayrollCompletion':
                 CheckPayrollCompletion($conn);
@@ -631,12 +1095,13 @@ if ($resMon) {
                 <?php include __DIR__ . '/../navbar.php'; ?>
                 <?php include __DIR__ . '/../breadcrumb.php'; ?>
                 <div class="container-fluid">
-                    <!-- Tampilan Select Month -->
                     <div id="selectedMonthDisplay" class="mb-3">
                         <div class="card mb-3">
                             <div class="card-body d-flex align-items-center">
                                 <i class="bi bi-calendar3 me-2"></i>
-                                <span class="fw-bold">Payroll Bulan: <?= date('F', mktime(0, 0, 0, $selectedMonth, 1)) . ' ' . $selectedYear; ?></span>
+                                <span class="fw-bold">
+                                    Payroll Bulan: <?= date('F', mktime(0, 0, 0, $selectedMonth, 1)) . ' ' . $selectedYear; ?>
+                                </span>
                                 <button id="btnChangeCalendar" class="btn btn-link ms-auto">
                                     <i class="bi bi-pencil-square"></i> Ganti Kalender
                                 </button>
@@ -655,26 +1120,39 @@ if ($resMon) {
                         <div class="card-body" style="background-color: #f8f9fa;">
                             <form id="filterForm" method="GET" class="row gy-2 gx-3 align-items-center">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                                <!-- Jenjang Pendidikan -->
                                 <div class="col-auto">
                                     <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang Pendidikan:</strong></label>
                                     <select class="form-control" id="filterJenjang" name="jenjang">
                                         <option value="">Semua Jenjang</option>
-                                        <?php foreach ($jenjangList as $jenjang): ?>
-                                            <option value="<?= htmlspecialchars($jenjang); ?>"><?= htmlspecialchars($jenjang); ?></option>
-                                        <?php endforeach; ?>
+                                        <?php
+                                        // Ambil daftar jenjang yang telah didefinisikan di helper
+                                        $jenjangList = getOrderedJenjang();
+                                        foreach ($jenjangList as $jenjang) {
+                                            echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
+                                        }
+                                        ?>
                                     </select>
                                 </div>
+                                <!-- Role -->
                                 <div class="col-auto">
                                     <label for="filterRole" class="form-label mb-0"><strong>Role:</strong></label>
                                     <select class="form-control" id="filterRole" name="role">
                                         <option value="">Semua Role</option>
                                         <?php
-                                        $stmtRole = $conn->prepare("SELECT DISTINCT role FROM anggota_sekolah WHERE role IS NOT NULL AND role != '' ORDER BY role ASC");
+                                        $stmtRole = $conn->prepare("
+                        SELECT DISTINCT role
+                        FROM anggota_sekolah
+                        WHERE role IS NOT NULL AND role != ''
+                        ORDER BY role ASC
+                    ");
                                         if ($stmtRole) {
                                             $stmtRole->execute();
                                             $resRole = $stmtRole->get_result();
                                             while ($row = $resRole->fetch_assoc()) {
-                                                echo '<option value="' . htmlspecialchars($row['role']) . '">' . htmlspecialchars($row['role']) . '</option>';
+                                                echo '<option value="' . htmlspecialchars($row['role']) . '">'
+                                                    . htmlspecialchars($row['role'])
+                                                    . '</option>';
                                             }
                                             $stmtRole->close();
                                         } else {
@@ -683,10 +1161,12 @@ if ($resMon) {
                                         ?>
                                     </select>
                                 </div>
+                                <!-- Pencarian -->
                                 <div class="col-auto">
                                     <label for="filterSearch" class="form-label mb-0"><strong>Pencarian:</strong></label>
                                     <input type="text" class="form-control" id="filterSearch" name="search" placeholder="Cari nama / nip...">
                                 </div>
+                                <!-- Tombol -->
                                 <div class="col-auto d-flex align-items-end">
                                     <button type="button" id="btnApplyFilter" class="btn btn-primary me-2">
                                         <i class="fas fa-filter"></i> Terapkan Filter
@@ -698,6 +1178,8 @@ if ($resMon) {
                             </form>
                         </div>
                     </div>
+                    <!-- End Filter Anggota -->
+
                     <!-- Grid Card Container -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3 d-flex align-items-center">
@@ -708,6 +1190,7 @@ if ($resMon) {
                         </div>
                         <div class="card-body">
                             <div id="employeeCards" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3"></div>
+                            <!-- Pagination manual -->
                             <nav class="mt-4">
                                 <ul class="pagination justify-content-center" id="paginationContainer"></ul>
                             </nav>
@@ -725,8 +1208,9 @@ if ($resMon) {
         </div><!-- /#content-wrapper -->
     </div><!-- /#wrapper -->
 
-    <!-- MODAL: Edit Anggota -->
+    <!-- MODAL: Edit anggota -->
     <div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel" aria-hidden="true">
+        <!-- Gunakan modal-xl untuk ukuran ekstra besar, plus modal-dialog-centered agar modal tampil di tengah layar -->
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content">
                 <form id="editEmployeeForm">
@@ -737,10 +1221,13 @@ if ($resMon) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
+                        <!-- Hidden inputs -->
                         <input type="hidden" name="case" value="EditEmployee">
                         <input type="hidden" name="id" id="editEmployeeId">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+
                         <div class="container-fluid">
+                            <!-- Row 1 -->
                             <div class="row mb-3">
                                 <div class="col-md-4">
                                     <label for="editNip" class="form-label">NIP</label>
@@ -755,6 +1242,7 @@ if ($resMon) {
                                     <input type="text" name="jenjang" id="editJenjang" class="form-control" readonly>
                                 </div>
                             </div>
+                            <!-- Row 2 -->
                             <div class="row mb-3">
                                 <div class="col-md-4">
                                     <label for="editJobTitle" class="form-label">Job Title</label>
@@ -771,10 +1259,13 @@ if ($resMon) {
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label for="editNoRekening" class="form-label">No Rekening <span class="text-danger">*</span></label>
+                                    <label for="editNoRekening" class="form-label">
+                                        No Rekening <span class="text-danger">*</span>
+                                    </label>
                                     <input type="text" name="no_rekening" id="editNoRekening" class="form-control" required>
                                 </div>
                             </div>
+                            <!-- Row 3 -->
                             <div class="row mb-3">
                                 <div class="col-md-4">
                                     <label for="editEmail" class="form-label">Email</label>
@@ -793,8 +1284,9 @@ if ($resMon) {
                                     <input type="text" name="agama" id="editAgama" class="form-control" readonly>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </div> <!-- /.container-fluid -->
+                    </div> <!-- /.modal-body -->
+
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-save"></i> Update
@@ -1038,24 +1530,11 @@ if ($resMon) {
     <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.8.0/dist/autoNumeric.min.js"></script>
+
     <script>
         $(document).ready(function() {
 
-            // Fungsi untuk inisialisasi AutoNumeric pada elemen yang bersifat dinamis
-            function initAutoNumericElements() {
-                $('.currency-input').each(function() {
-                    if (!$(this).data('autonumeric')) {
-                        new AutoNumeric(this, {
-                            digitGroupSeparator: '.',
-                            decimalCharacter: ',',
-                            decimalPlaces: 2,
-                            unformatOnSubmit: true
-                        });
-                    }
-                });
-            }
-
-            // SweetAlert2 Toast
+            // === SweetAlert2 Toast ===
             const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
@@ -1075,64 +1554,9 @@ if ($resMon) {
                 });
             }
 
-            // Fungsi recalcPayheadsTotals dengan pengecekan nilai undefined
-            function recalcPayheadsTotals() {
-    let totalEarnings = 0;
-    let totalDeductions = 0;
-
-    // Iterasi setiap baris pada tabel payheads
-    $("#selected_payamount_table tbody tr").each(function() {
-        // Lewati baris jika opsi rapel dicentang
-        let rapelChecked = $(this).find("input.rapel-checkbox").prop("checked");
-        if (rapelChecked) {
-            return true;
-        }
-        let type = ($(this).data("type") || "").toLowerCase();
-        // Pastikan nilai tidak undefined, gunakan "0" jika kosong
-        let val = $(this).find("input.currency-input").val() || "0";
-        // Hapus karakter format dan ubah ke number
-        let amount = parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
-        if (type === "earnings") {
-            totalEarnings += amount;
-        } else if (type === "deduction" || type === "deductions" || type === "potongan") {
-            totalDeductions += amount;
-        }
-    });
-
-    function formatNumber(num) {
-        return num.toLocaleString('id-ID', {
-            minimumFractionDigits: 2
-        });
-    }
-
-    $("#inputTotalEarnings").val("Rp " + formatNumber(totalEarnings));
-    $("#inputTotalDeductions").val("Rp " + formatNumber(totalDeductions));
-
-    // Ambil nilai Gaji Pokok dengan pengecekan default
-    let gajiPokokText = $("#inputGajiPokok").val() || "";
-    gajiPokokText = gajiPokokText.replace(/[Rp\s.]/g, '').replace(',', '.');
-    let gajiPokok = parseFloat(gajiPokokText) || 0;
-
-    // Ambil nilai Index Nominal dengan pengecekan default
-    let indexNominalText = $("#inputIndexNominal").val() || "";
-    indexNominalText = indexNominalText.replace(/[Rp\s.]/g, '').replace(',', '.');
-    let indexNominal = parseFloat(indexNominalText) || 0;
-
-    let potonganAbsensi = window.potonganAbsensiGlobal || 0;
-    $("#inputPotonganAbsensi").val("Rp " + formatNumber(potonganAbsensi));
-
-    // Hitung gaji bersih
-    let netSalary = gajiPokok + indexNominal + totalEarnings - totalDeductions - potonganAbsensi;
-    $("#inputNetSalary").val("Rp " + formatNumber(netSalary));
-}
-
-
-            // Inisialisasi AutoNumeric untuk elemen yang sudah ada
-            initAutoNumericElements();
-
-            // Variabel Pagination Manual
-            let currentPage = 1,
-                pageSize = 10;
+            // === Variabel Pagination Manual ===
+            let currentPage = 1;
+            let pageSize = 10;
 
             function loadEmployees(page) {
                 currentPage = page;
@@ -1162,7 +1586,8 @@ if ($resMon) {
                             generateCards(res.data);
                             generatePagination(res.recordsTotal);
                         } else {
-                            $("#employeeCards, #paginationContainer").empty();
+                            $("#employeeCards").empty();
+                            $("#paginationContainer").empty();
                             showToast("Data kosong atau gagal di-load", "warning");
                         }
                     },
@@ -1173,48 +1598,60 @@ if ($resMon) {
                 });
             }
 
+            // Dapatkan baseUrl dari PHP
             let baseUrl = "<?= getBaseUrl(); ?>";
 
             function generateCards(data) {
                 let container = $("#employeeCards");
                 container.empty();
                 data.forEach(function(item) {
-                    let rapelBadge = item.has_rapel ? `<span class="badge" style="background-color: red;">Ada</span>` : `<span class="badge bg-secondary">-</span>`;
-                    let badgeClass = 'default';
-                    if (item.payroll_status.toLowerCase() === 'final') {
-                        badgeClass = 'final';
-                    } else if (item.payroll_status.toLowerCase() === 'draft') {
-                        badgeClass = 'draft';
-                    } else if (item.payroll_status.toLowerCase() === 'revisi') {
-                        badgeClass = 'revisi';
+                    // tentukan warna & teks rapel
+                    let rapelBadge = '';
+                    if (item.has_rapel) {
+                        rapelBadge = `<span class="badge" style="background-color: red;">Ada</span>`;
+                    } else {
+                        rapelBadge = `<span class="badge bg-secondary">-</span>`;
                     }
+
+                    let badgeClass = 'default';
+                    if (item.payroll_status.toLowerCase() === 'final') badgeClass = 'final';
+                    else if (item.payroll_status.toLowerCase() === 'draft') badgeClass = 'draft';
+                    else if (item.payroll_status.toLowerCase() === 'revisi') badgeClass = 'revisi';
+
                     let photoUrl = item.foto_profil && item.foto_profil !== '' ?
                         item.foto_profil :
                         baseUrl + "/assets/img/undraw_profile.svg";
-                    // Jika payroll final, tombol Payroll non-klik
-                    let payrollButtonHtml = "";
-                    if (item.payroll_status.toLowerCase() === "final") {
-                        payrollButtonHtml = `<button class="btn btn-sm btn-secondary" disabled><i class="bi bi-cash-stack"></i> Payroll</button>`;
-                    } else {
-                        payrollButtonHtml = `<button class="btn btn-sm btn-info btnAssignPayheads" data-id="${item.id}"
-                        onclick="window.location.href='halaman_payroll.php?id=${item.id}&bulan=<?= $selectedMonth ?>&tahun=<?= $selectedYear ?>'">
-                        <i class="bi bi-cash-stack"></i> Payroll
-                    </button>`;
-                    }
+
                     let cardHtml = `
           <div class="col">
             <div class="card shadow-sm p-3 h-100 text-center" data-payroll_status="${item.payroll_status}">
               <img src="${photoUrl}" alt="Foto" class="employee-photo mb-2">
               <h6 class="mb-0">${item.nama}</h6>
               <small class="text-muted">NIP: ${item.nip}</small>
-              <p class="mt-2 mb-1" style="font-size:0.85rem;">Role: ${item.role} | <strong>${item.jenjang}</strong></p>
-              <p style="font-size:0.85rem;">Status: <span class="badge-status ${badgeClass}">${item.payroll_status}</span></p>
-              <p style="font-size:0.85rem;">Rapel: ${rapelBadge}</p>
+              <p class="mt-2 mb-1" style="font-size:0.85rem;">
+                Role: ${item.role} | <strong>${item.jenjang}</strong>
+              </p>
+              <p style="font-size:0.85rem;">
+                Status: <span class="badge-status ${badgeClass}">${item.payroll_status}</span>
+              </p>
+              <p style="font-size:0.85rem;">
+                Rapel: ${rapelBadge}
+              </p>
               <div class="d-grid gap-2">
-                <button class="btn btn-sm btn-primary btnViewDetail" data-id="${item.id}"><i class="bi bi-eye-fill"></i> Detail Data</button>
-                <button class="btn btn-sm btn-warning btnEdit" data-id="${item.id}"><i class="bi bi-pencil-square"></i> Edit Data</button>
-                ${payrollButtonHtml}
-                <button class="btn btn-sm btn-secondary btnRekapAbsensi" data-id="${item.id}" data-role="${item.role}"><i class="bi bi-calendar-check"></i> Rekap Absensi</button>
+                <button class="btn btn-sm btn-primary btnViewDetail" data-id="${item.id}">
+                  <i class="bi bi-eye-fill"></i> Detail Data
+                </button>
+                <button class="btn btn-sm btn-warning btnEdit" data-id="${item.id}">
+                  <i class="bi bi-pencil-square"></i> Edit Data
+                </button>
+                <button class="btn btn-sm btn-info btnAssignPayheads" data-id="${item.id}">
+                  <i class="bi bi-cash-stack"></i> Payroll
+                </button>
+                <button class="btn btn-sm btn-secondary btnRekapAbsensi"
+                        data-id="${item.id}"
+                        data-role="${item.role}">
+                  <i class="bi bi-calendar-check"></i> Rekap Absensi
+                </button>
               </div>
             </div>
           </div>
@@ -1222,6 +1659,7 @@ if ($resMon) {
                     container.append(cardHtml);
                 });
             }
+
 
             function generatePagination(totalRecords) {
                 let totalPages = Math.ceil(totalRecords / pageSize);
@@ -1250,7 +1688,32 @@ if ($resMon) {
                 loadEmployees(1);
             });
 
-            // Event untuk membuka modal Edit Employee
+            $(document).on("click", ".btnAssignPayheads", function() {
+                let cardStatus = $(this).parents('.card').attr('data-payroll_status');
+                if (typeof cardStatus !== 'undefined' && cardStatus.toLowerCase() === 'final') {
+                    showToast("Payroll sudah final, tidak dapat mengubah payheads.", "warning");
+                    return;
+                }
+                let id = $(this).data("id");
+                let filterMonth = localStorage.getItem("selectedMonthNumber") || <?= $selectedMonth ?>;
+                let filterYear = localStorage.getItem("selectedYearPayroll") || <?= $selectedYear ?>;
+                window.location.href = 'payroll_page.php?empcode=' + id + '&filterMonth=' + filterMonth + '&filterYear=' + filterYear;
+            });
+
+            function calcPotonganAbsensi(role, totalIzin, totalCuti, totalTK, totalSakit) {
+                let totalTidakHadir = totalIzin + totalCuti + totalTK + totalSakit;
+                let potongan = 0;
+                if (role === 'P' || role === 'TK') {
+                    const biayaPerHari = 75000;
+                    potongan = Math.min(totalTidakHadir, 2) * biayaPerHari;
+                } else if (role === 'M') {
+                    const biayaPerHariManajerial = 50000;
+                    potongan = totalTidakHadir * biayaPerHariManajerial;
+                }
+                return potongan;
+            }
+
+            // Event handler untuk Edit Data
             $(document).on("click", ".btnEdit", function() {
                 let id = $(this).data("id");
                 $.ajax({
@@ -1304,9 +1767,11 @@ if ($resMon) {
                     dataType: 'json',
                     beforeSend: function() {
                         form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
                     },
                     success: function(resp) {
                         form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
                         if (resp.code === 0) {
                             showToast(resp.result, 'success');
                             loadEmployees(currentPage);
@@ -1317,12 +1782,13 @@ if ($resMon) {
                     },
                     error: function() {
                         form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
                         showToast('Terjadi kesalahan saat memperbarui data anggota.', 'error');
                     }
                 });
             });
 
-            // Event untuk membuka modal View Detail
+            // Event handler untuk View Detail
             $(document).on("click", ".btnViewDetail", function() {
                 let id = $(this).data("id");
                 $.ajax({
@@ -1396,19 +1862,7 @@ if ($resMon) {
                 });
             });
 
-            function calcPotonganAbsensi(role, totalIzin, totalCuti, totalTK, totalSakit) {
-                let totalTidakHadir = totalIzin + totalCuti + totalTK + totalSakit;
-                let potongan = 0;
-                if (role === 'P' || role === 'TK') {
-                    const biayaPerHari = 75000;
-                    potongan = Math.min(totalTidakHadir, 2) * biayaPerHari;
-                } else if (role === 'M') {
-                    const biayaPerHariManajerial = 50000;
-                    potongan = totalTidakHadir * biayaPerHariManajerial;
-                }
-                return potongan;
-            }
-
+            // Handler untuk rekapan absensi
             $(document).on('click', '.btnRekapAbsensi', function() {
                 var id = $(this).data('id');
                 var role = $(this).data('role');
@@ -1446,19 +1900,16 @@ if ($resMon) {
                             $('#total_sakit_edit').val(data.total_sakit);
                             let potonganAbsensi = calcPotonganAbsensi(role, data.total_izin, data.total_cuti, data.total_tanpa_keterangan, data.total_sakit);
                             window.potonganAbsensiGlobal = potonganAbsensi;
-                            recalcPayheadsTotals();
                             $('#rekapReviewModal').modal('show');
                         } else {
                             $("#review_id_anggota, #review_bulan, #review_tahun").text('');
                             $("#review_total_hadir, #review_total_izin, #review_total_cuti, #review_total_tanpa_keterangan, #review_total_sakit").text('0');
                             window.potonganAbsensiGlobal = 0;
-                            recalcPayheadsTotals();
                         }
                     },
                     error: function() {
-                        $("#rekap_total_hadir, #rekap_total_izin, #rekap_total_cuti, #rekap_total_tanpa_keterangan, #rekap_total_sakit").text("0");
+                        $("#review_total_hadir, #review_total_izin, #review_total_cuti, #review_total_tanpa_keterangan, #review_total_sakit").text("0");
                         window.potonganAbsensiGlobal = 0;
-                        recalcPayheadsTotals();
                     }
                 });
             });
@@ -1498,53 +1949,85 @@ if ($resMon) {
                 });
             });
 
-            // Event untuk membuka modal Select Month
+            function initSelectedMonthDisplay() {
+                if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
+                    var selMonth = localStorage.getItem('selectedMonthPayroll');
+                    var selYear = localStorage.getItem('selectedYearPayroll');
+                    $('#selectedMonthDisplay').html(
+                        '<div class="card mb-3">' +
+                        '<div class="card-body d-flex align-items-center">' +
+                        '<i class="bi bi-calendar3 me-2"></i>' +
+                        '<span class="fw-bold">Payroll Bulan: ' + selMonth + ' ' + selYear + '</span>' +
+                        '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
+                        '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
+                        '</button>' +
+                        '</div>' +
+                        '</div>'
+                    );
+                } else {
+                    $('#selectedMonthDisplay').html('<h4>Klik di sini untuk memilih bulan payroll</h4>');
+                    $('#SalaryMonthModal').modal('show');
+                }
+            }
+            initSelectedMonthDisplay();
+            loadEmployees(1);
+
             $("#btnChangeCalendar").on("click", function() {
                 $("#SalaryMonthModal").modal("show");
             });
+
             $(document).on("click", ".month-link", function(e) {
                 e.preventDefault();
                 var monthNumber = $(this).data('month-number');
                 var monthName = $(this).data('month');
                 var year = $(this).data('year');
-                $.ajax({
-                    url: 'employees.php?ajax=1',
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        case: 'CheckPayrollCompletion',
-                        selectedMonth: monthNumber,
-                        selectedYear: year,
-                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
-                    },
-                    success: function(resp) {
-                        if (resp.code === 0) {
-                            if (resp.result.complete === false) {
-                                var messages = resp.result.messages;
-                                var messageText = messages.join("<br>");
-                                Swal.fire({
-                                    title: 'Perhatian!',
-                                    html: messageText + "<br><br>Apakah Anda tetap ingin memilih bulan ini?",
-                                    icon: 'warning',
-                                    showCancelButton: true,
-                                    confirmButtonText: 'Ya, pilih bulan ini',
-                                    cancelButtonText: 'Batal'
-                                }).then((result) => {
-                                    if (result.isConfirmed) {
-                                        simpanPilihanBulan(monthNumber, monthName, year);
-                                    }
-                                });
+                if (window.currentEmpId) {
+                    var employeeId = window.currentEmpId;
+                    var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
+                    targetUrl += "?id_anggota=" + employeeId;
+                    targetUrl += "&bulan=" + encodeURIComponent(monthName);
+                    targetUrl += "&tahun=" + encodeURIComponent(year);
+                    window.location.href = targetUrl;
+                } else {
+                    $.ajax({
+                        url: 'employees.php?ajax=1',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            case: 'CheckPayrollCompletion',
+                            selectedMonth: monthNumber,
+                            selectedYear: year,
+                            csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+                        },
+                        success: function(resp) {
+                            if (resp.code === 0) {
+                                if (resp.result.complete === false) {
+                                    var messages = resp.result.messages;
+                                    var messageText = messages.join("<br>");
+                                    Swal.fire({
+                                        title: 'Perhatian!',
+                                        html: messageText + "<br><br>Apakah Anda tetap ingin memilih bulan ini?",
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Ya, pilih bulan ini',
+                                        cancelButtonText: 'Batal'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            simpanPilihanBulan(monthNumber, monthName, year);
+                                        }
+                                    });
+                                } else {
+                                    simpanPilihanBulan(monthNumber, monthName, year);
+                                }
                             } else {
-                                simpanPilihanBulan(monthNumber, monthName, year);
+                                showToast(resp.result, 'error');
                             }
-                        } else {
-                            showToast(resp.result, 'error');
+                        },
+                        error: function(xhr, status, error) {
+                            showToast('Terjadi kesalahan saat mengecek payroll: ' + error, 'error');
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        showToast('Terjadi kesalahan saat mengecek payroll: ' + error, 'error');
-                    }
-                });
+                    });
+                }
             });
 
             function simpanPilihanBulan(monthNumber, monthName, year) {
@@ -1563,11 +2046,9 @@ if ($resMon) {
                     '</div>'
                 );
                 $('#SalaryMonthModal').modal('hide');
-                window.location.href = "employees.php?filterMonth=" + monthNumber + "&filterYear=" + year;
+                var newUrl = "employees.php?filterMonth=" + monthNumber + "&filterYear=" + year;
+                window.location.href = newUrl;
             }
-
-            // Setelah setiap operasi yang menambahkan elemen dinamis, panggil inisialisasi AutoNumeric
-            initAutoNumericElements();
         });
     </script>
 </body>
