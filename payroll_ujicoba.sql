@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 05, 2025 at 07:05 PM
+-- Generation Time: Apr 06, 2025 at 02:07 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -194,7 +194,7 @@ INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`
 (17, 'CC95288B', '100011', '$2y$10$C8eyrt1VfAV2j.IkvexqP.BxqtNqWV4w1U7nOhaWg0ezI4iQhac4S', 'Hendra Kurniawan', 'TK', 'Guru Balok', 'Tetap', '2025-03-24', 0, 0, 0.00, 'Mengajar kreativitas anak', 'L', '2001-05-06', 23, 'Katolik', 'Jalan Tuah', 'Jalan Tuah', '143453453', '082226544333', 'D3 Teknologi Informasi', 'Belum Menikah', 'hendra@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL),
 (18, 'ABB41A60', '200010', '$2y$10$88G2FLci6/xMJbfvDwhy.uLvAOAMw51oAXM/8ZMew106Lx5Qi4CPa', 'Apin Upin', 'SD', 'Teknisi Kontrol Sistem', 'Tetap', '2025-03-24', 0, 0, 0.00, 'Mengatasi Error Sistem', 'L', '1990-01-24', 30, 'Hindu', 'Jalan Kedung', 'Jalan Kedung', '1454654564', '081234567890', '', 'Belum Menikah', '', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'TK', 1, '2025-03-25 21:44:45'),
 (19, '339AAE5F', '100012', '$2y$10$Fpx3nYVDsj97bWXkp5g5duTy//TbppRdY9v20wXke9OU8zYykMCP.', 'Catherine Wong S', 'SMA', 'Guru Sejarah', 'Tetap', '2025-03-25', 0, 0, 0.00, 'Mengajar Sejarah Indonesia', 'P', '2005-06-29', 19, 'Katolik', 'Klipang Raya', 'Klipang Raya', '512443563', '08182344848', 'S1 Sejarah', 'Belum Menikah', 'cathiew@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL),
-(20, 'M-005', '300005', 'e10adc3949ba59abbe56e057f20f883e', 'Diana Puspitasari', 'TK', 'Kepala Sekolah TK', 'Tetap', '2015-03-01', 10, 0, 10.00, 'Spesialis pendidikan anak usia dini', 'P', '1978-08-19', 46, 'Islam', 'Jl. Anggrek No. 12', 'Jl. Anggrek No. 12', '1122334455', '081112223344', 'S2 Pendidikan Anak', 'Menikah', 'diana.puspita@example.com', 'Bambang Puspito', 2, 'Rara', 'Dimas', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'P', 0, NULL),
+(20, 'M-005', '300005', 'e10adc3949ba59abbe56e057f20f883e', 'Diana Puspitasari', 'TK', 'Kepala Sekolah TK', 'Tetap', '2015-03-01', 10, 0, 10.00, 'Spesialis pendidikan anak usia dini', 'P', '1978-08-19', 46, 'Islam', 'Jl. Anggrek No. 12', 'Jl. Anggrek No. 12', '112233445', '081112223344', 'S2 Pendidikan Anak', 'Menikah', 'diana.puspita@example.com', 'Bambang Puspito', 2, 'Rara', 'Dimas', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'P', 0, NULL),
 (21, 'M-006', '300006', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Kurniawan', 'SD', 'Kepala Sekolah SD', 'Tetap', '2010-06-15', 14, 9, 14.00, 'Penggagas program literasi sekolah', 'L', '1975-11-05', 49, 'Kristen', 'Jl. Pendidikan No. 45', 'Jl. Pendidikan No. 45', '5544332211', '081334445566', 'S2 Manajemen Pendidikan', 'Menikah', 'hendra.kurnia@example.com', 'Linda Wijaya', 3, 'Kevin', 'Salsa', 'Rafi', 4, 'Level 3', 6000000.00, 'default.jpg', 'P', 0, NULL),
 (22, 'M-007', '300007', 'e10adc3949ba59abbe56e057f20f883e', 'Sri Wahyuni', 'SMP', 'Kepala Sekolah SMP', 'Tetap', '2013-02-20', 12, 1, 12.00, 'Penerapan kurikulum merdeka', 'P', '1980-04-30', 44, 'Islam', 'Jl. Cendrawasih No. 8', 'Jl. Cendrawasih No. 8', '6677889900', '081556677889', 'S2 Pendidikan Matematika', 'Menikah', 'sri.wahyuni@example.com', 'Ahmad Fauzi', 1, 'Budi', '', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'P', 0, NULL),
 (23, 'M-008', '300008', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hermawan', 'SMK 1', 'Kepala Sekolah SMK 1', 'Tetap', '2009-09-01', 15, 6, 15.00, 'Fokus pada link and match industri', 'L', '1972-12-12', 52, 'Katolik', 'Jl. Industri No. 22', 'Jl. Industri No. 22', '9988776655', '081778889900', 'S3 Teknik Mesin', 'Menikah', 'rudi.hermawan@example.com', 'Dewi Anggraeni', 2, 'Dika', 'Nina', '', 5, 'Level 4', 7000000.00, 'default.jpg', 'P', 0, NULL),
@@ -241,19 +241,10 @@ CREATE TABLE `employee_payheads` (
 --
 
 INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`, `remarks`, `support_doc_path`, `upload_file_blob`, `is_rapel`) VALUES
-(1, 25, 3, NULL, 100000.00, 'draft', NULL, NULL, NULL, 0),
-(2, 25, 5, NULL, 150000.00, 'draft', NULL, NULL, NULL, 0),
-(3, 25, 4, NULL, 250000.00, 'draft', NULL, NULL, NULL, 0),
-(4, 24, 3, NULL, 100000.00, 'draft', NULL, NULL, NULL, 1),
-(5, 24, 6, NULL, 150000.00, 'draft', NULL, NULL, NULL, 0),
-(6, 24, 4, NULL, 250000.00, 'draft', NULL, NULL, NULL, 0),
-(7, 24, 1, NULL, 150000.00, 'draft', NULL, NULL, NULL, 0),
-(8, 23, 3, 'earnings', 100000.00, 'draft', NULL, NULL, NULL, 1),
-(9, 23, 5, 'deductions', 150000.00, 'draft', NULL, NULL, NULL, 0),
-(10, 23, 6, 'earnings', 150000.00, 'draft', NULL, NULL, NULL, 0),
-(11, 23, 1, 'earnings', 150000.00, 'draft', NULL, NULL, NULL, 0),
-(12, 22, 3, 'earnings', 100000.00, 'draft', NULL, NULL, NULL, 0),
-(13, 22, 6, 'earnings', 150000.00, 'draft', NULL, NULL, NULL, 0);
+(1, 1, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 1),
+(2, 1, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(3, 1, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(4, 1, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -447,6 +438,19 @@ INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`, `nominal`) V
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `payhead_groups`
+--
+
+CREATE TABLE `payhead_groups` (
+  `id` int NOT NULL,
+  `group_name` varchar(255) NOT NULL,
+  `payhead_name` varchar(255) NOT NULL,
+  `jenis` enum('earnings','deductions') NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `payroll`
 --
 
@@ -473,11 +477,8 @@ CREATE TABLE `payroll` (
 --
 
 INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
-(1, 25, NULL, 3, 2025, 14000000.00, 0.00, 500000.00, 0.00, 13500000.00, '2025-04-05 16:14:44', '2025-04-05 16:14:00', '1357924680', '', 'draft'),
-(2, 24, NULL, 3, 2025, 10000000.00, 0.00, 550000.00, 0.00, 9450000.00, '2025-04-05 17:12:59', '2025-04-05 17:12:00', '1234098765', '', 'draft'),
-(3, 23, NULL, 3, 2025, 14000000.00, 300000.00, 150000.00, 0.00, 14150000.00, '2025-04-05 17:18:39', '2025-04-05 17:18:00', '9988776655', '', 'draft'),
-(4, 22, NULL, 3, 2025, 12000000.00, 250000.00, 0.00, 0.00, 12250000.00, '2025-04-05 17:45:41', '2025-04-05 17:45:00', '6677889900', '', 'draft'),
-(5, 22, 5, 3, 2025, 12000000.00, 250000.00, 0.00, 0.00, 12250000.00, '2025-04-05 17:56:29', '2025-04-06 00:56:00', '6677889900', '', 'final');
+(1, 1, NULL, 4, 2025, 6000000.00, 300000.00, 250000.00, 0.00, 6050000.00, '2025-04-06 11:01:46', '2025-04-06 18:01:46', '1234567890', '', 'draft'),
+(2, 1, 8, 4, 2025, 6000000.00, 300000.00, 250000.00, 50000.00, 6000000.00, '2025-04-06 11:02:49', '2025-04-06 18:02:00', '1234567890', 'Payroll Bulan April', 'final');
 
 -- --------------------------------------------------------
 
@@ -500,10 +501,13 @@ CREATE TABLE `payroll_detail` (
 --
 
 INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`) VALUES
-(1, 4, 22, 3, 'earnings', 100000.00, 'draft'),
-(2, 4, 22, 6, 'earnings', 150000.00, 'draft'),
-(3, 5, 22, 3, 'earnings', 100000.00, 'final'),
-(4, 5, 22, 6, 'earnings', 150000.00, 'final');
+(1, 1, 1, 4, 'deductions', 250000.00, 'draft'),
+(2, 1, 1, 6, 'earnings', 150000.00, 'draft'),
+(3, 1, 1, 1, 'earnings', 150000.00, 'draft'),
+(4, 2, 1, 3, 'earnings', 0.00, 'final'),
+(5, 2, 1, 4, 'deductions', 250000.00, 'final'),
+(6, 2, 1, 6, 'earnings', 150000.00, 'final'),
+(7, 2, 1, 1, 'earnings', 150000.00, 'final');
 
 -- --------------------------------------------------------
 
@@ -526,8 +530,9 @@ CREATE TABLE `payroll_detail_final` (
 --
 
 INSERT INTO `payroll_detail_final` (`id`, `id_payroll_final`, `id_payhead`, `nama_payhead`, `jenis`, `amount`, `is_rapel`) VALUES
-(1, 1, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
-(2, 1, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0);
+(1, 1, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(2, 1, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(3, 1, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0);
 
 -- --------------------------------------------------------
 
@@ -558,7 +563,7 @@ CREATE TABLE `payroll_final` (
 --
 
 INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
-(1, 22, 5, 3, 2025, 12000000.00, 250000.00, 0.00, 0.00, 12250000.00, '2025-04-06 00:56:00', '6677889900', '', '2025-04-05 17:56:29', 5);
+(1, 1, 8, 4, 2025, 6000000.00, 300000.00, 250000.00, 50000.00, 6000000.00, '2025-04-06 18:02:00', '1234567890', 'Payroll Bulan April', '2025-04-06 11:02:49', 2);
 
 -- --------------------------------------------------------
 
@@ -641,7 +646,10 @@ CREATE TABLE `rekap_absensi` (
 
 INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`, `total_izin`, `total_cuti`, `total_tanpa_keterangan`, `total_sakit`) VALUES
 (1, 5, 3, 2025, 5, 1, 0, 1, 0),
-(5, 22, 3, 2025, 0, 0, 0, 0, 0);
+(5, 22, 3, 2025, 0, 0, 0, 0, 0),
+(6, 21, 3, 2025, 28, 2, 0, 0, 0),
+(7, 19, 3, 2025, 28, 1, 1, 0, 0),
+(8, 1, 4, 2025, 27, 1, 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -802,6 +810,13 @@ ALTER TABLE `payheads`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `payhead_groups`
+--
+ALTER TABLE `payhead_groups`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_group_payhead` (`group_name`,`payhead_name`);
+
+--
 -- Indexes for table `payroll`
 --
 ALTER TABLE `payroll`
@@ -892,7 +907,7 @@ ALTER TABLE `audit_logs`
 -- AUTO_INCREMENT for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -919,16 +934,22 @@ ALTER TABLE `payheads`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
+-- AUTO_INCREMENT for table `payhead_groups`
+--
+ALTER TABLE `payhead_groups`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail_final`
@@ -952,7 +973,7 @@ ALTER TABLE `pengajuan_ijin`
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `rekap_mingguan`

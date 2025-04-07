@@ -409,30 +409,22 @@ function GetAllPayheads($conn)
 function AssignPayheadsToEmployee($conn)
 {
     verify_csrf_token($_POST['csrf_token'] ?? '');
-
-    $empcode     = intval($_POST['empcode'] ?? 0);
-    $payheads    = isset($_POST['payheads']) ? json_decode($_POST['payheads'], true) : [];
+    $empcode = intval($_POST['empcode'] ?? 0);
+    $payheads = isset($_POST['payheads']) ? json_decode($_POST['payheads'], true) : [];
     $pay_amounts = isset($_POST['pay_amounts']) ? json_decode($_POST['pay_amounts'], true) : [];
-    $remarksArr  = $_POST['remarks'] ?? [];
-    $rapels      = isset($_POST['rapels']) ? json_decode($_POST['rapels'], true) : [];
-
-    // Audit log
-    $user_nip   = $_SESSION['nip'] ?? '';
+    $remarksArr = $_POST['remarks'] ?? [];
+    $rapels = isset($_POST['rapels']) ? json_decode($_POST['rapels'], true) : [];
+    $user_nip = $_SESSION['nip'] ?? '';
     $detailsLog = "AssignPayheadsToEmployee: empcode=$empcode, total payheads=" . count($payheads);
     add_audit_log($conn, $user_nip, 'AssignPayheadsToEmployee', $detailsLog);
-
-    // Ambil nilai bulan & tahun (untuk data rapel)
     $selectedMonth = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : date('n');
-    $selectedYear  = isset($_POST['selectedYear'])  ? intval($_POST['selectedYear'])  : date('Y');
-
+    $selectedYear = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : date('Y');
     if ($empcode <= 0) {
         send_response(1, 'ID anggota tidak valid.');
     }
     if (empty($payheads)) {
         send_response(1, 'Tidak ada payheads yang dipilih.');
     }
-
-    // Ambil data payheads lama
     $sqlOld = "SELECT * FROM employee_payheads WHERE id_anggota = ?";
     $stmtOld = $conn->prepare($sqlOld);
     $stmtOld->bind_param("i", $empcode);
@@ -443,8 +435,6 @@ function AssignPayheadsToEmployee($conn)
         $oldPayheads[$op['id_payhead']] = $op;
     }
     $stmtOld->close();
-
-    // Ambil NIP (untuk penamaan file)
     $stmtNip = $conn->prepare("SELECT nip FROM anggota_sekolah WHERE id=? LIMIT 1");
     $stmtNip->bind_param("i", $empcode);
     $stmtNip->execute();
@@ -453,29 +443,42 @@ function AssignPayheadsToEmployee($conn)
         send_response(1, "Anggota dengan ID $empcode tidak ditemukan.");
     }
     $rowNip = $resNip->fetch_assoc();
-    $nip    = $rowNip['nip'];
+    $nip = $rowNip['nip'];
     $stmtNip->close();
-
-    // Ambil nilai bulan untuk nama file (opsional)
     $bulanVal = isset($_POST['bulanVal']) ? intval($_POST['bulanVal']) : date('n');
-
-    // Siapkan statement untuk cek master payheads
     $stmtGet = $conn->prepare("SELECT jenis, nama_payhead, nominal FROM payheads WHERE id = ? LIMIT 1");
-
-    // Siapkan statement untuk INSERT dan UPDATE (hanya sekali)
-    $sqlInsert = "INSERT INTO employee_payheads
-        (id_anggota, id_payhead, jenis, amount, status, remarks, support_doc_path, upload_file_blob, is_rapel)
-        VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?)";
+    $sqlInsert = "INSERT INTO employee_payheads (id_anggota, id_payhead, jenis, amount, status, remarks, support_doc_path, upload_file_blob, is_rapel) VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?)";
     $stmtIns = $conn->prepare($sqlInsert);
-
-    $sqlUpdate = "UPDATE employee_payheads
-        SET amount = ?, remarks = ?, support_doc_path = ?, upload_file_blob = ?, is_rapel = ?
-        WHERE id_anggota = ? AND id_payhead = ?";
+    $sqlUpdate = "UPDATE employee_payheads SET amount = ?, remarks = ?, support_doc_path = ?, upload_file_blob = ?, is_rapel = ? WHERE id_anggota = ? AND id_payhead = ?";
     $stmtUpd = $conn->prepare($sqlUpdate);
-
     $conn->begin_transaction();
     try {
-        // 1. Hapus payhead lama yang tidak lagi dipilih
+        if (isset($_POST['chkKenaikanGajiTahunan']) && $_POST['chkKenaikanGajiTahunan'] == '1') {
+            $namaKenaikan = trim($_POST['nama_kenaikan'] ?? '');
+            $nominalKenaikan = floatval(str_replace(['.', ','], ['', '.'], $_POST['nominal_kenaikan'] ?? '0'));
+            $tanggalPayroll = $_POST['tanggal_payroll'] ?? date('Y-m-d H:i:s');
+            $startDate = date('Y-m-01', strtotime($tanggalPayroll));
+            $endDate = date('Y-m-d', strtotime('+1 year -1 day', strtotime($startDate)));
+            $stmtKG = $conn->prepare("INSERT INTO kenaikan_gaji_tahunan (id_anggota, nama_kenaikan, jumlah, tanggal_mulai, tanggal_berakhir, status) VALUES (?, ?, ?, ?, ?, 'aktif')");
+            $stmtKG->bind_param("isdss", $empcode, $namaKenaikan, $nominalKenaikan, $startDate, $endDate);
+            $stmtKG->execute();
+            $stmtKG->close();
+            // Jika ingin juga memasukkannya ke employee_payheads agar tampil di rekap payroll selama setahun,
+            // misalnya id payhead untuk kenaikan gaji adalah 100:
+            $idPayheadKenaikan = 100;
+$earningsStr = "earnings";
+$emptyStr    = "";   // variabel untuk string kosong
+$zeroValue   = 0;    // variabel untuk nilai nol
+
+if (!isset($oldPayheads[$idPayheadKenaikan])) {
+    $stmtIns->bind_param("iisdssbi", $empcode, $idPayheadKenaikan, $earningsStr, $nominalKenaikan, $namaKenaikan, $emptyStr, $emptyStr, $zeroValue);
+    $stmtIns->execute();
+} else {
+    $stmtUpd->bind_param("dssbiii", $nominalKenaikan, $namaKenaikan, $emptyStr, $emptyStr, $zeroValue, $empcode, $idPayheadKenaikan);
+    $stmtUpd->execute();
+}
+
+        }
         foreach ($oldPayheads as $oldPid => $oldRow) {
             if (!in_array($oldPid, $payheads)) {
                 $stmtDel = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota = ? AND id_payhead = ?");
@@ -484,32 +487,24 @@ function AssignPayheadsToEmployee($conn)
                 $stmtDel->close();
             }
         }
-
-        // 2. Loop setiap payhead yang dipilih user
         foreach ($payheads as $pid) {
             $pidInt = intval($pid);
             $rawAmount = $pay_amounts[$pidInt] ?? '0';
             $numericAmount = floatval(str_replace(['.', ','], ['', '.'], $rawAmount));
             $remarkForThis = $remarksArr[$pidInt] ?? '';
             $isRapel = isset($rapels[$pidInt]) ? intval($rapels[$pidInt]) : 0;
-
-            // Data rapel tidak tersimpan di tabel, sehingga tidak digunakan pada query INSERT/UPDATE.
-            // Namun, variabel-variabel ini dapat digunakan untuk keperluan lain (misalnya file upload) jika diperlukan.
             if ($isRapel) {
                 $rapelStartMonth = $selectedMonth;
-                $rapelStartYear  = $selectedYear;
+                $rapelStartYear = $selectedYear;
                 $rapelMonthlyAmt = $numericAmount;
             } else {
                 $rapelStartMonth = null;
-                $rapelStartYear  = null;
+                $rapelStartYear = null;
                 $rapelMonthlyAmt = 0.00;
             }
-
             $path_file = '';
-            $fileBlob  = null;
-            $nullBlob  = null; // untuk parameter BLOB
-
-            // Cek data master payheads
+            $fileBlob = null;
+            $nullBlob = null;
             $stmtGet->bind_param("i", $pidInt);
             $stmtGet->execute();
             $resG = $stmtGet->get_result();
@@ -518,15 +513,11 @@ function AssignPayheadsToEmployee($conn)
             }
             $rowG = $resG->fetch_assoc();
             $jenisPay = $rowG['jenis'];
-
-            // Jika payhead sudah pernah ada, ambil data lama
             $alreadyExists = isset($oldPayheads[$pidInt]);
             if ($alreadyExists) {
                 $path_file = $oldPayheads[$pidInt]['support_doc_path'];
-                $fileBlob  = $oldPayheads[$pidInt]['upload_file_blob'];
+                $fileBlob = $oldPayheads[$pidInt]['upload_file_blob'];
             }
-
-            // Proses file upload (jika ada)
             $fArr = $_FILES['upload_file'] ?? null;
             if ($fArr && isset($fArr['name'][$pidInt]) && !empty($fArr['name'][$pidInt])) {
                 $errCode = $fArr['error'][$pidInt];
@@ -545,13 +536,7 @@ function AssignPayheadsToEmployee($conn)
                     $finfo = finfo_open(FILEINFO_MIME_TYPE);
                     $mimeType = finfo_file($finfo, $tmpName);
                     finfo_close($finfo);
-                    $allowedMimes = [
-                        'application/pdf',
-                        'application/msword',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'image/jpeg',
-                        'image/png'
-                    ];
+                    $allowedMimes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
                     if (!in_array($mimeType, $allowedMimes)) {
                         throw new Exception("File payhead $pidInt: MIME $mimeType tidak valid.");
                     }
@@ -570,17 +555,13 @@ function AssignPayheadsToEmployee($conn)
                     $fileBlob = file_get_contents($destPath);
                 }
             }
-
-            // 3. Jika payhead sudah ada, UPDATE; jika belum, INSERT
             if ($alreadyExists) {
-                // Bind parameter dan eksekusi UPDATE
                 $stmtUpd->bind_param("dssbiii", $numericAmount, $remarkForThis, $path_file, $nullBlob, $isRapel, $empcode, $pidInt);
                 if ($fileBlob !== null) {
                     $stmtUpd->send_long_data(3, $fileBlob);
                 }
                 $stmtUpd->execute();
             } else {
-                // Bind parameter dan eksekusi INSERT
                 $stmtIns->bind_param("iisdssbi", $empcode, $pidInt, $jenisPay, $numericAmount, $remarkForThis, $path_file, $nullBlob, $isRapel);
                 if ($fileBlob !== null) {
                     $stmtIns->send_long_data(6, $fileBlob);
@@ -588,7 +569,6 @@ function AssignPayheadsToEmployee($conn)
                 $stmtIns->execute();
             }
         }
-
         $stmtGet->close();
         $stmtIns->close();
         $stmtUpd->close();
@@ -599,6 +579,7 @@ function AssignPayheadsToEmployee($conn)
         send_response(1, 'Gagal menugaskan payheads: ' . $ex->getMessage());
     }
 }
+
 
 
 /**
@@ -770,7 +751,7 @@ function ViewEmployeeDetail($conn)
     }
     $selectedMonth = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : date('n');
     $selectedYear  = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : date('Y');
-    
+
     // Ambil parameter tambahan untuk include rapel (default 0 = tidak include)
     $includeRapel = isset($_POST['includeRapel']) ? intval($_POST['includeRapel']) : 0;
 
@@ -980,6 +961,21 @@ if ($resMon) {
                 'tahun' => intval($rm['tahun'])
             ];
         }
+    }
+}
+
+$kgData = null;
+if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
+    $empId = intval($_GET['empcode']);
+    $stmtKg = $conn->prepare("SELECT * FROM kenaikan_gaji_tahunan WHERE id_anggota = ? ORDER BY tanggal_mulai DESC LIMIT 1");
+    if ($stmtKg) {
+        $stmtKg->bind_param("i", $empId);
+        $stmtKg->execute();
+        $resKg = $stmtKg->get_result();
+        if ($resKg && $resKg->num_rows > 0) {
+            $kgData = $resKg->fetch_assoc();
+        }
+        $stmtKg->close();
     }
 }
 ?>
@@ -1302,99 +1298,114 @@ if ($resMon) {
     </div>
 
     <!-- MODAL: View Detail anggota -->
-    <div class="modal fade" id="viewDetailModal" tabindex="-1" aria-labelledby="viewDetailModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="viewDetailModalLabel"><i class="bi bi-eye-fill"></i> Detail anggota</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                </div>
-                <div class="modal-body">
-                    <table class="table table-bordered">
-                        <tr>
-                            <th>ID</th>
-                            <td id="detailId"></td>
-                        </tr>
-                        <tr>
-                            <th>UID</th>
-                            <td id="detailUid"></td>
-                        </tr>
-                        <tr>
-                            <th>NIP</th>
-                            <td id="detailNip"></td>
-                        </tr>
-                        <tr>
-                            <th>Nama</th>
-                            <td id="detailNama"></td>
-                        </tr>
-                        <tr>
-                            <th>Jenjang Pendidikan</th>
-                            <td id="detailJenjang"></td>
-                        </tr>
-                        <tr>
-                            <th>Role</th>
-                            <td id="detailRole"></td>
-                        </tr>
-                        <tr>
-                            <th>Job Title</th>
-                            <td id="detailJobTitle"></td>
-                        </tr>
-                        <tr>
-                            <th>Status Kerja</th>
-                            <td id="detailStatusKerja"></td>
-                        </tr>
-                        <tr>
-                            <th>Masa Kerja</th>
-                            <td id="detailMasaKerja"></td>
-                        </tr>
-                        <tr>
-                            <th>No Rekening</th>
-                            <td id="detailNoRekening"></td>
-                        </tr>
-                        <tr>
-                            <th>Email</th>
-                            <td id="detailEmail"></td>
-                        </tr>
-                        <tr>
-                            <th>Jenis Kelamin</th>
-                            <td id="detailJenisKelamin"></td>
-                        </tr>
-                        <tr>
-                            <th>Agama</th>
-                            <td id="detailAgama"></td>
-                        </tr>
-                        <tr>
-                            <th>Gaji Pokok</th>
-                            <td id="detailGajiPokok"></td>
-                        </tr>
-                        <tr>
-                            <th>Nominal Level Indeks</th>
-                            <td id="detailSalaryIndexNominal"></td>
-                        </tr>
-                        <tr>
-                            <th>Payheads</th>
-                            <td id="detailPayheads"></td>
-                        </tr>
-                        <tr>
-                            <th>Total Pendapatan</th>
-                            <td id="detailTotalPendapatan"></td>
-                        </tr>
-                        <tr>
-                            <th>Total Potongan</th>
-                            <td id="detailTotalPotongan"></td>
-                        </tr>
-                        <tr>
-                            <th>Gaji Bersih</th>
-                            <td id="detailGajiBersih"></td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Tutup</button>
-                </div>
+<div class="modal fade" id="viewDetailModal" tabindex="-1" aria-labelledby="viewDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewDetailModalLabel"><i class="bi bi-eye-fill"></i> Detail anggota</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered">
+                    <!-- Baris-baris informasi yang sudah ada -->
+                    <tr>
+                        <th>ID</th>
+                        <td id="detailId"></td>
+                    </tr>
+                    <tr>
+                        <th>UID</th>
+                        <td id="detailUid"></td>
+                    </tr>
+                    <tr>
+                        <th>NIP</th>
+                        <td id="detailNip"></td>
+                    </tr>
+                    <tr>
+                        <th>Nama</th>
+                        <td id="detailNama"></td>
+                    </tr>
+                    <tr>
+                        <th>Jenjang Pendidikan</th>
+                        <td id="detailJenjang"></td>
+                    </tr>
+                    <tr>
+                        <th>Role</th>
+                        <td id="detailRole"></td>
+                    </tr>
+                    <tr>
+                        <th>Job Title</th>
+                        <td id="detailJobTitle"></td>
+                    </tr>
+                    <tr>
+                        <th>Status Kerja</th>
+                        <td id="detailStatusKerja"></td>
+                    </tr>
+                    <tr>
+                        <th>Masa Kerja</th>
+                        <td id="detailMasaKerja"></td>
+                    </tr>
+                    <tr>
+                        <th>No Rekening</th>
+                        <td id="detailNoRekening"></td>
+                    </tr>
+                    <tr>
+                        <th>Email</th>
+                        <td id="detailEmail"></td>
+                    </tr>
+                    <tr>
+                        <th>Jenis Kelamin</th>
+                        <td id="detailJenisKelamin"></td>
+                    </tr>
+                    <tr>
+                        <th>Agama</th>
+                        <td id="detailAgama"></td>
+                    </tr>
+                    <tr>
+                        <th>Gaji Pokok</th>
+                        <td id="detailGajiPokok"></td>
+                    </tr>
+                    <tr>
+                        <th>Nominal Level Indeks</th>
+                        <td id="detailSalaryIndexNominal"></td>
+                    </tr>
+                    <tr>
+                        <th>Payheads</th>
+                        <td id="detailPayheads"></td>
+                    </tr>
+                    <tr>
+                        <th>Total Pendapatan</th>
+                        <td id="detailTotalPendapatan"></td>
+                    </tr>
+                    <tr>
+                        <th>Total Potongan</th>
+                        <td id="detailTotalPotongan"></td>
+                    </tr>
+                    <tr>
+                        <th>Gaji Bersih</th>
+                        <td id="detailGajiBersih"></td>
+                    </tr>
+                    <!-- MODIFIKASI: Baris Kenaikan Gaji Tahunan (read-only) -->
+                    <tr>
+                        <th>Kenaikan Gaji Tahunan</th>
+                        <td>
+                            <?php if ($kgData): ?>
+                                <?= htmlspecialchars($kgData['nama_kenaikan']); ?> (Rp <?= number_format($kgData['jumlah'], 2, ',', '.'); ?>)<br>
+                                <small><?= date('d M Y', strtotime($kgData['tanggal_mulai'])) . ' - ' . date('d M Y', strtotime($kgData['tanggal_berakhir'])); ?></small>
+                            <?php else: ?>
+                                <em>Tidak ada kenaikan gaji tahunan</em>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <!-- END MODIFIKASI -->
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Tutup</button>
             </div>
         </div>
     </div>
+</div>
+
 
     <!-- MODAL: Review Rekap Absensi -->
     <div class="modal fade" id="rekapReviewModal" tabindex="-1" aria-labelledby="rekapReviewModalLabel" aria-hidden="true">

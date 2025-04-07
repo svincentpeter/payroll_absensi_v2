@@ -36,6 +36,94 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
         .file-label {
             cursor: pointer;
         }
+
+        /* ----- Umum & Card Layout ----- */
+.card {
+  border-radius: 6px;
+}
+.card-header {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+.card-body {
+  padding: 1rem;
+}
+.card-footer {
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+/* ----- Table Payheads ----- */
+#selected_payamount_table {
+  font-size: 14px;
+}
+#selected_payamount_table thead th {
+  text-align: center;
+  vertical-align: middle;
+  background-color: #f8f9fa; /* Warna latar kepala tabel */
+}
+#selected_payamount_table tbody td {
+  vertical-align: middle;
+}
+
+/* Buat kolom 'Nominal' lebih sempit */
+#selected_payamount_table th:nth-child(3),
+#selected_payamount_table td:nth-child(3) {
+  width: 100px;  /* atur sesuai kebutuhan, misalnya 80-120px */
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Kolom 'Upload Dokumen' bisa diperkecil juga */
+#selected_payamount_table th:nth-child(6),
+#selected_payamount_table td:nth-child(6) {
+  width: 130px; 
+}
+
+/* Kolom 'Keterangan' agar cukup luas */
+#selected_payamount_table th:nth-child(4),
+#selected_payamount_table td:nth-child(4) {
+  width: 25%;
+  word-wrap: break-word;
+}
+
+/* ----- Bagian Check / Kenaikan Gaji Tahunan ----- */
+.form-check-input {
+  cursor: pointer;
+}
+#kenaikanGajiTahunanFields {
+  margin-top: 1rem;
+  border: 1px dashed #ccc;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #fefefe;
+}
+
+/* Agar label 'Aktifkan Kenaikan Gaji Tahunan' terlihat lebih jelas */
+#chkKenaikanGajiTahunan + .form-check-label {
+  font-weight: 500;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+/* ----- Kolom-kolom ringkas ----- */
+.form-control {
+  font-size: 14px;
+  padding: 6px 8px;
+}
+
+/* Ukuran input Nominal Kenaikan lebih ringkas */
+#inputNominalKenaikan {
+  max-width: 120px; /* Anda bisa sesuaikan */
+}
+
+/* ----- Kartu Rekap Absensi ----- */
+.card-body.text-center.p-2 p {
+  font-size: 16px;
+  margin: 0;
+  font-weight: bold;
+}
+
     </style>
     <script>
         const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
@@ -145,6 +233,38 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
                                 </div>
                             </div>
                             <!-- End Row 1 -->
+                            <!-- Mulai Card Kenaikan Gaji Tahunan (Versi Ringkas) -->
+<div class="card border-danger mb-2" style="border-width:1px; font-size:13px;">
+  <div class="card-header bg-danger text-white py-1 px-2 d-flex align-items-center" style="font-size:13px;">
+    <i class="bi bi-arrow-up-right-circle me-1"></i>
+    <span>Kenaikan Gaji Tahunan (1 Tahun)</span>
+  </div>
+  <div class="card-body py-2 px-2" style="background-color: #fff8f8;">
+    <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox" id="chkKenaikanGajiTahunan" name="chkKenaikanGajiTahunan" value="1">
+      <label class="form-check-label fw-bold ms-1" for="chkKenaikanGajiTahunan" style="font-size:13px;">
+        Aktifkan Kenaikan Gaji Tahunan
+      </label>
+    </div>
+    <div id="kenaikanGajiTahunanFields" style="display:none;">
+      <div class="row g-1">
+        <div class="col-md-6 mb-2">
+          <label class="mb-0" style="font-size:13px;">Nama Kenaikan (misal 2024/2025)</label>
+          <input type="text" class="form-control form-control-sm" 
+                 id="inputNamaKenaikan" name="nama_kenaikan" 
+                 placeholder="Kenaikan Gaji 2024/2025">
+        </div>
+        <div class="col-md-6 mb-2">
+          <label class="mb-0" style="font-size:13px;">Nominal Kenaikan</label>
+          <input type="text" class="form-control form-control-sm currency-input" 
+                 id="inputNominalKenaikan" name="nominal_kenaikan" placeholder="0">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Card Kenaikan Gaji Tahunan -->
+
 
                             <!-- Row 2: Rekap Absensi -->
                             <div class="row g-3 mb-4 justify-content-center">
@@ -207,6 +327,7 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
                                         </div>
                                     </div>
                                 </div>
+                                
                                 <!-- Payheads Terpilih -->
                                 <div class="col-md-9">
                                     <div class="card border-success">
@@ -396,6 +517,14 @@ function showToast(message, icon = 'success') {
             console.error('Error saat ambil payheads:', error);
         }
     });
+
+    $('#chkKenaikanGajiTahunan').on('change', function(){
+    if ($(this).is(':checked')) {
+      $('#kenaikanGajiTahunanFields').show();
+    } else {
+      $('#kenaikanGajiTahunanFields').hide();
+    }
+  });
 
     // Fungsi load rekap absensi
     function loadRekapAbsensi(id_anggota, role) {

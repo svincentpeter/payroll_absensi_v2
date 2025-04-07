@@ -762,3 +762,10 @@ function close_db_connection()
         $conn = null;
     }
 }
+
+// Tambahkan fungsi formatNominal jika belum ada di helpers.php
+if (!function_exists('formatNominal')) {
+    function formatNominal($angka) {
+        return 'Rp ' . number_format($angka, 0, ',', '.');
+    }
+}
