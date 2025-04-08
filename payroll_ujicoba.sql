@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 06, 2025 at 02:07 PM
+-- Generation Time: Apr 07, 2025 at 05:27 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -217,6 +217,314 @@ CREATE TABLE `audit_logs` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `audit_logs`
+--
+
+INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
+(1, '300004', 'AssignPayheadsToEmployee', 'AssignPayheadsToEmployee: empcode=2, total payheads=2', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:32:33'),
+(2, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 2 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:37:16'),
+(3, '300004', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:37:16'),
+(4, '300004', 'ViewRekapAbsensi', 'id_anggota=2, bulan=4, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:37:16'),
+(5, '300004', 'AssignPayheadsToEmployee', 'AssignPayheadsToEmployee: empcode=2, total payheads=5', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:37:58'),
+(6, '300004', 'AssignPayheadsToEmployee', 'AssignPayheadsToEmployee: empcode=2, total payheads=5', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:38:46'),
+(7, '300004', 'ProcessPayroll', 'SDM memproses payroll => draft, anggota ID = 2, oleh 300004. (payroll_id=4)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:38:46'),
+(8, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:38:47'),
+(9, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:38:47'),
+(10, '300004', 'LoadingEmployees', 'start=20, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:38:51'),
+(11, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 2 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:38:52'),
+(12, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 4/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:39:03'),
+(13, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 2 pada bulan 4 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:39:04'),
+(14, '300004', 'InsertPayroll', 'Finalisasi Payroll untuk Anggota 2 periode 4-2025. Pendapatan: Rp 500.000,00, Potongan: Rp 375.000,00, Pot. Koperasi: Rp 25.000,00, Gaji Bersih: Rp 10.100.000,00', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:39:22'),
+(15, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:40:46'),
+(16, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:40:47'),
+(17, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:40:47'),
+(18, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:31'),
+(19, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:31'),
+(20, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:31'),
+(21, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:37'),
+(22, '300004', 'ApplyFilter', 'Filter diterapkan: Jenjang=Semua, Bulan=4, Tahun=Semua.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:37'),
+(23, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:38'),
+(24, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:38'),
+(25, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:54'),
+(26, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:54'),
+(27, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:47:54'),
+(28, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:51'),
+(29, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:51'),
+(30, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:51'),
+(31, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:56'),
+(32, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:56'),
+(33, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:56'),
+(34, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:58'),
+(35, '300004', 'ShowAllRecap', 'Menampilkan semua rekapan (semua bulan).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:58'),
+(36, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:58'),
+(37, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:58'),
+(38, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:59'),
+(39, '300004', 'ShowAllRecap', 'Menampilkan semua rekapan (semua bulan).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:59'),
+(40, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:59'),
+(41, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:53:59'),
+(42, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:54:01'),
+(43, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:54:02'),
+(44, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:54:02'),
+(45, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:54:18'),
+(46, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:54:18'),
+(47, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 16:54:18'),
+(48, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:44'),
+(49, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:45'),
+(50, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:45'),
+(51, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:49'),
+(52, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:49'),
+(53, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:52'),
+(54, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:52'),
+(55, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:54'),
+(56, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:55'),
+(57, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:01:55'),
+(58, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:00'),
+(59, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:00'),
+(60, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:00'),
+(61, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:01'),
+(62, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:01'),
+(63, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:01'),
+(64, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:03'),
+(65, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:05'),
+(66, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:05'),
+(67, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:05'),
+(68, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:06'),
+(69, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:06'),
+(70, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:06'),
+(71, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:11'),
+(72, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:02:13'),
+(73, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:08:00'),
+(74, '300004', 'ApplyFilter', 'Filter diterapkan: Jenjang=Semua, Bulan=4, Tahun=2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:08:00'),
+(75, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:08:00'),
+(76, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:08:00'),
+(77, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:08:01'),
+(78, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:08:02'),
+(79, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:08:02'),
+(80, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:12:03'),
+(81, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:24'),
+(82, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:24'),
+(83, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:24'),
+(84, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:27'),
+(85, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:27'),
+(86, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:27'),
+(87, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:28'),
+(88, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:28'),
+(89, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:15:28'),
+(90, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:31'),
+(91, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:31'),
+(92, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:31'),
+(93, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:34'),
+(94, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:34'),
+(95, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:34'),
+(96, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:35'),
+(97, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:36'),
+(98, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:36'),
+(99, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:36'),
+(100, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:37'),
+(101, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:37'),
+(102, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:38'),
+(103, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:38'),
+(104, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:18:38'),
+(105, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:17'),
+(106, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:17'),
+(107, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:17'),
+(108, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:19'),
+(109, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:19'),
+(110, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:19'),
+(111, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:30'),
+(112, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:30'),
+(113, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:30'),
+(114, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 4/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:33'),
+(115, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:34'),
+(116, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:34'),
+(117, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:34'),
+(118, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:35'),
+(119, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:36'),
+(120, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-06 17:23:36'),
+(121, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login dengan role \'M\' dan job_title \'Superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:36:37'),
+(122, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:36:48'),
+(123, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:36:49'),
+(124, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:36:49'),
+(125, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:36:57'),
+(126, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:36:58'),
+(127, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:36:58'),
+(128, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:05'),
+(129, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:06'),
+(130, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:06'),
+(131, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:16'),
+(132, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:16'),
+(133, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:16'),
+(134, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:20'),
+(135, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:20'),
+(136, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:20'),
+(137, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:22'),
+(138, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:22'),
+(139, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:46:22'),
+(140, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:56:25'),
+(141, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:56:25'),
+(142, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 03:56:25'),
+(143, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1', '2025-04-07 04:01:22'),
+(144, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1', '2025-04-07 04:01:23'),
+(145, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1', '2025-04-07 04:01:23'),
+(146, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:51'),
+(147, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:51'),
+(148, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:51'),
+(149, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:52'),
+(150, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:53'),
+(151, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:53'),
+(152, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:54'),
+(153, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:54'),
+(154, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:54'),
+(155, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:55'),
+(156, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:55'),
+(157, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:55'),
+(158, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:56'),
+(159, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:56'),
+(160, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:56'),
+(161, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:57'),
+(162, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:57'),
+(163, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:57'),
+(164, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:57'),
+(165, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:58'),
+(166, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:58'),
+(167, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:58'),
+(168, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:58'),
+(169, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:07:58'),
+(170, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:08'),
+(171, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:08'),
+(172, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:08'),
+(173, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:10'),
+(174, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:10'),
+(175, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:10'),
+(176, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:24'),
+(177, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:25'),
+(178, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:25'),
+(179, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:26'),
+(180, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:26'),
+(181, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:26'),
+(182, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:28'),
+(183, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:28'),
+(184, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:28'),
+(185, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:28'),
+(186, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:29'),
+(187, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:13:29'),
+(188, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:00'),
+(189, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:00'),
+(190, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:00'),
+(191, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:02'),
+(192, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:02');
+INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
+(193, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:02'),
+(194, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:04'),
+(195, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:05'),
+(196, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:05'),
+(197, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:09'),
+(198, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:09'),
+(199, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 19 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:18'),
+(200, '300004', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:18'),
+(201, '300004', 'ViewRekapAbsensi', 'id_anggota=19, bulan=4, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:18'),
+(202, '300004', 'AssignPayheadsToEmployee', 'AssignPayheadsToEmployee: empcode=19, total payheads=4', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:39'),
+(203, '300004', 'ProcessPayroll', 'SDM memproses payroll => draft, anggota ID = 19, oleh 300004. (payroll_id=6)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:39'),
+(204, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:40'),
+(205, '300004', 'LoadingEmployees', 'start=0, length=10, filter role=, jenjang=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:40'),
+(206, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 19 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:42'),
+(207, '300004', 'ViewEmployeeDetail', 'Melihat detail anggota ID 19 (oleh 300004).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:44'),
+(208, '300004', 'ViewPayrollOverview', 'User dengan NIP 300004 melihat overview payroll untuk periode: 4/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:54'),
+(209, '300004', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 19 pada bulan 4 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:27:56'),
+(210, '300004', 'InsertPayroll', 'Finalisasi Payroll untuk Anggota 19 periode 4-2025. Pendapatan: Rp 550.000,00, Potongan: Rp 250.000,00, Pot. Koperasi: Rp 50.000,00, Gaji Bersih: Rp 6.250.000,00', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:17'),
+(211, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:22'),
+(212, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:22'),
+(213, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:22'),
+(214, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:23'),
+(215, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:24'),
+(216, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:24'),
+(217, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:26'),
+(218, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:27'),
+(219, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:27'),
+(220, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:28:36'),
+(221, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:06'),
+(222, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:06'),
+(223, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:06'),
+(224, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:08'),
+(225, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:08'),
+(226, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:08'),
+(227, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:12'),
+(228, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:12'),
+(229, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:12'),
+(230, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:13'),
+(231, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:14'),
+(232, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:14'),
+(233, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:28'),
+(234, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:28'),
+(235, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:28'),
+(236, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:29'),
+(237, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:29'),
+(238, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:29'),
+(239, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:30'),
+(240, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:30'),
+(241, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:30'),
+(242, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:31'),
+(243, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:31'),
+(244, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:48:31'),
+(245, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:27'),
+(246, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:27'),
+(247, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:27'),
+(248, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:29'),
+(249, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:29'),
+(250, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:29'),
+(251, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:46'),
+(252, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:46'),
+(253, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:49:46'),
+(254, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:50:36'),
+(255, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:50:36'),
+(256, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:50:36'),
+(257, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:56:51'),
+(258, '300004', 'ShowAllRecap', 'Menampilkan semua rekapan (semua bulan).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:56:51'),
+(259, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:56:51'),
+(260, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:56:51'),
+(261, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:56:54'),
+(262, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:56:54'),
+(263, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:56:54'),
+(264, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:58:30'),
+(265, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:58:31'),
+(266, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:58:31'),
+(267, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:59:45'),
+(268, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:59:46'),
+(269, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:59:46'),
+(270, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:59:53'),
+(271, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:59:53'),
+(272, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:59:53'),
+(273, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 04:59:55'),
+(274, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 05:00:45'),
+(275, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 05:00:46'),
+(276, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 05:00:46'),
+(277, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 05:18:03'),
+(278, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 05:18:03'),
+(279, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 05:18:03'),
+(280, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login dengan role \'M\' dan job_title \'Superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:04'),
+(281, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:07'),
+(282, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:08'),
+(283, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:08'),
+(284, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:15'),
+(285, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:16'),
+(286, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:16'),
+(287, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:27'),
+(288, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:27'),
+(289, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:27'),
+(290, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMP\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:28'),
+(291, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:28'),
+(292, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:10:28'),
+(293, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:22'),
+(294, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:22'),
+(295, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:22'),
+(296, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:22'),
+(297, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:22'),
+(298, '300004', 'LoadingRekapPayroll', 'Pengguna dengan NIP 300004 memuat data rekap payroll.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:22'),
+(299, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SD\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:24'),
+(300, '300004', 'AccessPage', 'Pengguna dengan NIP 300004 dan peran \'M\' mengakses halaman Rekap Payroll Details untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:24'),
+(301, '300004', 'LoadingRekapPayrollDetails', 'Pengguna dengan NIP 300004 memuat detail rekap payroll untuk jenjang \'SMA\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36', '2025-04-07 17:19:24');
+
 -- --------------------------------------------------------
 
 --
@@ -244,7 +552,21 @@ INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amo
 (1, 1, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 1),
 (2, 1, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
 (3, 1, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
-(4, 1, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0);
+(4, 1, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(5, 25, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(6, 25, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(7, 25, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(13, 2, 100, 'earnings', 200000.00, 'draft', 'Kenaikan Gaji 2024/2025', '', '', 0),
+(14, 2, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 1),
+(15, 2, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(16, 2, 2, 'deductions', 125000.00, 'draft', '', '', NULL, 0),
+(17, 2, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(18, 2, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(19, 19, 100, 'earnings', 150000.00, 'draft', 'Kenaikan Gaji 2024/2025', '', '', 0),
+(20, 19, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(21, 19, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(22, 19, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(23, 19, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -365,6 +687,32 @@ INSERT INTO `jadwal_piket` (`id_jadwal`, `nip`, `nama_guru`, `waktu_piket`, `tan
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `kenaikan_gaji_tahunan`
+--
+
+CREATE TABLE `kenaikan_gaji_tahunan` (
+  `id` int NOT NULL,
+  `id_anggota` int NOT NULL,
+  `nama_kenaikan` varchar(255) NOT NULL,
+  `jumlah` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `tanggal_mulai` date NOT NULL,
+  `tanggal_berakhir` date NOT NULL,
+  `status` enum('aktif','selesai') NOT NULL DEFAULT 'aktif',
+  `dibuat_pada` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `pindah_ke_lain_lain` tinyint(1) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `kenaikan_gaji_tahunan`
+--
+
+INSERT INTO `kenaikan_gaji_tahunan` (`id`, `id_anggota`, `nama_kenaikan`, `jumlah`, `tanggal_mulai`, `tanggal_berakhir`, `status`, `dibuat_pada`, `pindah_ke_lain_lain`) VALUES
+(10, 2, 'Kenaikan Gaji 2024/2025', 200000.00, '2025-04-01', '2026-03-31', 'aktif', '2025-04-06 23:38:46', 0),
+(11, 19, 'Kenaikan Gaji 2024/2025', 150000.00, '2025-04-01', '2026-03-31', 'aktif', '2025-04-07 11:27:39', 0);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `laporan_surat`
 --
 
@@ -433,7 +781,8 @@ INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`, `nominal`) V
 (3, 'Bonus Kinerja', 'earnings', 'Bonus berdasarkan kinerja', 100000.00),
 (4, 'Potongan BPJS', 'deductions', 'Potongan BPJS Kesehatan', 250000.00),
 (5, 'Koperasi', 'deductions', 'Iuran koperasi', 150000.00),
-(6, 'Tunjangan Hari Raya', 'earnings', 'THR', 150000.00);
+(6, 'Tunjangan Hari Raya', 'earnings', 'THR', 150000.00),
+(100, 'Kenaikan Gaji Tahunan', 'earnings', 'Kenaikan gaji berdasarkan evaluasi tahunan', 0.00);
 
 -- --------------------------------------------------------
 
@@ -478,7 +827,12 @@ CREATE TABLE `payroll` (
 
 INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
 (1, 1, NULL, 4, 2025, 6000000.00, 300000.00, 250000.00, 0.00, 6050000.00, '2025-04-06 11:01:46', '2025-04-06 18:01:46', '1234567890', '', 'draft'),
-(2, 1, 8, 4, 2025, 6000000.00, 300000.00, 250000.00, 50000.00, 6000000.00, '2025-04-06 11:02:49', '2025-04-06 18:02:00', '1234567890', 'Payroll Bulan April', 'final');
+(2, 1, 8, 4, 2025, 6000000.00, 300000.00, 250000.00, 50000.00, 6000000.00, '2025-04-06 11:02:49', '2025-04-06 18:02:00', '1234567890', 'Payroll Bulan April', 'final'),
+(3, 25, NULL, 4, 2025, 14000000.00, 400000.00, 0.00, 0.00, 14400000.00, '2025-04-06 15:38:43', '2025-04-06 22:38:43', '1357924680', '', 'draft'),
+(4, 2, NULL, 4, 2025, 10000000.00, 500000.00, 375000.00, 0.00, 10125000.00, '2025-04-06 16:38:46', '2025-04-06 23:38:46', '098765', '', 'draft'),
+(5, 2, 10, 4, 2025, 10000000.00, 500000.00, 375000.00, 25000.00, 10100000.00, '2025-04-06 16:39:22', '2025-04-06 23:39:00', '098765', '', 'final'),
+(6, 19, NULL, 4, 2025, 6000000.00, 550000.00, 250000.00, 0.00, 6300000.00, '2025-04-07 04:27:39', '2025-04-07 11:27:39', '512443563', '', 'draft'),
+(7, 19, 11, 4, 2025, 6000000.00, 550000.00, 250000.00, 50000.00, 6250000.00, '2025-04-07 04:28:17', '2025-04-07 11:27:00', '512443563', 'Naik Gaji 2024/2025', 'final');
 
 -- --------------------------------------------------------
 
@@ -507,7 +861,31 @@ INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_anggota`, `id_payhead`, `j
 (4, 2, 1, 3, 'earnings', 0.00, 'final'),
 (5, 2, 1, 4, 'deductions', 250000.00, 'final'),
 (6, 2, 1, 6, 'earnings', 150000.00, 'final'),
-(7, 2, 1, 1, 'earnings', 150000.00, 'final');
+(7, 2, 1, 1, 'earnings', 150000.00, 'final'),
+(8, 3, 25, 3, 'earnings', 100000.00, 'draft'),
+(9, 3, 25, 6, 'earnings', 150000.00, 'draft'),
+(10, 3, 25, 1, 'earnings', 150000.00, 'draft'),
+(11, 4, 2, 100, 'earnings', 200000.00, 'draft'),
+(12, 4, 2, 4, 'deductions', 250000.00, 'draft'),
+(13, 4, 2, 2, 'deductions', 125000.00, 'draft'),
+(14, 4, 2, 6, 'earnings', 150000.00, 'draft'),
+(15, 4, 2, 1, 'earnings', 150000.00, 'draft'),
+(16, 5, 2, 100, 'earnings', 200000.00, 'final'),
+(17, 5, 2, 3, 'earnings', 0.00, 'final'),
+(18, 5, 2, 4, 'deductions', 250000.00, 'final'),
+(19, 5, 2, 2, 'deductions', 125000.00, 'final'),
+(20, 5, 2, 6, 'earnings', 150000.00, 'final'),
+(21, 5, 2, 1, 'earnings', 150000.00, 'final'),
+(22, 6, 19, 100, 'earnings', 150000.00, 'draft'),
+(23, 6, 19, 3, 'earnings', 100000.00, 'draft'),
+(24, 6, 19, 6, 'earnings', 150000.00, 'draft'),
+(25, 6, 19, 1, 'earnings', 150000.00, 'draft'),
+(26, 6, 19, 4, 'deductions', 250000.00, 'draft'),
+(27, 7, 19, 100, 'earnings', 150000.00, 'final'),
+(28, 7, 19, 3, 'earnings', 100000.00, 'final'),
+(29, 7, 19, 6, 'earnings', 150000.00, 'final'),
+(30, 7, 19, 1, 'earnings', 150000.00, 'final'),
+(31, 7, 19, 4, 'deductions', 250000.00, 'final');
 
 -- --------------------------------------------------------
 
@@ -532,7 +910,17 @@ CREATE TABLE `payroll_detail_final` (
 INSERT INTO `payroll_detail_final` (`id`, `id_payroll_final`, `id_payhead`, `nama_payhead`, `jenis`, `amount`, `is_rapel`) VALUES
 (1, 1, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
 (2, 1, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
-(3, 1, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0);
+(3, 1, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
+(4, 2, 100, 'Kenaikan Gaji Tahunan', 'earnings', 200000.00, 0),
+(5, 2, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(6, 2, 2, 'Potongan Pajak', 'deductions', 125000.00, 0),
+(7, 2, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(8, 2, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
+(9, 3, 100, 'Kenaikan Gaji Tahunan', 'earnings', 150000.00, 0),
+(10, 3, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(11, 3, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(12, 3, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
+(13, 3, 4, 'Potongan BPJS', 'deductions', 250000.00, 0);
 
 -- --------------------------------------------------------
 
@@ -563,7 +951,9 @@ CREATE TABLE `payroll_final` (
 --
 
 INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
-(1, 1, 8, 4, 2025, 6000000.00, 300000.00, 250000.00, 50000.00, 6000000.00, '2025-04-06 18:02:00', '1234567890', 'Payroll Bulan April', '2025-04-06 11:02:49', 2);
+(1, 1, 8, 4, 2025, 6000000.00, 300000.00, 250000.00, 50000.00, 6000000.00, '2025-04-06 18:02:00', '1234567890', 'Payroll Bulan April', '2025-04-06 11:02:49', 2),
+(2, 2, 10, 4, 2025, 10000000.00, 500000.00, 375000.00, 25000.00, 10100000.00, '2025-04-06 23:39:00', '098765', '', '2025-04-06 16:39:22', 5),
+(3, 19, 11, 4, 2025, 6000000.00, 550000.00, 250000.00, 50000.00, 6250000.00, '2025-04-07 11:27:00', '512443563', 'Naik Gaji 2024/2025', '2025-04-07 04:28:17', 7);
 
 -- --------------------------------------------------------
 
@@ -649,7 +1039,10 @@ INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`
 (5, 22, 3, 2025, 0, 0, 0, 0, 0),
 (6, 21, 3, 2025, 28, 2, 0, 0, 0),
 (7, 19, 3, 2025, 28, 1, 1, 0, 0),
-(8, 1, 4, 2025, 27, 1, 1, 1, 0);
+(8, 1, 4, 2025, 27, 1, 1, 1, 0),
+(9, 25, 4, 2025, 0, 0, 0, 0, 0),
+(10, 2, 4, 2025, 0, 0, 0, 0, 0),
+(11, 19, 4, 2025, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -791,6 +1184,12 @@ ALTER TABLE `jadwal_piket`
   ADD KEY `fk_jadwal_piket_anggota` (`nip`);
 
 --
+-- Indexes for table `kenaikan_gaji_tahunan`
+--
+ALTER TABLE `kenaikan_gaji_tahunan`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `laporan_surat`
 --
 ALTER TABLE `laporan_surat`
@@ -901,19 +1300,25 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
 
 --
 -- AUTO_INCREMENT for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
   MODIFY `holiday_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `kenaikan_gaji_tahunan`
+--
+ALTER TABLE `kenaikan_gaji_tahunan`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `laporan_surat`
@@ -931,7 +1336,7 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `payheads`
 --
 ALTER TABLE `payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
 
 --
 -- AUTO_INCREMENT for table `payhead_groups`
@@ -943,25 +1348,25 @@ ALTER TABLE `payhead_groups`
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail_final`
 --
 ALTER TABLE `payroll_detail_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `pengajuan_ijin`
@@ -973,7 +1378,7 @@ ALTER TABLE `pengajuan_ijin`
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `rekap_mingguan`
