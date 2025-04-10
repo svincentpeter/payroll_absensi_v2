@@ -35,8 +35,10 @@ $result = $stmt->get_result();
 
 $personalMessages = [];
 while ($row = $result->fetch_assoc()) {
-    // Tambahkan properti display_date untuk penampilan tanggal
+    // Tambahkan properti display_date untuk tampilan standar (fallback)
     $row['display_date'] = date('Y-m-d H:i', strtotime($row['tanggal_keluar']));
+    // Sertakan data timestamp mentah untuk Moment.js
+    $row['data_timestamp'] = date('Y-m-d H:i:s', strtotime($row['tanggal_keluar']));
     $personalMessages[] = $row;
 }
 $stmt->close();
@@ -59,11 +61,9 @@ function getIndonesianMonthName($month)
 // --- Pesan untuk Guru / Karyawan (P, TK) ---
 if (in_array($fullRole, ['P', 'TK'])) {
     $nip = $_SESSION['nip'] ?? '';
-
     // 1. Pengingat Jadwal Piket Hari Ini
     $sqlPiket = "SELECT waktu_piket FROM jadwal_piket WHERE nip = ? AND tanggal = CURDATE()";
-    $stmtPiket = $conn->prepare($sqlPiket);
-    if ($stmtPiket) {
+    if ($stmtPiket = $conn->prepare($sqlPiket)) {
         $stmtPiket->bind_param("s", $nip);
         $stmtPiket->execute();
         $resPiket = $stmtPiket->get_result();
@@ -77,11 +77,9 @@ if (in_array($fullRole, ['P', 'TK'])) {
         }
         $stmtPiket->close();
     }
-
-    // 2. Peringatan Absensi Terlambat (jika terlambat ≥ 3 kali bulan ini)
+    // 2. Peringatan Absensi Terlambat (jika terlambat ≥ 3 kali)
     $sqlTerlambat = "SELECT COUNT(*) AS cnt FROM absensi WHERE nip = ? AND terlambat = 1 AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?";
-    $stmtTerlambat = $conn->prepare($sqlTerlambat);
-    if ($stmtTerlambat) {
+    if ($stmtTerlambat = $conn->prepare($sqlTerlambat)) {
         $stmtTerlambat->bind_param("sii", $nip, $currentMonth, $currentYear);
         $stmtTerlambat->execute();
         $resTerlambat = $stmtTerlambat->get_result();
@@ -97,11 +95,9 @@ if (in_array($fullRole, ['P', 'TK'])) {
             ];
         }
     }
-
-    // 3. Pengajuan Izin Mendekati Tanggal Mulai (jika status 'Diterima' dan 1 hari sebelum tanggal efektif)
+    // 3. Pengajuan Izin Mendekati Tanggal Mulai (1 hari sebelum)
     $sqlIzinBesok = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE nip = ? AND status = 'Diterima' AND DATEDIFF(STR_TO_DATE(tanggal, '%Y-%m-%d'), CURDATE()) = 1";
-    $stmtIzinBesok = $conn->prepare($sqlIzinBesok);
-    if ($stmtIzinBesok) {
+    if ($stmtIzinBesok = $conn->prepare($sqlIzinBesok)) {
         $stmtIzinBesok->bind_param("s", $nip);
         $stmtIzinBesok->execute();
         $resIzinBesok = $stmtIzinBesok->get_result();
@@ -117,13 +113,11 @@ if (in_array($fullRole, ['P', 'TK'])) {
             ];
         }
     }
-
     // 4. Slip Gaji Final Tersedia (cek di payroll_final untuk bulan sebelumnya)
     $sqlSlipGaji = "SELECT COUNT(*) AS cnt FROM payroll_final pf JOIN anggota_sekolah a ON pf.id_anggota = a.id WHERE a.nip = ? AND pf.tahun = ? AND pf.bulan = ?";
     $targetMonthSlip = ($currentMonth == 1) ? 12 : $currentMonth - 1;
     $targetYearSlip = ($currentMonth == 1) ? $currentYear - 1 : $currentYear;
-    $stmtSlipGaji = $conn->prepare($sqlSlipGaji);
-    if ($stmtSlipGaji) {
+    if ($stmtSlipGaji = $conn->prepare($sqlSlipGaji)) {
         $stmtSlipGaji->bind_param("sii", $nip, $targetYearSlip, $targetMonthSlip);
         $stmtSlipGaji->execute();
         $resSlipGaji = $stmtSlipGaji->get_result();
@@ -139,11 +133,9 @@ if (in_array($fullRole, ['P', 'TK'])) {
             ];
         }
     }
-
-    // 5. Permintaan Tukar Jadwal (cek permintaan yang masih Pending untuk user)
+    // 5. Permintaan Tukar Jadwal (cek permintaan Pending untuk user)
     $sqlTukar = "SELECT COUNT(*) AS cnt FROM permintaan_tukar_jadwal WHERE nip_pengaju = ? AND status = 'Pending'";
-    $stmtTukar = $conn->prepare($sqlTukar);
-    if ($stmtTukar) {
+    if ($stmtTukar = $conn->prepare($sqlTukar)) {
         $stmtTukar->bind_param("s", $nip);
         $stmtTukar->execute();
         $resTukar = $stmtTukar->get_result();
@@ -163,10 +155,9 @@ if (in_array($fullRole, ['P', 'TK'])) {
 
 // --- Pesan untuk SDM (M:sdm) ---
 if ($fullRole === 'M:sdm') {
-    // 1. Pengajuan Izin Baru (semua pengajuan izin dengan status Pending)
+    // 1. Pengajuan Izin Baru (status Pending)
     $sqlIzinBaru = "SELECT COUNT(*) AS cnt FROM pengajuan_ijin WHERE status = 'Pending'";
-    $stmtIzinBaru = $conn->prepare($sqlIzinBaru);
-    if ($stmtIzinBaru) {
+    if ($stmtIzinBaru = $conn->prepare($sqlIzinBaru)) {
         $stmtIzinBaru->execute();
         $resIzinBaru = $stmtIzinBaru->get_result();
         $rowIzinBaru = $resIzinBaru->fetch_assoc();
@@ -181,11 +172,9 @@ if ($fullRole === 'M:sdm') {
             ];
         }
     }
-
-    // 2. Karyawan Baru Belum Diperbarui (cek karyawan yang join 7 hari terakhir dan salary_index_id IS NULL)
+    // 2. Karyawan Baru Belum Diperbarui (join dalam 7 hari terakhir)
     $sqlKaryawanBaru = "SELECT COUNT(*) AS cnt FROM anggota_sekolah WHERE join_start >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND salary_index_id IS NULL";
-    $stmtKaryawanBaru = $conn->prepare($sqlKaryawanBaru);
-    if ($stmtKaryawanBaru) {
+    if ($stmtKaryawanBaru = $conn->prepare($sqlKaryawanBaru)) {
         $stmtKaryawanBaru->execute();
         $resKaryawanBaru = $stmtKaryawanBaru->get_result();
         $rowKaryawanBaru = $resKaryawanBaru->fetch_assoc();
@@ -200,11 +189,9 @@ if ($fullRole === 'M:sdm') {
             ];
         }
     }
-
-    // 3. Ketidakhadiran Berulang (misal absensi 'tanpa_keterangan' ≥ 3 hari unik di bulan ini)
+    // 3. Ketidakhadiran Berulang (absensi 'tanpa_keterangan' ≥ 3 hari unik)
     $sqlBolos = "SELECT COUNT(DISTINCT tanggal) AS cnt FROM absensi WHERE nip IN (SELECT nip FROM anggota_sekolah WHERE role IN ('P','TK')) AND status_kehadiran = 'tanpa_keterangan' AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?";
-    $stmtBolos = $conn->prepare($sqlBolos);
-    if ($stmtBolos) {
+    if ($stmtBolos = $conn->prepare($sqlBolos)) {
         $stmtBolos->bind_param("ii", $currentMonth, $currentYear);
         $stmtBolos->execute();
         $resBolos = $stmtBolos->get_result();
@@ -238,8 +225,7 @@ if ($fullRole === 'M:keuangan') {
                   AND pf.tahun = p.tahun
           )
     ";
-    $stmtDraft = $conn->prepare($sqlDraftPayroll);
-    if ($stmtDraft) {
+    if ($stmtDraft = $conn->prepare($sqlDraftPayroll)) {
         $stmtDraft->bind_param("ii", $currentMonth, $currentYear);
         $stmtDraft->execute();
         $resDraft = $stmtDraft->get_result();
@@ -258,8 +244,7 @@ if ($fullRole === 'M:keuangan') {
     }
     // 2. Error Perhitungan Payroll
     $sqlErrorPayroll = "SELECT COUNT(*) AS cnt FROM payroll WHERE ABS(total_pendapatan - total_potongan - gaji_bersih) > 1000";
-    $stmtErrorPayroll = $conn->prepare($sqlErrorPayroll);
-    if ($stmtErrorPayroll) {
+    if ($stmtErrorPayroll = $conn->prepare($sqlErrorPayroll)) {
         $stmtErrorPayroll->execute();
         $resErrorPayroll = $stmtErrorPayroll->get_result();
         $rowErrorPayroll = $resErrorPayroll->fetch_assoc();
@@ -276,7 +261,7 @@ if ($fullRole === 'M:keuangan') {
     }
 }
 
-// --- Pesan untuk M:superadmin ---
+// --- Pesan untuk Superadmin (M:superadmin) ---
 if ($fullRole === 'M:superadmin') {
     // 1. Backup Database Reminder
     if ($currentDay === 1 && empty($_SESSION['backup_alert_dismissed'])) {
@@ -289,8 +274,7 @@ if ($fullRole === 'M:superadmin') {
     }
     // 2. Audit Logs Error Reminder
     $sqlAudit = "SELECT COUNT(*) AS cnt FROM audit_logs WHERE action LIKE '%error%' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)";
-    $stmtAudit = $conn->prepare($sqlAudit);
-    if ($stmtAudit) {
+    if ($stmtAudit = $conn->prepare($sqlAudit)) {
         $stmtAudit->execute();
         $resAudit = $stmtAudit->get_result();
         $rowAudit = $resAudit->fetch_assoc();
@@ -310,7 +294,7 @@ if ($fullRole === 'M:superadmin') {
 // Gabungkan pesan sistem dengan pesan personal
 $allMessages = array_merge($customMessages, $personalMessages);
 
-// Urutkan semua pesan berdasarkan tanggal (descending)
+// Urutkan semua pesan berdasarkan tanggal descending
 usort($allMessages, function ($a, $b) {
     $dateA = isset($a['display_date']) ? strtotime($a['display_date']) : strtotime($a['date'] ?? 'now');
     $dateB = isset($b['display_date']) ? strtotime($b['display_date']) : strtotime($b['date'] ?? 'now');
@@ -338,17 +322,22 @@ $conn->close();
 
 <body>
     <?php include 'navbar.php'; ?>
-    <div class="container my-4">
+    <div id="message-container" class="container my-4">
         <h1>Pesan Surat</h1>
         <?php if (empty($allMessages)): ?>
             <div class="alert alert-info">Tidak ada pesan surat atau notifikasi.</div>
         <?php else: ?>
             <div class="list-group">
                 <?php foreach ($allMessages as $msg): ?>
-                    <a href="<?= isset($msg['link']) ? htmlspecialchars($msg['link']) : '#' ?>" class="list-group-item list-group-item-action">
+                    <a href="<?= isset($msg['link']) ? htmlspecialchars($msg['link']) : '#' ?>" 
+                       class="list-group-item list-group-item-action message-item" 
+                       data-id="<?= htmlspecialchars($msg['id'] ?? 0); ?>" 
+                       data-timestamp="<?= htmlspecialchars($msg['date']); ?>">
                         <div class="d-flex w-100 justify-content-between">
                             <h5 class="mb-1"><?= htmlspecialchars($msg['title']) ?></h5>
-                            <small><?= isset($msg['display_date']) ? htmlspecialchars($msg['display_date']) : date('d M Y H:i', strtotime($msg['date'] ?? 'now')) ?></small>
+                            <small class="timestamp" data-timestamp="<?= htmlspecialchars($msg['date']); ?>">
+                                <?= date(DATE_FORMAT, strtotime($msg['date'] ?? 'now')) ?>
+                            </small>
                         </div>
                         <p class="mb-1"><?= htmlspecialchars($msg['message'] ?? '') ?></p>
                     </a>
@@ -360,6 +349,57 @@ $conn->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-ENjdO4Dr2bkBIFxQpeoOvZHnNQzYfC0RL5jJ5enq+QcPlj3x1p4cW4Md7o8Lk8UR"
         crossorigin="anonymous"></script>
+    <!-- jQuery and Moment.js -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script>
+    $(document).ready(function(){
+        // Fungsi untuk mengupdate timestamp menjadi relative time
+        function updateTimestamps() {
+            $('.timestamp').each(function() {
+                var ts = $(this).data('timestamp');
+                if(ts){
+                    var relativeTime = moment(ts, "YYYY-MM-DD HH:mm:ss").fromNow();
+                    $(this).text(relativeTime);
+                }
+            });
+        }
+        updateTimestamps();
+
+        // Polling: Refresh pesan setiap 30 detik
+        setInterval(function(){
+            $("#message-container").load("pesan.php #message-container", function(){
+                updateTimestamps();
+                bindMessageClick();
+            });
+        }, 30000);
+
+        // Mark pesan sebagai read saat di klik (asumsikan endpoint penandaan read telah dibuat di pesan.php)
+        function bindMessageClick() {
+            $('.message-item').off('click').on('click', function(e){
+                // Jika ada aksi mark as read, kirim AJAX ke endpoint (Anda perlu menambahkan logika update di backend jika perlu)
+                var pesanId = $(this).data("id");
+                var $thisItem = $(this);
+                $.ajax({
+                    url: "update_message_status.php", // endpoint untuk mark message as read; sesuaikan nama file/URL
+                    type: "POST",
+                    data: { action: 'markRead', id: pesanId },
+                    dataType: "json",
+                    success: function(response) {
+                        if(response.code === 0){
+                            // Misal, setelah pesan di-mark, beri style berbeda atau hilangkan dari daftar
+                            $thisItem.addClass('list-group-item-secondary');
+                        }
+                    },
+                    error: function(){
+                        console.log("Gagal menandai pesan sebagai sudah dibaca.");
+                    }
+                });
+            });
+        }
+        bindMessageClick();
+    });
+    </script>
 </body>
 
 </html>

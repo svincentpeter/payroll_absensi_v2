@@ -384,29 +384,36 @@ function getBadgeStatusKerja($status)
 function authorize($allowedRoles, $redirectUrl = null)
 {
     start_session_safe();
+
+    // Ambil role dan job title dari session
     $userRole     = $_SESSION['role'] ?? '';
     $userJobTitle = $_SESSION['job_title'] ?? '';
 
+    // Override role jika non_admin_mode aktif: anggap sebagai TK (guru/karyawan)
+    if (!empty($_SESSION['non_admin_mode']) && $_SESSION['non_admin_mode'] === true) {
+        $userRole = 'TK';
+    }
+
+    // Pastikan parameter allowedRoles merupakan array
     if (!is_array($allowedRoles)) {
         $allowedRoles = [$allowedRoles];
     }
+    
     $allowed = false;
-
     foreach ($allowedRoles as $allowedRole) {
-        // Jika parameter authorize adalah 'kepala sekolah', 
-        // periksa apakah job_title mengandung "kepala sekolah"
+        // Jika parameter authorize adalah 'kepala sekolah', periksa job title
         if ($allowedRole === 'kepala sekolah') {
             if (stripos($userJobTitle, 'kepala sekolah') !== false) {
                 $allowed = true;
                 break;
             }
         }
-        // Jika role langsung cocok
+        // Jika role langsung cocok, diizinkan
         if ($allowedRole === $userRole) {
             $allowed = true;
             break;
         }
-        // Jika role user adalah 'M' (Manajerial) dan allowedRole diawali dengan 'M:'
+        // Penanganan khusus untuk role manajerial (M) dengan detail (contoh: 'M:sdm')
         if ($userRole === 'M' && strpos($allowedRole, 'M:') === 0) {
             $allowedDetail = trim(substr($allowedRole, 2));
             $allowedDetailNormalized = strtolower(str_replace('_', ' ', $allowedDetail));
@@ -416,7 +423,7 @@ function authorize($allowedRoles, $redirectUrl = null)
                 break;
             }
         }
-        // Jika allowedRole adalah 'M' dan user juga 'M'
+        // Jika allowedRole adalah 'M' dan user memiliki role 'M'
         if ($allowedRole === 'M' && $userRole === 'M') {
             $allowed = true;
             break;
@@ -768,4 +775,42 @@ if (!function_exists('formatNominal')) {
     function formatNominal($angka) {
         return 'Rp ' . number_format($angka, 0, ',', '.');
     }
+}
+
+/************************************
+ * 9. FUNGSI TAMBAHAN UNTUK NOTIFIKASI
+ ************************************/
+
+/**
+ * Menghasilkan full role berdasarkan nilai role dan job_title dari session.
+ *
+ * @return string Full role user.
+ */
+function getFullRole() {
+    $userRole     = $_SESSION['role'] ?? '';
+    $userJobTitle = $_SESSION['job_title'] ?? '';
+
+    // Jika role bukan 'M', kembalikan nilai role yang ada
+    if ($userRole !== 'M') {
+        return $userRole;
+    }
+    $normalized = strtolower(trim($userJobTitle));
+    
+    // Jika job title mengandung "kepala sekolah", maka return TK
+    if (strpos($normalized, 'kepala sekolah') !== false) {
+        return 'TK';
+    }
+    
+    // Pertahankan pengecekan untuk role M lainnya
+    if (strpos($normalized, 'superadmin') !== false) {
+        return 'M:superadmin';
+    }
+    if (strpos($normalized, 'sdm') !== false) {
+        return 'M:sdm';
+    }
+    if (strpos($normalized, 'keuangan') !== false) {
+        return 'M:keuangan';
+    }
+    
+    return 'M';
 }

@@ -7,9 +7,9 @@ start_session_safe();
 init_error_handling();
 generate_csrf_token();
 
-// Buat nonce untuk Content-Security-Policy dan simpan di session
-$nonce = base64_encode(random_bytes(16));
-$_SESSION['csp_nonce'] = $nonce;
+// Hapus pembuatan nonce karena tidak digunakan lagi
+// $nonce = base64_encode(random_bytes(16));
+// $_SESSION['csp_nonce'] = $nonce;
 
 // Koneksi ke database
 require_once __DIR__ . '/../koneksi.php';
@@ -90,14 +90,14 @@ function getRoleIcon($role)
     <title>Dashboard Superadmin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Bootstrap 5.3.3 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- SB Admin 2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
     <!-- Font Awesome & Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" nonce="<?php echo $nonce; ?>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Custom CSS untuk Timeline Audit Logs -->
-    <style nonce="<?php echo $nonce; ?>">
+    <style>
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
