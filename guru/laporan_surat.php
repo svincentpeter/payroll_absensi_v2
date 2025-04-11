@@ -21,6 +21,21 @@ if (empty($nip)) {
     die("NIP tidak ditemukan dalam session.");
 }
 
+// Tambahkan query untuk ambil userId
+$userId = 0;
+$stmt = $conn->prepare("SELECT id FROM anggota_sekolah WHERE nip = ? LIMIT 1");
+$stmt->bind_param("s", $nip);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $userId = (int)$row['id'];
+}
+$stmt->close();
+
+if ($userId <= 0) {
+    die("ID anggota tidak ditemukan untuk nip: $nip");
+}
+
 // Tangani permintaan AJAX (server-side DataTables)
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

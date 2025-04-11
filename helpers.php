@@ -174,26 +174,22 @@ function translateJenis($jenis)
  * @param int $monthNumber Nomor bulan.
  * @return string Nama bulan atau 'Tidak Diketahui' jika tidak valid.
  */
-function getIndonesianMonthName($monthNumber)
-{
-    $monthNumber = intval($monthNumber);
-    $bulan = [
-        1  => 'Januari',
-        2  => 'Februari',
-        3  => 'Maret',
-        4  => 'April',
-        5  => 'Mei',
-        6  => 'Juni',
-        7  => 'Juli',
-        8  => 'Agustus',
-        9  => 'September',
+function getIndonesianMonthName(int $month): string {
+    $months = [
+        1 => 'Januari',
+        2 => 'Februari',
+        3 => 'Maret',
+        4 => 'April',
+        5 => 'Mei',
+        6 => 'Juni',
+        7 => 'Juli',
+        8 => 'Agustus',
+        9 => 'September',
         10 => 'Oktober',
         11 => 'November',
         12 => 'Desember'
     ];
-    // === HAPUS DEBUG ===
-    // Jika nomor bulan tidak ditemukan, bisa dicatat log.
-    return $bulan[$monthNumber] ?? 'Tidak Diketahui';
+    return $months[$month] ?? '';
 }
 
 /**
@@ -813,4 +809,59 @@ function getFullRole() {
     }
     
     return 'M';
+}
+
+/**
+ * Menghasilkan badge dalam bentuk string berdasarkan jumlah notifikasi.
+ *
+ * @param int $count Jumlah notifikasi.
+ * @return string String badge; kosong jika count < 1, "1" jika 1, atau "X+" jika lebih dari 1.
+ */
+function formatBadge($count)
+{
+    if ($count < 1) {
+        return "";
+    }
+    return ($count === 1) ? "1" : ($count . "+");
+}
+
+if (!function_exists('qCount')) {
+    /**
+     * Helper singkat: eksekusi SELECT … COUNT(*) dan kembalikan int.
+     * @param mysqli  $conn
+     * @param string  $sql   query dengan alias AS cnt
+     * @param string  $types string tipe bind_param ('' jika tidak ada)
+     * @param array   $params parameter bind
+     * @return int
+     */
+    function qCount(mysqli $conn, string $sql, string $types = '', array $params = []): int
+    {
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) { error_log($conn->error); return 0; }
+        if ($types) { $stmt->bind_param($types, ...$params); }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        $stmt->close();
+        return intval($row['cnt'] ?? 0);
+    }
+}
+
+/**
+ * Hitung tanggal kontrak selesai.
+ * @param string $joinStart   (Y-m-d)
+ * @param int    $lamaKontrak (bulan)
+ * @return string|null        (Y-m-d) atau NULL bila input tidak valid
+ */
+function hitungTanggalSelesaiKontrak(string $joinStart, int $lamaKontrak): ?string {
+    if ($lamaKontrak <= 0 || $joinStart === '0000-00-00' || empty($joinStart)) {
+        return null;
+    }
+    try {
+        $d = new DateTime($joinStart);
+        $d->modify("+{$lamaKontrak} months")->modify('-1 day'); // selesai H‑1
+        return $d->format('Y-m-d');
+    } catch (Exception $e) {
+        return null;
+    }
 }
