@@ -8,6 +8,8 @@ authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 
 // Koneksi ke database
 require_once __DIR__ . '/../koneksi.php';
+require_once __DIR__ . '/../fonnte_helper.php';
+
 
 // Generate CSRF token
 generate_csrf_token();
@@ -371,6 +373,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         die("Terjadi kesalahan: " . $e->getMessage());
     }
 }
+
+// 7) Commit Transaksi
+$conn->commit();
+
+// 8) Kirim Notifikasi WhatsApp secara otomatis
+if (!empty($karyawan['no_hp'])) {
+    $phone = trim($karyawan['no_hp']);
+    // Pastikan nomor diawali dengan kode negara '62'
+    if (substr($phone, 0, 2) !== '62') {
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '62' . substr($phone, 1);
+        }
+    }
+    $message = "Payroll Bulan " . $bulanName . " " . $tahun . " telah dikirimkan, dan dapat dilihat di akun dashboard anda.";
+    $notif_response = send_whatsapp_notification($phone, $message);
+    // Catat log pengiriman WA
+    add_audit_log($conn, $user_nip, 'SendWhatsApp', "Notifikasi WA dikirim ke {$phone}: " . $notif_response);
+    
+    // Coba decode respons dari API (asumsi API mengembalikan JSON)
+    $responseData = json_decode($notif_response, true);
+    if ($responseData !== null && isset($responseData['success']) && $responseData['success'] == true) {
+        // Tampilkan notifikasi sukses ke user dengan SweetAlert
+        echo "<script>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Notifikasi WA berhasil dikirim!',
+                    text: 'Notifikasi dikirim ke {$phone}.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+              </script>";
+    } else {
+        // Tampilkan notifikasi error jika pengiriman gagal
+        echo "<script>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal mengirim Notifikasi WA!',
+                    text: 'Silakan periksa kembali koneksi atau konfigurasi API Fonnte.',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+              </script>";
+    }
+}
+
+
 
 /**
  * BAGIAN 3: GET -> Tampilkan Review Payroll

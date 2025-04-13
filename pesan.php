@@ -271,6 +271,13 @@ extract($data);   // $total, $messages …
 
 <body>
     <div id="message-container" class="container my-4">
+        <!-- Tombol Back -->
+        <div class="mb-3">
+            <button class="btn btn-secondary" onclick="window.history.back();">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+        </div>
+
         <h2>Pesan Anda</h2>
 
         <?php if ($total): ?>
@@ -330,5 +337,4 @@ extract($data);   // $total, $messages …
         });
     </script>
 </body>
-
 </html>

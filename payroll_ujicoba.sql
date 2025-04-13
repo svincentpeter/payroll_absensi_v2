@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 11, 2025 at 02:48 PM
+-- Generation Time: Apr 13, 2025 at 07:58 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -178,16 +178,16 @@ CREATE TABLE `anggota_sekolah` (
 --
 
 INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `job_title`, `status_kerja`, `join_start`, `lama_kontrak`, `tgl_kontrak_selesai`, `masa_kerja_tahun`, `masa_kerja_bulan`, `masa_kerja_efektif`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_pasangan`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `salary_index_level`, `gaji_pokok`, `foto_profil`, `role`, `is_delete`, `deleted_at`) VALUES
-(1, 'G-001', '100001', 'e10adc3949ba59abbe56e057f20f883e', 'Ahmad Fauzi', 'SD', 'Guru Matematika', 'Tetap', '2023-01-27', NULL, NULL, 2, 1, 2.00, 'Berpengalaman mengajar matematika', 'L', '1980-01-15', 45, 'Islam', 'Jl. Melati No. 1', 'Jl. Melati No. 1', '1234567890', '081234567890', 'S1 Ilmu Komputer', 'Belum Menikah', 'ahmad.fauzi@example.com', 'Santi', 2, 'Buday', 'Siti', '', 1, 'Level 0', 3000000.00, '/payroll_absensi_v2/uploads/profile_pics/ahmad_fauzi_sd_p_1.jpg', 'P', 0, NULL),
-(2, 'G-002', '100002', 'e10adc3949ba59abbe56e057f20f883e', 'Siti Rahma', 'SMP', 'Guru Fisika', 'Tetap', '2015-07-01', NULL, NULL, 10, 0, 9.00, 'Menyukai eksperimen fisika', 'P', '1985-05-10', 40, 'Islam', 'Jl. Kenanga No. 2', 'Jl. Kenanga No. 2', '098765', '081298765432', 'S1 Pendidikan', 'Menikah', 'siti.rahma@example.com', 'Andi Rahma', 1, 'Ayu', '', '', 3, 'Level 2', 5000000.00, '/payroll_absensi_v2/uploads/profile_pics/siti_rahma_smp_p_2.png', 'P', 0, NULL),
+(1, 'G-001', '100001', 'e10adc3949ba59abbe56e057f20f883e', 'Ahmad Fauzi', 'SD', 'Guru Matematika', 'Tetap', '2023-01-27', NULL, NULL, 2, 2, 2.00, 'Berpengalaman mengajar matematika', 'L', '1980-01-15', 45, 'Islam', '2A Jl. Empu Sendok Raya', 'Jl. Melati No. 1', '1234567890', '082227863969', 'S1 Ilmu Komputer', 'Belum Menikah', 'ahmad.fauzi@example.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, '/payroll_absensi_v2/uploads/profile_pics/ahmad_fauzi_sd_p_1.jpg', 'P', 0, NULL),
+(2, 'G-002', '100002', 'e10adc3949ba59abbe56e057f20f883e', 'Siti Rahma', 'SMP', 'Guru Fisika', 'Tetap', '2015-07-01', NULL, NULL, 9, 9, 9.00, 'Menyukai eksperimen fisika', 'P', '1985-05-10', 40, 'Islam', 'Jl. Kenanga No. 2', 'Jl. Kenanga No. 2', '098765', '082182314967', 'S1 Pendidikan', 'Menikah', 'siti.rahma@example.com', 'Andi Rahma', 1, 'Ayu', '', '', 3, 'Level 2', 5000000.00, '/payroll_absensi_v2/uploads/profile_pics/siti_rahma_smp_p_2.png', 'P', 0, NULL),
 (3, 'G-003', '100003', 'e10adc3949ba59abbe56e057f20f883e', 'Budi Santoso', 'SMA', 'Guru Sejarah', 'Tetap', '2010-01-10', NULL, NULL, 15, 3, 15.00, 'Ahli sejarah Indonesia', 'L', '1975-12-25', 50, 'Kristen', 'Jl. Mawar No. 3', 'Jl. Mawar No. 3', '112233', '081345678901', 'S2 Pendidikan', 'Menikah', 'budi.santoso@example.com', '', 3, 'Tono', 'Rina', 'Dewi', 5, 'Level 4', 7000000.00, 'default.jpg', 'P', 0, NULL),
 (4, 'G-004', '100004', 'e10adc3949ba59abbe56e057f20f883e', 'Rina Sari', 'SMK', 'Guru Bahasa', 'Tetap', '2012-03-15', NULL, NULL, 13, 0, 13.00, 'Mengajar dengan metode kreatif', 'P', '1982-07-20', 43, 'Islam', 'Jl. Melati No. 5', 'Jl. Melati No. 5', '445566', '081234000111', 'S1 Sastra', 'Menikah', 'rina.sari@example.com', 'Agus Sari', 1, 'Dewi', '', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'P', 0, NULL),
 (5, 'G-005', '01011995', 'e10adc3949ba59abbe56e057f20f883e', 'Roosalin Chintia Dewi', 'TK', 'Wali Kelas TK', 'Tetap', '2016-08-01', NULL, NULL, 8, 7, 8.00, 'Wali kelas yang disiplin', 'L', '1983-11-30', 41, 'Islam', 'Jl. Pelita No. 3', 'Jl. Pelita No. 3', '667788', '081234112233', 'S1 Pendidikan', 'Menikah', 'dedi.prasetyo@example.com', '', 3, 'Sari', 'Agus', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'P', 0, NULL),
 (6, 'G-006', '100006', 'e10adc3949ba59abbe56e057f20f883e', 'Maya Putri', 'SMP', 'Wali Kelas 2A', 'Tetap', '2018-01-15', NULL, NULL, 7, 0, 7.00, 'Wali kelas kreatif', 'P', '1990-04-10', 35, 'Islam', 'Jl. Merdeka No. 4', 'Jl. Merdeka No. 4', '223344', '081234223344', 'S1 Pendidikan', 'Menikah', 'maya.putri@example.com', 'Budi Putri', 1, 'Dewi', '', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'P', 0, NULL),
 (7, 'G-007', '100007', 'e10adc3949ba59abbe56e057f20f883e', 'Fitriani', 'SMA', 'Wali Kelas 4 SMP Kelas 1', 'Tetap', '2014-05-01', NULL, NULL, 11, 2, 10.00, 'Wali kelas yang teliti', 'P', '1987-09-15', 38, 'Islam', 'Jl. Sejahtera No. 7', 'Jl. Sejahtera No. 7', '334455', '081234334455', 'S1 Pendidikan', 'Menikah', 'fitriani@example.com', '', 2, 'Agus', 'Siti', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'P', 0, NULL),
-(8, 'K-001', '200001', 'e10adc3949ba59abbe56e057f20f883e', 'Dewi Lestari', 'SMA', 'Tenaga Kependidikan Administrasi', 'Kontrak', '2025-01-01', NULL, NULL, 0, 1, 0.00, 'Staff administrasi yang efisien', 'P', '1993-08-15', 32, 'Islam', 'Jl. Pertiwi No. 4', 'Jl. Pertiwi No. 4', '556677', '081234556677', 'S1 Administrasi', 'Belum Menikah', 'dewi.lestari@example.com', '', 0, '', '', '', 1, 'Level 0', 3000000.00, '/payroll_absensi_v2/uploads/profile_pics/dewi_lestari_sma_tk_8.jpg', 'TK', 0, NULL),
+(8, 'K-001', '200001', 'e10adc3949ba59abbe56e057f20f883e', 'Dewi Lestari', 'SMA', 'Tenaga Kependidikan Administrasi', 'Kontrak', '2025-01-01', NULL, '2026-01-01', 0, 1, 0.00, 'Staff administrasi yang efisien', 'P', '1993-08-15', 32, 'Islam', 'Jl. Pertiwi No. 4', 'Jl. Pertiwi No. 4', '556677', '081234556677', 'S1 Administrasi', 'Belum Menikah', 'dewi.lestari@example.com', '', 0, '', '', '', 1, 'Level 0', 3000000.00, '/payroll_absensi_v2/uploads/profile_pics/dewi_lestari_sma_tk_8.jpg', 'TK', 0, NULL),
 (9, 'K-002', '200002', 'e10adc3949ba59abbe56e057f20f883e', 'Slamet Wijaya', 'SMK', 'Tenaga Kependidikan Operasional', 'Tetap', '2018-06-15', NULL, NULL, 7, 0, 6.00, 'Bertugas di operasional', 'L', '1988-03-05', 37, 'Islam', 'Jl. Industri No. 7', 'Jl. Industri No. 7', '778899', '081298778899', 'S1 Manajemen', 'Menikah', 'slamet.wijaya@example.com', 'Siti Wijaya', 1, 'Dewi', '', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'TK', 0, NULL),
-(10, 'K-003', '200003', 'e10adc3949ba59abbe56e057f20f883e', 'Rizki Pratama', 'SMP', 'Tenaga Kependidikan Umum', 'Kontrak', '2022-01-01', NULL, NULL, 3, 1, 3.00, 'Staff pendukung operasional', 'L', '1998-11-12', 27, 'Islam', 'Jl. Sudirman No. 8', 'Jl. Sudirman No. 8', '889900', '081237889900', '', 'Belum Menikah', 'rizki.pratama@example.com', '', 0, '', '', '', 2, 'Level 1', 4000000.00, 'default.jpg', 'TK', 0, NULL),
+(10, 'K-003', '200003', 'e10adc3949ba59abbe56e057f20f883e', 'Rizki Pratama', 'SMP', 'Tenaga Kependidikan Umum', 'Kontrak', '2022-01-01', NULL, '2023-01-01', 3, 1, 3.00, 'Staff pendukung operasional', 'L', '1998-11-12', 27, 'Islam', 'Jl. Sudirman No. 8', 'Jl. Sudirman No. 8', '889900', '081237889900', '', 'Belum Menikah', 'rizki.pratama@example.com', '', 0, '', '', '', 2, 'Level 1', 4000000.00, 'default.jpg', 'TK', 0, NULL),
 (11, 'M-001', '300001', 'e10adc3949ba59abbe56e057f20f883e', 'Andini Permata', 'SMA', 'Kepala Sekolah SMA', 'Tetap', '2014-01-27', NULL, NULL, 11, 2, 11.00, 'Memimpin sekolah dengan visi', 'P', '1978-04-22', 47, 'Islam', 'Jl. Merdeka No. 10', 'Jl. Merdeka No. 10', '990011', '081290990011', 'S2 Kesenian', 'Menikah', 'andini.permata@example.com', 'Budi Permata', 2, 'Tina', 'Rina', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'P', 0, NULL),
 (12, 'M-002', '300002', 'e10adc3949ba59abbe56e057f20f883e', 'Sie, Vincent Peter S.', 'SMA', 'Keuangan', 'Tetap', '2008-07-01', NULL, NULL, 16, 7, 16.67, 'Mengelola keuangan dengan transparansi', 'L', '1965-06-21', 60, 'Islam', 'Jl. Pendidikan No. 9', 'Jl. Pendidikan No. 9', '112233', '081298112233', 'S2 Teknologi Informasi', 'Menikah', 'joko.widodo@example.com', 'Iriana Widodo', 3, 'Gibran', 'Khalifah', 'Puan', 5, 'Level 4', 7000000.00, 'default.jpg', 'M', 0, NULL),
 (13, 'M-003', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Sari Utami', 'SMA', 'SDM', 'Tetap', '2012-11-11', NULL, NULL, 12, 4, 12.33, 'Mengelola SDM dengan profesionalisme', 'P', '1982-02-28', 43, 'Kristen', 'Jl. Simpang Lima No. 5', 'Jl. Simpang Lima No. 56', '445577', '081298445577', 'S1 Akuntansi', 'Menikah', 'sari.utami@example.com', 'Agus Utomo', 2, 'Dina', 'Rini', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'M', 0, NULL),
@@ -201,7 +201,8 @@ INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`
 (22, 'M-007', '300007', 'e10adc3949ba59abbe56e057f20f883e', 'Sri Wahyuni', 'SMP', 'Kepala Sekolah SMP', 'Tetap', '2013-02-20', NULL, NULL, 12, 1, 12.00, 'Penerapan kurikulum merdeka', 'P', '1980-04-30', 44, 'Islam', 'Jl. Cendrawasih No. 8', 'Jl. Cendrawasih No. 8', '6677889900', '081556677889', 'S2 Pendidikan Matematika', 'Menikah', 'sri.wahyuni@example.com', 'Ahmad Fauzi', 1, 'Budi', '', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'P', 0, NULL),
 (23, 'M-008', '300008', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hermawan', 'SMK 1', 'Kepala Sekolah SMK 1', 'Tetap', '2009-09-01', NULL, NULL, 15, 6, 15.00, 'Fokus pada link and match industri', 'L', '1972-12-12', 52, 'Katolik', 'Jl. Industri No. 22', 'Jl. Industri No. 22', '9988776655', '081778889900', 'S3 Teknik Mesin', 'Menikah', 'rudi.hermawan@example.com', 'Dewi Anggraeni', 2, 'Dika', 'Nina', '', 5, 'Level 4', 7000000.00, 'default.jpg', 'P', 0, NULL),
 (24, 'M-009', '300009', 'e10adc3949ba59abbe56e057f20f883e', 'Lina Marlina', 'SMK 2', 'Kepala Sekolah SMK 2', 'Tetap', '2017-04-10', NULL, NULL, 7, 11, 8.00, 'Pengembang teaching factory', 'P', '1985-03-25', 39, 'Islam', 'Jl. Teknologi No. 15', 'Jl. Teknologi No. 15', '1234098765', '081990001122', 'S2 Elektro', 'Menikah', 'lina.marlina@example.com', 'Eko Prasetyo', 1, 'Luna', '', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'P', 0, NULL),
-(25, 'M-010', '300010', 'e10adc3949ba59abbe56e057f20f883e', 'Prof. Dr. Bambang Sutejo, M.Sc.', 'Universitas Stivera', 'Kepala Sekolah Universitas Stivera', 'Tetap', '2005-01-01', NULL, NULL, 20, 2, 20.00, 'Rektor berprestasi tingkat nasional', 'L', '1968-07-17', 56, 'Buddha', 'Jl. Kampus No. 1', 'Jl. Kampus No. 1', '1357924680', '081112223344', 'S3 Manajemen Pendidikan', 'Menikah', 'bambang.sutejo@stivera.ac.id', 'Diana Sutejo', 2, 'Adi', 'Rini', '', 5, 'Level 4', 7000000.00, 'default.jpg', 'P', 0, NULL);
+(25, 'M-010', '300010', 'e10adc3949ba59abbe56e057f20f883e', 'Prof. Dr. Bambang Sutejo, M.Sc.', 'Universitas Stivera', 'Kepala Sekolah Universitas Stivera', 'Tetap', '2005-01-01', NULL, NULL, 20, 3, 20.00, 'Rektor berprestasi tingkat nasional', 'L', '1968-07-17', 56, 'Buddha', 'Jl. Kampus No. 1', 'Jl. Kampus No. 1', '1357924680', '082182314967', 'S3 Manajemen Pendidikan', 'Menikah', 'bambang.sutejo@stivera.ac.id', 'Diana Sutejo', 2, 'Adi', 'Rini', '', 5, 'Level 4', 7000000.00, 'default.jpg', 'P', 0, NULL),
+(26, '435BF0BF', '100013', '$2y$10$BhgdOVtR.nkeapBNQssUVuggXGtcDOG4Bi3pPCfUcr4YDbKZ1I5t6', 'Duar Makjreng', 'SD', 'Guru Sejarah', 'Kontrak', '2025-04-06', 6, '2025-10-05', 0, 0, 0.00, 'Mengajar Sejarah Indonesia', 'L', '2025-04-11', 29, 'Katolik', '2A Jl. Empu Sendok Raya', '2A Jl. Empu Sendok Raya', '124453434', '082227863969', 'S2 Kesenian', 'Belum Menikah', 'duar@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -244,13 +245,10 @@ CREATE TABLE `employee_payheads` (
 
 INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`, `remarks`, `support_doc_path`, `upload_file_blob`, `is_rapel`) VALUES
 (1, 1, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 1),
-(2, 1, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
-(3, 1, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
-(4, 1, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
 (5, 25, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
 (6, 25, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
 (7, 25, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
-(13, 2, 100, 'earnings', 200000.00, 'draft', 'Kenaikan Gaji 2024/2025', '', '', 0),
+(13, 2, 100, 'earnings', 200000.00, 'draft', '', '', '', 0),
 (14, 2, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 1),
 (15, 2, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
 (16, 2, 2, 'deductions', 125000.00, 'draft', '', '', NULL, 0),
@@ -260,7 +258,17 @@ INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amo
 (20, 19, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
 (21, 19, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
 (22, 19, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
-(23, 19, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0);
+(23, 19, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(24, 26, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(25, 26, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(26, 2, 5, 'deductions', 150000.00, 'draft', '', '', NULL, 0),
+(27, 24, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(28, 24, 5, 'deductions', 150000.00, 'draft', '', '', NULL, 0),
+(29, 24, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(30, 24, 2, 'deductions', 125000.00, 'draft', '', '', NULL, 0),
+(31, 24, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(32, 1, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(33, 1, 1, 'earnings', 150000.00, 'draft', '', '', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -414,6 +422,7 @@ CREATE TABLE `laporan_surat` (
   `id` int NOT NULL,
   `id_pengirim` int NOT NULL,
   `id_penerima` int NOT NULL,
+  `is_read_receiver` tinyint(1) NOT NULL DEFAULT '0',
   `jenis_surat` enum('peringatan') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'peringatan',
   `judul` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `isi` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
@@ -425,10 +434,11 @@ CREATE TABLE `laporan_surat` (
 -- Dumping data for table `laporan_surat`
 --
 
-INSERT INTO `laporan_surat` (`id`, `id_pengirim`, `id_penerima`, `jenis_surat`, `judul`, `isi`, `tanggal_keluar`, `status`) VALUES
-(1, 13, 1, 'peringatan', 'Surat Peringatan 1', 'SP 1', '2025-02-27 11:32:52', 'dibaca'),
-(2, 13, 1, 'peringatan', 'Laporan Kinerja', 'Selama semester ini, kinerja guru menunjukkan penurunan yang signifikan, ditandai dengan persiapan pembelajaran yang tidak maksimal, metode pengajaran yang monoton, serta kurangnya interaksi efektif dengan siswa yang mengakibatkan rendahnya partisipasi kelas dan pencapaian akademik yang jauh dari target; minimnya umpan balik konstruktif dan ketidakmampuan mengadaptasi materi ajar sesuai kebutuhan siswa semakin memperparah situasi, sehingga menuntut peningkatan profesionalisme dan komitmen untuk segera memperbaiki proses pembelajaran.', '2025-02-27 11:47:53', 'dibaca'),
-(3, 13, 1, 'peringatan', 'Surat Peringatan 1', 'SP 1 Karena tidakan buruk', '2025-02-27 11:52:02', 'dibaca');
+INSERT INTO `laporan_surat` (`id`, `id_pengirim`, `id_penerima`, `is_read_receiver`, `jenis_surat`, `judul`, `isi`, `tanggal_keluar`, `status`) VALUES
+(1, 13, 1, 0, 'peringatan', 'Surat Peringatan 1', 'SP 1', '2025-02-27 11:32:52', 'dibaca'),
+(2, 13, 1, 0, 'peringatan', 'Laporan Kinerja', 'Selama semester ini, kinerja guru menunjukkan penurunan yang signifikan, ditandai dengan persiapan pembelajaran yang tidak maksimal, metode pengajaran yang monoton, serta kurangnya interaksi efektif dengan siswa yang mengakibatkan rendahnya partisipasi kelas dan pencapaian akademik yang jauh dari target; minimnya umpan balik konstruktif dan ketidakmampuan mengadaptasi materi ajar sesuai kebutuhan siswa semakin memperparah situasi, sehingga menuntut peningkatan profesionalisme dan komitmen untuk segera memperbaiki proses pembelajaran.', '2025-02-27 11:47:53', 'dibaca'),
+(3, 13, 1, 0, 'peringatan', 'Surat Peringatan 1', 'SP 1 Karena tidakan buruk', '2025-02-27 11:52:02', 'dibaca'),
+(4, 14, 2, 0, 'peringatan', 'Surat Tugas', 'Anda berikan Tugas Mulia', '2025-04-11 22:54:30', 'dibaca');
 
 -- --------------------------------------------------------
 
@@ -442,10 +452,11 @@ CREATE TABLE `notifications` (
   `role_target` enum('keuangan','superadmin','sdm','all') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'all',
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `notification_type` enum('info','warning','success','error') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'info',
+  `notification_type` enum('info','success','warning','error') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'info',
   `link` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `priority` int DEFAULT '5' COMMENT 'Nilai prioritas; semakin kecil nilainya semakin tinggi prioritasnya',
   `is_read` tinyint(1) NOT NULL DEFAULT '0',
+  `is_once` tinyint(1) NOT NULL DEFAULT '0',
   `read_at` datetime DEFAULT NULL,
   `created_by` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'system' COMMENT 'Pengirim atau pembuat notifikasi, misalnya sistem atau admin',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -526,7 +537,14 @@ INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`,
 (4, 2, NULL, 4, 2025, 10000000.00, 500000.00, 375000.00, 0.00, 10125000.00, '2025-04-06 16:38:46', '2025-04-06 23:38:46', '098765', '', 'draft'),
 (5, 2, 10, 4, 2025, 10000000.00, 500000.00, 375000.00, 25000.00, 10100000.00, '2025-04-06 16:39:22', '2025-04-06 23:39:00', '098765', '', 'final'),
 (6, 19, NULL, 4, 2025, 6000000.00, 550000.00, 250000.00, 0.00, 6300000.00, '2025-04-07 04:27:39', '2025-04-07 11:27:39', '512443563', '', 'draft'),
-(7, 19, 11, 4, 2025, 6000000.00, 550000.00, 250000.00, 50000.00, 6250000.00, '2025-04-07 04:28:17', '2025-04-07 11:27:00', '512443563', 'Naik Gaji 2024/2025', 'final');
+(7, 19, 11, 4, 2025, 6000000.00, 550000.00, 250000.00, 50000.00, 6250000.00, '2025-04-07 04:28:17', '2025-04-07 11:27:00', '512443563', 'Naik Gaji 2024/2025', 'final'),
+(8, 26, NULL, 4, 2025, 6000000.00, 250000.00, 0.00, 0.00, 6250000.00, '2025-04-12 09:49:18', '2025-04-12 16:49:18', '124453434', '', 'draft'),
+(9, 26, 12, 4, 2025, 6000000.00, 250000.00, 0.00, 0.00, 6250000.00, '2025-04-13 04:02:15', '2025-04-13 11:02:00', '124453434', '', 'final'),
+(10, 25, 9, 4, 2025, 14000000.00, 400000.00, 0.00, 0.00, 14400000.00, '2025-04-13 04:26:34', '2025-04-13 11:26:00', '1357924680', '', 'final'),
+(11, 2, NULL, 5, 2025, 10000000.00, 500000.00, 375000.00, 0.00, 10125000.00, '2025-04-13 04:29:37', '2025-04-13 11:29:37', '098765', '', 'draft'),
+(12, 2, 13, 5, 2025, 10000000.00, 500000.00, 375000.00, 0.00, 10125000.00, '2025-04-13 04:30:00', '2025-04-13 11:29:00', '098765', '', 'final'),
+(13, 2, NULL, 6, 2025, 10000000.00, 500000.00, 525000.00, 0.00, 9975000.00, '2025-04-13 06:48:47', '2025-04-13 13:48:47', '098765', '', 'draft'),
+(14, 2, 14, 6, 2025, 10000000.00, 500000.00, 525000.00, 0.00, 9975000.00, '2025-04-13 06:48:56', '2025-04-13 13:48:00', '098765', '', 'final');
 
 -- --------------------------------------------------------
 
@@ -579,7 +597,38 @@ INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_anggota`, `id_payhead`, `j
 (28, 7, 19, 3, 'earnings', 100000.00, 'final'),
 (29, 7, 19, 6, 'earnings', 150000.00, 'final'),
 (30, 7, 19, 1, 'earnings', 150000.00, 'final'),
-(31, 7, 19, 4, 'deductions', 250000.00, 'final');
+(31, 7, 19, 4, 'deductions', 250000.00, 'final'),
+(32, 8, 26, 3, 'earnings', 100000.00, 'draft'),
+(33, 8, 26, 6, 'earnings', 150000.00, 'draft'),
+(34, 9, 26, 3, 'earnings', 100000.00, 'final'),
+(35, 9, 26, 6, 'earnings', 150000.00, 'final'),
+(36, 10, 25, 3, 'earnings', 100000.00, 'final'),
+(37, 10, 25, 6, 'earnings', 150000.00, 'final'),
+(38, 10, 25, 1, 'earnings', 150000.00, 'final'),
+(39, 11, 2, 100, 'earnings', 200000.00, 'draft'),
+(40, 11, 2, 4, 'deductions', 250000.00, 'draft'),
+(41, 11, 2, 2, 'deductions', 125000.00, 'draft'),
+(42, 11, 2, 6, 'earnings', 150000.00, 'draft'),
+(43, 11, 2, 1, 'earnings', 150000.00, 'draft'),
+(44, 12, 2, 100, 'earnings', 200000.00, 'final'),
+(45, 12, 2, 3, 'earnings', 0.00, 'final'),
+(46, 12, 2, 4, 'deductions', 250000.00, 'final'),
+(47, 12, 2, 2, 'deductions', 125000.00, 'final'),
+(48, 12, 2, 6, 'earnings', 150000.00, 'final'),
+(49, 12, 2, 1, 'earnings', 150000.00, 'final'),
+(50, 13, 2, 100, 'earnings', 200000.00, 'draft'),
+(51, 13, 2, 4, 'deductions', 250000.00, 'draft'),
+(52, 13, 2, 2, 'deductions', 125000.00, 'draft'),
+(53, 13, 2, 6, 'earnings', 150000.00, 'draft'),
+(54, 13, 2, 1, 'earnings', 150000.00, 'draft'),
+(55, 13, 2, 5, 'deductions', 150000.00, 'draft'),
+(56, 14, 2, 100, 'earnings', 200000.00, 'final'),
+(57, 14, 2, 3, 'earnings', 0.00, 'final'),
+(58, 14, 2, 4, 'deductions', 250000.00, 'final'),
+(59, 14, 2, 2, 'deductions', 125000.00, 'final'),
+(60, 14, 2, 6, 'earnings', 150000.00, 'final'),
+(61, 14, 2, 1, 'earnings', 150000.00, 'final'),
+(62, 14, 2, 5, 'deductions', 150000.00, 'final');
 
 -- --------------------------------------------------------
 
@@ -614,7 +663,23 @@ INSERT INTO `payroll_detail_final` (`id`, `id_payroll_final`, `id_payhead`, `nam
 (10, 3, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
 (11, 3, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
 (12, 3, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
-(13, 3, 4, 'Potongan BPJS', 'deductions', 250000.00, 0);
+(13, 3, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(14, 4, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(15, 4, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(17, 5, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(18, 5, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(19, 5, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
+(20, 6, 100, 'Kenaikan Gaji Tahunan', 'earnings', 200000.00, 0),
+(21, 6, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(22, 6, 2, 'Potongan Pajak', 'deductions', 125000.00, 0),
+(23, 6, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(24, 6, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
+(27, 7, 100, 'Kenaikan Gaji Tahunan', 'earnings', 200000.00, 0),
+(28, 7, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(29, 7, 2, 'Potongan Pajak', 'deductions', 125000.00, 0),
+(30, 7, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(31, 7, 1, 'Tunjangan Tetap', 'earnings', 150000.00, 0),
+(32, 7, 5, 'Koperasi', 'deductions', 150000.00, 0);
 
 -- --------------------------------------------------------
 
@@ -647,7 +712,11 @@ CREATE TABLE `payroll_final` (
 INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
 (1, 1, 8, 4, 2025, 6000000.00, 300000.00, 250000.00, 50000.00, 6000000.00, '2025-04-06 18:02:00', '1234567890', 'Payroll Bulan April', '2025-04-06 11:02:49', 2),
 (2, 2, 10, 4, 2025, 10000000.00, 500000.00, 375000.00, 25000.00, 10100000.00, '2025-04-06 23:39:00', '098765', '', '2025-04-06 16:39:22', 5),
-(3, 19, 11, 4, 2025, 6000000.00, 550000.00, 250000.00, 50000.00, 6250000.00, '2025-04-07 11:27:00', '512443563', 'Naik Gaji 2024/2025', '2025-04-07 04:28:17', 7);
+(3, 19, 11, 4, 2025, 6000000.00, 550000.00, 250000.00, 50000.00, 6250000.00, '2025-04-07 11:27:00', '512443563', 'Naik Gaji 2024/2025', '2025-04-07 04:28:17', 7),
+(4, 26, 12, 4, 2025, 6000000.00, 250000.00, 0.00, 0.00, 6250000.00, '2025-04-13 11:02:00', '124453434', '', '2025-04-13 04:02:15', 9),
+(5, 25, 9, 4, 2025, 14000000.00, 400000.00, 0.00, 0.00, 14400000.00, '2025-04-13 11:26:00', '1357924680', '', '2025-04-13 04:26:34', 10),
+(6, 2, 13, 5, 2025, 10000000.00, 500000.00, 375000.00, 0.00, 10125000.00, '2025-04-13 11:29:00', '098765', '', '2025-04-13 04:30:00', 12),
+(7, 2, 14, 6, 2025, 10000000.00, 500000.00, 525000.00, 0.00, 9975000.00, '2025-04-13 13:48:00', '098765', '', '2025-04-13 06:48:56', 14);
 
 -- --------------------------------------------------------
 
@@ -736,7 +805,10 @@ INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`
 (8, 1, 4, 2025, 27, 1, 1, 1, 0),
 (9, 25, 4, 2025, 0, 0, 0, 0, 0),
 (10, 2, 4, 2025, 0, 0, 0, 0, 0),
-(11, 19, 4, 2025, 0, 0, 0, 0, 0);
+(11, 19, 4, 2025, 0, 0, 0, 0, 0),
+(12, 26, 4, 2025, 0, 0, 0, 0, 0),
+(13, 2, 5, 2025, 0, 0, 0, 0, 0),
+(14, 2, 6, 2025, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -820,7 +892,8 @@ INSERT INTO `template_surat` (`id`, `jenis_surat`, `judul`, `isi`, `default_pene
 --
 ALTER TABLE `absensi`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_absensi_anggota` (`id_anggota`);
+  ADD KEY `fk_absensi_anggota` (`id_anggota`),
+  ADD KEY `idx_absensi_nip_tgl_late` (`nip`,`tanggal`,`terlambat`);
 
 --
 -- Indexes for table `anggota_sekolah`
@@ -830,14 +903,16 @@ ALTER TABLE `anggota_sekolah`
   ADD UNIQUE KEY `uid` (`uid`),
   ADD UNIQUE KEY `uk_nip` (`nip`),
   ADD KEY `salary_index_id` (`salary_index_id`),
-  ADD KEY `idx_kontrak_expiry` (`status_kerja`,`tgl_kontrak_selesai`);
+  ADD KEY `idx_kontrak_expiry` (`status_kerja`,`tgl_kontrak_selesai`),
+  ADD KEY `idx_kontrak_status_tgl` (`status_kerja`,`tgl_kontrak_selesai`);
 
 --
 -- Indexes for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_user_id` (`nip`);
+  ADD KEY `idx_user_id` (`nip`),
+  ADD KEY `idx_audit_created_action` (`created_at`,`action`);
 
 --
 -- Indexes for table `employee_payheads`
@@ -876,7 +951,8 @@ ALTER TABLE `holidays`
 --
 ALTER TABLE `jadwal_piket`
   ADD PRIMARY KEY (`id_jadwal`),
-  ADD KEY `fk_jadwal_piket_anggota` (`nip`);
+  ADD KEY `fk_jadwal_piket_anggota` (`nip`),
+  ADD KEY `idx_piket_nip_tanggal` (`nip`,`tanggal`);
 
 --
 -- Indexes for table `kenaikan_gaji_tahunan`
@@ -888,14 +964,17 @@ ALTER TABLE `kenaikan_gaji_tahunan`
 -- Indexes for table `laporan_surat`
 --
 ALTER TABLE `laporan_surat`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_laporan_read` (`id_penerima`,`is_read_receiver`);
 
 --
 -- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_user_id` (`user_id`);
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_role_read` (`role_target`,`is_read`),
+  ADD KEY `idx_user_read` (`user_id`,`is_read`);
 
 --
 -- Indexes for table `payheads`
@@ -916,7 +995,8 @@ ALTER TABLE `payhead_groups`
 ALTER TABLE `payroll`
   ADD PRIMARY KEY (`id`),
   ADD KEY `id_anggota` (`id_anggota`),
-  ADD KEY `id_rekap_absensi` (`id_rekap_absensi`);
+  ADD KEY `id_rekap_absensi` (`id_rekap_absensi`),
+  ADD KEY `idx_payroll_bulantahun_stat` (`bulan`,`tahun`,`status`);
 
 --
 -- Indexes for table `payroll_detail`
@@ -940,13 +1020,16 @@ ALTER TABLE `payroll_detail_final`
 ALTER TABLE `payroll_final`
   ADD PRIMARY KEY (`id`),
   ADD KEY `id_anggota` (`id_anggota`),
-  ADD KEY `bulan` (`bulan`,`tahun`);
+  ADD KEY `bulan` (`bulan`,`tahun`),
+  ADD KEY `idx_payrollfinal_anggota_blnthn` (`id_anggota`,`bulan`,`tahun`);
 
 --
 -- Indexes for table `pengajuan_ijin`
 --
 ALTER TABLE `pengajuan_ijin`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_ijin_kepsek` (`status_kepalasekolah`,`status`),
+  ADD KEY `idx_ijin_nip_stat` (`nip`,`status`);
 
 --
 -- Indexes for table `rekap_absensi`
@@ -989,7 +1072,7 @@ ALTER TABLE `absensi`
 -- AUTO_INCREMENT for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
@@ -1001,7 +1084,7 @@ ALTER TABLE `audit_logs`
 -- AUTO_INCREMENT for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -1019,7 +1102,7 @@ ALTER TABLE `kenaikan_gaji_tahunan`
 -- AUTO_INCREMENT for table `laporan_surat`
 --
 ALTER TABLE `laporan_surat`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -1043,25 +1126,25 @@ ALTER TABLE `payhead_groups`
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail_final`
 --
 ALTER TABLE `payroll_detail_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `pengajuan_ijin`
@@ -1073,7 +1156,7 @@ ALTER TABLE `pengajuan_ijin`
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `rekap_mingguan`

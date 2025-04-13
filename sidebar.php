@@ -159,41 +159,41 @@ function renderCollapseMenu($id, $iconClass, $title, $items)
         <!-- Menu Non-Admin -->
         <!-- Menu Guru/TK -->
         <li class="nav-item <?= isActive('/guru/dashboard_guru.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/dashboard_guru.php">
-                        <i class="fas fa-home"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                <li class="nav-item <?= isActive('/guru/pengajuan_surat_ijin.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/pengajuan_surat_ijin.php">
-                        <i class="fas fa-paper-plane"></i>
-                        <span>Ajukan Ijin</span>
-                    </a>
-                </li>
-                <li class="nav-item <?= isActive('/guru/laporan_surat.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/laporan_surat.php">
-                        <i class="fas fa-file-alt"></i>
-                        <span>Laporan Surat</span>
-                    </a>
-                </li>
-                <li class="nav-item <?= isActive('/guru/list_hari_libur.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/list_hari_libur.php">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>Hari Libur</span>
-                    </a>
-                </li>
-                <li class="nav-item <?= isActive('/guru/dashboard_jadwal.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/dashboard_jadwal.php">
-                        <i class="fas fa-calendar-check"></i>
-                        <span>Jadwal Piket</span>
-                    </a>
-                </li>
-                <li class="nav-item <?= isActive('/guru/hasil-slip_gaji.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/hasil-slip_gaji.php">
-                        <i class="fas fa-receipt"></i>
-                        <span>Slip Gaji</span>
-                    </a>
-                </li>
+            <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/dashboard_guru.php">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li class="nav-item <?= isActive('/guru/pengajuan_surat_ijin.php'); ?>">
+            <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/pengajuan_surat_ijin.php">
+                <i class="fas fa-paper-plane"></i>
+                <span>Ajukan Ijin</span>
+            </a>
+        </li>
+        <li class="nav-item <?= isActive('/guru/laporan_surat.php'); ?>">
+            <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/laporan_surat.php">
+                <i class="fas fa-file-alt"></i>
+                <span>Laporan Surat</span>
+            </a>
+        </li>
+        <li class="nav-item <?= isActive('/guru/list_hari_libur.php'); ?>">
+            <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/list_hari_libur.php">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Hari Libur</span>
+            </a>
+        </li>
+        <li class="nav-item <?= isActive('/guru/dashboard_jadwal.php'); ?>">
+            <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/dashboard_jadwal.php">
+                <i class="fas fa-calendar-check"></i>
+                <span>Jadwal Piket</span>
+            </a>
+        </li>
+        <li class="nav-item <?= isActive('/guru/hasil-slip_gaji.php'); ?>">
+            <a class="nav-link" href="<?= getBaseUrl(); ?>/guru/hasil-slip_gaji.php">
+                <i class="fas fa-receipt"></i>
+                <span>Slip Gaji</span>
+            </a>
+        </li>
         <?php
     } else {
         // LOGIKA MENU ADMIN berdasarkan role dan job_title
@@ -309,7 +309,6 @@ function renderCollapseMenu($id, $iconClass, $title, $items)
                     'Laporan Jadwal Piket' => '/sdm/laporan_jadwal_piket.php',
                     'Pembuatan Surat'      => '/sdm/pembuatan_surat.php',
                     'Audit Logs SDM'       => '/sdm/audit_logs_sdm.php',
-                    'Notifikasi SDM'       => '/sdm/notifikasi_sdm.php'
                 ];
                 renderCollapseMenu('collapseSDM', 'fas fa-users-cog', 'Role SDM', $sdmItems);
                 $keuanganItems = [
@@ -318,7 +317,6 @@ function renderCollapseMenu($id, $iconClass, $title, $items)
                     'History Payroll'     => '/keuangan/payroll_history.php',
                     'Rekap Payroll'       => '/keuangan/rekap_payroll.php',
                     'Audit Logs Keuangan' => '/keuangan/audit_logs_keuangan.php',
-                    'Notifikasi Keuangan' => '/keuangan/notifikasi_keuangan.php'
                 ];
                 renderCollapseMenu('collapseKeuangan', 'fas fa-wallet', 'Role Keuangan', $keuanganItems);
             } elseif (strpos($normalizedJobTitle, 'keuangan') !== false) {
@@ -345,12 +343,6 @@ function renderCollapseMenu($id, $iconClass, $title, $items)
                     <a class="nav-link" href="<?= getBaseUrl() ?>/keuangan/rekap_payroll.php">
                         <i class="fas fa-file-invoice-dollar"></i>
                         <span>Rekap Payroll</span>
-                    </a>
-                </li>
-                <li class="nav-item <?= isActive('/keuangan/notifikasi_keuangan.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl() ?>/keuangan/notifikasi_keuangan.php">
-                        <i class="fas fa-bell"></i>
-                        <span>Notifikasi Keuangan</span>
                     </a>
                 </li>
                 <li class="nav-item <?= isActive('/keuangan/audit_logs_keuangan.php'); ?>">
@@ -414,12 +406,6 @@ function renderCollapseMenu($id, $iconClass, $title, $items)
                     <a class="nav-link" href="<?= getBaseUrl() ?>/sdm/audit_logs_sdm.php">
                         <i class="fas fa-history"></i>
                         <span>Audit Logs SDM</span>
-                    </a>
-                </li>
-                <li class="nav-item <?= isActive('/sdm/notifikasi_sdm.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl() ?>/sdm/notifikasi_sdm.php">
-                        <i class="fas fa-bell"></i>
-                        <span>Notifikasi SDM</span>
                     </a>
                 </li>
                 <?php
