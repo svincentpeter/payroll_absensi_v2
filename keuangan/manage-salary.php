@@ -378,46 +378,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
 $conn->commit();
 
 // 8) Kirim Notifikasi WhatsApp secara otomatis
-if (!empty($karyawan['no_hp'])) {
-    $phone = trim($karyawan['no_hp']);
+// --- Kirim Notifikasi WhatsApp melalui Fonnte ---
+$stmtKar = $conn->prepare("SELECT no_hp, nama FROM anggota_sekolah WHERE id = ? LIMIT 1");
+$stmtKar->bind_param("i", $id_anggota);
+$stmtKar->execute();
+$resKar = $stmtKar->get_result();
+if ($resKar->num_rows > 0) {
+    $rowKar = $resKar->fetch_assoc();
+    $phone = trim($rowKar['no_hp'] ?? '');
+    $namaKaryawan = $rowKar['nama'] ?? '';
+    
     // Pastikan nomor diawali dengan kode negara '62'
-    if (substr($phone, 0, 2) !== '62') {
-        if (substr($phone, 0, 1) === '0') {
-            $phone = '62' . substr($phone, 1);
+    if (!empty($phone)) {
+        if (substr($phone, 0, 2) !== '62') {
+            if (substr($phone, 0, 1) === '0') {
+                $phone = '62' . substr($phone, 1);
+            }
+        }
+        
+        $periodeNotif = getIndonesianMonthName($bulan_int) . ' ' . $tahun;
+        $notifMessage = "Halo " . $namaKaryawan . ", Slip Gaji Bulan " . $periodeNotif . " telah diberikan. Bisa di Cek melalui Dashboard Anggota.";
+        
+        // Kirim notifikasi WA menggunakan fungsi dari fonnte_helper.php
+        $notif_response = send_whatsapp_notification($phone, $notifMessage);
+        
+        // Catat log pengiriman WA
+        add_audit_log($conn, $user_nip, 'SendWhatsApp', "Notifikasi WA dikirim ke {$phone}: " . $notif_response);
+        
+        // Coba decode respons (asumsi respon berupa JSON)
+        $responseData = json_decode($notif_response, true);
+        if ($responseData !== null && isset($responseData['success']) && $responseData['success'] === true) {
+            // Jika sukses, tampilkan SweetAlert notifikasi sukses (jika tidak dilakukan redirect segera)
+            echo "<script>
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Notifikasi WA berhasil dikirim!',
+                        text: 'Notifikasi dikirim ke {$phone}.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                  </script>";
+        } else {
+            // Jika respon tidak menunjukkan sukses, tampilkan error
+            echo "<script>
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal mengirim Notifikasi WA!',
+                        text: 'Silakan periksa koneksi atau konfigurasi API Fonnte.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                  </script>";
         }
     }
-    $message = "Payroll Bulan " . $bulanName . " " . $tahun . " telah dikirimkan, dan dapat dilihat di akun dashboard anda.";
-    $notif_response = send_whatsapp_notification($phone, $message);
-    // Catat log pengiriman WA
-    add_audit_log($conn, $user_nip, 'SendWhatsApp', "Notifikasi WA dikirim ke {$phone}: " . $notif_response);
-    
-    // Coba decode respons dari API (asumsi API mengembalikan JSON)
-    $responseData = json_decode($notif_response, true);
-    if ($responseData !== null && isset($responseData['success']) && $responseData['success'] == true) {
-        // Tampilkan notifikasi sukses ke user dengan SweetAlert
-        echo "<script>
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Notifikasi WA berhasil dikirim!',
-                    text: 'Notifikasi dikirim ke {$phone}.',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-              </script>";
-    } else {
-        // Tampilkan notifikasi error jika pengiriman gagal
-        echo "<script>
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal mengirim Notifikasi WA!',
-                    text: 'Silakan periksa kembali koneksi atau konfigurasi API Fonnte.',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-              </script>";
-    }
 }
-
+$stmtKar->close();
 
 
 /**
