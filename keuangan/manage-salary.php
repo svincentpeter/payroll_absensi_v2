@@ -10,7 +10,6 @@ authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 require_once __DIR__ . '/../koneksi.php';
 require_once __DIR__ . '/../fonnte_helper.php';
 
-
 // Generate CSRF token
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
@@ -97,7 +96,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             }
             $stmtReject->close();
 
-            // Ubah status di tabel employee_payheads menjadi 'revisi' (untuk semua payheads yang masih 'draft' milik anggota terkait)
+            // Ubah status di tabel employee_payheads menjadi 'revisi'
             $stmtRejectEP = $conn->prepare("UPDATE employee_payheads SET status = 'revisi' WHERE id_anggota = ? AND status = 'draft'");
             if (!$stmtRejectEP) {
                 send_response(1, 'Prepare failed (RejectPayroll employee_payheads): ' . $conn->error);
@@ -109,7 +108,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             }
             $stmtRejectEP->close();
 
-            // Opsional: tambahkan audit log jika diperlukan
             $user_nip = $_SESSION['nip'] ?? '';
             $details  = "Menolak payroll untuk anggota ID $id_anggota periode $bulan-$tahun. Status diubah menjadi revisi.";
             add_audit_log($conn, $user_nip, 'RejectPayroll', $details);
@@ -168,6 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
     $catatan          = sanitize_input($_POST['inputDescription'] ?? '');
     $tgl_payroll      = sanitize_input($_POST['tgl_payroll'] ?? date('Y-m-d H:i:s'));
 
+    // Jika tidak ada payhead yang dipilih, pastikan nilai total earnings & deductions = 0
     if (!isset($_POST['payheads_ids']) || empty($_POST['payheads_ids'])) {
         $total_earnings   = 0;
         $total_deductions = 0;
@@ -177,21 +176,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         die("Parameter tidak valid untuk finalisasi payroll.");
     }
 
+    // Deklarasikan variabel $id_payroll_final secara global agar selalu ada
+    $id_payroll_final = 0;
+
     $conn->begin_transaction();
     try {
         // 1) Insert dulu ke tabel payroll dengan nilai sementara
         $status = 'final';
-        $temp_earnings   = 0;  // sementara
-        $temp_deductions = 0;  // sementara
-        $temp_bersih     = 0;  // sementara
+        $temp_earnings   = 0;
+        $temp_deductions = 0;
+        $temp_bersih     = 0;
 
         $stmtPayroll = $conn->prepare("
-        INSERT INTO payroll
-        (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok,
-         total_pendapatan, total_potongan, potongan_koperasi,
-         gaji_bersih, no_rekening, catatan, id_rekap_absensi, status)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ");
+            INSERT INTO payroll
+            (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok,
+             total_pendapatan, total_potongan, potongan_koperasi,
+             gaji_bersih, no_rekening, catatan, id_rekap_absensi, status)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ");
         if (!$stmtPayroll) {
             throw new Exception("Prepare failed (insert payroll): " . $conn->error);
         }
@@ -220,10 +222,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         // 2) Insert detail payhead => payroll_detail (dari hidden field)
         if (!empty($_POST['payheads_ids'])) {
             $stmtDetail = $conn->prepare("
-            INSERT INTO payroll_detail
-                (id_payroll, id_anggota, id_payhead, jenis, amount, status)
-            VALUES (?,?,?,?,?, 'final')
-        ");
+                INSERT INTO payroll_detail
+                    (id_payroll, id_anggota, id_payhead, jenis, amount, status)
+                VALUES (?,?,?,?,?, 'final')
+            ");
             if (!$stmtDetail) {
                 throw new Exception("Prepare failed (insert payroll_detail): " . $conn->error);
             }
@@ -242,19 +244,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
             $stmtDetail->close();
         }
 
-        // 3) Setelah payroll_detail terisi, baru sum total pendapatan & potongan
+        // 3) Setelah payroll_detail terisi, hitung total pendapatan & potongan (skip payhead dengan is_rapel)
         $stmtSum = $conn->prepare("
-        SELECT 
-          SUM(CASE WHEN pd.jenis='earnings' THEN pd.amount ELSE 0 END) AS total_earnings,
-          SUM(CASE WHEN pd.jenis='deductions' THEN pd.amount ELSE 0 END) AS total_deductions
-        FROM payroll_detail pd
-        JOIN payheads ph ON ph.id = pd.id_payhead
-        LEFT JOIN employee_payheads ep
-               ON ep.id_anggota = ?
-              AND ep.id_payhead = pd.id_payhead
-        WHERE pd.id_payroll = ?
-          AND IFNULL(ep.is_rapel,0)=0
-    ");
+            SELECT 
+              SUM(CASE WHEN pd.jenis='earnings' THEN pd.amount ELSE 0 END) AS total_earnings,
+              SUM(CASE WHEN pd.jenis='deductions' THEN pd.amount ELSE 0 END) AS total_deductions
+            FROM payroll_detail pd
+            JOIN payheads ph ON ph.id = pd.id_payhead
+            LEFT JOIN employee_payheads ep
+                   ON ep.id_anggota = ?
+                  AND ep.id_payhead = pd.id_payhead
+            WHERE pd.id_payroll = ?
+              AND IFNULL(ep.is_rapel,0)=0
+        ");
         if (!$stmtSum) {
             throw new Exception("Prepare failed (sum payroll_detail): " . $conn->error);
         }
@@ -272,12 +274,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
 
         // 4) Update kembali tabel payroll dengan nilai final
         $stmtUpdate = $conn->prepare("
-        UPDATE payroll
-           SET total_pendapatan = ?,
-               total_potongan   = ?,
-               gaji_bersih      = ?
-         WHERE id = ?
-    ");
+            UPDATE payroll
+               SET total_pendapatan = ?,
+                   total_potongan   = ?,
+                   gaji_bersih      = ?
+             WHERE id = ?
+        ");
         if (!$stmtUpdate) {
             throw new Exception("Prepare failed (update payroll): " . $conn->error);
         }
@@ -290,58 +292,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         $stmtUpdate->close();
 
         // 5) Insert data ke payroll_final
-        $stmtPayrollFinal = $conn->prepare("
-        INSERT INTO payroll_final
-        (id_payroll_asal, id_anggota, bulan, tahun, tgl_payroll,
-         gaji_pokok, total_pendapatan, total_potongan, potongan_koperasi,
-         gaji_bersih, no_rekening, catatan, id_rekap_absensi)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ");
-        if (!$stmtPayrollFinal) {
-            throw new Exception("Prepare failed (insert payroll_final): " . $conn->error);
+        // Cek apakah payroll_final dengan id_payroll_asal sudah ada
+        $stmtExists = $conn->prepare("SELECT id FROM payroll_final WHERE id_payroll_asal = ? LIMIT 1");
+        if (!$stmtExists) {
+            throw new Exception("Prepare failed (check payroll_final): " . $conn->error);
         }
-        if (!$stmtPayrollFinal->bind_param(
-            "iiiisdddddssi",
-            $newPayrollId,
-            $id_anggota,
-            $bulan_int,
-            $tahun,
-            $tgl_payroll,
-            $gaji_pokok,
-            $total_earnings,
-            $total_deductions,
-            $potongan_koperasi,
-            $gaji_bersih,
-            $no_rekening,
-            $catatan,
-            $id_rekap_absensi
-        )) {
-            throw new Exception("bind_param error: " . $stmtPayrollFinal->error);
+        $stmtExists->bind_param("i", $newPayrollId);
+        $stmtExists->execute();
+        $stmtExists->store_result();
+        if ($stmtExists->num_rows > 0) {
+            $stmtExists->bind_result($existingFinalId);
+            $stmtExists->fetch();
+            $id_payroll_final = $existingFinalId;
+            $stmtExists->close();
+        } else {
+            $stmtExists->close();
+            $stmtPayrollFinal = $conn->prepare("
+                INSERT INTO payroll_final
+                (id_payroll_asal, id_anggota, bulan, tahun, tgl_payroll,
+                 gaji_pokok, total_pendapatan, total_potongan, potongan_koperasi,
+                 gaji_bersih, no_rekening, catatan, id_rekap_absensi)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ");
+            if (!$stmtPayrollFinal) {
+                throw new Exception("Prepare failed (insert payroll_final): " . $conn->error);
+            }
+            $stmtPayrollFinal->bind_param(
+                "iiiisdddddssi",
+                $newPayrollId,
+                $id_anggota,
+                $bulan_int,
+                $tahun,
+                $tgl_payroll,
+                $gaji_pokok,
+                $total_earnings,
+                $total_deductions,
+                $potongan_koperasi,
+                $gaji_bersih,
+                $no_rekening,
+                $catatan,
+                $id_rekap_absensi
+            );
+            if (!$stmtPayrollFinal->execute()) {
+                throw new Exception("Gagal insert payroll_final: " . $stmtPayrollFinal->error);
+            }
+            $id_payroll_final = $stmtPayrollFinal->insert_id;
+            $stmtPayrollFinal->close();
         }
-        if (!$stmtPayrollFinal->execute()) {
-            throw new Exception("Gagal insert payroll_final: " . $stmtPayrollFinal->error);
-        }
-        $id_payroll_final = $stmtPayrollFinal->insert_id;
-        $stmtPayrollFinal->close();
 
         // 6) Snapshot detail => payroll_detail_final
+        // Gunakan INSERT IGNORE agar jika detail sudah ada, tidak dimasukkan ulang.
         $stmtDetailSnapshot = $conn->prepare("
-        INSERT INTO payroll_detail_final
-        (id_payroll_final, id_payhead, nama_payhead, jenis, amount)
-        SELECT
-          ?,
-          pd.id_payhead,
-          ph.nama_payhead,
-          pd.jenis,
-          pd.amount
-        FROM payroll_detail pd
-        JOIN payheads ph ON ph.id = pd.id_payhead
-        LEFT JOIN employee_payheads ep
-               ON ep.id_anggota = ?
-              AND ep.id_payhead = pd.id_payhead
-        WHERE pd.id_payroll = ?
-          AND IFNULL(ep.is_rapel,0) = 0
-    ");
+            INSERT IGNORE INTO payroll_detail_final
+            (id_payroll_final, id_payhead, nama_payhead, jenis, amount)
+            SELECT
+              ?,
+              pd.id_payhead,
+              ph.nama_payhead,
+              pd.jenis,
+              pd.amount
+            FROM payroll_detail pd
+            JOIN payheads ph ON ph.id = pd.id_payhead
+            LEFT JOIN employee_payheads ep
+                   ON ep.id_anggota = ?
+                  AND ep.id_payhead = pd.id_payhead
+            WHERE pd.id_payroll = ?
+              AND IFNULL(ep.is_rapel,0) = 0
+        ");
         if (!$stmtDetailSnapshot) {
             throw new Exception("Prepare failed (snapshot detail): " . $conn->error);
         }
@@ -353,86 +370,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         }
         $stmtDetailSnapshot->close();
 
-        // 7) Commit
+        // 7) Commit transaksi
         $conn->commit();
+
+        // Ambil data karyawan untuk notifikasi
+        $stmtKar = $conn->prepare("SELECT nama, no_hp FROM anggota_sekolah WHERE id=? LIMIT 1");
+        $stmtKar->bind_param("i", $id_anggota);
+        $stmtKar->execute();
+        $resKar = $stmtKar->get_result();
+        $karyawan = $resKar->fetch_assoc();
+        $stmtKar->close();
 
         // Audit log
         $user_nip = $_SESSION['nip'] ?? '';
         $details  = "Finalisasi Payroll untuk Anggota $id_anggota periode $bulan_int-$tahun. "
-            . "Pendapatan: " . formatNominal($total_earnings)
-            . ", Potongan: " . formatNominal($total_deductions)
-            . ", Pot. Koperasi: " . formatNominal($potongan_koperasi)
-            . ", Gaji Bersih: " . formatNominal($gaji_bersih);
+                  . "Pendapatan: " . formatNominal($total_earnings)
+                  . ", Potongan: " . formatNominal($total_deductions)
+                  . ", Pot. Koperasi: " . formatNominal($potongan_koperasi)
+                  . ", Gaji Bersih: " . formatNominal($gaji_bersih);
         add_audit_log($conn, $user_nip, 'InsertPayroll', $details);
+
+        // --- Pengiriman Notifikasi WA via Fontee ---
+        $api_key = 'ZmDmEvDkfQphdomxS7YU';
+        $phone = formatPhoneNumber($karyawan['no_hp'] ?? '');
+        $periode = getIndonesianMonthName($bulan_int) . ' ' . $tahun;
+        $message = "Halo " . $karyawan['nama'] . ", slip gaji bulan " . $periode . " telah diberikan.";
+
+        if (!empty($phone)) {
+            $notificationStatus = sendFonnteNotification($phone, $message, $api_key);
+            if (!$notificationStatus) {
+                error_log("Notifikasi Fontee gagal dikirim ke nomor: $phone untuk Payroll ID: $newPayrollId");
+            }
+        }
+        // --- Akhir Pengiriman Notifikasi ---
 
         // Redirect ke detail payroll final
         header("Location: payroll-details.php?id_payroll=$id_payroll_final");
         exit();
+
     } catch (Exception $e) {
         $conn->rollback();
-        die("Terjadi kesalahan: " . $e->getMessage());
+        die("Error: " . $e->getMessage());
     }
 }
-
-// 7) Commit Transaksi
-$conn->commit();
-
-// 8) Kirim Notifikasi WhatsApp secara otomatis
-// --- Kirim Notifikasi WhatsApp melalui Fonnte ---
-$stmtKar = $conn->prepare("SELECT no_hp, nama FROM anggota_sekolah WHERE id = ? LIMIT 1");
-$stmtKar->bind_param("i", $id_anggota);
-$stmtKar->execute();
-$resKar = $stmtKar->get_result();
-if ($resKar->num_rows > 0) {
-    $rowKar = $resKar->fetch_assoc();
-    $phone = trim($rowKar['no_hp'] ?? '');
-    $namaKaryawan = $rowKar['nama'] ?? '';
-    
-    // Pastikan nomor diawali dengan kode negara '62'
-    if (!empty($phone)) {
-        if (substr($phone, 0, 2) !== '62') {
-            if (substr($phone, 0, 1) === '0') {
-                $phone = '62' . substr($phone, 1);
-            }
-        }
-        
-        $periodeNotif = getIndonesianMonthName($bulan_int) . ' ' . $tahun;
-        $notifMessage = "Halo " . $namaKaryawan . ", Slip Gaji Bulan " . $periodeNotif . " telah diberikan. Bisa di Cek melalui Dashboard Anggota.";
-        
-        // Kirim notifikasi WA menggunakan fungsi dari fonnte_helper.php
-        $notif_response = send_whatsapp_notification($phone, $notifMessage);
-        
-        // Catat log pengiriman WA
-        add_audit_log($conn, $user_nip, 'SendWhatsApp', "Notifikasi WA dikirim ke {$phone}: " . $notif_response);
-        
-        // Coba decode respons (asumsi respon berupa JSON)
-        $responseData = json_decode($notif_response, true);
-        if ($responseData !== null && isset($responseData['success']) && $responseData['success'] === true) {
-            // Jika sukses, tampilkan SweetAlert notifikasi sukses (jika tidak dilakukan redirect segera)
-            echo "<script>
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Notifikasi WA berhasil dikirim!',
-                        text: 'Notifikasi dikirim ke {$phone}.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                  </script>";
-        } else {
-            // Jika respon tidak menunjukkan sukses, tampilkan error
-            echo "<script>
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal mengirim Notifikasi WA!',
-                        text: 'Silakan periksa koneksi atau konfigurasi API Fonnte.',
-                        timer: 3000,
-                        showConfirmButton: false
-                    });
-                  </script>";
-        }
-    }
-}
-$stmtKar->close();
 
 
 /**

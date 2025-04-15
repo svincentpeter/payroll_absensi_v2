@@ -853,6 +853,16 @@ if (!function_exists('qCount')) {
  * @param int    $lamaKontrak (bulan)
  * @return string|null        (Y-m-d) atau NULL bila input tidak valid
  */
+// Tempatkan fungsi formatPhoneNumber() di luar fungsi hitungTanggalSelesaiKontrak()
+function formatPhoneNumber($phone) {
+    $phone = trim($phone);
+    // Jika nomor dimulai dengan '0', ubah menjadi '62'
+    if (substr($phone, 0, 1) === '0') {
+        return '62' . substr($phone, 1);
+    }
+    return $phone;
+}
+
 function hitungTanggalSelesaiKontrak(string $joinStart, int $lamaKontrak): ?string {
     if ($lamaKontrak <= 0 || $joinStart === '0000-00-00' || empty($joinStart)) {
         return null;
@@ -865,3 +875,4 @@ function hitungTanggalSelesaiKontrak(string $joinStart, int $lamaKontrak): ?stri
         return null;
     }
 }
+
