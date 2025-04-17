@@ -494,29 +494,29 @@ function getDashboardRoute($role, $jobTitle)
  ************************************/
 
 /**
- * Menghasilkan URL foto profil berdasarkan nama, jenjang, role, dan ID user.
- * Jika foto tidak ditemukan, mengembalikan URL gambar default.
- *
- * @param string $nama   Nama user.
- * @param string $jenjang Jenjang pendidikan.
- * @param string $role    Role user.
- * @param int    $id      ID user.
- * @return string URL foto profil.
+ * @param  string $pathDb  Nilai kolom foto_profil di DB, bisa:
+ *                         - 'default.jpg'
+ *                         - '/payroll_absensi_v2/uploads/profile_pics/…'
+ * @return string URL lengkap ke foto, atau placeholder SVG
  */
-function getProfilePhotoUrl($nama, $jenjang, $role, $id)
+function getProfilePhotoUrl(string $pathDb): string
 {
-    $fileName = strtolower(preg_replace('/\s+/', '_', $nama))
-        . '_' . strtolower(preg_replace('/\s+/', '_', $jenjang))
-        . '_' . strtolower($role)
-        . '_' . $id . '.jpg';
-    $filePath = __DIR__ . '/uploads/profile_pics/' . $fileName;
+    $base = getBaseUrl(); 
 
-    if (file_exists($filePath)) {
-        return getBaseUrl() . '/uploads/profile_pics/' . $fileName;
-    } else {
-        return getBaseUrl() . '/assets/img/undraw_profile.svg';
+    // 1) Jika default atau kosong: pakai placeholder
+    if (empty($pathDb) || $pathDb === 'default.jpg') {
+        return "{$base}/assets/img/placeholder_foto_profil.svg";
     }
+
+    // 2) Jika sudah URL lengkap
+    if (preg_match('#^https?://#i', $pathDb)) {
+        return $pathDb;
+    }
+
+    // 3) Jika path relatif seperti '/…/uploads/...'
+    return rtrim($base, '/') . '/' . ltrim($pathDb, '/');
 }
+
 
 /************************************
  * 7. MANAJEMEN GAJI & INDEKS SALARY

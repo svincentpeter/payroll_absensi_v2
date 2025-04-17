@@ -466,18 +466,17 @@ function AssignPayheadsToEmployee($conn)
             // Jika ingin juga memasukkannya ke employee_payheads agar tampil di rekap payroll selama setahun,
             // misalnya id payhead untuk kenaikan gaji adalah 100:
             $idPayheadKenaikan = 100;
-$earningsStr = "earnings";
-$emptyStr    = "";   // variabel untuk string kosong
-$zeroValue   = 0;    // variabel untuk nilai nol
+            $earningsStr = "earnings";
+            $emptyStr    = "";   // variabel untuk string kosong
+            $zeroValue   = 0;    // variabel untuk nilai nol
 
-if (!isset($oldPayheads[$idPayheadKenaikan])) {
-    $stmtIns->bind_param("iisdssbi", $empcode, $idPayheadKenaikan, $earningsStr, $nominalKenaikan, $namaKenaikan, $emptyStr, $emptyStr, $zeroValue);
-    $stmtIns->execute();
-} else {
-    $stmtUpd->bind_param("dssbiii", $nominalKenaikan, $namaKenaikan, $emptyStr, $emptyStr, $zeroValue, $empcode, $idPayheadKenaikan);
-    $stmtUpd->execute();
-}
-
+            if (!isset($oldPayheads[$idPayheadKenaikan])) {
+                $stmtIns->bind_param("iisdssbi", $empcode, $idPayheadKenaikan, $earningsStr, $nominalKenaikan, $namaKenaikan, $emptyStr, $emptyStr, $zeroValue);
+                $stmtIns->execute();
+            } else {
+                $stmtUpd->bind_param("dssbiii", $nominalKenaikan, $namaKenaikan, $emptyStr, $emptyStr, $zeroValue, $empcode, $idPayheadKenaikan);
+                $stmtUpd->execute();
+            }
         }
         foreach ($oldPayheads as $oldPid => $oldRow) {
             if (!in_array($oldPid, $payheads)) {
@@ -588,11 +587,11 @@ if (!isset($oldPayheads[$idPayheadKenaikan])) {
 function LoadingEmployees($conn)
 {
     verify_csrf_token($_POST['csrf_token'] ?? '');
-    $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
-    $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search = sanitize_input($_POST['search'] ?? '');
-    $jenjang = sanitize_input($_POST['jenjang'] ?? '');
-    $role   = sanitize_input($_POST['role'] ?? '');
+    $start         = isset($_POST['start']) ? intval($_POST['start']) : 0;
+    $length        = isset($_POST['length']) ? intval($_POST['length']) : 10;
+    $search        = sanitize_input($_POST['search'] ?? '');
+    $jenjang       = sanitize_input($_POST['jenjang'] ?? '');
+    $role          = sanitize_input($_POST['role'] ?? '');
     $selectedMonth = intval($_POST['selectedMonth'] ?? date('n'));
     $selectedYear  = intval($_POST['selectedYear']  ?? date('Y'));
 
@@ -615,33 +614,34 @@ function LoadingEmployees($conn)
                       ) AS has_rapel";
 
     // Hitung total data
-    $sqlTotal = "SELECT COUNT(*) AS total FROM anggota_sekolah";
-    $resTotal = $conn->query($sqlTotal);
-    $rowTotal = $resTotal->fetch_assoc();
+    $sqlTotal   = "SELECT COUNT(*) AS total FROM anggota_sekolah";
+    $rowTotal   = $conn->query($sqlTotal)->fetch_assoc();
     $recordsTotal = intval($rowTotal['total']);
 
-    // Query utama
-    $sql = "SELECT a.id, a.uid, a.nip, a.nama, a.jenjang, a.role,
-                   a.job_title, a.status_kerja, a.masa_kerja_tahun,
-                   a.masa_kerja_bulan, a.gaji_pokok, a.no_rekening,
-                   a.email, si.level AS salary_index_level,
-                   si.base_salary AS salary_index_base,
-                   $subqueryPayrollStatus,
-                   $subqueryRapel
-              FROM anggota_sekolah a
-         LEFT JOIN salary_indices si ON a.salary_index_id = si.id
-             WHERE 1=1";
+    // Query utama (termasuk foto_profil)
+    $sql = "SELECT 
+                a.id, a.uid, a.nip, a.nama, a.jenjang, a.role,
+                a.job_title, a.status_kerja, a.masa_kerja_tahun,
+                a.masa_kerja_bulan, a.gaji_pokok, a.no_rekening,
+                a.email, a.foto_profil, 
+                si.level   AS salary_index_level,
+                si.base_salary AS salary_index_base,
+                $subqueryPayrollStatus,
+                $subqueryRapel
+            FROM anggota_sekolah a
+       LEFT JOIN salary_indices si ON a.salary_index_id = si.id
+           WHERE 1=1";
 
     // Filter jenjang
-    if (!empty($jenjang)) {
+    if ($jenjang !== '') {
         $sql .= " AND a.jenjang = '" . $conn->real_escape_string($jenjang) . "'";
     }
     // Filter role
-    if (!empty($role)) {
+    if ($role !== '') {
         $sql .= " AND a.role = '" . $conn->real_escape_string($role) . "'";
     }
     // Filter search
-    if (!empty($search)) {
+    if ($search !== '') {
         $s = $conn->real_escape_string($search);
         $sql .= " AND (
             a.id LIKE '%$s%' OR a.uid LIKE '%$s%' OR a.nip LIKE '%$s%' OR a.nama LIKE '%$s%'
@@ -657,49 +657,65 @@ function LoadingEmployees($conn)
         send_response(1, 'Gagal query data employees: ' . $conn->error);
     }
 
+    $baseUrl = getBaseUrl();
     $data = [];
     while ($row = $res->fetch_assoc()) {
-        $hasRapel  = (intval($row['has_rapel']) > 0);
-        $masaKerja = ($row['masa_kerja_tahun'] > 0 ? $row['masa_kerja_tahun'] . ' Thn ' : '')
-            . ($row['masa_kerja_bulan'] > 0 ? $row['masa_kerja_bulan'] . ' Bln' : '');
-        $masaKerja = trim($masaKerja) ?: '-';
+        // format masa kerja & gaji
+        $masaKerja = trim(
+            ($row['masa_kerja_tahun'] > 0 ? $row['masa_kerja_tahun'] . ' Thn ' : '')
+                . ($row['masa_kerja_bulan'] > 0 ? $row['masa_kerja_bulan'] . ' Bln' : '')
+        ) ?: '-';
         $gajiPokokFmt = number_format($row['gaji_pokok'], 0, ',', '.');
 
+        // status payroll
         $statusPayroll = 'Belum Diproses';
         if (!empty($row['payroll_status'])) {
-            if ($row['payroll_status'] === 'final') {
-                $statusPayroll = 'Final';
-            } elseif ($row['payroll_status'] === 'revisi') {
-                $statusPayroll = 'Revisi';
-            } elseif ($row['payroll_status'] === 'draft') {
-                $statusPayroll = 'Draft';
-            }
+            if ($row['payroll_status'] === 'final')   $statusPayroll = 'Final';
+            if ($row['payroll_status'] === 'revisi')  $statusPayroll = 'Revisi';
+            if ($row['payroll_status'] === 'draft')   $statusPayroll = 'Draft';
+        }
+
+        // hitung URL foto profil
+        $fotoDb   = $row['foto_profil'] ?? '';
+        $filename = basename($fotoDb);
+        $local    = __DIR__ . '/../uploads/profile_pics/' . $filename;
+        if ($fotoDb && strpos($fotoDb, 'http') === 0) {
+            $fotoUrl = $fotoDb;
+        } elseif ($filename && file_exists($local)) {
+            $fotoUrl = "{$baseUrl}/uploads/profile_pics/{$filename}?v=" . filemtime($local);
+        } else {
+            $fotoUrl = "{$baseUrl}/assets/img/undraw_profile.svg";
         }
 
         $data[] = [
-            'id'          => $row['id'],
-            'uid'         => $row['uid'],
-            'nip'         => $row['nip'],
-            'nama'        => $row['nama'],
-            'jenjang'     => $row['jenjang'],
-            'role'        => $row['role'],
-            'job_title'   => $row['job_title'],
-            'status_kerja' => $row['status_kerja'],
-            'masa_kerja'  => $masaKerja,
-            'gaji_pokok'  => $gajiPokokFmt,
-            'no_rekening' => $row['no_rekening'],
-            'email'       => $row['email'],
-            'salary_index_level' => $row['salary_index_level'] ?: '-',
-            'salary_index_base'  => floatval($row['salary_index_base'] ?: 0),
-            'payroll_status'     => $statusPayroll,
-            'has_rapel'          => $hasRapel,
-            'foto_profil'        => getProfilePhotoUrl($row['nama'], $row['jenjang'], $row['role'], $row['id'])
+            'id'                  => $row['id'],
+            'uid'                 => $row['uid'],
+            'nip'                 => $row['nip'],
+            'nama'                => $row['nama'],
+            'jenjang'             => $row['jenjang'],
+            'role'                => $row['role'],
+            'job_title'           => $row['job_title'],
+            'status_kerja'        => $row['status_kerja'],
+            'masa_kerja'          => $masaKerja,
+            'gaji_pokok'          => $gajiPokokFmt,
+            'no_rekening'         => $row['no_rekening'],
+            'email'               => $row['email'],
+            'salary_index_level'  => $row['salary_index_level'] ?: '-',
+            'salary_index_base'   => floatval($row['salary_index_base'] ?: 0),
+            'payroll_status'      => $statusPayroll,
+            'has_rapel'           => intval($row['has_rapel']) > 0,
+            'foto_profil'         => $fotoUrl,
         ];
     }
 
-    // [Audit log baru] — mencatat kapan user memuat data employees
+    // audit
     $user_nip = $_SESSION['nip'] ?? '';
-    add_audit_log($conn, $user_nip, 'LoadingEmployees', "start=$start, length=$length, filter role=$role, jenjang=$jenjang, search=$search");
+    add_audit_log(
+        $conn,
+        $user_nip,
+        'LoadingEmployees',
+        "start=$start, length=$length, filter jenjang=$jenjang, role=$role, search=$search"
+    );
 
     echo json_encode([
         'recordsTotal' => $recordsTotal,
@@ -707,6 +723,7 @@ function LoadingEmployees($conn)
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
+
 
 /**
  * Mengedit data anggota (khusus update no_rekening).
@@ -1298,113 +1315,113 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
     </div>
 
     <!-- MODAL: View Detail anggota -->
-<div class="modal fade" id="viewDetailModal" tabindex="-1" aria-labelledby="viewDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="viewDetailModalLabel"><i class="bi bi-eye-fill"></i> Detail anggota</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            </div>
-            <div class="modal-body">
-                <table class="table table-bordered">
-                    <!-- Baris-baris informasi yang sudah ada -->
-                    <tr>
-                        <th>ID</th>
-                        <td id="detailId"></td>
-                    </tr>
-                    <tr>
-                        <th>UID</th>
-                        <td id="detailUid"></td>
-                    </tr>
-                    <tr>
-                        <th>NIP</th>
-                        <td id="detailNip"></td>
-                    </tr>
-                    <tr>
-                        <th>Nama</th>
-                        <td id="detailNama"></td>
-                    </tr>
-                    <tr>
-                        <th>Jenjang Pendidikan</th>
-                        <td id="detailJenjang"></td>
-                    </tr>
-                    <tr>
-                        <th>Role</th>
-                        <td id="detailRole"></td>
-                    </tr>
-                    <tr>
-                        <th>Job Title</th>
-                        <td id="detailJobTitle"></td>
-                    </tr>
-                    <tr>
-                        <th>Status Kerja</th>
-                        <td id="detailStatusKerja"></td>
-                    </tr>
-                    <tr>
-                        <th>Masa Kerja</th>
-                        <td id="detailMasaKerja"></td>
-                    </tr>
-                    <tr>
-                        <th>No Rekening</th>
-                        <td id="detailNoRekening"></td>
-                    </tr>
-                    <tr>
-                        <th>Email</th>
-                        <td id="detailEmail"></td>
-                    </tr>
-                    <tr>
-                        <th>Jenis Kelamin</th>
-                        <td id="detailJenisKelamin"></td>
-                    </tr>
-                    <tr>
-                        <th>Agama</th>
-                        <td id="detailAgama"></td>
-                    </tr>
-                    <tr>
-                        <th>Gaji Pokok</th>
-                        <td id="detailGajiPokok"></td>
-                    </tr>
-                    <tr>
-                        <th>Nominal Level Indeks</th>
-                        <td id="detailSalaryIndexNominal"></td>
-                    </tr>
-                    <tr>
-                        <th>Payheads</th>
-                        <td id="detailPayheads"></td>
-                    </tr>
-                    <tr>
-                        <th>Total Pendapatan</th>
-                        <td id="detailTotalPendapatan"></td>
-                    </tr>
-                    <tr>
-                        <th>Total Potongan</th>
-                        <td id="detailTotalPotongan"></td>
-                    </tr>
-                    <tr>
-                        <th>Gaji Bersih</th>
-                        <td id="detailGajiBersih"></td>
-                    </tr>
-                    <!-- MODIFIKASI: Baris Kenaikan Gaji Tahunan (read-only) -->
-                    <tr>
-                        <th>Kenaikan Gaji Tahunan</th>
-                        <td>
-                            <?php if ($kgData): ?>
-                                <?= htmlspecialchars($kgData['nama_kenaikan']); ?> (Rp <?= number_format($kgData['jumlah'], 2, ',', '.'); ?>)<br>
-                                <small><?= date('d M Y', strtotime($kgData['tanggal_mulai'])) . ' - ' . date('d M Y', strtotime($kgData['tanggal_berakhir'])); ?></small>
-                            <?php else: ?>
-                                <em>Tidak ada kenaikan gaji tahunan</em>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <!-- END MODIFIKASI -->
-                </table>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Tutup</button>
+    <div class="modal fade" id="viewDetailModal" tabindex="-1" aria-labelledby="viewDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewDetailModalLabel"><i class="bi bi-eye-fill"></i> Detail anggota</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <!-- Baris-baris informasi yang sudah ada -->
+                        <tr>
+                            <th>ID</th>
+                            <td id="detailId"></td>
+                        </tr>
+                        <tr>
+                            <th>UID</th>
+                            <td id="detailUid"></td>
+                        </tr>
+                        <tr>
+                            <th>NIP</th>
+                            <td id="detailNip"></td>
+                        </tr>
+                        <tr>
+                            <th>Nama</th>
+                            <td id="detailNama"></td>
+                        </tr>
+                        <tr>
+                            <th>Jenjang Pendidikan</th>
+                            <td id="detailJenjang"></td>
+                        </tr>
+                        <tr>
+                            <th>Role</th>
+                            <td id="detailRole"></td>
+                        </tr>
+                        <tr>
+                            <th>Job Title</th>
+                            <td id="detailJobTitle"></td>
+                        </tr>
+                        <tr>
+                            <th>Status Kerja</th>
+                            <td id="detailStatusKerja"></td>
+                        </tr>
+                        <tr>
+                            <th>Masa Kerja</th>
+                            <td id="detailMasaKerja"></td>
+                        </tr>
+                        <tr>
+                            <th>No Rekening</th>
+                            <td id="detailNoRekening"></td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td id="detailEmail"></td>
+                        </tr>
+                        <tr>
+                            <th>Jenis Kelamin</th>
+                            <td id="detailJenisKelamin"></td>
+                        </tr>
+                        <tr>
+                            <th>Agama</th>
+                            <td id="detailAgama"></td>
+                        </tr>
+                        <tr>
+                            <th>Gaji Pokok</th>
+                            <td id="detailGajiPokok"></td>
+                        </tr>
+                        <tr>
+                            <th>Nominal Level Indeks</th>
+                            <td id="detailSalaryIndexNominal"></td>
+                        </tr>
+                        <tr>
+                            <th>Payheads</th>
+                            <td id="detailPayheads"></td>
+                        </tr>
+                        <tr>
+                            <th>Total Pendapatan</th>
+                            <td id="detailTotalPendapatan"></td>
+                        </tr>
+                        <tr>
+                            <th>Total Potongan</th>
+                            <td id="detailTotalPotongan"></td>
+                        </tr>
+                        <tr>
+                            <th>Gaji Bersih</th>
+                            <td id="detailGajiBersih"></td>
+                        </tr>
+                        <!-- MODIFIKASI: Baris Kenaikan Gaji Tahunan (read-only) -->
+                        <tr>
+                            <th>Kenaikan Gaji Tahunan</th>
+                            <td>
+                                <?php if ($kgData): ?>
+                                    <?= htmlspecialchars($kgData['nama_kenaikan']); ?> (Rp <?= number_format($kgData['jumlah'], 2, ',', '.'); ?>)<br>
+                                    <small><?= date('d M Y', strtotime($kgData['tanggal_mulai'])) . ' - ' . date('d M Y', strtotime($kgData['tanggal_berakhir'])); ?></small>
+                                <?php else: ?>
+                                    <em>Tidak ada kenaikan gaji tahunan</em>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <!-- END MODIFIKASI -->
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Tutup</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 
     <!-- MODAL: Review Rekap Absensi -->

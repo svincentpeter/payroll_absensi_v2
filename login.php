@@ -55,7 +55,7 @@ $_SESSION['nama']       = $row['nama'];
 $_SESSION['role']       = $row['role'];
 $_SESSION['job_title']  = $row['job_title'];
 $_SESSION['jenjang']    = $row['jenjang'];         // Tambahkan baris ini
-$_SESSION['foto_profil']= $row['foto_profil'];      // Tambahkan baris ini (jika ingin menyimpan)
+$_SESSION['foto_profil'] = $row['foto_profil'] ?: 'default.jpg';
 
 
                 // Set flag non_admin_mode berdasarkan pilihan dari form login

@@ -251,10 +251,21 @@ if (!empty($profile['tanggal_lahir']) && $profile['tanggal_lahir'] !== '0000-00-
     $tanggalLahirFormatted = date('d F Y', strtotime($profile['tanggal_lahir']));
 }
 
-// Siapkan path foto profil (gunakan default jika kosong)
-$foto_profil = $profile['foto_profil'];
-if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
-    $foto_profil = getBaseUrl() . '/assets/img/placeholder_foto_profil.svg';
+// ======= MODIFIKASI: Menentukan URL foto profil =======
+$baseUrl = getBaseUrl();
+$fotoDb  = $profile['foto_profil'] ?? '';
+$filename = basename($fotoDb);
+$localPath = __DIR__ . '/uploads/profile_pics/' . $filename;
+
+if (!empty($fotoDb) && strpos($fotoDb, 'http') === 0) {
+    // Jika sudah URL absolut di DB
+    $foto = $fotoDb;
+} elseif ($filename && file_exists($localPath)) {
+    // Jika file ada di folder uploads
+    $foto = "{$baseUrl}/uploads/profile_pics/{$filename}?v=" . filemtime($localPath);
+} else {
+    // Fallback ke placeholder
+    $foto = "{$baseUrl}/assets/img/undraw_profile.svg";
 }
 ?>
 <!DOCTYPE html>
@@ -339,7 +350,7 @@ if (empty($foto_profil) || str_contains($foto_profil, 'default.jpg')) {
                             <div class="row">
                                 <!-- Foto Profil -->
                                 <div class="col-md-4 text-center mb-3 d-flex flex-column align-items-center">
-                                    <img src="<?= htmlspecialchars($foto_profil); ?>"
+                                    <img src="<?= htmlspecialchars($foto); ?>"
                                         alt="Foto Profil"
                                         class="img-fluid rounded-circle profile-img mb-3">
                                     <h5 class="text-primary"><?= htmlspecialchars($profile['nama']); ?></h5>
