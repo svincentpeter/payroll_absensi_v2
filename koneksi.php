@@ -26,5 +26,7 @@ if ($conn->connect_error) {
     die("Koneksi database gagal: " . $conn->connect_error);
 }
 
-// Set charset agar mendukung karakter UTF-8
-$conn->set_charset("utf8");
+// **Perbaikan collation & charset UTF‑8 lengkap**
+$conn->set_charset("utf8mb4");
+$conn->query("SET NAMES utf8mb4 COLLATE utf8mb4_general_ci");
+

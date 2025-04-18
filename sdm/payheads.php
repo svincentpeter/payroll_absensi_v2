@@ -526,14 +526,24 @@ function DeletePayhead($conn)
 
                     <!-- Tabel Data Payheads -->
                     <div class="card shadow mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="m-0 fw-bold text-white">
-                                <i class="fas fa-clipboard-list me-1"></i>Daftar Payheads
-                            </h6>
-                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
-                                <i class="fas fa-plus"></i> Tambah Payhead
-                            </button>
-                        </div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="m-0 fw-bold text-white">
+        <i class="fas fa-clipboard-list me-1"></i> Daftar Payheads
+    </h6>
+    <div>
+        <!-- Tombol Manage Groups baru -->
+        <a href="/payroll_absensi_v2/sdm/manage_groups.php"
+           class="btn btn-info btn-sm me-2 smooth-transition"
+           id="btnManageGroups"
+           title="Manage Payhead Groups">
+            <i class="fas fa-layer-group me-1"></i> Manage Groups
+        </a>
+        <!-- Tombol Tambah Payhead yang sudah ada -->
+        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
+            <i class="fas fa-plus"></i> Tambah Payhead
+        </button>
+    </div>
+</div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table id="payheadsTable" class="table table-sm table-bordered table-hover table-striped display nowrap" style="width:100%">
@@ -1015,6 +1025,13 @@ function DeletePayhead($conn)
                 });
             });
 
+            $(document).on('click', 'a.smooth-transition', function(e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            $('#wrapper').fadeOut(300, function() {
+                window.location.href = url;
+            });
+        });
             // Tombol Hapus
             $(document).on('click', '.btn-delete', function() {
                 var id = $(this).data('id');
