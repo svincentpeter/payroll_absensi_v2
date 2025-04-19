@@ -44,194 +44,133 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
 function LoadingPayrollHistory($conn)
 {
-    $draw    = isset($_POST['draw']) ? intval($_POST['draw']) : 0;
-    $start   = isset($_POST['start']) ? intval($_POST['start']) : 0;
-    $length  = isset($_POST['length']) ? intval($_POST['length']) : 10;
-    $search  = isset($_POST['search']['value']) ? sanitize_input($_POST['search']['value']) : '';
-    $jenjang = isset($_POST['jenjang']) ? sanitize_input($_POST['jenjang']) : '';
-    $bulan   = isset($_POST['bulan']) ? intval($_POST['bulan']) : 0;
-    $tahun   = isset($_POST['tahun']) ? intval($_POST['tahun']) : 0;
+    $draw    = intval($_POST['draw']   ?? 0);
+    $start   = intval($_POST['start']  ?? 0);
+    $length  = intval($_POST['length'] ?? 10);
+    $search  = sanitize_input($_POST['search']['value'] ?? '');
+    $jenjang = sanitize_input($_POST['jenjang']  ?? '');
+    $bulan   = intval($_POST['bulan']   ?? 0);
+    $tahun   = intval($_POST['tahun']   ?? 0);
 
-    // Query dasar
-    $sqlBase = " FROM payroll_final p
-                 JOIN anggota_sekolah a ON p.id_anggota = a.id
-                 WHERE 1=1";
-    $params = [];
-    $types  = "";
+    // 1) Bangun JOIN + WHERE terpisah
+    $baseJoins = "
+        FROM payroll_final p
+        JOIN anggota_sekolah a ON p.id_anggota = a.id
+        LEFT JOIN (
+          SELECT id_anggota, SUM(jumlah) AS total_lain_lain
+            FROM kenaikan_gaji_tahunan
+           WHERE pindah_ke_lain_lain=1
+           GROUP BY id_anggota
+        ) kg ON p.id_anggota = kg.id_anggota
+    ";
+    $baseWhere = "WHERE 1=1";
+    $params    = [];
+    $types     = '';
 
-    if (!empty($jenjang)) {
-        $sqlBase .= " AND a.jenjang = ?";
-        $params[] = $jenjang;
-        $types  .= "s";
+    if ($jenjang !== '') {
+        $baseWhere .= " AND a.jenjang = ?";
+        $params[] = $jenjang; $types .= 's';
     }
     if ($bulan > 0) {
-        $sqlBase .= " AND p.bulan = ?";
-        $params[] = $bulan;
-        $types  .= "i";
+        $baseWhere .= " AND p.bulan = ?";
+        $params[] = $bulan; $types .= 'i';
     }
     if ($tahun > 0) {
-        $sqlBase .= " AND p.tahun = ?";
-        $params[] = $tahun;
-        $types  .= "i";
+        $baseWhere .= " AND p.tahun = ?";
+        $params[] = $tahun; $types .= 'i';
     }
-    if (!empty($search)) {
-        $sqlBase .= " AND (
-            CAST(p.id AS CHAR) LIKE ? OR 
-            CAST(a.id AS CHAR) LIKE ? OR 
-            a.nama LIKE ? OR 
-            CAST(p.bulan AS CHAR) LIKE ? OR 
-            CAST(p.tahun AS CHAR) LIKE ? OR 
-            CAST(p.gaji_pokok AS CHAR) LIKE ? OR 
-            CAST(p.total_pendapatan AS CHAR) LIKE ? OR 
-            CAST(p.total_potongan AS CHAR) LIKE ? OR 
-            CAST(p.gaji_bersih AS CHAR) LIKE ?
+    if ($search !== '') {
+        $baseWhere .= " AND (
+            CAST(p.id AS CHAR) LIKE ? OR
+            a.nama LIKE ? OR
+            CAST(p.bulan AS CHAR) LIKE ? OR
+            CAST(p.tahun AS CHAR) LIKE ?
         )";
-        $searchParam = "%{$search}%";
-        for ($i = 0; $i < 9; $i++) {
-            $params[] = $searchParam;
-            $types  .= "s";
+        for ($i=0; $i<4; $i++) {
+            $params[] = "%{$search}%"; $types .= 's';
         }
     }
 
+    // 2) Hitung filtered & total
+    $stmtF = $conn->prepare("SELECT COUNT(*) AS total $baseJoins $baseWhere");
+    if ($types) $stmtF->bind_param($types, ...$params);
+    $stmtF->execute();
+    $totalFiltered = intval($stmtF->get_result()->fetch_assoc()['total'] ?? 0);
+    $stmtF->close();
 
-    // Filtered Count
-    $sqlFilteredCount = "SELECT COUNT(*) as total " . $sqlBase;
-    $stmtFiltered = $conn->prepare($sqlFilteredCount);
-    if (!$stmtFiltered) {
-        send_response(1, 'Prepare failed: ' . $conn->error);
-    }
-    if (!empty($params)) {
-        $stmtFiltered->bind_param($types, ...$params);
-    }
-    $stmtFiltered->execute();
-    $resFiltered = $stmtFiltered->get_result();
-    $rowFiltered = $resFiltered->fetch_assoc();
-    $totalFiltered = $rowFiltered['total'];
-    $stmtFiltered->close();
+    $recordsTotal = intval($conn->query("SELECT COUNT(*) AS total FROM payroll_final")
+                         ->fetch_assoc()['total'] ?? 0);
 
-    // Total Count (tanpa filter)
-    $sqlTotal = "SELECT COUNT(*) as total FROM payroll_final";
-    $resTotal = $conn->query($sqlTotal);
-    if (!$resTotal) {
-        send_response(1, 'Query gagal: ' . $conn->error);
-    }
-    $rowTotal = $resTotal->fetch_assoc();
-    $recordsTotal = $rowTotal['total'];
+    // 3) Ambil data paging
+    $sql = "
+      SELECT
+        p.id                     AS id,
+        a.nama                   AS nama,
+        a.jenjang                AS jenjang,
+        p.bulan,
+        p.tahun,
+        p.gaji_pokok             AS gaji_pokok,
+        p.salary_index_amount    AS salary_index,
+        p.total_pendapatan       AS total_pendapatan,
+        IFNULL(kg.total_lain_lain,0) AS total_lain_lain,
+        p.potongan_koperasi      AS potongan_koperasi,
+        p.total_potongan         AS total_potongan,
+        p.gaji_bersih            AS gaji_bersih
+      $baseJoins
+      $baseWhere
+      ORDER BY p.id DESC
+      LIMIT ?, ?
+    ";
+    // tambahkan start & length ke params
+    $params[] = $start; $params[] = $length;
+    $types   .= 'ii';
 
-    // Data utama
-    $sqlData = "SELECT p.id,
-                   p.id_payroll_asal,
-                   a.nama,
-                   a.jenjang,
-                   p.bulan,
-                   p.tahun,
-                   p.gaji_pokok,
-                   p.total_pendapatan,
-                   p.total_potongan,
-                   p.gaji_bersih
-            " . $sqlBase;
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $res = $stmt->get_result();
 
-
-    // ORDER BY
-    $orderBy = " ORDER BY p.id DESC";
-    if (isset($_POST['order'][0]['column']) && isset($_POST['columns'])) {
-        $columnIndex = intval($_POST['order'][0]['column']);
-        $allowedCols = ['id', 'nama', 'jenjang', 'bulan', 'tahun', 'gaji_pokok', 'total_pendapatan', 'total_potongan', 'gaji_bersih'];
-        if (isset($_POST['columns'][$columnIndex]['data']) && in_array($_POST['columns'][$columnIndex]['data'], $allowedCols)) {
-            $colData = $_POST['columns'][$columnIndex]['data'];
-            $colSortOrder = ($_POST['order'][0]['dir'] === 'asc') ? 'ASC' : 'DESC';
-            $mapCol = [
-                'id'               => 'p.id',
-                'nama'             => 'a.nama',
-                'jenjang'          => 'a.jenjang',
-                'bulan'            => 'p.bulan',
-                'tahun'            => 'p.tahun',
-                'gaji_pokok'       => 'p.gaji_pokok',
-                'total_pendapatan' => 'p.total_pendapatan',
-                'total_potongan'   => 'p.total_potongan',
-                'gaji_bersih'      => 'p.gaji_bersih'
-            ];
-            if (isset($mapCol[$colData])) {
-                $orderBy = " ORDER BY " . $mapCol[$colData] . " " . $colSortOrder;
-            }
-        }
-    }
-    $sqlData .= $orderBy;
-
-    // LIMIT
-    $limit = " LIMIT ?, ?";
-    $paramsData = $params;
-    $typesData  = $types . "ii";
-    $paramsData[] = $start;
-    $paramsData[] = $length;
-    $sqlData .= $limit;
-
-    $stmtData = $conn->prepare($sqlData);
-    if (!$stmtData) {
-        send_response(1, 'Prepare failed: ' . $conn->error);
-    }
-    if (!empty($paramsData)) {
-        $stmtData->bind_param($typesData, ...$paramsData);
-    }
-    if (!$stmtData->execute()) {
-        send_response(1, 'Execute failed: ' . $stmtData->error);
-    }
-    $resData = $stmtData->get_result();
+    // 4) Bangun output
     $data = [];
-    while ($row = $resData->fetch_assoc()) {
-        // Format nominal
-        $row['gaji_pokok']       = formatNominal($row['gaji_pokok']);
-        $row['total_pendapatan'] = formatNominal($row['total_pendapatan']);
-        $row['total_potongan']   = formatNominal($row['total_potongan']);
-        $row['gaji_bersih']      = formatNominal($row['gaji_bersih']);
-        $row['bulan']            = getIndonesianMonthName($row['bulan']);
-
-        // Tombol aksi
-        $aksi = '
-        <div class="dropdown">
-            <button class="btn" type="button" id="dropdownMenuButton_' . htmlspecialchars($row['id']) . '"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-three-dots-vertical"></i>
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton_' . htmlspecialchars($row['id']) . '">
-                <li>
-                    <a class="dropdown-item" href="payroll-details.php?id_payroll=' . htmlspecialchars($row['id']) . '">
-                        <i class="fas fa-file-invoice"></i> Lihat Payroll
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item btn-view-full-detail" href="javascript:void(0)"
-                       data-id="' . htmlspecialchars($row['id']) . '">
-                        <i class="fas fa-eye"></i> View Detail
-                    </a>
-                </li>
-            </ul>
-        </div>';
-
-
+    while ($r = $res->fetch_assoc()) {
         $data[] = [
-            "id"               => htmlspecialchars($row['id']),    // ID auto increment di payroll_final
-            "nama"             => sanitize_input($row['nama']),
-            "jenjang"          => sanitize_input($row['jenjang']),
-            "bulan"            => $row['bulan'],
-            "tahun"            => $row['tahun'],
-            "gaji_pokok"       => $row['gaji_pokok'],
-            "total_pendapatan" => $row['total_pendapatan'],
-            "total_potongan"   => $row['total_potongan'],
-            "gaji_bersih"      => $row['gaji_bersih'],
-            "aksi"             => $aksi
+            'id'                  => $r['id'],
+            'nama'                => htmlspecialchars($r['nama']),
+            'jenjang'             => htmlspecialchars($r['jenjang']),
+            'bulan'               => getIndonesianMonthName($r['bulan']),
+            'tahun'               => $r['tahun'],
+            'gaji_pokok'          => formatNominal($r['gaji_pokok']),
+            'salary_index'        => formatNominal($r['salary_index']),
+            'total_pendapatan'    => formatNominal($r['total_pendapatan']),
+            'total_lain_lain'     => formatNominal($r['total_lain_lain']),
+            'potongan_koperasi'   => formatNominal($r['potongan_koperasi']),
+            'total_potongan'      => formatNominal($r['total_potongan']),
+            'gaji_bersih'         => formatNominal($r['gaji_bersih']),
+            'aksi'                => '
+              <div class="dropdown">
+                <button class="btn" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="payroll-details.php?id_payroll=' . $r['id'] . '">
+                        <i class="fas fa-file-invoice"></i> Lihat Payroll
+                      </a></li>
+                  <li><a class="dropdown-item btn-view-full-detail" href="#" data-id="' . $r['id'] . '">
+                        <i class="fas fa-eye"></i> View Detail
+                      </a></li>
+                </ul>
+              </div>'
         ];
     }
-    $stmtData->close();
+    $stmt->close();
 
     echo json_encode([
-        "draw"            => $draw,
-        "recordsTotal"    => $recordsTotal,
-        "recordsFiltered" => $totalFiltered,
-        "data"            => $data
+        'draw'            => $draw,
+        'recordsTotal'    => $recordsTotal,
+        'recordsFiltered' => $totalFiltered,
+        'data'            => $data
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
+
 
 function ViewPayrollDetail($conn)
 {
@@ -267,10 +206,12 @@ function ViewPayrollDetail($conn)
     $stmt->close();
 
     // Format data summary
-    $row['gaji_pokok']       = formatNominal($row['gaji_pokok']);
-    $row['total_pendapatan'] = formatNominal($row['total_pendapatan']);
-    $row['total_potongan']   = formatNominal($row['total_potongan']);
-    $row['gaji_bersih']      = formatNominal($row['gaji_bersih']);
+    $row['gaji_pokok']        = formatNominal($row['gaji_pokok']);
+$row['salary_index_amount'] = formatNominal($row['salary_index_amount']);
+$row['total_pendapatan']  = formatNominal($row['total_pendapatan']);
+$row['total_potongan']    = formatNominal($row['total_potongan']);
+$row['potongan_koperasi'] = formatNominal($row['potongan_koperasi']);
+$row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
     // Konversi bulan -> nama
     $row['bulan']            = getIndonesianMonthName((int)$row['bulan']);
 
@@ -496,20 +437,24 @@ function ViewPayrollDetail($conn)
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table id="payrollTable" class="table table-sm table-bordered table-striped table-hover display nowrap" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>ID Payroll</th>
-                                            <th>Nama Karyawan</th>
-                                            <th>Jenjang</th>
-                                            <th>Bulan</th>
-                                            <th>Tahun</th>
-                                            <th>Gaji Pokok</th>
-                                            <th>Total Pendapatan</th>
-                                            <th>Total Potongan</th>
-                                            <th>Gaji Bersih</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
+                                <thead>
+  <tr>
+    <th>ID Payroll</th>
+    <th>Nama Karyawan</th>
+    <th>Jenjang</th>
+    <th>Bulan</th>
+    <th>Tahun</th>
+    <th>Gaji Pokok</th>
+    <th>Salary Indeks</th>
+    <th>Total Pendapatan</th>
+    <th>Lain‑lain</th>
+    <th>Potongan Koperasi</th>
+    <th>Total Potongan</th>
+    <th>Gaji Bersih</th>
+    <th>Aksi</th>
+  </tr>
+</thead>
+
                                     <tbody></tbody>
                                 </table>
                             </div>
@@ -611,48 +556,22 @@ function ViewPayrollDetail($conn)
                         });
                     }
                 },
-                columns: [{
-                        data: 'id',
-                        name: 'id'
-                    },
-                    {
-                        data: 'nama',
-                        name: 'nama'
-                    },
-                    {
-                        data: 'jenjang',
-                        name: 'jenjang'
-                    },
-                    {
-                        data: 'bulan',
-                        name: 'bulan'
-                    },
-                    {
-                        data: 'tahun',
-                        name: 'tahun'
-                    },
-                    {
-                        data: 'gaji_pokok',
-                        name: 'gaji_pokok'
-                    },
-                    {
-                        data: 'total_pendapatan',
-                        name: 'total_pendapatan'
-                    },
-                    {
-                        data: 'total_potongan',
-                        name: 'total_potongan'
-                    },
-                    {
-                        data: 'gaji_bersih',
-                        name: 'gaji_bersih'
-                    },
-                    {
-                        data: 'aksi',
-                        orderable: false,
-                        searchable: false
-                    }
-                ],
+                columns: [
+  { data:'id',               name:'id' },
+  { data:'nama',             name:'nama' },
+  { data:'jenjang',          name:'jenjang' },
+  { data:'bulan',            name:'bulan' },
+  { data:'tahun',            name:'tahun' },
+  { data:'gaji_pokok',       name:'gaji_pokok' },        // 1. Gaji Pokok
+  { data:'salary_index',     name:'salary_index' },      // 2. Salary Indeks
+  { data:'total_pendapatan', name:'total_pendapatan' },  // 3. Total Pendapatan
+  { data:'total_lain_lain',  name:'total_lain_lain' },   // 4. Lain‑lain
+  { data:'potongan_koperasi',name:'potongan_koperasi' }, // 5. Potongan Koperasi
+  { data:'total_potongan',   name:'total_potongan' },    // 6. Total Potongan
+  { data:'gaji_bersih',      name:'gaji_bersih' },       // 7. Gaji Bersih
+  { data:'aksi', orderable:false, searchable:false }     // 8. Aksi
+],
+
                 order: [
                     [0, 'desc']
                 ],
@@ -721,80 +640,68 @@ function ViewPayrollDetail($conn)
                             detailModal.show();
                         },
                         success: function(response) {
-                            if (response.code === 0) {
-                                var d = response.result;
-                                var html = '<table class="table table-bordered">';
-                                html += '<tr><th>ID Payroll</th><td>' + d.id + '</td></tr>';
-                                html += '<tr><th>UID</th><td>' + (d.uid || '-') + '</td></tr>';
-                                html += '<tr><th>NIP</th><td>' + (d.nip || '-') + '</td></tr>';
-                                html += '<tr><th>Nama</th><td>' + d.nama + '</td></tr>';
-                                html += '<tr><th>Jenjang</th><td>' + d.jenjang + '</td></tr>';
-                                html += '<tr><th>Role</th><td>' + (d.role || '-') + '</td></tr>';
-                                html += '<tr><th>Job Title</th><td>' + (d.job_title || '-') + '</td></tr>';
-                                html += '<tr><th>Status Kerja</th><td>' + (d.status_kerja || '-') + '</td></tr>';
-                                html += '<tr><th>Masa Kerja</th><td>' + d.masa_kerja + '</td></tr>';
-                                html += '<tr><th>No Rekening</th><td>' + (d.no_rekening || '-') + '</td></tr>';
-                                html += '<tr><th>Email</th><td>' + (d.email || '-') + '</td></tr>';
-                                html += '<tr><th>Jenis Kelamin</th><td>' + (d.jenis_kelamin || '-') + '</td></tr>';
-                                html += '<tr><th>Agama</th><td>' + (d.agama || '-') + '</td></tr>';
-                                html += '<tr><th>Gaji Pokok</th><td>' + d.gaji_pokok + '</td></tr>';
-                                html += '<tr><th>Total Pendapatan</th><td>' + d.total_pendapatan;
+  if (response.code === 0) {
+    var d = response.result;
+    var html = '<table class="table table-bordered">';
+    html += '<tr><th>ID Payroll</th><td>' + d.id + '</td></tr>';
+    html += '<tr><th>UID</th><td>'    + (d.uid  || '-') + '</td></tr>';
+    html += '<tr><th>NIP</th><td>'    + (d.nip  || '-') + '</td></tr>';
+    html += '<tr><th>Nama</th><td>'   + d.nama + '</td></tr>';
+    html += '<tr><th>Jenjang</th><td>'+ d.jenjang + '</td></tr>';
+    html += '<tr><th>Role</th><td>'   + (d.role || '-') + '</td></tr>';
+    html += '<tr><th>Job Title</th><td>'+ (d.job_title||'-') + '</td></tr>';
+    html += '<tr><th>Status Kerja</th><td>'+ (d.status_kerja||'-') + '</td></tr>';
+    html += '<tr><th>Masa Kerja</th><td>'+ d.masa_kerja + '</td></tr>';
+    html += '<tr><th>No Rekening</th><td>'+ (d.no_rekening||'-') + '</td></tr>';
+    html += '<tr><th>Email</th><td>'  + (d.email||'-') + '</td></tr>';
+    html += '<tr><th>Jenis Kelamin</th><td>'+ (d.jenis_kelamin||'-') + '</td></tr>';
+    html += '<tr><th>Agama</th><td>'  + (d.agama||'-') + '</td></tr>';
 
-                                var earnings = [];
-                                if (d.payheads_detail && d.payheads_detail.length > 0) {
-                                    d.payheads_detail.forEach(function(ph) {
-                                        if (ph.jenis === 'earnings') {
-                                            earnings.push(ph);
-                                        }
-                                    });
-                                }
-                                if (earnings.length > 0) {
-                                    html += '<div class="row mt-2">';
-                                    earnings.forEach(function(ph) {
-                                        var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {
-                                            minimumFractionDigits: 2
-                                        });
-                                        html += '<div class="col-12 mb-1">';
-                                        html += '<span class="badge bg-success me-2">' + ph.nama_payhead + '</span>';
-                                        html += '<span class="text-success">Rp ' + nominal + '</span>';
-                                        html += '</div>';
-                                    });
-                                    html += '</div>';
-                                }
-                                html += '</td></tr>';
-                                html += '<tr><th>Total Potongan</th><td>' + d.total_potongan;
+    // 1. Gaji Pokok
+    html += '<tr><th>Gaji Pokok</th><td>' + d.gaji_pokok + '</td></tr>';
+    // 2. Salary Indeks
+    html += '<tr><th>Salary Indeks</th><td>' + d.salary_index_amount + '</td></tr>';
 
-                                var deductions = [];
-                                if (d.payheads_detail && d.payheads_detail.length > 0) {
-                                    d.payheads_detail.forEach(function(ph) {
-                                        if (ph.jenis === 'deductions') {
-                                            deductions.push(ph);
-                                        }
-                                    });
-                                }
-                                if (deductions.length > 0) {
-                                    html += '<div class="row mt-2">';
-                                    deductions.forEach(function(ph) {
-                                        var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {
-                                            minimumFractionDigits: 2
-                                        });
-                                        html += '<div class="col-12 mb-1">';
-                                        html += '<span class="badge bg-danger me-2">' + ph.nama_payhead + '</span>';
-                                        html += '<span class="text-danger">Rp ' + nominal + '</span>';
-                                        html += '</div>';
-                                    });
-                                    html += '</div>';
-                                }
-                                html += '</td></tr>';
-                                html += '<tr><th>Gaji Bersih</th><td>' + d.gaji_bersih + '</td></tr>';
-                                html += '<tr><th>Bulan</th><td>' + d.bulan + '</td></tr>';
-                                html += '<tr><th>Tahun</th><td>' + d.tahun + '</td></tr>';
-                                html += '</table>';
-                                $('#detailPayrollContent').html(html);
-                            } else {
-                                $('#detailPayrollContent').html('<p>' + response.result + '</p>');
-                            }
-                        },
+    // Total Pendapatan + list earnings payheads
+    html += '<tr><th>Total Pendapatan</th><td>' + d.total_pendapatan;
+    if (d.payheads_detail) {
+      d.payheads_detail.filter(ph => ph.jenis==='earnings')
+        .forEach(ph => {
+          var nom = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
+          html += '<div><span class="badge bg-success me-2">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
+        });
+    }
+    html += '</td></tr>';
+
+    // Lain‑lain
+    html += '<tr><th>Lain‑lain</th><td>' + d.total_lain_lain + '</td></tr>';
+
+    // Potongan Koperasi
+    html += '<tr><th>Potongan Koperasi</th><td>' + d.potongan_koperasi + '</td></tr>';
+
+    // Total Potongan + list deductions payheads
+    html += '<tr><th>Total Potongan</th><td>' + d.total_potongan;
+    if (d.payheads_detail) {
+      d.payheads_detail.filter(ph => ph.jenis==='deductions')
+        .forEach(ph => {
+          var nom = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
+          html += '<div><span class="badge bg-danger me-2">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
+        });
+    }
+    html += '</td></tr>';
+
+    // Gaji Bersih
+    html += '<tr><th>Gaji Bersih</th><td>' + d.gaji_bersih + '</td></tr>';
+    html += '<tr><th>Bulan</th><td>'      + d.bulan + '</td></tr>';
+    html += '<tr><th>Tahun</th><td>'      + d.tahun + '</td></tr>';
+    html += '</table>';
+
+    $('#detailPayrollContent').html(html);
+  } else {
+    $('#detailPayrollContent').html('<p>'+response.result+'</p>');
+  }
+},
+
                         error: function() {
                             $('#detailPayrollContent').html('<p>Terjadi kesalahan saat memuat detail payroll.</p>');
                         }

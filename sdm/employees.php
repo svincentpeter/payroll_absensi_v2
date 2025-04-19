@@ -112,9 +112,13 @@ function ProcessPayroll($conn)
         $stmtIndex->close();
     }
 
-    // 4) Hitung gaji pokok total + gaji bersih (sementara)
-    $gajiPokok  = $gajiPokokEmployee + $salaryIndexBase;
-    $gajiBersih = $gajiPokok + $totalEarnings - $totalDeductions;
+    // 4) Simpan komponen terpisah: basic salary & salary index
+    $basicSalary        = $gajiPokokEmployee;
+    $salaryIndexAmount  = $salaryIndexBase;
+    $gajiBersih         = $basicSalary
+        + $salaryIndexAmount
+        + $totalEarnings
+        - $totalDeductions;
 
     // 5) Insert payroll => status draft
     $tglPayroll    = date('Y-m-d H:i:s');
@@ -124,17 +128,20 @@ function ProcessPayroll($conn)
     $stmtPayroll = $conn->prepare("
         INSERT INTO payroll
             (id_anggota, bulan, tahun, tgl_payroll,
-             gaji_pokok, total_pendapatan, total_potongan,
-             gaji_bersih, no_rekening, catatan, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             gaji_pokok, salary_index_amount,
+             total_pendapatan, total_potongan,
+             gaji_bersih, no_rekening,
+             catatan, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
     $stmtPayroll->bind_param(
-        "iiisddddsss",
+        "iiisddddddss",
         $id_anggota,
         $bulan,
         $tahun,
         $tglPayroll,
-        $gajiPokok,
+        $basicSalary,
+        $salaryIndexAmount,
         $totalEarnings,
         $totalDeductions,
         $gajiBersih,
@@ -150,7 +157,6 @@ function ProcessPayroll($conn)
     $stmtPayroll->close();
 
     // 6) Insert detail payhead ke payroll_detail => status draft
-    //    (kecuali is_rapel = 1, karena rapel belum dihitung di sini)
     $sqlPH = "
        SELECT id_payhead, jenis, amount
          FROM employee_payheads
@@ -191,7 +197,6 @@ function ProcessPayroll($conn)
     add_audit_log($conn, $user_nip, 'ProcessPayroll', $detailsLog);
 
     // 8) Notifikasi ke keuangan & superadmin jika diproses oleh SDM
-    //    (opsional, sesuai kebutuhan)
     if ($_SESSION['role'] === 'sdm') {
         $sqlNotif = "SELECT id, nip FROM anggota_sekolah WHERE role IN ('keuangan','superadmin')";
         $resNotif = $conn->query($sqlNotif);
@@ -215,6 +220,7 @@ function ProcessPayroll($conn)
     // 9) Kembalikan respon
     send_response(0, 'Payroll berhasil diproses (status draft).');
 }
+
 
 /**
  * Memeriksa apakah semua anggota sudah final payroll untuk bulan/tahun tertentu.
@@ -845,30 +851,31 @@ function ViewEmployeeDetail($conn)
         add_audit_log($conn, $user_nip, 'ViewEmployeeDetail', $detailsLog);
 
         send_response(0, [
-            'id'                 => $emp['id'],
-            'uid'                => $emp['uid'],
-            'nip'                => $emp['nip'],
-            'nama'               => $emp['nama'],
-            'jenjang'            => $emp['jenjang'],
-            'job_title'          => $emp['job_title'],
-            'role'               => $emp['role'],
-            'status_kerja'       => $emp['status_kerja'],
-            'masa_kerja'         => $masaKerja,
-            'gaji_pokok_val'     => $gajiPokokVal,
-            'gaji_pokok'         => 'Rp ' . number_format($gajiPokokVal, 0, ',', '.'),
-            'no_rekening'        => $emp['no_rekening'],
-            'email'              => $emp['email'],
-            'jenis_kelamin'      => $emp['jenis_kelamin'],
-            'agama'              => $emp['agama'],
-            'masa_kerja_tahun'   => $emp['masa_kerja_tahun'],
-            'masa_kerja_bulan'   => $emp['masa_kerja_bulan'],
-            'payheads'           => $assigned, // hanya payheads non-rapel jika includeRapel=0
-            'total_pendapatan'   => $totalPendapatan,
-            'total_potongan'     => $totalPotongan,
-            'salary_index_level' => $emp['salary_index_level'] ?: '-',
-            'salary_index_base'  => $levelIndexVal,
-            'gaji_bersih'        => $gajiBersihVal,
-            'payroll_status'     => $emp['payroll_status']
+            'id'                    => $emp['id'],
+            'uid'                   => $emp['uid'],
+            'nip'                   => $emp['nip'],
+            'nama'                  => $emp['nama'],
+            'jenjang'               => $emp['jenjang'],
+            'job_title'             => $emp['job_title'],
+            'role'                  => $emp['role'],
+            'status_kerja'          => $emp['status_kerja'],
+            'masa_kerja'            => $masaKerja,
+            'gaji_pokok_val'        => $gajiPokokVal,
+            'gaji_pokok'            => 'Rp ' . number_format($gajiPokokVal, 0, ',', '.'),
+            'salary_index_amount'   => $levelIndexVal,
+            'no_rekening'           => $emp['no_rekening'],
+            'email'                 => $emp['email'],
+            'jenis_kelamin'         => $emp['jenis_kelamin'],
+            'agama'                 => $emp['agama'],
+            'masa_kerja_tahun'      => $emp['masa_kerja_tahun'],
+            'masa_kerja_bulan'      => $emp['masa_kerja_bulan'],
+            'payheads'              => $assigned,
+            'total_pendapatan'      => $totalPendapatan,
+            'total_potongan'        => $totalPotongan,
+            'salary_index_level'    => $emp['salary_index_level'] ?: '-',
+            'salary_index_base'     => $levelIndexVal,
+            'gaji_bersih'           => $gajiBersihVal,
+            'payroll_status'        => $emp['payroll_status']
         ]);
     } else {
         $stmt->close();

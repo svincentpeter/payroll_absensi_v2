@@ -105,13 +105,18 @@ try {
     }
 
     // Gaji pokok seharusnya: gaji_pokok_employee + salary_index_amount
-    $gajiPokokRecalc = $gaji_pokok_employee + $salary_index_amount;
-    $gaji_pokok = ($gaji_pokok_db > 0) ? $gaji_pokok_db : $gajiPokokRecalc;
+    $gaji_pokok_base  = ($gaji_pokok_db > 0) ? $gaji_pokok_db : $gaji_pokok_employee;
+    $salary_index_amt = $salary_index_amount;
+    $subtotal_gaji    = $gaji_pokok_base + $salary_index_amt;
     $total_pendapatan = ($total_pendapatan_db > 0) ? $total_pendapatan_db : $calcEarnings;
     $total_potongan = ($total_potongan_db > 0) ? $total_potongan_db : $calcDeductions;
 
     // Hitung Gaji Bersih: Gaji Pokok + Total Pendapatan - Total Potongan - Potongan Koperasi
-    $gaji_bersih_calculated = $gaji_pokok + $total_pendapatan - $total_potongan - $potongan_koperasi;
+    $gaji_bersih_calculated = $gaji_pokok_base
+                        + $salary_index_amt
+                        + $total_pendapatan
+                        - $total_potongan
+                        - $potongan_koperasi;
 
     // 7. Hitung masa kerja untuk tampilan
     $masa_kerja_tahun = (int)$payrollFinal['masa_kerja_tahun'];
@@ -381,42 +386,58 @@ $conn->close();
 
         <!-- Rincian Pembayaran -->
         <table>
-            <tr class="heading">
-                <td colspan="2">Rincian Pembayaran (Final)</td>
-            </tr>
-            <tr class="details">
-                <td>Gaji Pokok (Employee)</td>
-                <td style="text-align:right;">Rp <?= number_format($gaji_pokok_employee, 2, ',', '.'); ?></td>
-            </tr>
-            <tr class="details">
-                <td>Nominal Level Indeks</td>
-                <td style="text-align:right;">Rp <?= number_format($salary_index_amount, 2, ',', '.'); ?></td>
-            </tr>
-            <tr class="details">
-                <td><strong>Subtotal Gaji Pokok</strong></td>
-                <td style="text-align:right;"><strong>Rp <?= number_format($gaji_pokok, 2, ',', '.'); ?></strong></td>
-            </tr>
-            <tr class="item">
-                <td>Total Pendapatan (Payheads)</td>
-                <td style="text-align:right;">Rp <?= number_format($total_pendapatan, 2, ',', '.'); ?></td>
-            </tr>
-            <tr class="item">
-                <td>Total Potongan (Payheads)</td>
-                <td style="text-align:right;">Rp <?= number_format($total_potongan, 2, ',', '.'); ?></td>
-            </tr>
-            <tr class="item">
-                <td>Potongan Koperasi</td>
-                <td style="text-align:right;">Rp <?= number_format($potongan_koperasi, 2, ',', '.'); ?></td>
-            </tr>
-            <tr class="item last">
-                <td>Gaji Bersih</td>
-                <td style="text-align:right;">Rp <?= number_format($gaji_bersih_calculated, 2, ',', '.'); ?></td>
-            </tr>
-            <tr class="total">
-                <td></td>
-                <td style="text-align:right;">Total: Rp <?= number_format($gaji_bersih_calculated, 2, ',', '.'); ?></td>
-            </tr>
-        </table>
+  <tr class="heading">
+    <td colspan="2">Rincian Pembayaran (Final)</td>
+  </tr>
+  <tr class="details">
+    <td>Gaji Pokok</td>
+    <td style="text-align:right;">
+      Rp <?= number_format($gaji_pokok_base, 0, ',', '.') ?>
+    </td>
+  </tr>
+  <tr class="details">
+    <td>Salary Indeks</td>
+    <td style="text-align:right;">
+      Rp <?= number_format($salary_index_amt, 0, ',', '.') ?>
+    </td>
+  </tr>
+  <tr class="details">
+    <td><strong>Subtotal Gaji</strong></td>
+    <td style="text-align:right;">
+      <strong>Rp <?= number_format($subtotal_gaji, 0, ',', '.') ?></strong>
+    </td>
+  </tr>
+  <tr class="item">
+    <td>Total Pendapatan (Payheads)</td>
+    <td style="text-align:right;">
+      Rp <?= number_format($total_pendapatan, 0, ',', '.') ?>
+    </td>
+  </tr>
+  <tr class="item">
+    <td>Total Potongan (Payheads)</td>
+    <td style="text-align:right;">
+      Rp <?= number_format($total_potongan, 0, ',', '.') ?>
+    </td>
+  </tr>
+  <tr class="item">
+    <td>Potongan Koperasi</td>
+    <td style="text-align:right;">
+      Rp <?= number_format($potongan_koperasi, 0, ',', '.') ?>
+    </td>
+  </tr>
+  <tr class="item last">
+    <td>Gaji Bersih</td>
+    <td style="text-align:right;">
+      Rp <?= number_format($gaji_bersih_calculated, 0, ',', '.') ?>
+    </td>
+  </tr>
+  <tr class="total">
+    <td></td>
+    <td style="text-align:right;">
+      Total: Rp <?= number_format($gaji_bersih_calculated, 0, ',', '.') ?>
+    </td>
+  </tr>
+</table>
 
         <!-- Detail Payheads -->
         <h3>Detail Pendapatan &amp; Potongan</h3>
@@ -441,7 +462,7 @@ $conn->close();
                     echo '<td>' . $no . '</td>';
                     echo '<td class="left-align">' . htmlspecialchars($detail['nama_payhead']) . '</td>';
                     echo '<td>' . htmlspecialchars($jenisTampil) . '</td>';
-                    echo '<td>Rp ' . number_format($detail['amount'], 2, ',', '.') . '</td>';
+                    echo '<td>Rp ' . number_format($detail['amount'], 0, ',', '.') . '</td>';
                     echo '<td>-</td>';
                     echo '</tr>';
                     $no++;

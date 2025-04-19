@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 18, 2025 at 04:42 AM
+-- Generation Time: Apr 19, 2025 at 08:41 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -239,6 +239,40 @@ CREATE TABLE `employee_payheads` (
   `is_rapel` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `employee_payheads`
+--
+
+INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`, `remarks`, `support_doc_path`, `upload_file_blob`, `is_rapel`) VALUES
+(2, 20, 3, 'earnings', 100000.00, 'revisi', '', '', NULL, 0),
+(3, 20, 101, 'earnings', 200000.00, 'revisi', '', '', NULL, 0),
+(4, 20, 6, 'earnings', 150000.00, 'revisi', '', '', NULL, 0),
+(5, 20, 2, 'deductions', 125000.00, 'revisi', '', '', NULL, 0),
+(6, 20, 4, 'deductions', 250000.00, 'revisi', '', '', NULL, 0),
+(7, 21, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(8, 21, 102, 'earnings', 250000.00, 'draft', '', '', NULL, 0),
+(9, 21, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(10, 19, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(11, 19, 104, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(12, 19, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(13, 25, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(14, 25, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(15, 25, 102, 'earnings', 250000.00, 'draft', '', '', NULL, 0),
+(16, 25, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(17, 24, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(18, 24, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(19, 24, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(20, 22, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(21, 22, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(22, 22, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(23, 26, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(24, 26, 2, 'deductions', 125000.00, 'draft', '', '', NULL, 0),
+(25, 23, 2, 'deductions', 125000.00, 'draft', '', '', NULL, 0),
+(26, 23, 4, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(27, 23, 6, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(28, 23, 103, 'earnings', 300000.00, 'draft', '', '', NULL, 0),
+(29, 23, 3, 'earnings', 100000.00, 'draft', '', '', NULL, 0);
+
 -- --------------------------------------------------------
 
 --
@@ -379,7 +413,9 @@ CREATE TABLE `kenaikan_gaji_tahunan` (
 
 INSERT INTO `kenaikan_gaji_tahunan` (`id`, `id_anggota`, `nama_kenaikan`, `jumlah`, `tanggal_mulai`, `tanggal_berakhir`, `status`, `dibuat_pada`, `pindah_ke_lain_lain`) VALUES
 (10, 2, 'Kenaikan Gaji 2024/2025', 200000.00, '2025-04-01', '2026-03-31', 'aktif', '2025-04-06 23:38:46', 0),
-(11, 19, 'Kenaikan Gaji 2024/2025', 150000.00, '2025-04-01', '2026-03-31', 'aktif', '2025-04-07 11:27:39', 0);
+(11, 19, 'Kenaikan Gaji 2024/2025', 150000.00, '2025-04-01', '2026-03-31', 'aktif', '2025-04-07 11:27:39', 0),
+(12, 20, '', 0.00, '2025-04-01', '2026-03-31', 'aktif', '2025-04-19 00:33:25', 0),
+(13, 20, '', 200000.00, '2025-04-01', '2026-03-31', 'aktif', '2025-04-19 00:34:12', 0);
 
 -- --------------------------------------------------------
 
@@ -470,20 +506,21 @@ INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`, `nominal`) V
 
 CREATE TABLE `payhead_groups` (
   `id` int NOT NULL,
-  `group_name` varchar(255) NOT NULL,
-  `payhead_name` varchar(255) NOT NULL,
-  `jenis` enum('earnings','deductions') NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `group_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `payhead_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `jenis` enum('earnings','deductions') COLLATE utf8mb4_general_ci NOT NULL,
+  `sort_order` int NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `payhead_groups`
 --
 
-INSERT INTO `payhead_groups` (`id`, `group_name`, `payhead_name`, `jenis`) VALUES
-(1, 'Wali Kelas /Strata/Profesi/ Pindah Jenjang', 'Tunjangan Wali Kelas', 'earnings'),
-(2, 'Wali Kelas /Strata/Profesi/ Pindah Jenjang', 'Tunjangan Strata', 'earnings'),
-(3, 'Wali Kelas /Strata/Profesi/ Pindah Jenjang', 'Tunjangan Profesi', 'earnings'),
-(4, 'Wali Kelas /Strata/Profesi/ Pindah Jenjang', 'Tunjangan Pindah Jenjang', 'earnings');
+INSERT INTO `payhead_groups` (`id`, `group_name`, `payhead_name`, `jenis`, `sort_order`) VALUES
+(9, 'Wali Kelas /Strata/Profesi/ Pindah Jenjang', 'Tunjangan Pindah Jenjang', 'earnings', 1),
+(10, 'Wali Kelas /Strata/Profesi/ Pindah Jenjang', 'Tunjangan Profesi', 'earnings', 1),
+(11, 'Wali Kelas /Strata/Profesi/ Pindah Jenjang', 'Tunjangan Strata', 'earnings', 1),
+(12, 'Wali Kelas /Strata/Profesi/ Pindah Jenjang', 'Tunjangan Wali Kelas', 'earnings', 1);
 
 -- --------------------------------------------------------
 
@@ -498,6 +535,7 @@ CREATE TABLE `payroll` (
   `bulan` int NOT NULL,
   `tahun` int NOT NULL,
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
+  `salary_index_amount` decimal(15,2) NOT NULL DEFAULT '0.00',
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
   `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
@@ -508,6 +546,29 @@ CREATE TABLE `payroll` (
   `catatan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `status` enum('draft','revisi','final') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `payroll`
+--
+
+INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
+(1, 20, NULL, 4, 2025, 10000000.00, 0.00, 450000.00, 375000.00, 0.00, 10075000.00, '2025-04-18 17:33:25', '2025-04-19 00:33:25', '112233445', '', 'revisi'),
+(2, 20, NULL, 4, 2025, 10000000.00, 0.00, 450000.00, 375000.00, 0.00, 10075000.00, '2025-04-18 17:34:12', '2025-04-19 00:34:12', '112233445', '', 'draft'),
+(3, 21, NULL, 4, 2025, 12000000.00, 0.00, 350000.00, 250000.00, 0.00, 12100000.00, '2025-04-18 17:34:50', '2025-04-19 00:34:50', '5544332211', '', 'draft'),
+(4, 19, NULL, 4, 2025, 6000000.00, 0.00, 300000.00, 250000.00, 0.00, 6050000.00, '2025-04-18 17:35:25', '2025-04-19 00:35:25', '512443563', '', 'draft'),
+(5, 19, 11, 4, 2025, 6000000.00, 0.00, 300000.00, 250000.00, 150000.00, 5900000.00, '2025-04-18 17:35:38', '2025-04-19 00:35:00', '512443563', '', 'final'),
+(6, 21, 19, 4, 2025, 12000000.00, 0.00, 350000.00, 250000.00, 0.00, 12100000.00, '2025-04-18 18:20:58', '2025-04-19 01:20:00', '5544332211', '', 'final'),
+(7, 20, 18, 4, 2025, 10000000.00, 0.00, 450000.00, 375000.00, 0.00, 10075000.00, '2025-04-18 18:21:04', '2025-04-19 01:21:00', '112233445', '', 'final'),
+(8, 25, NULL, 4, 2025, 7000000.00, 7000000.00, 500000.00, 250000.00, 0.00, 14250000.00, '2025-04-19 08:50:38', '2025-04-19 15:50:38', '1357924680', '', 'draft'),
+(12, 25, 9, 4, 2025, 14000000.00, 0.00, 500000.00, 250000.00, 150000.00, 14100000.00, '2025-04-19 08:58:00', '2025-04-19 15:50:00', '1357924680', '', 'final'),
+(13, 24, NULL, 4, 2025, 5000000.00, 5000000.00, 250000.00, 250000.00, 0.00, 10000000.00, '2025-04-19 09:14:25', '2025-04-19 16:14:25', '1234098765', '', 'draft'),
+(14, 22, NULL, 4, 2025, 6000000.00, 6000000.00, 250000.00, 250000.00, 0.00, 12000000.00, '2025-04-19 17:44:53', '2025-04-20 00:44:53', '6677889900', '', 'draft'),
+(17, 22, 21, 4, 2025, 12000000.00, 6000000.00, 250000.00, 250000.00, 0.00, 12000000.00, '2025-04-19 18:05:56', '2025-04-20 00:44:00', '6677889900', '', 'final'),
+(18, 24, 20, 4, 2025, 10000000.00, 5000000.00, 250000.00, 250000.00, 250000.00, 9750000.00, '2025-04-19 18:11:40', '2025-04-20 01:11:00', '1234098765', '', 'final'),
+(19, 26, NULL, 4, 2025, 3000000.00, 3000000.00, 100000.00, 125000.00, 0.00, 5975000.00, '2025-04-19 20:28:20', '2025-04-20 03:28:20', '124453434', '', 'draft'),
+(20, 26, 12, 4, 2025, 3000000.00, 3000000.00, 100000.00, 125000.00, 175000.00, 2800000.00, '2025-04-19 20:28:47', '2025-04-20 03:28:00', '124453434', '', 'final'),
+(21, 23, NULL, 4, 2025, 7000000.00, 7000000.00, 550000.00, 375000.00, 0.00, 14175000.00, '2025-04-19 20:39:09', '2025-04-20 03:39:09', '9988776655', '', 'draft'),
+(22, 23, 22, 4, 2025, 7000000.00, 7000000.00, 550000.00, 375000.00, 175000.00, 14000000.00, '2025-04-19 20:40:43', '2025-04-20 03:40:00', '9988776655', '', 'final');
 
 -- --------------------------------------------------------
 
@@ -525,6 +586,74 @@ CREATE TABLE `payroll_detail` (
   `status` enum('draft','revisi','final') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `payroll_detail`
+--
+
+INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`) VALUES
+(1, 1, 20, 100, 'earnings', 0.00, 'draft'),
+(2, 1, 20, 3, 'earnings', 100000.00, 'draft'),
+(3, 1, 20, 101, 'earnings', 200000.00, 'draft'),
+(4, 1, 20, 6, 'earnings', 150000.00, 'draft'),
+(5, 1, 20, 2, 'deductions', 125000.00, 'draft'),
+(6, 1, 20, 4, 'deductions', 250000.00, 'draft'),
+(7, 2, 20, 3, 'earnings', 100000.00, 'draft'),
+(8, 2, 20, 101, 'earnings', 200000.00, 'draft'),
+(9, 2, 20, 6, 'earnings', 150000.00, 'draft'),
+(10, 2, 20, 2, 'deductions', 125000.00, 'draft'),
+(11, 2, 20, 4, 'deductions', 250000.00, 'draft'),
+(12, 3, 21, 3, 'earnings', 100000.00, 'draft'),
+(13, 3, 21, 102, 'earnings', 250000.00, 'draft'),
+(14, 3, 21, 4, 'deductions', 250000.00, 'draft'),
+(15, 4, 19, 6, 'earnings', 150000.00, 'draft'),
+(16, 4, 19, 104, 'earnings', 150000.00, 'draft'),
+(17, 4, 19, 4, 'deductions', 250000.00, 'draft'),
+(18, 5, 19, 6, 'earnings', 150000.00, 'final'),
+(19, 5, 19, 104, 'earnings', 150000.00, 'final'),
+(20, 5, 19, 4, 'deductions', 250000.00, 'final'),
+(21, 6, 21, 3, 'earnings', 100000.00, 'final'),
+(22, 6, 21, 102, 'earnings', 250000.00, 'final'),
+(23, 6, 21, 4, 'deductions', 250000.00, 'final'),
+(24, 7, 20, 3, 'earnings', 100000.00, 'final'),
+(25, 7, 20, 101, 'earnings', 200000.00, 'final'),
+(26, 7, 20, 6, 'earnings', 150000.00, 'final'),
+(27, 7, 20, 2, 'deductions', 125000.00, 'final'),
+(28, 7, 20, 4, 'deductions', 250000.00, 'final'),
+(29, 8, 25, 3, 'earnings', 100000.00, 'draft'),
+(30, 8, 25, 6, 'earnings', 150000.00, 'draft'),
+(31, 8, 25, 102, 'earnings', 250000.00, 'draft'),
+(32, 8, 25, 4, 'deductions', 250000.00, 'draft'),
+(45, 12, 25, 3, 'earnings', 100000.00, 'final'),
+(46, 12, 25, 6, 'earnings', 150000.00, 'final'),
+(47, 12, 25, 102, 'earnings', 250000.00, 'final'),
+(48, 12, 25, 4, 'deductions', 250000.00, 'final'),
+(49, 13, 24, 3, 'earnings', 100000.00, 'draft'),
+(50, 13, 24, 6, 'earnings', 150000.00, 'draft'),
+(51, 13, 24, 4, 'deductions', 250000.00, 'draft'),
+(52, 14, 22, 3, 'earnings', 100000.00, 'draft'),
+(53, 14, 22, 4, 'deductions', 250000.00, 'draft'),
+(54, 14, 22, 6, 'earnings', 150000.00, 'draft'),
+(61, 17, 22, 3, 'earnings', 100000.00, 'final'),
+(62, 17, 22, 4, 'deductions', 250000.00, 'final'),
+(63, 17, 22, 6, 'earnings', 150000.00, 'final'),
+(64, 18, 24, 3, 'earnings', 100000.00, 'final'),
+(65, 18, 24, 6, 'earnings', 150000.00, 'final'),
+(66, 18, 24, 4, 'deductions', 250000.00, 'final'),
+(67, 19, 26, 3, 'earnings', 100000.00, 'draft'),
+(68, 19, 26, 2, 'deductions', 125000.00, 'draft'),
+(69, 20, 26, 3, 'earnings', 100000.00, 'final'),
+(70, 20, 26, 2, 'deductions', 125000.00, 'final'),
+(71, 21, 23, 2, 'deductions', 125000.00, 'draft'),
+(72, 21, 23, 4, 'deductions', 250000.00, 'draft'),
+(73, 21, 23, 6, 'earnings', 150000.00, 'draft'),
+(74, 21, 23, 103, 'earnings', 300000.00, 'draft'),
+(75, 21, 23, 3, 'earnings', 100000.00, 'draft'),
+(76, 22, 23, 2, 'deductions', 125000.00, 'final'),
+(77, 22, 23, 4, 'deductions', 250000.00, 'final'),
+(78, 22, 23, 6, 'earnings', 150000.00, 'final'),
+(79, 22, 23, 103, 'earnings', 300000.00, 'final'),
+(80, 22, 23, 3, 'earnings', 100000.00, 'final');
+
 -- --------------------------------------------------------
 
 --
@@ -541,6 +670,40 @@ CREATE TABLE `payroll_detail_final` (
   `is_rapel` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `payroll_detail_final`
+--
+
+INSERT INTO `payroll_detail_final` (`id`, `id_payroll_final`, `id_payhead`, `nama_payhead`, `jenis`, `amount`, `is_rapel`) VALUES
+(1, 1, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(2, 1, 104, 'Tunjangan Pindah Jenjang', 'earnings', 150000.00, 0),
+(3, 1, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(4, 2, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(5, 2, 102, 'Tunjangan Strata', 'earnings', 250000.00, 0),
+(6, 2, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(7, 3, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(8, 3, 101, 'Tunjangan Wali Kelas', 'earnings', 200000.00, 0),
+(9, 3, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(10, 3, 2, 'Potongan Pajak', 'deductions', 125000.00, 0),
+(11, 3, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(12, 4, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(13, 4, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(14, 4, 102, 'Tunjangan Strata', 'earnings', 250000.00, 0),
+(15, 4, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(16, 5, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(17, 5, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(18, 5, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(19, 6, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(20, 6, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(21, 6, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(22, 7, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0),
+(23, 7, 2, 'Potongan Pajak', 'deductions', 125000.00, 0),
+(25, 8, 2, 'Potongan Pajak', 'deductions', 125000.00, 0),
+(26, 8, 4, 'Potongan BPJS', 'deductions', 250000.00, 0),
+(27, 8, 6, 'Tunjangan Hari Raya', 'earnings', 150000.00, 0),
+(28, 8, 103, 'Tunjangan Profesi', 'earnings', 300000.00, 0),
+(29, 8, 3, 'Bonus Kinerja', 'earnings', 100000.00, 0);
+
 -- --------------------------------------------------------
 
 --
@@ -554,6 +717,7 @@ CREATE TABLE `payroll_final` (
   `bulan` int NOT NULL,
   `tahun` int NOT NULL,
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
+  `salary_index_amount` decimal(15,2) NOT NULL DEFAULT '0.00',
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
   `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
@@ -564,6 +728,20 @@ CREATE TABLE `payroll_final` (
   `finalized_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `id_payroll_asal` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `payroll_final`
+--
+
+INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
+(1, 19, 11, 4, 2025, 6000000.00, 0.00, 300000.00, 250000.00, 150000.00, 5900000.00, '2025-04-19 00:35:00', '512443563', '', '2025-04-18 17:35:38', 5),
+(2, 21, 19, 4, 2025, 12000000.00, 0.00, 350000.00, 250000.00, 0.00, 12100000.00, '2025-04-19 01:20:00', '5544332211', '', '2025-04-18 18:20:58', 6),
+(3, 20, 18, 4, 2025, 10000000.00, 0.00, 450000.00, 375000.00, 0.00, 10075000.00, '2025-04-19 01:21:00', '112233445', '', '2025-04-18 18:21:04', 7),
+(4, 25, 9, 4, 2025, 14000000.00, 0.00, 500000.00, 250000.00, 150000.00, 14100000.00, '2025-04-19 15:50:00', '1357924680', '', '2025-04-19 08:58:00', 12),
+(5, 22, 21, 4, 2025, 12000000.00, 6000000.00, 250000.00, 250000.00, 0.00, 12000000.00, '2025-04-20 00:44:00', '6677889900', '', '2025-04-19 18:05:56', 17),
+(6, 24, 20, 4, 2025, 10000000.00, 5000000.00, 250000.00, 250000.00, 250000.00, 9750000.00, '2025-04-20 01:11:00', '1234098765', '', '2025-04-19 18:11:40', 18),
+(7, 26, 12, 4, 2025, 3000000.00, 3000000.00, 100000.00, 125000.00, 175000.00, 2800000.00, '2025-04-20 03:28:00', '124453434', '', '2025-04-19 20:28:47', 20),
+(8, 23, 22, 4, 2025, 7000000.00, 7000000.00, 550000.00, 375000.00, 175000.00, 14000000.00, '2025-04-20 03:40:00', '9988776655', '', '2025-04-19 20:40:43', 22);
 
 -- --------------------------------------------------------
 
@@ -658,7 +836,12 @@ INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`
 (14, 2, 6, 2025, 0, 0, 0, 0, 0),
 (15, 25, 6, 2025, 0, 0, 0, 0, 0),
 (16, 25, 8, 2025, 0, 0, 0, 0, 0),
-(17, 1, 5, 2025, 0, 0, 0, 0, 0);
+(17, 1, 5, 2025, 0, 0, 0, 0, 0),
+(18, 20, 4, 2025, 0, 0, 0, 0, 0),
+(19, 21, 4, 2025, 0, 0, 0, 0, 0),
+(20, 24, 4, 2025, 0, 0, 0, 0, 0),
+(21, 22, 4, 2025, 0, 0, 0, 0, 0),
+(22, 23, 4, 2025, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -936,7 +1119,7 @@ ALTER TABLE `audit_logs`
 -- AUTO_INCREMENT for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -948,7 +1131,7 @@ ALTER TABLE `holidays`
 -- AUTO_INCREMENT for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `laporan_surat`
@@ -972,31 +1155,31 @@ ALTER TABLE `payheads`
 -- AUTO_INCREMENT for table `payhead_groups`
 --
 ALTER TABLE `payhead_groups`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail_final`
 --
 ALTER TABLE `payroll_detail_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `pengajuan_ijin`
@@ -1008,7 +1191,7 @@ ALTER TABLE `pengajuan_ijin`
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `rekap_mingguan`
