@@ -7,14 +7,16 @@ start_session_safe();
 
 $baseUrl = getBaseUrl();
 $nama    = $_SESSION['nama']     ?? $_SESSION['username'] ?? '';
-
-// Ambil path foto dari session (tepat sama dengan isi kolom foto_profil di DB),
-// jika kosong atau 'default.jpg' maka helper akan meng‐fallback ke SVG placeholder.
 $fotoPath = $_SESSION['foto_profil'] ?? 'default.jpg';
 $foto     = getProfilePhotoUrl($fotoPath);
+
+// Ambil pageId (harus diset di tiap halaman sebelum include)
+$pageId  = $pageId ?? '';
 ?>
 <!-- Navbar (Topbar) -->
-<nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+<!-- Navbar (Topbar) -->
+<nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow"
+     data-page="<?= htmlspecialchars($pageId) ?>">
 
   <!-- Sidebar Toggle (Topbar) -->
   <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle me-3">
@@ -69,6 +71,13 @@ $foto     = getProfilePhotoUrl($fotoPath);
       </div>
     </li>
 
+    <!-- Help Icon -->
+    <li class="nav-item mx-1">
+      <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#helpModal">
+        <i class="fas fa-question-circle fa-fw"></i>
+      </a>
+    </li>
+
     <!-- Divider -->
     <div class="topbar-divider d-none d-sm-block"></div>
 
@@ -99,9 +108,25 @@ $foto     = getProfilePhotoUrl($fotoPath);
         </a>
       </div>
     </li>
+
   </ul>
 </nav>
 <!-- End of Topbar -->
+
+<!-- Modal Panduan -->
+<div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="helpModalLabel">Panduan Halaman</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-center text-muted">Memuat panduan…</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- jQuery & Moment -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -241,5 +266,28 @@ $(document).on('click','.message-item',function(){
         if(res.code===0) $el.fadeOut(300,()=>$el.remove());
     },'json');
 });
+
+ /* ==========================================================
+   *  HELP MODAL (❓)
+   * ========================================================== */
+  $('#helpModal').on('show.bs.modal', function () {
+    const pageId = $('nav.navbar').data('page') || '';
+    // pisah role dan page
+    const [role, ...parts] = pageId.split('_');
+    const page = parts.join('_');
+    const url  = '<?= $baseUrl; ?>/guides/' + role + '/' + page + '.html';
+    const $body = $(this).find('.modal-body');
+    // ubah judul
+    $(this).find('#helpModalLabel')
+      .text('Panduan: ' + role.toUpperCase() + ' – ' + (page.replace(/_/g,' ')||''));
+    // load konten
+    $body.html('<p class="text-center text-muted">Memuat panduan…</p>')
+         .load(url, function(_, status){
+           if(status === 'error'){
+             $body.html('<p class="text-danger">Panduan belum tersedia untuk halaman ini.</p>');
+           }
+         });
+  });
+  
 });
 </script>

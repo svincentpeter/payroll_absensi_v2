@@ -572,6 +572,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
 
+<!-- === Panduan Statis (Card) === -->
+<div class="card mb-4">
+      <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="fas fa-question-circle"></i> Panduan Upload Absensi</h5>
+      </div>
+      <div class="card-body" style="color:#000;">
+        <ul class="mb-0">
+          <li><strong>Pilih Departemen</strong> sesuai jenjang (TK/SD/SMP/SMA/SMK).</li>
+          <li><strong>Pilih File Excel</strong> hasil export fingerprint (.xls/.xlsx).</li>
+          <li><strong>Klik</strong> <kbd>Upload &amp; Import</kbd> → tunggu proses selesai.</li>
+          <li>Periksa ringkasan Total Baris / Sukses / Gagal di atas form.</li>
+          <li>Jika gagal, periksa format kolom tanggal (dd-mm-yyyy) &amp; jam di file Excel.</li>
+        </ul>
+      </div>
+    </div>
+    <!-- === End Panduan === -->
+        
         <!-- Form Upload Absensi -->
         <div class="card shadow mb-4">
             <div class="card-header">

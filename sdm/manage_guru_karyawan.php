@@ -1,6 +1,6 @@
 <?php
 // File: /payroll_absensi_v2/sdm/manage_guru_karyawan.php
-
+$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
