@@ -5,6 +5,9 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
+
 require_once '../helpers.php';
 session_start();
 require_once '../koneksi.php';
