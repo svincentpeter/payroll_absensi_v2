@@ -1,5 +1,6 @@
 <?php
 // File: /payroll_absensi_v2/keuangan/manage-salary.php
+$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
@@ -178,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         // 1) Ambil salary_index_amount
         $salary_index_amount = 0;
         $stmtIdx = $conn->prepare("
-            SELECT COALESCE(si.base_salary,0)
+            SELECT COALESCE(si.base_salary,0) AS base_idx
               FROM anggota_sekolah a
          LEFT JOIN salary_indices si ON a.salary_index_id=si.id
              WHERE a.id=? LIMIT 1
@@ -186,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         $stmtIdx->bind_param("i",$id_anggota);
         $stmtIdx->execute();
         if($row=$stmtIdx->get_result()->fetch_assoc()){
-            $salary_index_amount = floatval($row['COALESCE(si.base_salary,0)']);
+            $salary_index_amount = floatval($row['base_idx']);
         }
         $stmtIdx->close();
 
@@ -447,24 +448,30 @@ if ($bulan <= 0 || $tahun <= 0) {
 // Pastikan salary index update
 updateSalaryIndexForUser($conn, $id_anggota);
 
-// Cek payroll
-$stmtCheck = $conn->prepare("SELECT id, status FROM payroll WHERE id_anggota=? AND bulan=? AND tahun=? LIMIT 1");
+// Cek payroll, ambil juga potongan_koperasi
+$stmtCheck = $conn->prepare("
+  SELECT id, status, potongan_koperasi
+    FROM payroll
+   WHERE id_anggota=? AND bulan=? AND tahun=?
+   LIMIT 1
+");
 $stmtCheck->bind_param("iii", $id_anggota, $bulan, $tahun);
 $stmtCheck->execute();
 $resCheck = $stmtCheck->get_result();
 if ($resCheck->num_rows > 0) {
     $payroll = $resCheck->fetch_assoc();
     $stmtCheck->close();
-    if ($payroll['status'] == 'final') {
+    $potongan_koperasi = floatval($payroll['potongan_koperasi'] ?? 0);
+    if ($payroll['status'] === 'final') {
         header("Location: payroll-details.php?id_payroll=" . $payroll['id']);
         exit();
     }
-    // Gunakan payroll_id
     $id_payroll = $payroll['id'];
 } else {
     $stmtCheck->close();
     die("Payroll belum diproses oleh SDM.");
 }
+
 
 // Pastikan rekap_absensi ada
 $stmtRekap = $conn->prepare("SELECT id FROM rekap_absensi WHERE id_anggota=? AND bulan=? AND tahun=? LIMIT 1");
@@ -560,7 +567,12 @@ if (!empty($karyawan['salary_index_id'])) {
 $gaji_pokok_employee = floatval($karyawan['gaji_pokok'] ?? 0);
 $gaji_pokok = $gaji_pokok_employee;
 
-$gaji_bersih = $gaji_pokok + $salary_index_amount + $total_earnings - $total_deductions - $potongan_koperasi;
+$gaji_bersih = $gaji_pokok
+             + $salary_index_amount
+             + $totalPendapatan
+             - $totalPotongan
+             - $potongan_koperasi;
+
 
 $masa_kerja   = ((int)($karyawan['masa_kerja_tahun'] ?? 0)) . " Tahun, " . ((int)($karyawan['masa_kerja_bulan'] ?? 0)) . " Bulan";
 $namaKaryawan = $karyawan['nama'] ?? '';
@@ -653,6 +665,19 @@ $stmtKG->close();
             background-color: #f0f0f0;
             /* atau sesuaikan warna yang diinginkan */
         }
+
+        .help-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1050;
+    background: rgba(255,255,255,0.9);
+    border: none;
+    border-radius: 50%;
+    padding: 0.5rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .help-btn i { font-size: 1.5rem; color: #007bff; }
     </style>
     <script>
         const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
@@ -663,11 +688,20 @@ $stmtKG->close();
     </script>
 </head>
 
-<body>
-    <div id="content-wrapper" class="d-flex flex-column">
-        <div id="content">
-            <div class="container-fluid">
-                <h1 class="h3 mb-4 text-dark"><i class="fas fa-file-invoice-dollar me-2"></i>Review Payroll</h1>
+<body data-page="<?= htmlspecialchars($pageId); ?>">
+<div id="content-wrapper" class="d-flex flex-column">
+    <div id="content">
+        <div class="container-fluid">
+            <!-- Header + Help Icon -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 text-dark mb-0">
+                    <i class="fas fa-file-invoice-dollar me-2"></i>Review Payroll
+                </h1>
+                <button class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#helpModal"
+                        style="font-size:1.5rem; color:#6c757d;">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+            </div>
                 <div class="row">
                     <!-- Informasi Umum -->
                     <div class="col-lg-6 mb-4">
@@ -743,7 +777,12 @@ $stmtKG->close();
                                 </div>
                                 <div class="mb-3">
                                     <label><strong>Potongan Koperasi (Wajib Diisi)</strong></label>
-                                    <input type="text" id="inputPotonganKoperasi" class="form-control currency-input" value="0">
+                                    <input
+  type="text"
+  id="inputPotonganKoperasi"
+  class="form-control currency-input"
+  value="<?= htmlspecialchars(number_format($potongan_koperasi,0,',','.')); ?>"
+>
                                 </div>
                                 <div class="mb-3">
                                     <label><strong>Estimasi Gaji Bersih</strong></label>
@@ -801,65 +840,62 @@ $stmtKG->close();
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php if (empty($payheads)): ?>
-                                                <tr>
-                                                    <td colspan="7" class="text-center"><em>Belum ada payhead</em></td>
-                                                </tr>
-                                            <?php else: ?>
-                                                <?php foreach ($payheads as $ph): ?>
-                                                    <?php
-                                                    $ext = '';
-                                                    $downloadName = '';
-                                                    if (!empty($ph['support_doc_path'])) {
-                                                        $ext = pathinfo($ph['support_doc_path'], PATHINFO_EXTENSION);
-                                                        $cleanPayheadName = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $ph['nama_payhead'] ?? '');
-                                                        $cleanPayheadName = str_replace(' ', '_', trim($cleanPayheadName));
-                                                        $downloadName = $nip . '_' . $bulanVal . '_' . $cleanPayheadName . '.' . $ext;
-                                                    }
-                                                    ?>
-                                                    <tr>
-                                                        <td class="non-editable"><?= htmlspecialchars($ph['nama_payhead'] ?? ''); ?></td>
-                                                        <td class="non-editable"><?= htmlspecialchars(ucfirst($ph['jenis'] ?? '')); ?></td>
-                                                        <td><?= number_format($ph['amount'] ?? 0, 2, ',', '.'); ?></td>
-                                                        <td class="non-editable"><?= htmlspecialchars($ph['status'] ?? ''); ?></td>
-                                                        <td class="non-editable">
-                                                            <?php if (!empty($ph['remarks'])): ?>
-                                                                <small><em><?= htmlspecialchars($ph['remarks'] ?? ''); ?></em></small>
-                                                            <?php else: ?>
-                                                                <small><em>-</em></small>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td class="non-editable">
-                                                            <?php if (!empty($ph['support_doc_path'])): ?>
-                                                                <a class="btn btn-sm btn-info" href="<?= '/payroll_absensi_v2/uploads/payhead_support/' . basename($ph['support_doc_path']); ?>" download="<?= $downloadName; ?>">
-                                                                    <i class="bi bi-download"></i> Download Dokumen
-                                                                </a>
-                                                            <?php else: ?>
-                                                                <em>-</em>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <?php if (!empty($ph['is_rapel']) && $ph['is_rapel'] == 1): ?>
-                                                                <span class="badge bg-secondary">Rapel</span>
-                                                            <?php else: ?>
-                                                                <div class="btn-group btn-group-sm">
-                                                                    <button class="btn btn-info btn-edit-payhead"
-                                                                        data-idpayhead="<?= htmlspecialchars($ph['id_payhead'] ?? ''); ?>"
-                                                                        data-amount="<?= htmlspecialchars($ph['amount'] ?? 0); ?>"
-                                                                        data-jenis="<?= htmlspecialchars($ph['jenis'] ?? ''); ?>">
-                                                                        <i class="fas fa-pen"></i>
-                                                                    </button>
-                                                                    <button class="btn btn-danger btn-delete-payhead"
-                                                                        data-idpayhead="<?= htmlspecialchars($ph['id_payhead'] ?? ''); ?>">
-                                                                        <i class="fas fa-trash"></i>
-                                                                    </button>
-                                                                </div>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </tbody>
+  <?php foreach ($payheads as $ph): ?>
+    <?php
+      $ext = '';
+      $downloadName = '';
+      if (!empty($ph['support_doc_path'])) {
+          $ext = pathinfo($ph['support_doc_path'], PATHINFO_EXTENSION);
+          $cleanPayheadName = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $ph['nama_payhead'] ?? '');
+          $cleanPayheadName = str_replace(' ', '_', trim($cleanPayheadName));
+          $downloadName = $nip . '_' . $bulanVal . '_' . $cleanPayheadName . '.' . $ext;
+      }
+    ?>
+    <tr>
+      <td class="non-editable"><?= htmlspecialchars($ph['nama_payhead']); ?></td>
+      <td class="non-editable"><?= htmlspecialchars(ucfirst($ph['jenis'])); ?></td>
+      <td><?= number_format($ph['amount'], 2, ',', '.'); ?></td>
+      <td class="non-editable"><?= htmlspecialchars($ph['status']); ?></td>
+      <td class="non-editable">
+        <?php if (!empty($ph['remarks'])): ?>
+          <small><em><?= htmlspecialchars($ph['remarks']); ?></em></small>
+        <?php else: ?>
+          <small><em>-</em></small>
+        <?php endif; ?>
+      </td>
+      <td class="non-editable">
+        <?php if (!empty($ph['support_doc_path'])): ?>
+          <a class="btn btn-sm btn-info"
+             href="<?= '/payroll_absensi_v2/uploads/payhead_support/' . basename($ph['support_doc_path']); ?>"
+             download="<?= $downloadName; ?>">
+            <i class="bi bi-download"></i> Download Dokumen
+          </a>
+        <?php else: ?>
+          <em>-</em>
+        <?php endif; ?>
+      </td>
+      <td class="text-center">
+        <?php if (!empty($ph['is_rapel']) && $ph['is_rapel'] == 1): ?>
+          <span class="badge bg-secondary">Rapel</span>
+        <?php else: ?>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-info btn-edit-payhead"
+                    data-idpayhead="<?= htmlspecialchars($ph['id_payhead']); ?>"
+                    data-amount="<?= htmlspecialchars($ph['amount']); ?>"
+                    data-jenis="<?= htmlspecialchars($ph['jenis']); ?>">
+              <i class="fas fa-pen"></i>
+            </button>
+            <button class="btn btn-danger btn-delete-payhead"
+                    data-idpayhead="<?= htmlspecialchars($ph['id_payhead']); ?>">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        <?php endif; ?>
+      </td>
+    </tr>
+  <?php endforeach; ?>
+</tbody>
+
                                     </table>
                                 </div>
                             </div>
@@ -965,6 +1001,20 @@ $stmtKG->close();
         </div>
     </div>
 
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="helpModalLabel">Panduan Halaman</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-center text-muted">Memuat panduan…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
     <?php $conn->close(); ?>
     <!-- JS Dependencies: Pastikan urutannya benar -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -983,7 +1033,8 @@ $stmtKG->close();
                 info: false,
                 lengthChange: false,
                 language: {
-                    url: "/payroll_absensi_v2/assets/plugins/Indonesian.json"
+                    url: "/payroll_absensi_v2/assets/plugins/Indonesian.json",
+                    emptyTable: "<em>Belum ada payhead</em>"
                 }
             });
 
@@ -1184,7 +1235,20 @@ anNetSalary.set(netSalary);
                     }
                 });
             });
-
+            $('#helpModal').on('show.bs.modal', function () {
+      const pageId = $('body').data('page') || '';
+      const [role, ...parts] = pageId.split('_');
+      const page = parts.join('_');
+      $('#helpModalLabel').text('Panduan: ' + role.toUpperCase() + ' – ' + page.replace(/_/g,' '));
+      const url = '/payroll_absensi_v2/guides/' + role + '/' + page + '.html';
+      $(this).find('.modal-body')
+        .html('<p class="text-center text-muted">Memuat panduan…</p>')
+        .load(url, function(_, status){
+          if (status === 'error') {
+            $(this).html('<p class="text-danger">Panduan belum tersedia untuk halaman ini.</p>');
+          }
+        });
+    });
             // Sebelum submit finalisasi, salin nilai input ke hidden field
             $('#formPayroll').on('submit', function() {
                 $('#fieldNoRek').val($('#inputNoRek').val());

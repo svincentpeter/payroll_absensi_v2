@@ -3,6 +3,9 @@
 // Versi final yang menggunakan helpers.php, CSRF, dan template SB Admin 2 (Bootstrap 5.3.3)
 
 // Inisiasi session secara aman dan buat token CSRF
+   
+$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
+
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 generate_csrf_token();

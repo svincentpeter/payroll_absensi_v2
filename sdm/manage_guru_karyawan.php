@@ -198,7 +198,7 @@ function LoadingGuru($conn)
     // Query data anggota yang belum dihapus
     $sql = "SELECT id, uid, nip, nama, jenjang, job_title, role, status_kerja,
                    join_start, lama_kontrak, tgl_kontrak_selesai, masa_kerja_tahun,
-                   masa_kerja_bulan, masa_kerja_efektif, pendidikan, email, no_hp
+                   masa_kerja_bulan, masa_kerja_efektif, pendidikan, email, no_hp, foto_profil
             FROM anggota_sekolah
             WHERE is_delete = 0";
 
@@ -229,7 +229,7 @@ function LoadingGuru($conn)
             "pendidikan"          => htmlspecialchars($row['pendidikan']),
             "email"               => htmlspecialchars($row['email']),
             "no_hp"               => htmlspecialchars($row['no_hp']),
-            "foto_profil"         => getProfilePhotoUrl($row['nama'], $row['jenjang'], $row['role'], $row['id'])
+            "foto_profil" => getProfilePhotoUrl($row['foto_profil'])
         ];
     }
 

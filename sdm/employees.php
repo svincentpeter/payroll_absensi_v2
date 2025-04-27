@@ -67,6 +67,7 @@ function ProcessPayroll($conn)
     }
     $stmtSum->close();
 
+    $salaryIndexAmount = 0;
     // 2) Update salary index
     updateSalaryIndexForUser($conn, $id_anggota);
 
@@ -93,7 +94,8 @@ function ProcessPayroll($conn)
     $gajiPokokEmployee = floatval($empData['gaji_pokok']);
     $no_rekening       = $empData['no_rekening'];
     $salaryIndexBase   = 0;
-
+    $salaryIndexAmount = $salaryIndexBase;
+    
     // Ambil base_salary dari salary_index (jika ada)
     if (!empty($empData['salary_index_id'])) {
         $stmtIndex = $conn->prepare("

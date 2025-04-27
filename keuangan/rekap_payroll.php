@@ -1,6 +1,9 @@
 <?php
 // File: /payroll_absensi_v2/keuangan/rekap_payroll.php
 
+$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
+
+
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
@@ -213,7 +216,7 @@ function LoadingRekapPayroll($conn)
   $sqlData = "
       SELECT
   a.jenjang,
-  (SUM(pf.gaji_pokok) - SUM(pf.salary_index_amount)) AS total_basic_salary,
+  SUM(pf.gaji_pokok)                      AS total_basic_salary,
   SUM(pf.salary_index_amount)             AS total_salary_index,
   SUM(pf.potongan_koperasi)               AS total_potongan_koperasi
   $outerSelect,

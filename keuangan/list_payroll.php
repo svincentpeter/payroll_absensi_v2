@@ -2,6 +2,8 @@
 // File: /payroll_absensi_v2/keuangan/list_payroll.php
 
 // Sertakan file helper, inisialisasi session dan CSRF token
+$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
+
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 generate_csrf_token();

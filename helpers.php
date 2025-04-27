@@ -794,7 +794,7 @@ function getFullRole() {
     
     // Jika job title mengandung "kepala sekolah", maka return TK
     if (strpos($normalized, 'kepala sekolah') !== false) {
-        return 'TK';
+        return 'P';
     }
     
     // Pertahankan pengecekan untuk role M lainnya
@@ -876,3 +876,13 @@ function hitungTanggalSelesaiKontrak(string $joinStart, int $lamaKontrak): ?stri
     }
 }
 
+/* =========================================================
+ *  Helper umum – panggil di mana saja
+ * ========================================================= */
+
+/** kirim JSON & henti eksekusi */
+function send_json(int $code, string $msg, array $data = []): void {
+    header('Content-Type:application/json; charset=utf-8');
+    echo json_encode(['code'=>$code,'message'=>$msg]+$data);
+    exit;
+}

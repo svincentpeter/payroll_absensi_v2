@@ -1,5 +1,7 @@
 <?php
 // File: /payroll_absensi_v2/absensi/guru/laporan_surat.php
+   
+$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();

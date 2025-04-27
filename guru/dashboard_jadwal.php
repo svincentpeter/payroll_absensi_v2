@@ -3,6 +3,9 @@
 // Versi dengan tampilan SB Admin 2, Bootstrap 5.3.3, DataTables (dengan RowGroup extension), Card Header gradient
 
 // Aktifkan error reporting untuk debugging (nonaktifkan pada produksi)
+   
+$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);

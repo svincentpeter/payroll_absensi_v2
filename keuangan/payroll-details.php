@@ -104,7 +104,6 @@ try {
         }
     }
 
-    // Gaji pokok seharusnya: gaji_pokok_employee + salary_index_amount
     $gaji_pokok_base  = ($gaji_pokok_db > 0) ? $gaji_pokok_db : $gaji_pokok_employee;
     $salary_index_amt = $salary_index_amount;
     $subtotal_gaji    = $gaji_pokok_base + $salary_index_amt;

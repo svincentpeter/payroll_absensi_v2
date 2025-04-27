@@ -137,8 +137,8 @@ function LoadingPayrollDetails($conn, $jenjang)
           a.nama                 AS nama_karyawan,
           p.bulan,
           p.tahun,
-          (SUM(p.gaji_pokok) - SUM(p.salary_index_amount)) AS total_gaji_pokok,
-          p.salary_index_amount  AS total_salary_index,
+          MAX(p.gaji_pokok)          AS total_gaji_pokok,
+          MAX(p.salary_index_amount) AS total_salary_index,
           p.potongan_koperasi    AS total_potongan_koperasi
           $outerCols,
           IFNULL(kg.total_lain_lain,0) AS total_lain_lain,
