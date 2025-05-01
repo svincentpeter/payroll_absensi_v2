@@ -199,23 +199,81 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
   // bangun array untuk JSON
   $data = [];
   while ($r = $res->fetch_assoc()) {
+    // dasar komponen
+    $gajiPokok   = (float)$r['gaji_pokok'];
+    $idxAmount   = (float)$r['idx_amount'];
+    $potKoperasi = (float)$r['pot_koperasi'];
+
+    // total earnings payheads
+    $sumEarningsPH = 0;
+    foreach ($earningPayheads as $ph) {
+      $alias = 'ph_' . substr(md5($ph), 0, 8);
+      $sumEarningsPH += (float)$r[$alias];
+    }
+    // total grouped payheads
+    $sumGroupPH = 0;
+    foreach ($PAYHEAD_GROUPS as $grp) {
+      $alias = 'gr_' . substr(md5($grp), 0, 8);
+      $sumGroupPH += (float)$r[$alias];
+    }
+
+    // jumlah pendapatan
+    $totalPendapatan = $gajiPokok + $idxAmount + $sumEarningsPH + $sumGroupPH;
+
+    // max pot kop = 65% x pendapatan
+    $maxPotKop = $totalPendapatan * 0.65;
+
+    // total deduction payheads
+    $sumDeductionPH = 0;
+    foreach ($deductionPayheads as $ph) {
+      $alias = 'ph_' . substr(md5($ph), 0, 8);
+      $sumDeductionPH += (float)$r[$alias];
+    }
+    // total potongan
+    $totalPotongan = $potKoperasi + $sumDeductionPH;
+
+    // net received
+    $netReceived = $totalPendapatan - $totalPotongan;
+
+    // pembulatan ke ratus terdekat
+    $rounded = round($netReceived / 100) * 100;
+
+    // siapkan row
     $row = [
-      'nip'         => htmlspecialchars($r['nip']),
-      'nama'        => htmlspecialchars($r['nama']),
-      'keterangan'  => htmlspecialchars($r['keterangan']),
-      'gaji_pokok'  => formatNominal($r['gaji_pokok']),
-      'idx_amount'  => formatNominal($r['idx_amount']),
-      'pot_koperasi'=> formatNominal($r['pot_koperasi']),
+      'nip'               => htmlspecialchars($r['nip']),
+      'nama'              => htmlspecialchars($r['nama']),
+      'keterangan'        => htmlspecialchars($r['keterangan']),
+      'gaji_pokok'        => formatNominal($gajiPokok),
+      'idx_amount'        => formatNominal($idxAmount),
     ];
-    foreach ($PAYHEADS as $ph) {
+    // isi earning payheads
+    foreach ($earningPayheads as $ph) {
       $alias = 'ph_' . substr(md5($ph), 0, 8);
       $row[$alias] = formatNominal($r[$alias] ?? 0);
     }
+    // isi grouped payheads
     foreach ($PAYHEAD_GROUPS as $grp) {
       $alias = 'gr_' . substr(md5($grp), 0, 8);
       $row[$alias] = formatNominal($r[$alias] ?? 0);
     }
-    $row['gaji_bersih'] = formatNominal($r['gaji_bersih']);
+    // isi deduction payheads
+    foreach ($deductionPayheads as $ph) {
+      $alias = 'ph_' . substr(md5($ph), 0, 8);
+      $row[$alias] = formatNominal($r[$alias] ?? 0);
+    }
+    // pot koperasi
+    $row['pot_koperasi']     = formatNominal($potKoperasi);
+    // pembulatan
+    $row['pembulatan']       = formatNominal($rounded);
+    // jumlah pendapatan
+    $row['total_pendapatan'] = formatNominal($totalPendapatan);
+    // max pot koperasi
+    $row['max_pot_kop']      = formatNominal($maxPotKop);
+    // jumlah potongan
+    $row['total_potongan']   = formatNominal($totalPotongan);
+    // net received
+    $row['net_received']     = formatNominal($netReceived);
+
     $data[] = $row;
   }
   $stmt->close();
@@ -229,9 +287,6 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
   ], JSON_UNESCAPED_UNICODE);
 }
 
-// -----------------------------------------------------------------------------
-// 3) HTML & DataTables init
-// -----------------------------------------------------------------------------
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -246,7 +301,6 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
   <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
   <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
   <style>
-    /* ── PAGE HEADER ────────────────────────────────── */
     .page-header {
       background: #fff;
       border-left: 5px solid <?= $meta['color'] ?>;
@@ -255,24 +309,14 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
       box-shadow: 0 .2rem .4rem rgba(0,0,0,.1);
     }
     .page-header h3 {
-      margin: 0;
-      font-weight: 600;
-      color: #333;
+      margin: 0; font-weight: 600; color: #333;
     }
     .back-btn {
-      color: #fff;
-      background: <?= $meta['color'] ?>;
-      border: none;
-      transition: background .2s;
+      color: #fff; background: <?= $meta['color'] ?>; border: none;
     }
-    .back-btn:hover {
-      background: darken(<?= $meta['color'] ?>,10%);
-    }
-    
-    /* font lebih kecil untuk tabel */
-    table.dataTable,
-    table.dataTable th,
-    table.dataTable td {
+    .back-btn:hover { filter: brightness(90%); }
+
+    table.dataTable, table.dataTable th, table.dataTable td {
       font-size: 0.85rem;
     }
     .card-header { background: #0d47a1; color: #fff; }
@@ -283,10 +327,9 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
 </head>
 <body>
   <div class="container-fluid py-4">
-     <!-- PAGE HEADER -->
-     <div class="d-flex align-items-center page-header">
-      <button onclick="window.history.back()"
-              class="btn back-btn me-3">
+    <!-- PAGE HEADER -->
+    <div class="d-flex align-items-center page-header">
+      <button onclick="window.history.back()" class="btn back-btn me-3">
         <i class="fas fa-arrow-left"></i>
       </button>
       <h3>
@@ -308,7 +351,7 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
       }
     ?>
 
-    <!-- Tabel: Guru -->
+    <!-- Rekap Guru -->
     <div class="card mb-4 shadow">
       <div class="card-header"><i class="fas fa-chalkboard-teacher"></i> Rekap Guru</div>
       <div class="card-body">
@@ -321,17 +364,21 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
                 <?php renderColsHeader($earningPayheads); ?>
                 <?php renderColsHeader($PAYHEAD_GROUPS); ?>
                 <?php renderColsHeader($deductionPayheads); ?>
-                <th>Pot. Koperasi</th><th>Gaji Bersih</th>
+                <th>Pembulatan</th>
+                <th>Jumlah Pendapatan</th>
+                <th>Max Pot. Kop</th>
+                <th>Pot. Koperasi</th>
+                <th>Jumlah Potongan</th>
+                <th>Jumlah Yang Diterima</th>
               </tr>
             </thead>
             <tfoot>
               <tr>
-                <th colspan="3" class="text-end">Jumlah:</th>
-                <th></th><th></th>
+                <th colspan="5" class="text-end">Jumlah:</th>
                 <?php renderColsFooter($earningPayheads); ?>
                 <?php renderColsFooter($PAYHEAD_GROUPS); ?>
                 <?php renderColsFooter($deductionPayheads); ?>
-                <th></th><th></th>
+                <th></th><th></th><th></th><th></th><th></th><th></th>
               </tr>
             </tfoot>
             <tbody></tbody>
@@ -340,7 +387,7 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
       </div>
     </div>
 
-    <!-- Tabel: Karyawan -->
+    <!-- Rekap Karyawan -->
     <div class="card mb-4 shadow">
       <div class="card-header"><i class="fas fa-users"></i> Rekap Karyawan</div>
       <div class="card-body">
@@ -353,17 +400,21 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
                 <?php renderColsHeader($earningPayheads); ?>
                 <?php renderColsHeader($PAYHEAD_GROUPS); ?>
                 <?php renderColsHeader($deductionPayheads); ?>
-                <th>Pot. Koperasi</th><th>Gaji Bersih</th>
+                <th>Pembulatan</th>
+                <th>Jumlah Pendapatan</th>
+                <th>Max Pot. Kop</th>
+                <th>Pot. Koperasi</th>
+                <th>Jumlah Potongan</th>
+                <th>Jumlah Yang Diterima</th>
               </tr>
             </thead>
             <tfoot>
               <tr>
-                <th colspan="3" class="text-end">Jumlah:</th>
-                <th></th><th></th>
+                <th colspan="5" class="text-end">Jumlah:</th>
                 <?php renderColsFooter($earningPayheads); ?>
                 <?php renderColsFooter($PAYHEAD_GROUPS); ?>
                 <?php renderColsFooter($deductionPayheads); ?>
-                <th></th><th></th>
+                <th></th><th></th><th></th><th></th><th></th><th></th>
               </tr>
             </tfoot>
             <tbody></tbody>
@@ -371,8 +422,7 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
         </div>
       </div>
     </div>
-
-  </div><!-- /.container -->
+  </div>
 
   <!-- JS -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -386,19 +436,38 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
       + '&bulan=<?=$bulan?>'
       + '&tahun=<?=$tahun?>';
 
-    // build dynamic columns
+    // bangun dynamic columns
     let dynEarnings = [], dynGroups = [], dynDeductions = [];
-    <?php foreach($earningPayheads as $ph):
-      $alias='ph_'.substr(md5($ph),0,8);
-    ?> dynEarnings.push({ data:'<?=$alias?>' }); <?php endforeach; ?>
-    <?php foreach($PAYHEAD_GROUPS as $g):
-      $alias='gr_'.substr(md5($g),0,8);
-    ?> dynGroups.push({ data:'<?=$alias?>' }); <?php endforeach; ?>
-    <?php foreach($deductionPayheads as $ph):
-      $alias='ph_'.substr(md5($ph),0,8);
-    ?> dynDeductions.push({ data:'<?=$alias?>' }); <?php endforeach; ?>
+    <?php foreach($earningPayheads as $ph): ?>
+      dynEarnings.push({ data:'ph_<?=substr(md5($ph),0,8)?>' });
+    <?php endforeach; ?>
+    <?php foreach($PAYHEAD_GROUPS as $g): ?>
+      dynGroups.push({ data:'gr_<?=substr(md5($g),0,8)?>' });
+    <?php endforeach; ?>
+    <?php foreach($deductionPayheads as $ph): ?>
+      dynDeductions.push({ data:'ph_<?=substr(md5($ph),0,8)?>' });
+    <?php endforeach; ?>
 
     function initTable(selector, category) {
+      let cols = [
+        { data:'nip' },
+        { data:'nama' },
+        { data:'keterangan' },
+        { data:'gaji_pokok' },
+        { data:'idx_amount' }
+      ]
+      .concat(dynEarnings)
+      .concat(dynGroups)
+      .concat(dynDeductions)
+      .concat([
+        { data:'pembulatan' },
+        { data:'total_pendapatan' },
+        { data:'max_pot_kop' },
+        { data:'pot_koperasi' },
+        { data:'total_potongan' },
+        { data:'net_received' }
+      ]);
+
       return $(selector).DataTable({
         processing: true,
         serverSide: true,
@@ -407,52 +476,26 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
           type: 'POST',
           data: { csrf_token: csrf }
         },
-        columns: [
-          { data:'nip' },
-          { data:'nama' },
-          { data:'keterangan' },
-          { data:'gaji_pokok' },
-          { data:'idx_amount' }
-        ]
-        .concat(dynEarnings)
-        .concat(dynGroups)
-        .concat(dynDeductions)
-        .concat([
-          { data:'pot_koperasi' },
-          { data:'gaji_bersih' }
-        ]),
+        columns: cols,
         order: [[1,'asc']],
         footerCallback: function(row, data, start, end, display) {
-    let api = this.api();
+          let api = this.api();
+          let parse = v => typeof v==='string'
+            ? parseFloat(v.replace(/[^0-9]/g,''))||0
+            : (typeof v==='number'?v:0);
 
-    // parsing "Rp 1.234.567,89" → number
-    let parseVal = v => {
-      if (typeof v === 'string') {
-        let tok = v.trim().split(' ').pop();
-        let num = tok.replace(/\./g, '').replace(/,/g, '.');
-        return parseFloat(num) || 0;
-      }
-      return (typeof v === 'number') ? v : 0;
-    };
-
-    // dari kolom ke-4 (idx ≥ 3) dijumlahkan
-    api.columns().every(function(idx) {
-      if (idx < 3) return;
-      let sum = this
-        .data()
-        .reduce((a, b) => parseVal(a) + parseVal(b), 0);
-        $(this.footer()).html(
-  'Rp ' + sum.toLocaleString('id-ID', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  })
-);
-    });
-  },
-        lengthMenu: [10,25,50,100],
-        language: { url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json" },
+          api.columns().every(function(idx) {
+            if (idx < 3) return;
+            let total = this.data().reduce((a,b) => parse(a)+parse(b), 0);
+            $(this.footer()).html(
+              'Rp ' + total.toLocaleString('id-ID',{ minimumFractionDigits:0 })
+            );
+          });
+        },
         dom: 'Bfrtip',
-        buttons: ['excel','pdf','print']
+        buttons: ['excel','pdf','print'],
+        lengthMenu: [10,25,50,100],
+        language: { url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json" }
       });
     }
 

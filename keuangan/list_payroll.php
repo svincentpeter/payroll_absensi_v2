@@ -191,6 +191,7 @@ function LoadPayrollOverview($conn)
             a.nip,
             a.jenjang,
             a.role,
+            a.foto_profil,
             si.level AS salary_index_level
         FROM payroll p
         JOIN anggota_sekolah a ON p.id_anggota = a.id
@@ -224,24 +225,40 @@ function LoadPayrollOverview($conn)
 
     $rows = [];
     while ($row = $result->fetch_assoc()) {
-        // Dapatkan foto profil (jika ada)
-        $fotoProfil = getProfilePhotoUrl($row['nama'], $row['jenjang'], $row['role'], $row['id_anggota']);
-
+        // ambil nilai dari kolom foto_profil
+        $fotoDb   = $row['foto_profil'] ?? '';
+        $filename = basename($fotoDb);
+        $local    = __DIR__ . '/../uploads/profile_pics/' . $filename;
+        $baseUrl  = getBaseUrl();
+    
+        if ($fotoDb && strpos($fotoDb, 'http') === 0) {
+            // URL eksternal
+            $fotoUrl = $fotoDb;
+        } elseif ($filename && file_exists($local)) {
+            // file lokal tersedia
+            $fotoUrl = "{$baseUrl}/uploads/profile_pics/{$filename}?v=" . filemtime($local);
+        } else {
+            // fallback
+            $fotoUrl = "{$baseUrl}/assets/img/undraw_profile.svg";
+        }
+    
         $rows[] = [
-            'id_payroll'  => $row['id_payroll'],
-            'id_anggota'  => $row['id_anggota'],
-            'nama'        => $row['nama'],
-            'nip'         => $row['nip'],
-            'jenjang'     => $row['jenjang'],
-            'role'        => $row['role'],
-            'bulan'       => $row['bulan'],
-            'tahun'       => $row['tahun'],
-            'status'      => $row['status'],
-            'tgl_payroll' => $row['tgl_payroll'],
+            'id_payroll'         => $row['id_payroll'],
+            'id_anggota'         => $row['id_anggota'],
+            'nama'               => $row['nama'],
+            'nip'                => $row['nip'],
+            'jenjang'            => $row['jenjang'],
+            'role'               => $row['role'],
+            'bulan'              => $row['bulan'],
+            'tahun'              => $row['tahun'],
+            'status'             => $row['status'],
+            'tgl_payroll'        => $row['tgl_payroll'],
             'salary_index_level' => $row['salary_index_level'] ?: '-',
-            'foto_profil' => $fotoProfil,
+            // gunakan URL yang sudah benar
+            'foto_profil'        => $fotoUrl,
         ];
     }
+    
     $stmtData->close();
 
     echo json_encode([

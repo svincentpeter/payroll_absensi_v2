@@ -1,0 +1,108 @@
+<!-- guides/sdm/employees.html -->
+<style>
+    .guide-container { color: #000 !important; }
+    .guide-container h4 { margin-top: 1.5rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">🛠️ Panduan Interaktif: Payroll Anggota</h2>
+    <p>Halo, <strong>SDM</strong>! Berikut cara menggunakan seluruh fitur di halaman <em>Payroll Anggota</em> dan <em>Pengaturan Payheads</em>:</p>
+  
+    <ol>
+      <li class="mb-4">
+        <h4>Ganti Kalender</h4>
+        <ul>
+          <li>Klik <kbd>Ganti Kalender</kbd> → pilih bulan &amp; tahun → klik kotak bulan yang diinginkan.</li>
+          <li>Bulan yang sudah <span class="badge-status final">Final</span> ditandai gelap dan tidak bisa dipilih.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Filter Daftar Anggota</h4>
+        <ol type="a">
+          <li>Pilih <code>Jenjang Pendidikan</code>, <code>Role</code>, atau masukkan kata kunci di <code>Pencarian</code>.</li>
+          <li>Klik <kbd>Terapkan Filter</kbd> untuk memuat ulang daftar kartu.</li>
+          <li>Klik <kbd>Reset Filter</kbd> untuk mengembalikan semua setelan ke default.</li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Menelusuri Daftar Kartu</h4>
+        <ul>
+          <li>Scroll untuk melihat semua kartu anggota.</li>
+          <li>Setiap kartu menampilkan: foto, nama, NIP, jenjang, role, status payroll, dan rapel.</li>
+          <li>Gunakan pagination di bawah untuk berpindah halaman.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Aksi pada Setiap Kartu</h4>
+        <ol type="a">
+          <li><strong>Detail</strong>: klik <i class="bi bi-eye-fill"></i> → buka modal detail data anggota.</li>
+          <li><strong>Edit</strong>: klik <i class="bi bi-pencil-square"></i> → ubah No. Rekening → klik <kbd>Update</kbd>.</li>
+          <li><strong>Payroll</strong>: klik <i class="bi bi-cash-stack"></i> → masuk ke halaman Pengaturan Payheads.</li>
+          <li><strong>Rekap Absensi</strong>: klik <i class="bi bi-calendar-check"></i> → review &amp; edit rekap absensi.</li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Pengaturan Payheads</h4>
+        <ul>
+          <li>Periksa informasi anggota dan periode payroll di panel kiri.</li>
+          <li>Pastikan <strong>No. Rekening</strong>, <strong>Tanggal Payroll</strong>, dan <strong>Catatan</strong> sudah diisi.</li>
+        </ul>
+        <h5>Komponen Gaji Tersedia</h5>
+        <ul>
+          <li>Cari payhead melalui kotak search.</li>
+          <li>Klik <i class="bi bi-plus"></i> untuk menambahkan ke daftar terpilih.</li>
+        </ul>
+        <h5>Komponen Gaji Terpilih</h5>
+        <ul>
+          <li>Isi <strong>Nominal</strong> dan <strong>Keterangan</strong> untuk masing-masing baris.</li>
+          <li>Centang <kbd>Rapel</kbd> untuk menandai komponen berulang → input nominal akan dikunci.</li>
+          <li>Klik <i class="bi bi-dash"></i> untuk menghapus baris jika perlu.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Kenaikan Gaji Tahunan</h4>
+        <ul>
+          <li>Centang <kbd>Aktifkan Kenaikan Gaji Tahunan</kbd> untuk menampilkan field.</li>
+          <li>Isi <strong>Nama Kenaikan</strong> dan <strong>Nominal</strong> → akan disimpan sebagai payhead rapel.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Rekap Absensi</h4>
+        <ul>
+          <li>Angka <strong>Total Hadir/Izin/Cuti/Tanpa Keterangan/Sakit</strong> tampil otomatis.</li>
+          <li>Klik tombol <kbd>Review Rekap Absensi</kbd> untuk melihat detail dan klik <kbd>Edit</kbd> jika perlu koreksi.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Perhitungan dan Simpan</h4>
+        <ol type="a">
+          <li><kbd>Simpan Payroll</kbd> → menyimpan data draft payheads.</li>
+          <li><kbd>Proses Payroll</kbd> → generate payroll &amp; detail ke database (status draft → notifikasi ke Keuangan/Superadmin).</li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li><strong>Spinner</strong> berarti data sedang diproses—harap tunggu.</li>
+          <li>Jika tombol tidak merespons, periksa validasi form &amp; token CSRF.</li>
+          <li>Pastikan semua <kbd>Nominal</kbd> valid (> 0) sebelum simpan atau proses.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Kontak Bantuan</h4>
+        <p>Untuk pertanyaan lebih lanjut, hubungi:<br>
+           • <a href="mailto:sdm-support@sekolah.ac.id">sdm-support@sekolah.ac.id</a><br>
+           • Ext. 1234 (Tim SDM)</p>
+      </li>
+    </ol>
+  </div>
+  

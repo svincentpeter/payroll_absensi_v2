@@ -1,0 +1,82 @@
+<!-- guides/keuangan/list_payroll.html -->
+<style>
+    .guide-container { color: #000; }
+    .guide-container h4 { margin-top: 1.5rem; }
+    .guide-container ul { margin-left: 1rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">🧾 Panduan: Payroll Overview &amp; Finalisasi</h2>
+    <p>Halaman <em>Daftar Payroll</em> menampilkan siapa saja yang masih berstatus <strong>draft</strong> dan siap untuk direview / difinalisasi oleh tim Keuangan.</p>
+  
+    <ol>
+      <li>
+        <h4>Filter &amp; Pencarian</h4>
+        <ul>
+          <li><strong>Jenjang Pendidikan</strong>: pilih jenjang untuk memfilter.</li>
+          <li><strong>Role</strong>: guru, karyawan, dsb.</li>
+          <li><strong>Pencarian</strong>: ketik nama atau NIP.</li>
+          <li>Klik <kbd>Terapkan Filter</kbd> untuk load ulang; <kbd>Reset Filter</kbd> untuk clear.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Grid Card Payroll</h4>
+        <ul>
+          <li>Setiap kartu menampilkan:
+            <ul>
+              <li>Foto profil (atau placeholder).</li>
+              <li>Nama, NIP, Jenjang, Role.</li>
+              <li>Status payroll: <span class="badge-status draft">draft</span>, <span class="badge-status final">final</span>, dsb.</li>
+              <li>Periode bulan/tahun payroll.</li>
+              <li><kbd>Review</kbd> untuk membuka halaman manage-salary.php.</li>
+            </ul>
+          </li>
+          <li>Gunakan grid responsif untuk berbagai resolusi layar.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Paginasi Manual</h4>
+        <ul>
+          <li>Di bawah grid: angka halaman.</li>
+          <li>Klik nomor halaman untuk berpindah, memuat batch berikutnya.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Ganti Bulan Payroll</h4>
+        <ul>
+          <li>Klik <kbd>Ganti Kalender</kbd> atau header periode.</li>
+          <li>Muncul modal dengan 16 bulan terakhir.</li>
+          <li>Klik salah satu bulan:
+            <ul>
+              <li>Jika masih ada yang belum final, muncul peringatan dengan daftar jenjang.</li>
+              <li>Konfirmasi untuk tetap beralih.</li>
+            </ul>
+          </li>
+          <li>Setelah konfirmasi, halaman reload dengan periode baru.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Keamanan &amp; Audit</h4>
+        <ul>
+          <li>Semua permintaan AJAX memakai <kbd>csrf_token</kbd>.</li>
+          <li>Setiap pemilihan bulan dicatat di audit log.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li>Jika kartu tidak muncul, periksa koneksi internet dan klik <kbd>Terapkan Filter</kbd> lagi.</li>
+          <li>Pastikan session belum timeout.</li>
+          <li>Gunakan browser terbaru untuk pengalaman terbaik.</li>
+        </ul>
+      </li>
+    </ol>
+  
+    <p>💡 <strong>Catatan:</strong> Kartu berstatus draft artinya belum difinalisasi; silakan klik <kbd>Review</kbd> untuk menyelesaikan.</p>
+  </div>
+  

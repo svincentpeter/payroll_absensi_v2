@@ -324,59 +324,99 @@ ob_end_flush(); // Akhiri output buffering
             <p>Selamat datang di portal login. Silakan masuk dengan NIP dan password Anda untuk mengakses sistem.</p>
         </div>
     </div>
-    <!-- BAGIAN KANAN (FORM LOGIN) -->
-    <div class="right">
-        <div class="login-form">
-            <div class="logo-container">
-                <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
-                <div class="tagline">Sekolah Nusaputera</div>
-            </div>
-            <h2>Login</h2>
-            <?php if (!empty($error)): ?>
-                <div class="alert alert-danger">
-                    <?= htmlspecialchars($error); ?>
-                </div>
-            <?php endif; ?>
-            <!-- Bagian Form Login -->
-            <form action="login.php" method="POST">
-                <div class="form-group">
-                    <label for="username">NIP</label>
-                    <div class="icon-input-container">
-                        <i class="fas fa-user"></i>
-                        <input type="text" class="form-control" id="username" name="username" required
-                            value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>"
-                            placeholder="Masukkan NIP Anda...">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="icon-input-container">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" class="form-control" id="password" name="password" required
-                            placeholder="Masukkan password Anda...">
-                    </div>
-                </div>
-                <!-- Ubah pilihan mode login dari dropdown menjadi radio button -->
-                <div class="form-group radio-group">
-                    <label>Pilih Mode Login:</label><br>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="login_mode" id="login_mode_admin" value="admin" checked>
-                        <label class="form-check-label" for="login_mode_admin">Admin</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="login_mode" id="login_mode_nonadmin" value="nonadmin">
-                        <label class="form-check-label" for="login_mode_nonadmin">Non-Admin</label>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-login">Login</button>
-            </form>
-
-        </div>
     </div>
-    <!-- Script (jika menggunakan Bootstrap) -->
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+  <div class="right">
+    <div class="login-form">
+      <div class="logo-container">
+        <img src="assets/img/Logo.png" alt="Logo Sekolah Nusaputera">
+        <div class="tagline">Sekolah Nusaputera</div>
+      </div>
+      <h2>Login</h2>
+      <?php if (!empty($error)): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+      <?php endif; ?>
 
+      <form action="login.php" method="POST">
+        <!-- CSRF token -->
+        <input type="hidden" name="csrf_token"
+               value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+
+        <div class="form-group">
+          <label for="username">NIP</label>
+          <div class="icon-input-container">
+            <i class="fas fa-user"></i>
+            <input type="text" id="username" name="username" class="form-control"
+                   required
+                   value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
+                   placeholder="Masukkan NIP Anda...">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="icon-input-container">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" name="password"
+                   class="form-control" required
+                   placeholder="Masukkan password Anda...">
+          </div>
+        </div>
+
+        <div class="form-group radio-group">
+  <label for="login_mode_admin" class="d-flex align-items-center">
+    Pilih Mode Login
+    <i
+      class="fas fa-question-circle text-primary ml-2"
+      id="info-login-mode"
+      tabindex="0"
+      role="button"
+      data-container="body"
+      data-toggle="popover"
+      data-placement="right"
+      data-html="true"
+      title="Keterangan Mode Login"
+      data-content="
+        &bull; <strong>Admin</strong>: Hanya untuk anggota Manajerial<br>
+        &bull; <strong>Non-Admin</strong>: untuk akses semua anggota sekolah.
+      "
+      style="cursor: pointer;"
+      aria-label="Info Mode Login"
+    ></i>
+  </label>
+  <div class="mt-2">
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="radio"
+             name="login_mode" id="login_mode_admin"
+             value="admin" checked>
+      <label class="form-check-label"
+             for="login_mode_admin">Admin</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="radio"
+             name="login_mode" id="login_mode_nonadmin"
+             value="nonadmin">
+      <label class="form-check-label"
+             for="login_mode_nonadmin">Non-Admin</label>
+    </div>
+  </div>
+</div>
+
+        <button type="submit" class="btn-login">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JS: jQuery, Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+  $(function () {
+    $('#info-login-mode').popover({
+      trigger: 'focus',    // klik/tap agar mobile-friendly
+      container: 'body'
+    });
+  });
+</script>
+</body>
 </html>

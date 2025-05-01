@@ -1,0 +1,74 @@
+<!-- guides/keuangan/manage-salary.html -->
+<style>
+  .guide-container { color: #000; }
+  .guide-container h4 { margin-top: 1.5rem; }
+  .guide-container ul { margin-left: 1rem; }
+</style>
+
+<div class="guide-container container py-3">
+  <h2 class="mb-3">📝 Panduan: Review &amp; Finalisasi Payroll</h2>
+  <p>Halaman <em>Review Payroll</em> digunakan untuk memeriksa, mengedit, dan memfinalisasi slip gaji per karyawan oleh tim Keuangan.</p>
+
+  <ol>
+    <li>
+      <h4>Informasi Umum</h4>
+      <ul>
+        <li><strong>Nama Karyawan</strong> &amp; <strong>Periode</strong>: readonly, diambil dari database.</li>
+        <li><strong>Masa Kerja</strong>: durasi bekerja (tahun + bulan).</li>
+        <li><strong>No. Rekening</strong>: input rekening penerima gaji.</li>
+        <li><strong>Level Indeks</strong>: tunjangan indeks gaji (readonly).</li>
+        <li><strong>Tanggal Payroll</strong>: pilih tanggal &amp; waktu pembayaran.</li>
+        <li><strong>Catatan/Deskripsi</strong>: tambahkan keterangan opsional.</li>
+      </ul>
+    </li>
+
+    <li>
+      <h4>Perhitungan Gaji</h4>
+      <ul>
+        <li><strong>Gaji Pokok</strong>: dasar gaji karyawan (readonly).</li>
+        <li><strong>Salary Indeks</strong>: tambahan berdasarkan level (readonly).</li>
+        <li><strong>Total Pendapatan</strong> &amp; <strong>Total Potongan</strong>: jumlah payheads (readonly).</li>
+        <li><strong>Potongan Koperasi</strong>: wajib diisi, mempengaruhi estimasi gaji bersih.</li>
+        <li><strong>Estimasi Gaji Bersih</strong>: otomatis terhitung ulang saat potongan koperasi diubah.</li>
+      </ul>
+    </li>
+
+    <li>
+      <h4>Kenaikan Gaji Tahunan</h4>
+      <ul>
+        <li>Menampilkan kenaikan terakhir bila tersedia.</li>
+        <li>Nama kenaikan, nominal, dan periode berlaku.</li>
+      </ul>
+    </li>
+
+    <li>
+      <h4>Detail Komponen Gaji (Payheads)</h4>
+      <ul>
+        <li>Tabel payheads dengan kolom nama, jenis, nominal, status, keterangan, dokumen, aksi.</li>
+        <li>Tombol <kbd>✏️</kbd> untuk mengedit nilai payhead via AJAX.</li>
+        <li>Tombol <kbd>🗑️</kbd> untuk menghapus payhead via AJAX.</li>
+        <li>Komponen “Rapel” tampil dengan badge dan tidak dapat diedit.</li>
+      </ul>
+    </li>
+
+    <li>
+      <h4>Finalisasi &amp; Penolakan</h4>
+      <ul>
+        <li><kbd>Proses Payroll</kbd>: simpan sebagai <strong>final</strong>, kirim notifikasi WA, catat audit log.</li>
+        <li><kbd>Tolak Payroll</kbd>: ubah status ke <strong>revisi</strong>, catat audit log, kembali ke daftar payroll.</li>
+      </ul>
+    </li>
+
+    <li>
+      <h4>Modal Bantuan &amp; AJAX</h4>
+      <ul>
+        <li>Modal Edit/Delete Payhead menggunakan AJAX (<code>case=UpdatePayhead</code> / <code>case=DeletePayhead</code>).</li>
+        <li>Reject Payroll via AJAX dengan <code>case=RejectPayroll</code>.</li>
+        <li>Semua POST divalidasi CSRF token.</li>
+        <li>Modal “?” memuat file ini via jQuery <code>.load()</code> berdasarkan <code>pageId</code>.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <p>💡 <strong>Catatan:</strong> Jika panduan tidak muncul, pastikan file <code>manage-salary.html</code> berada di <code>guides/keuangan/</code> dan permission dapat dibaca oleh web server.</p>
+</div>

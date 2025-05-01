@@ -1,0 +1,69 @@
+<!-- guides/keuangan/rekap_payroll.html -->
+<style>
+    .guide-container { color: #000; }
+    .guide-container h4 { margin-top: 1.5rem; }
+    .guide-container ul { margin-left: 1rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">📊 Panduan: Rekap Payroll per Jenjang</h2>
+    <p>Halaman <em>Rekap Payroll</em> menampilkan ringkasan gaji untuk setiap jenjang, termasuk komponen payhead lama, grouped payhead, dan total-total penting.</p>
+  
+    <ol>
+      <li>
+        <h4>Filter &amp; Tampilan Data</h4>
+        <ul>
+          <li><strong>Jenjang:</strong> pilih jenjang untuk melihat rekap khusus jenjang tersebut.</li>
+          <li><strong>Bulan:</strong> pilih bulan; default ke bulan berjalan.</li>
+          <li><strong>Tahun:</strong> pilih tahun; default ke tahun berjalan.</li>
+          <li><kbd>Terapkan</kbd> untuk muat ulang data, <kbd>Reset</kbd> untuk kembali ke default, <kbd>Tampilkan Semua</kbd> untuk override filter bulan.</li>
+          <li><kbd>Export</kbd> untuk mengunduh data melalui tombol Excel/PDF/Print di toolbar tabel.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tabel Rekap Payroll</h4>
+        <ul>
+          <li>Kolom utama:
+            <ul>
+              <li><kbd>Jenjang</kbd>, <kbd>Total Gaji Pokok</kbd>, <kbd>Total Salary Index</kbd>.</li>
+              <li>Setiap <em>payhead lama</em> sebagai kolom terpisah.</li>
+              <li>Setiap <em>grouped payhead</em> sebagai kolom terpisah.</li>
+              <li><kbd>Total Lain-lain</kbd>, <kbd>Total Potongan Koperasi</kbd>, setiap <em>deduction payhead</em>, <kbd>Total Gaji Bersih</kbd>.</li>
+              <li><kbd>Aksi:</kbd> tombol “Lihat Detail” untuk drill-down ke rekap per anggota jenjang.</li>
+            </ul>
+          </li>
+          <li>Responsif dan mendukung server-side paging via AJAX (<code>case=LoadingRekapPayroll</code>).</li>
+          <li>Loading spinner muncul saat data dimuat ulang.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Server-Side Processing</h4>
+        <ul>
+          <li>Filter, search, paging, dan ordering dikelola di backend.</li>
+          <li>DataTables mengirim parameter AJAX, termasuk CSRF token.</li>
+          <li>Audit log dicatat saat memuat rekap (<code>AddAuditLog</code> &amp; <code>LoadingRekapPayroll</code>).</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Drill-Down Detail per Jenjang</h4>
+        <ul>
+          <li>Klik tombol <kbd>Lihat Detail</kbd> di kolom Aksi untuk membuka halaman detail jenjang.</li>
+          <li>Halaman detail menampilkan daftar karyawan beserta komponen gaji lengkap untuk jenjang tersebut.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Ekspor &amp; Cetak</h4>
+        <ul>
+          <li>Gunakan tombol Excel, PDF, dan Print di toolbar DataTables.</li>
+          <li>Ekspor hanya kolom data (kecuali kolom Aksi).</li>
+        </ul>
+      </li>
+    </ol>
+  
+    <p>💡 <strong>Catatan:</strong> Pastikan variabel global payhead (lama &amp; grouped) sesuai konfigurasi di database agar kolom tabel tampil lengkap.</p>
+  </div>
+  

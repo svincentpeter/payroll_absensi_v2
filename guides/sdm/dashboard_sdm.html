@@ -1,0 +1,105 @@
+<!-- guides/sdm/dashboard_sdm.html -->
+<style>
+    /* pastikan semua teks di dalam panduan berwarna hitam */
+    .guide-container { color: #000 !important; }
+    /* sedikit jarak antar judul dan paragraf */
+    .guide-container h4 { margin-top: 1.5rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">🛠️ Panduan Interaktif: Dashboard SDM</h2>
+    <p>Halo, <strong>SDM</strong>! Di sini Anda akan belajar menggunakan semua fitur di <em>Dashboard SDM</em> dengan cara “ikut klik”:</p>
+  
+    <ol>
+      <li class="mb-4">
+        <h4>Filter Periode</h4>
+        <p><em>Goal:</em> lihat data “Belum di Payroll Final” untuk bulan/tahun tertentu.</p>
+        <ol type="a">
+          <li>
+            <strong>Klik</strong> dropdown <code>Bulan</code> (pojok kiri atas card “Filter Periode”).  
+            <br><small>▶ Pilih, misal, <kbd>Maret</kbd>.</small>
+          </li>
+          <li>
+            <strong>Klik</strong> dropdown <code>Tahun</code>, lalu pilih, misal, <kbd>2025</kbd>.  
+            <br><small>▶ Pastikan sesuai periode yang ingin Anda cek.</small>
+          </li>
+          <li>
+            <strong>Klik</strong> tombol <kbd>Terapkan</kbd>.  
+            <br><small>▶ Tunggu spinner loading hilang lalu perhatikan grafik dan list “Belum di Payroll Final” berubah.</small>
+          </li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Total Anggota Sekolah</h4>
+        <p><em>Goal:</em> cek jumlah keseluruhan guru &amp; karyawan.</p>
+        <ul>
+          <li>Angka besar di card ini otomatis ter‑hitungan dari database.  
+          <small>(Tidak terpengaruh filter periode.)</small></li>
+          <li>Gunakan ini untuk memonitor perkembangan headcount setiap saat.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Upcoming Holidays</h4>
+        <p><em>Goal:</em> lihat 5 hari libur terdepan.</p>
+        <ul>
+          <li>Scroll card untuk membaca <strong>judul</strong>, <strong>tanggal</strong>, dan <strong>deskripsi</strong>.</li>
+          <li>Anda juga dapat menambahkan link ke detail liburan di sistem Anda jika diperlukan.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Live Calendar &amp; Clock (WIB)</h4>
+        <ol type="a">
+          <li>Amati <strong>jam digital</strong> di atas — otomatis mengikuti WIB.</li>
+          <li>
+            Kalender di bawahnya menampilkan bulan ini:  
+            <ul>
+              <li><span class="badge bg-primary">Kotak biru</span> = <strong>Hari Ini</strong>.</li>
+              <li>Untuk interaksi lebih lanjut (misal klik tanggal), dapat ditambahkan handler sesuai kebutuhan.</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Belum di Payroll Final</h4>
+        <p><em>Goal:</em> lihat siapa saja yang belum diproses payroll final untuk periode terpilih.</p>
+        <ol type="a">
+          <li>Lihat list jenjang &amp; jumlah di bagian atas card.</li>
+          <li>Perhatikan grafik batang di bawahnya:  
+            <small>(Sumbu X = Jenjang, Sumbu Y = Jumlah.)</small>
+          </li>
+          <li>Jika ada ketidaksesuaian, ulangi <strong>Filter Periode</strong> dan klik <kbd>Terapkan</kbd>.</li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Jumlah Anggota per Jenjang</h4>
+        <p><em>Goal:</em> visualisasikan distribusi anggota menurut jenjang.</p>
+        <ol type="a">
+          <li>Arahkan mouse ke bagian pie chart untuk melihat persentase.</li>
+          <li>Lihat legenda warna: Hijau = SD, Kuning = SMP, Biru = SMA.</li>
+          <li>Di bawah chart ada tabel detail P / TK / M per jenjang.</li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li><strong>Spinner</strong> berarti data sedang dimuat. Mohon tunggu hingga hilang.</li>
+          <li>Jika AJAX gagal, periksa koneksi atau hubungi tim IT.</li>
+          <li>Jika jumlah “Belum Final” tidak berubah, periksa sesi &amp; token CSRF Anda.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Kontak Bantuan</h4>
+        <p>Jika masih ada pertanyaan, hubungi:<br>
+        • <a href="mailto:sdm-support@sekolah.ac.id">sdm-support@sekolah.ac.id</a><br>
+        • Ext. 1234 (Tim SDM)</p>
+      </li>
+    </ol>
+  </div>
+  

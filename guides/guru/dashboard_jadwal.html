@@ -1,0 +1,164 @@
+<!-- guides/guru/dashboard_guru.html -->
+<style>
+    .guide-container {
+      color: #000;
+      padding: 1.5rem;
+    }
+  
+    .guide-container h2 {
+      margin-bottom: 1rem;
+    }
+  
+    .guide-container h4 {
+      margin-top: 1.5rem;
+    }
+  
+    .guide-container ol {
+      padding-left: 1rem;
+    }
+  
+    .guide-container ul {
+      margin-left: 1.5rem;
+    }
+  
+    .guide-container .badge {
+      font-size: 0.9em;
+      padding: 0.2em 0.4em;
+      border-radius: 0.25rem;
+      display: inline-block;
+    }
+  
+    .badge.bg-warning {
+      background-color: #ffc107;
+      color: #212529;
+    }
+  
+    .badge.bg-success {
+      background-color: #28a745;
+      color: #fff;
+    }
+  
+    .badge.bg-danger {
+      background-color: #dc3545;
+      color: #fff;
+    }
+  
+    .badge.bg-info {
+      background-color: #17a2b8;
+      color: #fff;
+    }
+  </style>
+  
+  <div class="guide-container container">
+    <h2>📆 Panduan: Dashboard Jadwal Piket</h2>
+    <p>
+      Halaman ini menampilkan jadwal piket Anda, memungkinkan pencatatan kehadiran,
+      permintaan tukar jadwal, dan meninjau permintaan masuk.
+    </p>
+  
+    <ol>
+      <li>
+        <h4>Kelompok Berdasarkan Periode</h4>
+        <ul>
+          <li>Jadwal dikelompokkan per Bulan &amp; Tahun.</li>
+          <li>Header grup muncul di atas setiap blok jadwal.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Daftar Jadwal Piket</h4>
+        <ul>
+          <li>
+            Kolom menampilkan Nama Guru, Waktu, Tanggal, Bulan, Tahun.
+          </li>
+          <li>
+            Status kehadiran:
+            <span class="badge bg-warning">Pending</span>,
+            <span class="badge bg-success">Hadir</span>, atau
+            <span class="badge bg-danger">Tidak Hadir</span>.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Pencatatan Kehadiran</h4>
+        <ul>
+          <li>
+            Jika status masih “Pending”, klik tombol “Hadir” atau “Tidak Hadir”.
+          </li>
+          <li>
+            Setelah pencatatan, status berubah dan aksi dinonaktifkan.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Permintaan Tukar Jadwal</h4>
+        <ul>
+          <li>
+            Untuk jadwal berstatus “Pending”, pilih guru tujuan dari dropdown.
+          </li>
+          <li>
+            Klik <strong>Tukar Jadwal</strong> untuk mengirimkan permintaan.
+          </li>
+          <li>
+            Hanya bisa ditujukan ke guru yang belum memiliki jadwal piket.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Status Permintaan</h4>
+        <ul>
+          <li>
+            Kolom terakhir menampilkan status request:
+            <span class="badge bg-info">Pending</span>,
+            <span class="badge bg-success">Diterima</span>, atau
+            <span class="badge bg-danger">Ditolak</span>.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Respon Request Masuk</h4>
+        <ul>
+          <li>
+            Jika Anda adalah guru tujuan, Anda akan melihat permintaan tukar di tabel
+            Anda.
+          </li>
+          <li>
+            Bisa menerima atau menolak melalui dialog konfirmasi.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Notifikasi</h4>
+        <ul>
+          <li>Pesan sukses atau error muncul setelah setiap aksi.</li>
+          <li>Pastikan untuk menutup notifikasi sebelum melanjutkan.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li>
+            Refresh halaman setelah melakukan perubahan jika data tidak berubah.
+          </li>
+          <li>
+            Periksa kembali pilihan guru sebelum mengirim request tukar jadwal.
+          </li>
+          <li>
+            Hubungi admin jika mengalami kendala akses atau error berulang.
+          </li>
+        </ul>
+      </li>
+    </ol>
+  
+    <p>
+      💡 <strong>Catatan:</strong> Gunakan fitur ini setiap kali hendak mencatat kehadiran
+      atau membutuhkan tukar jadwal.
+    </p>
+  </div>
+  

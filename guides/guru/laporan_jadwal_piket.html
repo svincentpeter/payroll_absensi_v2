@@ -1,0 +1,83 @@
+<!-- guides/guru/laporan_jadwal_piket.html -->
+<style>
+    .guide-container { color: #000; }
+    .guide-container h4 { margin-top: 1.5rem; }
+    .guide-container ul { margin-left: 1rem; }
+  </style>
+  
+  <div class="guide-container container">
+    <h2>🗓️ Panduan: Laporan Jadwal Piket Guru</h2>
+    <p>
+      Halaman ini menampilkan data jadwal piket guru, dengan opsi hapus data,
+      filter berdasarkan jenis jadwal dan rentang tahun, serta tampilan laporan
+      berbentuk matriks tanggal vs. guru.
+    </p>
+  
+    <ol>
+      <li>
+        <h4>Daftar Guru Terdaftar</h4>
+        <ul>
+          <li>Menampilkan NIP dan Nama setiap guru yang memiliki jadwal piket.</li>
+          <li>Klik <kbd>Hapus Guru</kbd> untuk menghapus semua entri jadwal milik guru tersebut.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Hapus Baris Jadwal</h4>
+        <ul>
+          <li>Setiap baris laporan memungkinkan penghapusan entri per tanggal.</li>
+          <li>Gunakan form pada kolom Aksi untuk menghapus satu data jadwal.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Filter Laporan</h4>
+        <ul>
+          <li><strong>Jenis Jadwal:</strong> Pilih antara Jadwal 1 (1 Juni–30 Juli) atau Jadwal 2 (1 Desember–31 Januari).</li>
+          <li><strong>Dari Tahun / Sampai Tahun:</strong> Batasi rentang tahun laporan.</li>
+          <li>Klik <kbd>Filter</kbd> untuk memuat ulang tampilan sesuai pilihan.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tampilan Laporan Matriks</h4>
+        <ul>
+          <li>Kolom baris: <strong>Nama Guru</strong> dan <strong>Waktu Piket</strong>.</li>
+          <li>Kolom kolom: setiap tanggal dalam rentang, dikelompokkan per bulan.</li>
+          <li>Sel berisi badge status: <span class="badge badge-pending">Pending</span>, <span class="badge badge-hadir">Hadir</span>, atau <span class="badge badge-tidak-hadir">Tidak Hadir</span>.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Interpretasi Status</h4>
+        <ul>
+          <li><span class="badge badge-pending">Pending</span>: guru belum menandai kehadiran.</li>
+          <li><span class="badge badge-hadir">Hadir</span>: guru melakukan piket.</li>
+          <li><span class="badge badge-tidak-hadir">Tidak Hadir</span>: guru absen piket.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Validasi &amp; Error</h4>
+        <ul>
+          <li>Jika Tahun Akhir &lt; Tahun Awal, muncul notifikasi error dan redirect.</li>
+          <li>Pastikan input Tahun dan Jenis Jadwal valid sebelum memfilter.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li>Jika tabel laporan kosong, periksa filter rentang tahun dan jenis jadwal.</li>
+          <li>Gunakan tombol <kbd>Hapus Guru</kbd> dengan hati-hati—akan menghapus semua data jadwal guru.</li>
+          <li>Refresh halaman jika ada perubahan data di database.</li>
+        </ul>
+      </li>
+    </ol>
+  
+    <p>
+      💡 <strong>Catatan:</strong> Data laporan dihasilkan dari rentang tanggal
+      sesuai jenis jadwal; pastikan periode dan tahun sudah dipilih dengan benar.
+    </p>
+  </div>
+  

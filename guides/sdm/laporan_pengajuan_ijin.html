@@ -1,0 +1,83 @@
+<!-- guides/sdm/laporan_pengajuan_izin.html -->
+<style>
+    .guide-container { color: #000 !important; }
+    .guide-container h4 { margin-top: 1.5rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">🛠️ Panduan Interaktif: Laporan Pengajuan Izin (SDM)</h2>
+    <p>Halo, <strong>SDM</strong>! Berikut cara menggunakan semua fitur di halaman <em>Laporan Pengajuan Izin</em>:</p>
+  
+    <ol>
+      <li class="mb-4">
+        <h4>Notifikasi</h4>
+        <ul>
+          <li>Pesan sukses/danger muncul di atas konten setelah Anda aksi (Terima/Tolak/Hapus).</li>
+          <li>Klik ikon ✖️ di ujung alert untuk menutup notifikasi.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Daftar Pengajuan Izin (Aktif)</h4>
+        <ul>
+          <li>Menampilkan pengajuan yang sudah <kbd>Diterima</kbd> Kepala Sekolah &amp; masih <kbd>Pending</kbd> SDM.</li>
+          <li>Kolom:
+            <ul>
+              <li><strong>ID</strong>, <strong>NIP</strong>, <strong>Nama</strong></li>
+              <li><strong>Judul Surat</strong>, <strong>Tanggal</strong>, <strong>Pesan</strong></li>
+              <li><strong>Tipe Izin</strong>, <strong>Lampiran</strong></li>
+              <li><strong>Status Kepala Sekolah</strong> (badge kuning)</li>
+            </ul>
+          </li>
+          <li><strong>Aksi</strong>:
+            <ul>
+              <li><kbd>Terima</kbd>: ubah status SDM → “Diterima”.</li>
+              <li><kbd>Tolak</kbd>: ubah status SDM → “Ditolak”.</li>
+            </ul>
+          </li>
+          <li>Lampiran dibuka di tab baru; otomatis print jika di-trigger fungsi <code>printLampiran()</code>.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>History Pengajuan Izin</h4>
+        <ul>
+          <li>Menampilkan pengajuan yang sudah diproses SDM (<kbd>Diterima</kbd> / <kbd>Ditolak</kbd>).</li>
+          <li>Kolom sama seperti tabel aktif, ditambah kolom <strong>Status Persetujuan SDM</strong>.</li>
+          <li><strong>Aksi Hapus</strong>:
+            <ul>
+              <li>Hanya aktif jika status SDM ≠ “Pending”.</li>
+              <li>Klik <kbd>Hapus</kbd> → konfirmasi → data terhapus.</li>
+              <li>Jika masih “Pending”, tombol Hapus disable.</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Interaksi Tabel</h4>
+        <ul>
+          <li>Kedua tabel memakai DataTables (search, sort, pagination).</li>
+          <li>Kustom bahasa: Indonesia via CDN.</li>
+          <li>Jika kosong, akan muncul teks “Tidak ada…” di tabel.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Validasi &amp; Error Handling</h4>
+        <ul>
+          <li>Pengecekan status valid di-backend (hanya “Diterima”/“Ditolak” untuk SDM).</li>
+          <li>Pesan error SQL atau validasi tampil di notifikasi merah.</li>
+          <li>PHP error_reporting aktif (hanya untuk debugging non-produksi).</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Kontak Bantuan</h4>
+        <p>Untuk pertanyaan lebih lanjut, hubungi:<br>
+          • <a href="mailto:sdm-support@sekolah.ac.id">sdm-support@sekolah.ac.id</a><br>
+          • Ext. 1234 (Tim SDM)</p>
+      </li>
+    </ol>
+  </div>
+  

@@ -1,0 +1,72 @@
+<!-- guides/keuangan/payroll_history.html -->
+<style>
+    .guide-container { color: #000; }
+    .guide-container h4 { margin-top: 1.5rem; }
+    .guide-container ul { margin-left: 1rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">📜 Panduan: History &amp; Detail Payroll</h2>
+    <p>Halaman <em>History Payroll</em> menampilkan riwayat finalisasi slip gaji karyawan dan memungkinkan melihat detail setiap payroll oleh tim Keuangan.</p>
+  
+    <ol>
+      <li>
+        <h4>Filter Payroll History</h4>
+        <ul>
+          <li><strong>Jenjang Pendidikan</strong>: pilih untuk memfilter menurut jenjang.</li>
+          <li><strong>Bulan</strong>: pilih bulan payroll (1–12).</li>
+          <li><strong>Tahun</strong>: pilih tahun payroll.</li>
+          <li>Klik <kbd>Terapkan Filter</kbd> untuk menampilkan hasil, atau <kbd>Reset Filter</kbd> untuk kembali ke default.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Daftar History Payroll</h4>
+        <ul>
+          <li>Tabel menampilkan kolom:
+            <ul>
+              <li><kbd>ID Payroll</kbd>, <kbd>Nama Karyawan</kbd>, <kbd>Jenjang</kbd>, <kbd>Bulan</kbd>, <kbd>Tahun</kbd>.</li>
+              <li><kbd>Gaji Pokok</kbd>, <kbd>Salary Indeks</kbd>, <kbd>Total Pendapatan</kbd>, <kbd>Lain-lain</kbd>.</li>
+              <li><kbd>Potongan Koperasi</kbd>, <kbd>Total Potongan</kbd>, <kbd>Gaji Bersih</kbd>.</li>
+              <li><kbd>Aksi</kbd>: dropdown untuk <em>Lihat Payroll</em> atau <em>View Detail</em>.</li>
+            </ul>
+          </li>
+          <li>Gunakan tombol export (Excel, PDF, Print) di atas tabel untuk cetak atau simpan laporan.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Server-Side Processing &amp; AJAX</h4>
+        <ul>
+          <li>Data dimuat via AJAX (<code>case=LoadingPayrollHistory</code>) dengan server-side paging.</li>
+          <li>Filter dan pagination dikelola di backend untuk performa besar.</li>
+          <li>Semua permintaan AJAX divalidasi CSRF token.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>View Detail Payroll</h4>
+        <ul>
+          <li>Klik <kbd>View Detail</kbd> pada dropdown <kbd>Aksi</kbd>.</li>
+          <li>Modal akan muncul menampilkan:
+            <ul>
+              <li>Data karyawan (UID, NIP, nama, jenjang, role, job title, status kerja, masa kerja, no. rekening, email, jenis kelamin, agama).</li>
+              <li>Ringkasan gaji: gaji pokok, salary indeks, total pendapatan, lain-lain, potongan koperasi, total potongan, gaji bersih, periode.</li>
+              <li>Rincian komponen payheads (earnings &amp; deductions) dengan badge berwarna.</li>
+            </ul>
+          </li>
+          <li>Data detail dimuat via AJAX (<code>case=ViewPayrollDetail</code>).</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Loading Spinner &amp; Error Handling</h4>
+        <ul>
+          <li>Spinner muncul saat AJAX berjalan.</li>
+          <li>Jika gagal memuat data, tampilkan notifikasi error via SweetAlert2.</li>
+        </ul>
+      </li>
+    </ol>
+
+  </div>
+  

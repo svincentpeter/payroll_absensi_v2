@@ -1,0 +1,85 @@
+<!-- guides/guru/list_hari_libur.html -->
+<style>
+    .guide-container { color: #000; }
+    .guide-container h4 { margin-top: 1.5rem; }
+    .guide-container ul { margin-left: 1rem; }
+  </style>
+  
+  <div class="guide-container container">
+    <h2>📅 Panduan: Daftar Hari Libur</h2>
+    <p>
+      Halaman ini menampilkan daftar hari libur yang dikelola sistem, 
+      dengan opsi pencarian, ekspor, dan tampilan responsif.
+    </p>
+  
+    <ol>
+      <li>
+        <h4>Pencarian &amp; Filter</h4>
+        <ul>
+          <li>Gunakan kotak pencarian di kanan atas tabel untuk mencari berdasarkan judul atau deskripsi libur.</li>
+          <li>Pencarian bersifat “contains” dan akan memfilter baris tabel secara langsung.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tabel Hari Libur</h4>
+        <ul>
+          <li>
+            Kolom:
+            <ul>
+              <li><strong>No</strong>: urutan.</li>
+              <li><strong>Judul Hari Libur</strong>: nama acara/libur.</li>
+              <li><strong>Deskripsi Hari Libur</strong>: keterangan singkat.</li>
+              <li><strong>Tanggal Hari Libur</strong>: format DD-MM-YYYY.</li>
+              <li><strong>Jenis Libur</strong>: <span class="badge badge-tanggal_merah">Tanggal Merah</span> atau <span class="badge badge-libur_biasa">Libur Biasa</span>.</li>
+            </ul>
+          </li>
+          <li>Baris diurutkan default berdasarkan tanggal naik (Ascending).</li>
+          <li>Responsif: pada layar kecil, kolom menyusut dan muncul tombol “+” untuk expand.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Ekspor &amp; Cetak</h4>
+        <ul>
+          <li>
+            Tombol:
+            <i class="fas fa-file-excel"></i> Excel,
+            <i class="fas fa-file-pdf"></i> PDF,
+            <i class="fas fa-print"></i> Print.
+          </li>
+          <li>Semua kolom tabel akan disertakan dalam hasil ekspor/cetak.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Badge Jenis Libur</h4>
+        <ul>
+          <li><span class="badge badge-tanggal_merah">Tanggal Merah</span>: libur wajib (hari merah nasional).</li>
+          <li><span class="badge badge-libur_biasa">Libur Biasa</span>: libur non-wajib (hari libur internal/sekolah).</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Notifikasi &amp; Error</h4>
+        <ul>
+          <li>Jika server bermasalah, tabel akan menampilkan indikator “Processing…” terus menerus.</li>
+          <li>Periksa koneksi internet dan refresh halaman jika data tidak muncul.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li>Pastikan Anda sudah login dengan akun guru.</li>
+          <li>Gunakan browser terbaru untuk kompatibilitas penuh dengan DataTables dan SB Admin 2.</li>
+          <li>Hubungi admin jika badge atau data libur tidak sesuai kalender resmi.</li>
+        </ul>
+      </li>
+    </ol>
+  
+    <p>
+      💡 <strong>Catatan:</strong> Data diambil server-side, jadi pastikan filter pencarian dan pagination sesuai kebutuhan sebelum ekspor.
+    </p>
+  </div>
+  

@@ -1,0 +1,58 @@
+<!-- guides/superadmin/backup_database.html -->
+<style>
+    .guide-container { color: #000; }
+    .guide-container h4 { margin-top: 1.5rem; }
+    .guide-container ul { margin-left: 1rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">💾 Panduan: Backup Database</h2>
+    <p>Halaman <em>Backup Database</em> memungkinkan Superadmin untuk melakukan cadangan penuh database melalui satu klik.</p>
+  
+    <ol>
+      <li>
+        <h4>Akses Halaman</h4>
+        <ul>
+          <li>Hanya user dengan role <strong>Superadmin</strong> dapat melihat dan mengakses halaman ini.</li>
+          <li>URL: <code>/superadmin/backup_database.php</code></li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tombol Backup</h4>
+        <ul>
+          <li>Tombol <kbd>Backup Database</kbd> memicu konfirmasi melalui SweetAlert2.</li>
+          <li>Setelah konfirmasi, browser akan dialihkan ke <code>?download=1</code> untuk mengunduh file .sql.</li>
+          <li>Nama file akan otomatis berformat <em>backup_YYYY-MM-DD_HH-MM-SS.sql</em>.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Proses Download</h4>
+        <ul>
+          <li>PHP akan memanggil fungsi <code>directDownloadBackup()</code> menggunakan library Mysqldump.</li>
+          <li>Data di-stream langsung ke <code>php://output</code>, tanpa menulis file di server.</li>
+          <li>Header HTTP diset agar browser memunculkan dialog “Save As”.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Keamanan &amp; Validasi</h4>
+        <ul>
+          <li>Validasi session dan role di awal page.</li>
+          <li>Tidak ada output apapun (echo/spasi) sebelum header download.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Error Handling</h4>
+        <ul>
+          <li>Jika terjadi kegagalan, HTTP 500 akan dikirim dan pesan error ditampilkan di browser.</li>
+          <li>Pastikan koneksi database dan kredensial benar agar Mysqldump dapat bekerja.</li>
+        </ul>
+      </li>
+    </ol>
+  
+    <p>💡 <strong>Catatan:</strong> Sebaiknya lakukan backup saat beban server rendah untuk menghindari timeout atau beban ekstra.</p>
+  </div>
+  

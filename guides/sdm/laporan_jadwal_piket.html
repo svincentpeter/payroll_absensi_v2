@@ -1,0 +1,112 @@
+<!-- guides/sdm/laporan_jadwal_piket.html -->
+<style>
+    .guide-container { color: #000 !important; }
+    .guide-container h4 { margin-top: 1.5rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">🛠️ Panduan Interaktif: Laporan Jadwal Piket Guru</h2>
+    <p>Halo, <strong>SDM</strong>! Berikut cara menggunakan semua fitur di halaman <em>Laporan Jadwal Piket Guru</em> dan sub-halaman terkait:</p>
+  
+    <ol>
+      <li class="mb-4">
+        <h4>Filter Laporan Jadwal</h4>
+        <ul>
+          <li><strong>Jenis Jadwal</strong>: pilih <kbd>Jadwal 1</kbd> (1 Juni–30 Juli) atau <kbd>Jadwal 2</kbd> (1 Des–31 Jan).</li>
+          <li><strong>Dari Tahun / Sampai Tahun</strong>: pilih rentang tahun (2020–2050).</li>
+          <li><strong>Terapkan</strong>: klik <kbd>Terapkan Filter</kbd> untuk generate tabel pivot.</li>
+          <li><strong>Reset</strong>: klik <kbd>Reset Filter</kbd> untuk kembali ke default.</li>
+          <li><strong>Input Baru</strong>:
+            <ul>
+              <li><kbd>Tambah Jadwal Piket</kbd>: buka halaman CRUD per-jadwal.</li>
+              <li><kbd>Input Jadwal Massal</kbd>: buka halaman mass-input tanggal guru.</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Notifikasi</h4>
+        <ul>
+          <li>Pesan success / error muncul di atas tabel.</li>
+          <li>Alert otomatis fade setelah 3 detik, atau klik ✖️ untuk tutup manual.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Tabel Laporan (Pivot)</h4>
+        <ul>
+          <li><strong>Kolom</strong>:
+            <ul>
+              <li><strong>Nama Guru</strong>, <strong>Waktu Piket</strong></li>
+              <li>Header dinamis: grouping bulan – tahun, sub-header tanggal + hari</li>
+            </ul>
+          </li>
+          <li><strong>Status</strong> tiap tanggal:
+            <ul>
+              <li><span class="badge bg-warning text-dark">Pending</span></li>
+              <li><span class="badge bg-success">Hadir</span></li>
+              <li><span class="badge bg-danger">Tidak Hadir</span></li>
+            </ul>
+          </li>
+          <li>Scroll kanan/kiri untuk lihat semua kolom.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Hapus Jadwal</h4>
+        <ul>
+          <li>Di halaman laporan utama, setiap baris punya tombol <kbd>Hapus</kbd> (form delete + CSRF).</li>
+          <li>Konfirmasi sebelum penghapusan, lalu data ter-refresh.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>CRUD Per-Jadwal:</h4>
+        <ul>
+          <li><strong>Form Tambah/Edit</strong>:
+            <ul>
+              <li>Isi <kbd>Pilih Guru</kbd>, <kbd>Tanggal</kbd>, <kbd>Waktu Piket</kbd>, <kbd>Status</kbd>.</li>
+              <li>Untuk edit, form terisi otomatis dari <kbd>Edit</kbd> di daftar.</li>
+            </ul>
+          </li>
+          <li><strong>Daftar Jadwal</strong>:
+            <ul>
+              <li>Tabel menampilkan semua jadwal terbaru.</li>
+              <li><kbd>Edit</kbd> / <kbd>Hapus</kbd> tiap baris.</li>
+            </ul>
+          </li>
+          <li><strong>Validasi &amp; Notifikasi</strong>: kesalahan form atau DB ditampilkan di alert.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Input Massal:</h4>
+        <ul>
+          <li><strong>Pilih Jadwal</strong>: tipe 1 atau 2 → menampilkan field tanggal sesuai bulan.</li>
+          <li><strong>Jumlah Guru</strong>: pilih 1–5, lalu pilih NIP guru secara dinamis.</li>
+          <li><strong>Tanggal Piket</strong>: gunakan datepicker (multidate), pisahkan dengan koma.</li>
+          <li><strong>Simpan</strong>: klik <kbd>Simpan Jadwal</kbd> untuk insert banyak baris sekaligus.</li>
+          <li>Transaksi DB: duplikasi otomatis dicek → hanya entry baru yang disimpan.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li>Pastikan CSRF token valid di semua form.</li>
+          <li>Jika tabel kosong, periksa rentang filter atau koneksi DB.</li>
+          <li>Spinner muncul saat loading, tunggu hingga hilang.</li>
+          <li>Jika form tidak submit, periksa validasi (<code>needs-validation</code>). </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Kontak Bantuan</h4>
+        <p>Untuk pertanyaan lebih lanjut, hubungi:<br>
+          • <a href="mailto:sdm-support@sekolah.ac.id">sdm-support@sekolah.ac.id</a><br>
+          • Ext. 1234 (Tim SDM)</p>
+      </li>
+    </ol>
+  </div>
+  

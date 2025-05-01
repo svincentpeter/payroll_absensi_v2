@@ -670,7 +670,7 @@ $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
       d.payheads_detail.filter(ph => ph.jenis==='earnings')
         .forEach(ph => {
           var nom = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
-          html += '<div><span class="badge bg-success me-2">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
+          html += '<div><span class="badge bg-success me-2 text-black">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
         });
     }
     html += '</td></tr>';
@@ -687,7 +687,7 @@ $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
       d.payheads_detail.filter(ph => ph.jenis==='deductions')
         .forEach(ph => {
           var nom = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
-          html += '<div><span class="badge bg-danger me-2">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
+          html += '<div><span class="badge bg-danger me-2 text-black">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
         });
     }
     html += '</td></tr>';

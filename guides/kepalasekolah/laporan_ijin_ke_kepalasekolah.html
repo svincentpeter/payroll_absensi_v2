@@ -1,0 +1,147 @@
+<!-- guides/kepalasekolah/laporan_ijin_ke_kepalasekolah.html -->
+<style>
+    .guide-container {
+      color: #000;
+      padding: 1.5rem;
+    }
+  
+    .guide-container h2 {
+      margin-bottom: 1rem;
+    }
+  
+    .guide-container h4 {
+      margin-top: 1.5rem;
+    }
+  
+    .guide-container ol {
+      padding-left: 1rem;
+    }
+  
+    .guide-container ul {
+      margin-left: 1.5rem;
+    }
+  
+    .guide-container .badge {
+      font-size: 0.9em;
+      padding: 0.2em 0.4em;
+      border-radius: 0.25rem;
+      display: inline-block;
+    }
+  
+    .badge-pending     { background-color: #ffc107; color: #000; }
+    .badge-success     { background-color: #28a745; color: #fff; }
+    .badge-danger      { background-color: #dc3545; color: #fff; }
+    .badge-secondary   { background-color: #6c757d; color: #fff; }
+  </style>
+  
+  <div class="guide-container container">
+    <h2>📝 Panduan: Laporan Pengajuan Izin</h2>
+    <p>
+      Halaman ini digunakan Kepala Sekolah untuk meninjau, menyetujui, menolak,
+      dan mengelola riwayat semua permohonan izin dari staf.
+    </p>
+  
+    <ol>
+      <li>
+        <h4>Daftar Pengajuan Aktif</h4>
+        <ul>
+          <li>
+            Menampilkan permohonan dengan status
+            <span class="badge badge-pending">Pending</span>.
+          </li>
+          <li>
+            Setiap baris berisi ID, NIP, nama, judul surat, tanggal, isi pesan,
+            jenis izin, dan tombol “Lihat Lampiran” jika tersedia.
+          </li>
+          <li>
+            Gunakan tombol
+            <span class="badge badge-success">Setuju</span> atau
+            <span class="badge badge-danger">Tolak</span> untuk memperbarui
+            status.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Riwayat Pengajuan</h4>
+        <ul>
+          <li>
+            Menampilkan permohonan yang sudah diputuskan (diterima atau ditolak).
+          </li>
+          <li>
+            Kolom status menampilkan hasil Kepala Sekolah dan hasil SDM
+            (<span class="badge badge-success">Diterima</span>,
+            <span class="badge badge-danger">Ditolak</span>, atau
+            <span class="badge badge-secondary">Revisi</span>).
+          </li>
+          <li>
+            Permohonan yang ditolak atau yang sudah diproses SDM dapat dihapus
+            dari riwayat untuk kebersihan data.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Memperbarui Status</h4>
+        <ul>
+          <li>
+            Klik “Setuju” untuk menerima izin, atau “Tolak” untuk menolak.
+          </li>
+          <li>
+            Setelah memilih, halaman akan memuat ulang dan menampilkan badge
+            terbaru.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Mengelola Riwayat</h4>
+        <ul>
+          <li>
+            Permohonan yang sudah selesai dapat dihapus dengan tombol “Hapus”.
+          </li>
+          <li>
+            Hapus hanya diperbolehkan jika status Kepala Sekolah sudah
+            “Ditolak” atau jika sudah “Diterima” dan SDM tidak lagi dalam status
+            “Pending”.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Notifikasi</h4>
+        <ul>
+          <li>
+            Setiap aksi (setuju, tolak, hapus) menampilkan pesan sukses atau
+            error di atas tabel.
+          </li>
+          <li>
+            Perhatikan notifikasi untuk memastikan tindakan Anda berhasil.
+          </li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li>
+            Pastikan lampiran diunggah oleh pemohon agar data lengkap.
+          </li>
+          <li>
+            Jika tabel kosong, artinya tidak ada permohonan aktif atau riwayat untuk
+            ditampilkan.
+          </li>
+          <li>
+            Segarkan halaman jika tabel tidak memperlihatkan pembaruan setelah
+            tindakan.
+          </li>
+        </ul>
+      </li>
+    </ol>
+  
+    <p>
+      💡 <strong>Catatan:</strong> Selalu cek kembali sebelum menghapus riwayat
+      agar data penting tidak terhapus.
+    </p>
+  </div>
+  

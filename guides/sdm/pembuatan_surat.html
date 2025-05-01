@@ -1,0 +1,100 @@
+<!-- guides/sdm/pembuatan_surat.html -->
+<style>
+    .guide-container { color: #000 !important; }
+    .guide-container h4 { margin-top: 1.5rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">🛠️ Panduan Interaktif: Manajemen Surat &amp; Template Surat</h2>
+    <p>Halo, <strong>SDM</strong>! Berikut petunjuk lengkap di halaman <em>Pembuatan Surat</em> dan child page <em>Template Surat</em>:</p>
+  
+    <ol>
+      <li class="mb-4">
+        <h4>Form Buat Surat</h4>
+        <ul>
+          <li><strong>Penerima</strong>: pilih guru/karyawan dari dropdown.</li>
+          <li><strong>Judul Surat</strong>: isi judul, misal “Surat Peringatan I”.</li>
+          <li><strong>Isi Surat</strong>: ketik isi lengkap di textarea.</li>
+          <li><strong>Simpan</strong>: klik <kbd>Buat Surat</kbd>, spinner muncul, lalu form reset.</li>
+          <li>Validasi Bootstrap mencegah submit jika field kosong.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Daftar Surat (DataTables)</h4>
+        <ul>
+          <li>Kolom: No, Nama Penerima, Judul, Ringkasan Isi, Tanggal Keluar, Status, Aksi.</li>
+          <li>Status: 
+            <span class="badge bg-primary" style="color:#000">Terkirim</span> atau 
+            <span class="badge bg-success" style="color:#000">Dibaca</span>.
+          </li>
+          <li>Sorting &amp; pagination, export Excel/PDF/Print, responsive.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Aksi Surat</h4>
+        <ul>
+          <li><strong>View Detail</strong>: klik opsi “View Detail” → modal muncul dengan judul, penerima, tanggal, dan isi lengkap.</li>
+          <li><strong>Hapus</strong>: klik “Hapus” → modal konfirmasi → proses AJAX hapus → daftar ter-refresh.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Kelola Template Surat</h4>
+        <ul>
+          <li><kbd>Kelola Template Surat</kbd>: klik tombol di kanan atas untuk ke <em>template_surat.php</em>.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Child Page: Template Surat</h4>
+        <ol type="a">
+          <li>
+            <h5>Load &amp; Lihat Template</h5>
+            <ul>
+              <li>Template di-load via AJAX → ditampilkan sebagai kartu.</li>
+              <li>Klik kartu untuk <kbd>Review</kbd> → modal muncul dengan detail template.</li>
+            </ul>
+          </li>
+          <li>
+            <h5>CRUD Template</h5>
+            <ul>
+              <li><strong>Tambah</strong>: klik <kbd>Tambah Template Surat</kbd> → isi jenis, judul, isi → simpan via AJAX.</li>
+              <li><strong>Edit</strong>: dari modal Review, klik <kbd>Edit</kbd> → form edit muncul → update via AJAX.</li>
+              <li><strong>Hapus</strong>: dari modal Review, klik <kbd>Hapus</kbd> → konfirmasi → AJAX delete → reload daftar.</li>
+            </ul>
+          </li>
+          <li>
+            <h5>Kirim Surat dari Template</h5>
+            <ul>
+              <li>Pilih template → modal Review → pilih penerima:
+                <ul>
+                  <li><kbd>Perorangan</kbd>: pilih anggota via modal pemilihan.</li>
+                  <li><kbd>Semua Anggota</kbd>: kirim ke semua (id_penerima=0).</li>
+                </ul>
+              </li>
+              <li>Klik <kbd>Kirim Surat</kbd> → AJAX kirim → notifikasi sukses.</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Notifikasi &amp; Spinner</h4>
+        <ul>
+          <li>Semua aksi AJAX menampilkan toast di pojok kanan atas (Durasi 3 detik).</li>
+          <li>Spinner muncul di button saat proses, dan di tengah layar saat load DataTables atau template.</li>
+          <li>Alert server (jika ada) fade otomatis setelah 3 detik.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Kontak Bantuan</h4>
+        <p>Untuk pertanyaan, hubungi:<br>
+          • <a href="mailto:sdm-support@sekolah.ac.id">sdm-support@sekolah.ac.id</a><br>
+          • Ext. 1234 (Tim SDM)</p>
+      </li>
+    </ol>
+  </div>
+  

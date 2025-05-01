@@ -1,0 +1,108 @@
+<!-- guides/sdm/payheads.html -->
+<style>
+    .guide-container { color: #000 !important; }
+    .guide-container h4 { margin-top: 1.5rem; }
+  </style>
+  
+  <div class="guide-container container py-3">
+    <h2 class="mb-3">🛠️ Panduan Interaktif: Manajemen Payheads</h2>
+    <p>Halo, <strong>SDM</strong>! Berikut cara menggunakan seluruh fitur di halaman <em>Manajemen Payheads</em>:</p>
+  
+    <ol>
+      <li class="mb-4">
+        <h4>Filter Payheads</h4>
+        <ul>
+          <li>Pilih <code>Jenis Payhead</code> (Earnings/Deductions) di dropdown.</li>
+          <li>Klik <kbd>Terapkan</kbd> untuk reload tabel sesuai filter.</li>
+          <li>Klik <kbd>Reset</kbd> untuk mengembalikan ke daftar lengkap.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Tabel Daftar Payheads</h4>
+        <ul>
+          <li>Data ditampilkan dengan <strong>DataTables</strong>, mendukung pagination, sorting, dan search global.</li>
+          <li>Kolom:
+            <ul>
+              <li><strong>No</strong>: Nomor urut.</li>
+              <li><strong>Nama Payhead</strong>: Nama komponen gaji.</li>
+              <li><strong>Jenis</strong>: <span class="badge bg-success">Pendapatan</span> atau <span class="badge bg-danger">Potongan</span>.</li>
+              <li><strong>Deskripsi</strong>: Keterangan singkat.</li>
+              <li><strong>Nominal Tetap</strong>: Angka format Rupiah.</li>
+              <li><strong>Aksi</strong>: Edit / Hapus via dropdown.</li>
+            </ul>
+          </li>
+          <li>Loading spinner muncul di tengah saat memuat data.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Export &amp; Print</h4>
+        <ul>
+          <li>Klik tombol <i class="fas fa-file-excel"></i> Export Excel untuk unduh .xlsx</li>
+          <li>Klik tombol <i class="fas fa-file-pdf"></i> Export PDF untuk unduh .pdf</li>
+          <li>Klik tombol <i class="fas fa-print"></i> Print untuk cetak daftar.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Manage Payhead Groups</h4>
+        <ul>
+          <li>Klik tombol <kbd>Manage Groups</kbd> untuk mengatur kategori grup payheads.</li>
+          <li>Halaman grup memudahkan pengelompokan dan filter lanjutan.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Tambah Payhead</h4>
+        <ul>
+          <li>Klik tombol <kbd>Tambah Payhead</kbd> (ikon <i class="fas fa-plus"></i>).</li>
+          <li>Isi form:
+            <ul>
+              <li><strong>Nama Payhead</strong> (wajib).</li>
+              <li><strong>Jenis</strong> (wajib): Earnings atau Deductions.</li>
+              <li><strong>Deskripsi</strong> (wajib).</li>
+              <li><strong>Nominal Tetap</strong> (wajib): angka tanpa titik/koma.</li>
+            </ul>
+          </li>
+          <li>Klik <kbd>Simpan</kbd>. Validasi form wajib terpenuhi.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Edit Payhead</h4>
+        <ol type="a">
+          <li>Di kolom <strong>Aksi</strong>, pilih <kbd>Edit</kbd>.</li>
+          <li>Form Edit muncul dengan data terisi.</li>
+          <li>Ubah field yang diinginkan, lalu klik <kbd>Update</kbd>.</li>
+          <li>Nominal di-input via AutoNumeric—otomatis format ribuan.</li>
+        </ol>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Hapus Payhead</h4>
+        <ul>
+          <li>Pilih <kbd>Hapus</kbd> di dropdown Aksi.</li>
+          <li>Konfirmasi di modal <em>"Yakin ingin menghapus?"</em>.</li>
+          <li>Jika payhead sedang dipakai di payroll_detail, akan muncul pesan error dan tidak terhapus.</li>
+        </ul>
+      </li>
+  
+      <li class="mb-4">
+        <h4>Tips &amp; Troubleshooting</h4>
+        <ul>
+          <li>Spinner artinya proses AJAX sedang berjalan—tunggu hingga hilang.</li>
+          <li>Form yang belum valid akan menampilkan feedback merah.</li>
+          <li>Jika terjadi error CSRF atau server, notifikasi SweetAlert2 akan muncul.</li>
+        </ul>
+      </li>
+  
+      <li>
+        <h4>Kontak Bantuan</h4>
+        <p>Butuh bantuan? Hubungi:<br>
+           • <a href="mailto:sdm-support@sekolah.ac.id">sdm-support@sekolah.ac.id</a><br>
+           • Ext. 1234 (Tim SDM)</p>
+      </li>
+    </ol>
+  </div>
+  
