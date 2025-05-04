@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 01, 2025 at 11:19 PM
+-- Generation Time: May 04, 2025 at 11:54 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -124,7 +124,14 @@ INSERT INTO `absensi` (`id`, `tanggal`, `jadwal`, `jam_kerja`, `valid`, `pin`, `
 (4, '2025-03-04', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-04 06:26:41', 0, '2025-03-04 00:00:00', '2025-03-04 00:00:00', '14:45:00', '2025-03-04 15:41:13', 'Bolos', 'tanpa_keterangan', 5),
 (5, '2025-03-05', 'Guru', 'Jum\'at - Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-05 00:00:00', 0, '2025-03-05 00:00:00', '2025-03-05 00:00:00', '13:30:00', '2025-03-05 00:00:00', 'Izin', 'izin', 5),
 (6, '2025-03-06', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2025-03-06 00:00:00', 0, '2025-03-06 00:00:00', '2025-03-06 00:00:00', '00:00:00', '2025-03-06 00:00:00', '-', 'hadir', 5),
-(7, '2025-03-07', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2025-03-07 00:00:00', 0, '2025-03-07 00:00:00', '2025-03-07 00:00:00', '00:00:00', '2025-03-07 00:00:00', '-', 'hadir', 5);
+(7, '2025-03-07', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2025-03-07 00:00:00', 0, '2025-03-07 00:00:00', '2025-03-07 00:00:00', '00:00:00', '2025-03-07 00:00:00', '-', 'hadir', 5),
+(8, '2024-03-01', 'Guru', 'Senin - Kamis Guru', 0, NULL, '100001', 'Ahmad Fauzi', 'SD', 0, '06:30:00', '2024-03-01 06:35:00', 1, NULL, NULL, '14:45:00', '2024-03-01 14:45:00', '-', 'hadir', 1),
+(9, '2024-03-02', 'Guru', 'Senin - Kamis Guru', 0, NULL, '100001', 'Ahmad Fauzi', 'SD', 0, '06:30:00', '2024-03-02 06:29:00', 0, NULL, NULL, '14:45:00', '2024-03-02 14:45:00', '-', 'hadir', 1),
+(10, '2024-03-03', 'Guru', 'Senin - Kamis Guru', 0, NULL, '100001', 'Ahmad Fauzi', 'SD', 0, '06:30:00', '2024-03-03 00:00:00', 0, NULL, NULL, '00:00:00', '2024-03-03 00:00:00', '-', 'izin', 1),
+(11, '2024-03-04', 'Guru', 'Senin - Kamis Guru', 0, NULL, '100001', 'Ahmad Fauzi', 'SD', 0, '06:30:00', '2024-03-04 00:00:00', 0, NULL, NULL, '00:00:00', '2024-03-04 00:00:00', '-', 'sakit', 1),
+(12, '2024-03-05', 'Guru', 'Jum\'at - Guru', 0, NULL, '100001', 'Ahmad Fauzi', 'SD', 0, '06:30:00', '2024-03-05 06:50:00', 1, NULL, NULL, '13:30:00', '2024-03-05 13:30:00', '-', 'tanpa_keterangan', 1),
+(13, '2024-12-25', 'Guru', 'Libur Rutin', 0, NULL, '100001', 'Ahmad Fauzi', 'SD', 0, '00:00:00', '2024-12-25 00:00:00', 0, NULL, NULL, '00:00:00', '2024-12-25 00:00:00', '-', 'libur', 1),
+(14, '2025-01-01', 'Guru', 'Libur Rutin', 0, NULL, '100001', 'Ahmad Fauzi', 'SD', 0, '00:00:00', '2025-01-01 00:00:00', 0, NULL, NULL, '00:00:00', '2025-01-01 00:00:00', '-', 'libur', 1);
 
 -- --------------------------------------------------------
 
@@ -350,7 +357,12 @@ CREATE TABLE `holidays` (
 
 INSERT INTO `holidays` (`holiday_id`, `holiday_title`, `holiday_desc`, `holiday_date`, `holiday_type`) VALUES
 (1, 'Natal 2025', 'Libur Natal', '2025-12-24', 'wajib'),
-(2, 'Tahun Baru 2025', 'Libur Tahun Baru', '2025-01-01', 'opsional');
+(2, 'Tahun Baru 2025', 'Libur Tahun Baru', '2025-01-01', 'opsional'),
+(3, 'Tahun Baru 2024', 'Libur Tahun Baru', '2024-01-01', 'wajib'),
+(4, 'Lebaran 2024', 'Libur Idul Fitri', '2024-04-10', 'wajib'),
+(5, 'Natal 2024', 'Libur Natal', '2024-12-25', 'wajib'),
+(6, 'Tahun Baru 2025', 'Libur Tahun Baru', '2025-01-01', 'wajib'),
+(7, 'Lebaran 2025', 'Libur Idul Fitri', '2025-04-30', 'wajib');
 
 -- --------------------------------------------------------
 
@@ -362,6 +374,7 @@ CREATE TABLE `jadwal_piket` (
   `id_jadwal` int NOT NULL,
   `nip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `nama_guru` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `jenjang` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `waktu_piket` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `tanggal` date NOT NULL,
   `bulan` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
@@ -373,9 +386,13 @@ CREATE TABLE `jadwal_piket` (
 -- Dumping data for table `jadwal_piket`
 --
 
-INSERT INTO `jadwal_piket` (`id_jadwal`, `nip`, `nama_guru`, `waktu_piket`, `tanggal`, `bulan`, `tahun`, `status`) VALUES
-(100, '100001', 'Ahmad Fauzi', '08:00:00', '2025-03-14', 'Maret', 2025, 'pending'),
-(101, '100001', 'Ahmad Fauzi', '08:00:00', '2025-03-14', 'Maret', 2025, 'pending');
+INSERT INTO `jadwal_piket` (`id_jadwal`, `nip`, `nama_guru`, `jenjang`, `waktu_piket`, `tanggal`, `bulan`, `tahun`, `status`) VALUES
+(512, '100001', 'Ahmad Fauzi', 'SD', '08:00 - 13:00', '2025-06-23', 'Juni', 2025, 'hadir'),
+(513, '100002', 'Siti Rahma', 'SMP', '08:00 - 13:00', '2025-06-23', 'Juni', 2025, 'pending'),
+(514, '100001', 'Ahmad Fauzi', 'SD', '08:00 - 13:00', '2025-06-24', 'Juni', 2025, 'hadir'),
+(515, '100002', 'Siti Rahma', 'SMP', '08:00 - 13:00', '2025-06-24', 'Juni', 2025, 'pending'),
+(516, '200001', 'Dewi Lestari', 'SD', '08:00 - 13:00', '2025-07-03', 'Juli', 2025, 'pending'),
+(517, '100002', 'Siti Rahma', 'SMP', '08:00 - 13:00', '2025-07-03', 'Juli', 2025, 'pending');
 
 -- --------------------------------------------------------
 
@@ -698,7 +715,7 @@ CREATE TABLE `permintaan_tukar_jadwal` (
   `nip_tujuan` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `nip_pengaju` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `nama_pengaju` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `tanggal_piket` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
+  `tanggal_piket` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -706,7 +723,7 @@ CREATE TABLE `permintaan_tukar_jadwal` (
 --
 
 INSERT INTO `permintaan_tukar_jadwal` (`id`, `id_jadwal_pengaju`, `id_jadwal_tujuan`, `status`, `tanggal_permintaan`, `nip_tujuan`, `nip_pengaju`, `nama_pengaju`, `tanggal_piket`) VALUES
-(100, 100, NULL, 'Pending', '2025-03-14 01:00:00', '100002', '100001', 'Ahmad Fauzi', '2025-03-15');
+(1, 516, 516, 'Diterima', '2025-05-04 09:32:57', '200001', '100001', 'Ahmad Fauzi', '2025-07-03');
 
 -- --------------------------------------------------------
 
@@ -902,7 +919,8 @@ ALTER TABLE `holidays`
 ALTER TABLE `jadwal_piket`
   ADD PRIMARY KEY (`id_jadwal`),
   ADD KEY `fk_jadwal_piket_anggota` (`nip`),
-  ADD KEY `idx_piket_nip_tanggal` (`nip`,`tanggal`);
+  ADD KEY `idx_piket_nip_tanggal` (`nip`,`tanggal`),
+  ADD KEY `idx_jenjang_tanggal` (`jenjang`,`tanggal`);
 
 --
 -- Indexes for table `kenaikan_gaji_tahunan`
@@ -991,6 +1009,14 @@ ALTER TABLE `pengajuan_ijin`
   ADD KEY `idx_ijin_nip_stat` (`nip`,`status`);
 
 --
+-- Indexes for table `permintaan_tukar_jadwal`
+--
+ALTER TABLE `permintaan_tukar_jadwal`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_once` (`id_jadwal_pengaju`,`id_jadwal_tujuan`,`nip_tujuan`,`status`),
+  ADD KEY `id_jadwal_tujuan` (`id_jadwal_tujuan`);
+
+--
 -- Indexes for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
@@ -1025,7 +1051,7 @@ ALTER TABLE `template_surat`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `anggota_sekolah`
@@ -1037,7 +1063,7 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=160;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `employee_payheads`
@@ -1049,7 +1075,13 @@ ALTER TABLE `employee_payheads`
 -- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
-  MODIFY `holiday_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `holiday_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `jadwal_piket`
+--
+ALTER TABLE `jadwal_piket`
+  MODIFY `id_jadwal` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=518;
 
 --
 -- AUTO_INCREMENT for table `kenaikan_gaji_tahunan`
@@ -1110,6 +1142,12 @@ ALTER TABLE `payroll_final`
 --
 ALTER TABLE `pengajuan_ijin`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+
+--
+-- AUTO_INCREMENT for table `permintaan_tukar_jadwal`
+--
+ALTER TABLE `permintaan_tukar_jadwal`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `rekap_absensi`
@@ -1176,6 +1214,13 @@ ALTER TABLE `payroll_detail`
 --
 ALTER TABLE `payroll_final`
   ADD CONSTRAINT `fk_payroll_final_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`);
+
+--
+-- Constraints for table `permintaan_tukar_jadwal`
+--
+ALTER TABLE `permintaan_tukar_jadwal`
+  ADD CONSTRAINT `fk_ptj_jadwal_pengaju` FOREIGN KEY (`id_jadwal_pengaju`) REFERENCES `jadwal_piket` (`id_jadwal`) ON DELETE CASCADE,
+  ADD CONSTRAINT `permintaan_tukar_jadwal_ibfk_1` FOREIGN KEY (`id_jadwal_tujuan`) REFERENCES `jadwal_piket` (`id_jadwal`) ON DELETE SET NULL;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
