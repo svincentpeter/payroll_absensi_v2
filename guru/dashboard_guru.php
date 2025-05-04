@@ -1,104 +1,83 @@
 <?php
 // File: /payroll_absensi_v2/absensi/guru/dashboard_guru.php
 
-// =============================================================================
-// 1. Pengaturan Session dan Error Log
-// =============================================================================
-   
-$pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
-
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
 
-// =============================================================================
-// 2. Koneksi Database & Inisialisasi
-// =============================================================================
-require_once __DIR__ . '/../koneksi.php';
+// Batasi akses hanya untuk Pendidik (P) dan Tenaga Kependidikan (TK)
+authorize(['P', 'TK']);
 
-// Pastikan koneksi valid
+// Koneksi Database
+require_once __DIR__ . '/../koneksi.php';
 if (!$conn) {
     die("Koneksi database gagal.");
 }
 
-if (ob_get_length()) ob_end_clean();
-
+// Ambil NIP dari session
 $nip = $_SESSION['nip'] ?? '';
 if (empty($nip)) {
-    echo "NIP tidak ditemukan dalam session.";
+    header("Location: " . getBaseUrl() . "/login.php");
     exit();
 }
 
-// Ambil data pengguna berdasarkan NIP
-$queryUser = "SELECT id, nama, role, job_title FROM anggota_sekolah WHERE nip = ? LIMIT 1";
-$stmtUser = $conn->prepare($queryUser);
-$stmtUser->bind_param("s", $nip);
-$stmtUser->execute();
-$resultUser = $stmtUser->get_result();
-$userData = $resultUser->fetch_assoc();
-$stmtUser->close();
-
-// Jika data tidak ditemukan, redirect ke halaman login
+// Ambil data pengguna
+$userData = fetchSingleRow(
+    $conn,
+    "SELECT id, nama, role, job_title FROM anggota_sekolah WHERE nip = ? LIMIT 1",
+    "s",
+    [$nip]
+);
 if (!$userData) {
     header("Location: " . getBaseUrl() . "/login.php");
     exit();
 }
 
-// Simpan role dan job_title asli dari database ke session
-$_SESSION['role'] = $userData['role'];       // Misalnya: 'P' atau 'TK'
-$_SESSION['job_title'] = $userData['job_title']; // Misalnya: "Guru Matematika", "Wali Kelas", dll.
+// Simpan role dan job_title ke session
+$_SESSION['role']      = $userData['role'];
+$_SESSION['job_title'] = $userData['job_title'];
 
-// Gunakan fungsi mapping untuk menentukan dashboard yang seharusnya diakses
-$expectedRoute = getDashboardRoute($userData['role'], $userData['job_title']);
-
-// Karena halaman ini adalah dashboard guru, kita periksa apakah expected route-nya "guru/dashboard_guru.php"
-if ($expectedRoute !== "guru/dashboard_guru.php") {
-    // Jika tidak sesuai, redirect ke dashboard yang tepat
-    header("Location: " . getBaseUrl() . "/" . $expectedRoute);
+// Pastikan user diarahkan ke route yang benar
+$expected = getDashboardRoute($userData['role'], $userData['job_title']);
+if ($expected !== "guru/dashboard_guru.php") {
+    header("Location: " . getBaseUrl() . "/" . $expected);
     exit();
 }
 
-$nama_pengguna = $userData['nama'] ?? 'Nama Tidak Diketahui';
+$nama_pengguna = $userData['nama'];
 $id_anggota    = $userData['id'];
 
-// Catat audit log untuk akses dashboard
+// Catat audit log
 add_audit_log($conn, $nip, 'AccessDashboard', 'Mengakses dashboard Guru.');
 
-// Karena role P dan TK menggunakan halaman dashboard guru di sistem ini,
-// kita tetapkan judul dashboard secara statis.
+// Judul
 $dashboard_title = 'Dashboard Guru';
 
-// Ambil parameter filter bulan dan tahun, default ke bulan dan tahun saat ini
-$filterMonth = isset($_GET['bulan']) ? (int)$_GET['bulan'] : (int)date('m');
-$filterYear  = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (int)date('Y');
-// Gunakan fungsi utilitas untuk mendapatkan nama bulan dalam Bahasa Indonesia
+// Filter bulan & tahun
+$filterMonth = intval($_GET['bulan'] ?? date('n'));
+$filterYear  = intval($_GET['tahun']  ?? date('Y'));
 $displayBulan = getIndonesianMonthName($filterMonth);
 
-// =============================================================================
-// 3. Data Ringkasan Kehadiran (STATISTIK)
-// =============================================================================
-$sqlSummary = "
-    SELECT
-        SUM(CASE WHEN status_kehadiran='hadir' THEN 1 ELSE 0 END) AS total_hadir,
-        SUM(CASE WHEN status_kehadiran='izin' THEN 1 ELSE 0 END) AS total_izin,
-        SUM(CASE WHEN status_kehadiran='cuti' THEN 1 ELSE 0 END) AS total_cuti,
-        SUM(CASE WHEN status_kehadiran='tanpa_keterangan' THEN 1 ELSE 0 END) AS total_tanpa_keterangan,
-        SUM(CASE WHEN status_kehadiran='sakit' THEN 1 ELSE 0 END) AS total_sakit
-    FROM absensi
-    WHERE nip = ? AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?
-";
-$stmtSum = $conn->prepare($sqlSummary);
-$stmtSum->bind_param("sii", $nip, $filterMonth, $filterYear);
-$stmtSum->execute();
-$resultSum = $stmtSum->get_result();
-$sumData = $resultSum->fetch_assoc();
-$stmtSum->close();
+// Ambil ringkasan kehadiran
+$sumData = fetchSingleRow(
+    $conn,
+    "SELECT
+         SUM(CASE WHEN status_kehadiran='hadir'            THEN 1 ELSE 0 END) AS total_hadir,
+         SUM(CASE WHEN status_kehadiran='izin'             THEN 1 ELSE 0 END) AS total_izin,
+         SUM(CASE WHEN status_kehadiran='cuti'             THEN 1 ELSE 0 END) AS total_cuti,
+         SUM(CASE WHEN status_kehadiran='tanpa_keterangan' THEN 1 ELSE 0 END) AS total_tanpa_keterangan,
+         SUM(CASE WHEN status_kehadiran='sakit'            THEN 1 ELSE 0 END) AS total_sakit
+     FROM absensi
+     WHERE nip = ? AND MONTH(tanggal) = ? AND YEAR(tanggal) = ?",
+    "sii",
+    [$nip, $filterMonth, $filterYear]
+);
 
-$sumHadir    = (int)($sumData['total_hadir'] ?? 0);
-$sumIzin     = (int)($sumData['total_izin'] ?? 0);
-$sumCuti     = (int)($sumData['total_cuti'] ?? 0);
-$sumTanpaKet = (int)($sumData['total_tanpa_keterangan'] ?? 0);
-$sumSakit    = (int)($sumData['total_sakit'] ?? 0);
+$sumHadir    = intval($sumData['total_hadir'] ?? 0);
+$sumIzin     = intval($sumData['total_izin']  ?? 0);
+$sumCuti     = intval($sumData['total_cuti']  ?? 0);
+$sumTanpaKet = intval($sumData['total_tanpa_keterangan'] ?? 0);
+$sumSakit    = intval($sumData['total_sakit'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="id">

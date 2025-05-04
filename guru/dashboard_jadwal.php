@@ -11,6 +11,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../helpers.php';
+init_error_handling();   // <<-- SUPAYA LOG_ERRORS NYALA
 start_session_safe();
 generate_csrf_token();
 
@@ -68,116 +69,148 @@ $stmt->close();
  * PROSES UPDATE STATUS (Hadir/Tidak Hadir)
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    verify_csrf_token($_POST['csrf_token'] ?? '');
+    try {
+        verify_csrf_token($_POST['csrf_token'] ?? '');
 
-    $id_jadwal = intval($_POST['id_jadwal'] ?? 0);
-    $new_status = strtolower(trim($_POST['update_status'] ?? ''));
-    if ($id_jadwal > 0 && in_array($new_status, ['hadir', 'tidak hadir'])) {
-        $sql = "UPDATE jadwal_piket SET status = ? WHERE id_jadwal = ?";
+        $id_jadwal   = intval($_POST['id_jadwal'] ?? 0);
+        $new_status  = strtolower(trim($_POST['update_status'] ?? ''));
+
+        if ($id_jadwal <= 0 || !in_array($new_status, ['hadir','tidak hadir'])) {
+            throw new Exception("Data tidak valid untuk update status.");
+        }
+
+        $sql  = "UPDATE jadwal_piket SET status = ? WHERE id_jadwal = ?";
         $stmt = $conn->prepare($sql);
+        if (!$stmt) throw new Exception("Prepare failed: ".$conn->error);
+
         $stmt->bind_param("si", $new_status, $id_jadwal);
-        if ($stmt->execute()) {
-            $_SESSION['absensi_success'] = "Status kehadiran telah diperbarui menjadi '$new_status'.";
-        } else {
-            $_SESSION['absensi_error'] = "Gagal mengupdate status kehadiran.";
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: ".$stmt->error);
         }
         $stmt->close();
-    } else {
-        $_SESSION['absensi_error'] = "Data tidak valid.";
+
+        $_SESSION['absensi_success'] = "Status kehadiran telah diperbarui menjadi '$new_status'.";
+    } catch (Throwable $e) {
+        log_error("dashboard_jadwal.php [update_status]: ".$e->getMessage());
+        $_SESSION['absensi_error'] = "Gagal mengupdate status kehadiran.";
     }
     header("Location: dashboard_jadwal.php");
     exit();
 }
 
+
 /** 
  * PROSES REQUEST TUKAR JADWAL
- * Request hanya boleh diajukan kepada guru yang tidak terdaftar di jadwal_piket.
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
-    verify_csrf_token($_POST['csrf_token'] ?? '');
+    try {
+        verify_csrf_token($_POST['csrf_token'] ?? '');
 
-    $id_jadwal_pengaju = intval($_POST['id_jadwal_pengaju'] ?? 0);
-    $guru_nip_tujuan = trim($_POST['guru_nip_tujuan'] ?? '');
-    if ($id_jadwal_pengaju > 0 && !empty($guru_nip_tujuan)) {
-        if ($nip !== $_SESSION['nip']) {
-            $_SESSION['absensi_error'] = "Anda tidak memiliki akses.";
-            header("Location: dashboard_jadwal.php");
-            exit();
+        $id_jadwal_pengaju = intval($_POST['id_jadwal_pengaju'] ?? 0);
+        $guru_nip_tujuan   = trim($_POST['guru_nip_tujuan'] ?? '');
+
+        if ($id_jadwal_pengaju <= 0 || $guru_nip_tujuan === '') {
+            throw new Exception("Data request tidak lengkap.");
         }
-        // Cek: pastikan guru tujuan tidak terdaftar di jadwal_piket
-        $sql_check_reg = "SELECT COUNT(*) AS total FROM jadwal_piket WHERE nip = ?";
-        $stmt = $conn->prepare($sql_check_reg);
-        $stmt->bind_param("s", $guru_nip_tujuan);
-        $stmt->execute();
-        $result_reg = $stmt->get_result();
-        $data_reg = $result_reg->fetch_assoc();
-        $stmt->close();
-        if ($data_reg['total'] > 0) {
-            $_SESSION['absensi_error'] = "Request penukaran jadwal hanya bisa diajukan kepada guru yang tidak terdaftar di jadwal piket!";
-            header("Location: dashboard_jadwal.php");
-            exit();
+        if ($nip !== ($_SESSION['nip'] ?? '')) {
+            throw new Exception("Anda tidak memiliki akses.");
         }
 
-        // Cari jadwal tujuan pending guru tujuan (jika ada)
-        $sql_tujuan = "SELECT id_jadwal FROM jadwal_piket WHERE nip = ? AND status = 'pending' ORDER BY tanggal ASC LIMIT 1";
-        $stmt = $conn->prepare($sql_tujuan);
-        $stmt->bind_param("s", $guru_nip_tujuan);
-        $stmt->execute();
-        $result_tujuan = $stmt->get_result();
-        $data_tujuan = $result_tujuan->fetch_assoc();
-        $stmt->close();
-        $id_jadwal_tujuan = $data_tujuan ? $data_tujuan['id_jadwal'] : NULL;
-
-        // Ambil tanggal dari jadwal pengaju
-        $sql_jadwal = "SELECT tanggal, waktu_piket FROM jadwal_piket WHERE id_jadwal = ?";
-        $stmt = $conn->prepare($sql_jadwal);
+        // 1) ambil tanggal & waktu piket pengaju
+        $sql  = "SELECT tanggal, waktu_piket FROM jadwal_piket WHERE id_jadwal = ?";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) throw new Exception("Prepare failed: ".$conn->error);
         $stmt->bind_param("i", $id_jadwal_pengaju);
         $stmt->execute();
-        $result_jadwal = $stmt->get_result();
-        $jadwal_pengaju = $result_jadwal->fetch_assoc();
+        $jadwal_pengaju = $stmt->get_result()->fetch_assoc();
         $stmt->close();
         if (!$jadwal_pengaju) {
-            $_SESSION['absensi_error'] = "Data jadwal pengaju tidak ditemukan.";
-            header("Location: dashboard_jadwal.php");
-            exit();
+            throw new Exception("Data jadwal pengaju tidak ditemukan.");
         }
         $tanggal_request = $jadwal_pengaju['tanggal'];
 
-        // Cek apakah request sudah ada
-        if ($id_jadwal_tujuan === NULL) {
-            $sql_check = "SELECT COUNT(*) AS total FROM permintaan_tukar_jadwal 
-                          WHERE id_jadwal_pengaju = ? AND id_jadwal_tujuan IS NULL";
-            $stmt = $conn->prepare($sql_check);
+        // 2) cek guru tujuan belum punya piket pada tanggal yang sama
+        $sql  = "SELECT COUNT(*) AS total 
+                 FROM jadwal_piket 
+                 WHERE nip = ? 
+                   AND tanggal = ?";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) throw new Exception("Prepare failed: ".$conn->error);
+        $stmt->bind_param("ss", $guru_nip_tujuan, $tanggal_request);
+        $stmt->execute();
+        $reg = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($reg['total'] > 0) {
+            $_SESSION['absensi_error'] = "Guru tujuan sudah terdaftar di jadwal piket pada tanggal tersebut!";
+            header("Location: dashboard_jadwal.php");
+            exit();
+        }
+
+        // 3) cari jadwal tujuan pending (jika ada)
+        $sql  = "
+            SELECT id_jadwal 
+              FROM jadwal_piket 
+             WHERE nip = ? 
+               AND tanggal = ? 
+               AND status = 'pending'
+             LIMIT 1
+        ";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) throw new Exception("Prepare failed: ".$conn->error);
+        $stmt->bind_param("ss", $guru_nip_tujuan, $tanggal_request);
+        $stmt->execute();
+        $tujuan = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        $id_jadwal_tujuan = $tujuan['id_jadwal'] ?? null;
+
+        // 4) cek duplikat request
+        if ($id_jadwal_tujuan === null) {
+            $sql  = "SELECT COUNT(*) AS total 
+                     FROM permintaan_tukar_jadwal 
+                     WHERE id_jadwal_pengaju = ? 
+                       AND id_jadwal_tujuan IS NULL";
+            $stmt = $conn->prepare($sql);
             $stmt->bind_param("i", $id_jadwal_pengaju);
         } else {
-            $sql_check = "SELECT COUNT(*) AS total FROM permintaan_tukar_jadwal 
-                          WHERE id_jadwal_pengaju = ? AND id_jadwal_tujuan = ?";
-            $stmt = $conn->prepare($sql_check);
+            $sql  = "SELECT COUNT(*) AS total 
+                     FROM permintaan_tukar_jadwal 
+                     WHERE id_jadwal_pengaju = ? 
+                       AND id_jadwal_tujuan = ?";
+            $stmt = $conn->prepare($sql);
             $stmt->bind_param("ii", $id_jadwal_pengaju, $id_jadwal_tujuan);
         }
         $stmt->execute();
-        $result_check = $stmt->get_result();
-        $count = $result_check->fetch_assoc()['total'];
+        $dup = $stmt->get_result()->fetch_assoc()['total'];
+        $stmt->close();
+        if ($dup > 0) {
+            $_SESSION['absensi_error'] = "Request tukar jadwal sudah ada.";
+            header("Location: dashboard_jadwal.php");
+            exit();
+        }
+
+        // 5) simpan permintaan (gunakan INSERT IGNORE untuk menghindari race condition)
+        $sql = "INSERT IGNORE INTO permintaan_tukar_jadwal 
+                (id_jadwal_pengaju, id_jadwal_tujuan, nip_tujuan, status, nip_pengaju, nama_pengaju, tanggal_permintaan, tanggal_piket)
+                VALUES (?, ?, ?, 'Pending', ?, ?, NOW(), ?)";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) throw new Exception("Prepare failed: ".$conn->error);
+        $stmt->bind_param("iissss",
+            $id_jadwal_pengaju,
+            $id_jadwal_tujuan,
+            $guru_nip_tujuan,
+            $nip,
+            $nama_pengaju,
+            $tanggal_request
+        );
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: ".$stmt->error);
+        }
         $stmt->close();
 
-        if ($count == 0) {
-            // Simpan request tukar jadwal
-            $sql_insert = "INSERT INTO permintaan_tukar_jadwal 
-                           (id_jadwal_pengaju, id_jadwal_tujuan, nip_tujuan, status, nip_pengaju, nama_pengaju, tanggal_permintaan, tanggal_piket)
-                           VALUES (?, ?, ?, 'Pending', ?, ?, NOW(), ?)";
-            $stmt = $conn->prepare($sql_insert);
-            $stmt->bind_param("iissss", $id_jadwal_pengaju, $id_jadwal_tujuan, $guru_nip_tujuan, $nip, $nama_pengaju, $tanggal_request);
-            if ($stmt->execute()) {
-                $_SESSION['absensi_success'] = "Request tukar jadwal telah dikirim.";
-            } else {
-                $_SESSION['absensi_error'] = "Gagal mengirim request tukar jadwal.";
-            }
-            $stmt->close();
-        } else {
-            $_SESSION['absensi_error'] = "Request tukar jadwal sudah ada.";
-        }
-    } else {
-        $_SESSION['absensi_error'] = "Data request tidak lengkap.";
+        $_SESSION['absensi_success'] = "Request tukar jadwal telah dikirim.";
+    } catch (Throwable $e) {
+        log_error("dashboard_jadwal.php [tukar_jadwal]: ".$e->getMessage());
+        $_SESSION['absensi_error'] = "Gagal mengirim request tukar jadwal.";
     }
     header("Location: dashboard_jadwal.php");
     exit();
@@ -185,142 +218,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tukar_jadwal'])) {
 
 /**
  * PROSES RESPON REQUEST TUKAR JADWAL (Accept / Reject)
- * Hanya guru tujuan yang boleh merespon.
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id_request'])) {
-    verify_csrf_token($_POST['csrf_token'] ?? '');
+    try {
+        verify_csrf_token($_POST['csrf_token'] ?? '');
 
-    $action = $_POST['action'];
-    $id_request = intval($_POST['id_request'] ?? 0);
-    if ($id_request > 0) {
-        $sql = "SELECT * FROM permintaan_tukar_jadwal 
-                WHERE id = ? AND status = 'Pending'";
+        $action     = $_POST['action'];
+        $id_request = intval($_POST['id_request'] ?? 0);
+        if ($id_request <= 0) {
+            throw new Exception("Data respon tidak valid.");
+        }
+
+        // Ambil request yang masih Pending
+        $sql  = "SELECT * FROM permintaan_tukar_jadwal WHERE id = ? AND status = 'Pending'";
         $stmt = $conn->prepare($sql);
+        if (!$stmt) throw new Exception("Prepare failed: " . $conn->error);
         $stmt->bind_param("i", $id_request);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $request = $result->fetch_assoc();
+        $req = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
-        if ($request) {
-            // Pastikan hanya guru tujuan yang dapat merespon
-            if ($request['nip_tujuan'] !== $nip) {
-                $_SESSION['absensi_error'] = "Anda tidak memiliki akses untuk merespon request ini.";
-                header("Location: dashboard_jadwal.php");
-                exit();
-            }
-            if ($action === 'accept') {
-                if ($request['id_jadwal_tujuan'] === NULL) {
-                    // Skema: jadwal pengaju diambil alih guru tujuan
-                    $jadwal_id = $request['id_jadwal_pengaju'];
-                    $sql_jp = "SELECT * FROM jadwal_piket WHERE id_jadwal = ?";
-                    $stmt = $conn->prepare($sql_jp);
-                    $stmt->bind_param("i", $jadwal_id);
-                    $stmt->execute();
-                    $result_jp = $stmt->get_result();
-                    $jadwal_pengaju = $result_jp->fetch_assoc();
-                    $stmt->close();
-
-                    if (!$jadwal_pengaju) {
-                        $_SESSION['absensi_error'] = "Data jadwal pengaju tidak ditemukan.";
-                        header("Location: dashboard_jadwal.php");
-                        exit();
-                    }
-                    // Ambil nama guru tujuan
-                    $sql_nama = "SELECT nama FROM anggota_sekolah WHERE nip = ?";
-                    $stmt = $conn->prepare($sql_nama);
-                    $stmt->bind_param("s", $request['nip_tujuan']);
-                    $stmt->execute();
-                    $result_nama = $stmt->get_result();
-                    $data_nama = $result_nama->fetch_assoc();
-                    $nama_tujuan = $data_nama['nama'] ?? '';
-                    $stmt->close();
-
-                    if (empty($nama_tujuan)) {
-                        $_SESSION['absensi_error'] = "Nama guru tujuan tidak ditemukan.";
-                        header("Location: dashboard_jadwal.php");
-                        exit();
-                    }
-                    // Update jadwal_pengaju: ganti nip & nama_guru jadi guru tujuan
-                    $sql_update = "UPDATE jadwal_piket 
-                                   SET nip = ?, nama_guru = ? 
-                                   WHERE id_jadwal = ?";
-                    $stmt = $conn->prepare($sql_update);
-                    $stmt->bind_param("ssi", $nip, $nama_tujuan, $jadwal_id);
-                    if ($stmt->execute()) {
-                        $stmt->close();
-                        // Update request: set id_jadwal_tujuan & status = Diterima
-                        $sql_update_req = "UPDATE permintaan_tukar_jadwal 
-                                           SET id_jadwal_tujuan = ?, status = 'Diterima' 
-                                           WHERE id = ?";
-                        $stmt = $conn->prepare($sql_update_req);
-                        $stmt->bind_param("ii", $jadwal_id, $id_request);
-                        $stmt->execute();
-                        $stmt->close();
-
-                        $_SESSION['absensi_success'] = "Request diterima. Jadwal pada tanggal "
-                            . date('d F Y', strtotime($jadwal_pengaju['tanggal']))
-                            . " kini telah dipindahkan ke Anda.";
-                    } else {
-                        $_SESSION['absensi_error'] = "Gagal mengupdate jadwal untuk guru tujuan.";
-                    }
-                } else {
-                    // Skema: tukar jadwal antar 2 guru
-                    $id_pengaju = $request['id_jadwal_pengaju'];
-                    $id_tujuan = $request['id_jadwal_tujuan'];
-
-                    $conn->begin_transaction();
-                    try {
-                        $sql_update = "UPDATE jadwal_piket SET nip = ?, nama_guru = ? WHERE id_jadwal = ?";
-                        $stmt = $conn->prepare($sql_update);
-
-                        // 1) Update jadwal pengaju => jadi milik guru tujuan
-                        $stmt->bind_param("ssi", $request['nip_tujuan'], '', $id_pengaju);
-                        $stmt->execute();
-
-                        // 2) Update jadwal tujuan => jadi milik guru pengaju
-                        $stmt->bind_param("ssi", $nip, '', $id_tujuan);
-                        $stmt->execute();
-                        $stmt->close();
-
-                        // 3) Update status request
-                        $sql_update_status = "UPDATE permintaan_tukar_jadwal 
-                                             SET status = 'Diterima' 
-                                             WHERE id = ?";
-                        $stmt = $conn->prepare($sql_update_status);
-                        $stmt->bind_param("i", $id_request);
-                        $stmt->execute();
-                        $stmt->close();
-
-                        $conn->commit();
-                        $_SESSION['absensi_success'] = "Request tukar jadwal telah diterima dan jadwal telah ditukar.";
-                    } catch (Exception $e) {
-                        $conn->rollback();
-                        $_SESSION['absensi_error'] = "Gagal menerima request tukar jadwal: " . $e->getMessage();
-                    }
-                }
-            } elseif ($action === 'reject') {
-                $sql = "UPDATE permintaan_tukar_jadwal 
-                        SET status = 'Ditolak' 
-                        WHERE id = ?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("i", $id_request);
-                if ($stmt->execute()) {
-                    $_SESSION['absensi_success'] = "Request tukar jadwal telah ditolak.";
-                } else {
-                    $_SESSION['absensi_error'] = "Gagal menolak request tukar jadwal.";
-                }
-                $stmt->close();
-            }
-        } else {
-            $_SESSION['absensi_error'] = "Request tukar jadwal tidak ditemukan atau sudah diproses.";
+        if (!$req) {
+            throw new Exception("Request tukar jadwal tidak ditemukan atau sudah diproses.");
         }
-    } else {
-        $_SESSION['absensi_error'] = "Data respon tidak valid.";
+        // Pastikan hanya guru tujuan yang boleh respon
+        if ($req['nip_tujuan'] !== $nip) {
+            throw new Exception("Anda tidak memiliki akses untuk merespon request ini.");
+        }
+
+        if ($action === 'accept') {
+            // --- SKEMA 1: takeover (jika id_jadwal_tujuan NULL) ---
+            if ($req['id_jadwal_tujuan'] === null) {
+                // Ambil nama guru tujuan
+                $sql = "SELECT nama FROM anggota_sekolah WHERE nip = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("s", $req['nip_tujuan']);
+                $stmt->execute();
+                $nama_tujuan = $stmt->get_result()->fetch_assoc()['nama'] ?? '';
+                $stmt->close();
+                if (empty($nama_tujuan)) {
+                    throw new Exception("Nama guru tujuan tidak ditemukan.");
+                }
+
+                // Transaksi takeover
+                $conn->begin_transaction();
+                try {
+                    // Update pemilik jadwal
+                    $sql = "UPDATE jadwal_piket SET nip = ?, nama_guru = ? WHERE id_jadwal = ?";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("ssi", $req['nip_tujuan'], $nama_tujuan, $req['id_jadwal_pengaju']);
+                    $stmt->execute();
+                    $stmt->close();
+
+                    // Tandai request diterima
+                    $sql = "UPDATE permintaan_tukar_jadwal 
+                            SET id_jadwal_tujuan = ?, status = 'Diterima'
+                            WHERE id = ?";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("ii", $req['id_jadwal_pengaju'], $id_request);
+                    $stmt->execute();
+                    $stmt->close();
+
+                    $conn->commit();
+                    $_SESSION['absensi_success'] = "Request diterima. Anda sekarang bertugas pada tanggal {$req['tanggal_piket']}.";
+                } catch (Throwable $e) {
+                    $conn->rollback();
+                    throw $e;
+                }
+            }
+            // --- SKEMA 2: swap antar dua guru ---
+            else {
+                // Ambil nama kedua guru
+                $sql = "SELECT nama FROM anggota_sekolah WHERE nip = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("s", $req['nip_pengaju']);
+                $stmt->execute();
+                $nama_pengaju_ref = $stmt->get_result()->fetch_assoc()['nama'] ?? '';
+                $stmt->close();
+
+                $sql = "SELECT nama FROM anggota_sekolah WHERE nip = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("s", $req['nip_tujuan']);
+                $stmt->execute();
+                $nama_tujuan_ref = $stmt->get_result()->fetch_assoc()['nama'] ?? '';
+                $stmt->close();
+
+                if (empty($nama_pengaju_ref) || empty($nama_tujuan_ref)) {
+                    throw new Exception("Nama salah satu guru tidak ditemukan.");
+                }
+
+                $conn->begin_transaction();
+                try {
+                    // 1) jadwal pengaju → guru tujuan
+                    $sql = "UPDATE jadwal_piket SET nip = ?, nama_guru = ? WHERE id_jadwal = ?";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("ssi", $req['nip_tujuan'], $nama_tujuan_ref, $req['id_jadwal_pengaju']);
+                    $stmt->execute();
+
+                    // 2) jadwal tujuan → guru pengaju
+                    $stmt->bind_param("ssi", $req['nip_pengaju'], $nama_pengaju_ref, $req['id_jadwal_tujuan']);
+                    $stmt->execute();
+                    $stmt->close();
+
+                    // 3) tandai request diterima
+                    $sql = "UPDATE permintaan_tukar_jadwal SET status = 'Diterima' WHERE id = ?";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("i", $id_request);
+                    $stmt->execute();
+                    $stmt->close();
+
+                    $conn->commit();
+                    $_SESSION['absensi_success'] = "Request tukar jadwal diterima dan jadwal berhasil ditukar.";
+                } catch (Throwable $e) {
+                    $conn->rollback();
+                    throw $e;
+                }
+            }
+        }
+        // --- Jika Reject ---
+        else {
+            $sql  = "UPDATE permintaan_tukar_jadwal SET status = 'Ditolak' WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) throw new Exception("Prepare failed: " . $conn->error);
+            $stmt->bind_param("i", $id_request);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
+            $stmt->close();
+            $_SESSION['absensi_success'] = "Request tukar jadwal telah ditolak.";
+        }
+    } catch (Throwable $e) {
+        log_error("dashboard_jadwal.php [respond_swap]: " . $e->getMessage());
+        $_SESSION['absensi_error'] = "Gagal menanggapi permintaan tukar jadwal."; 
     }
+
     header("Location: dashboard_jadwal.php");
     exit();
 }
+
 
 /**
  * PENGAMBILAN DATA UNTUK TAMPILAN (Dashboard)
@@ -382,6 +417,8 @@ if (!empty($jadwal)) {
     while ($row = $result->fetch_assoc()) {
         $swap_requests[] = $row;
     }
+
+    $swap_requests = getSwapRequestsForUser($conn, $nip);
     $stmt->close();
 }
 ?>
@@ -609,6 +646,48 @@ if (!empty($jadwal)) {
                                     </tbody>
                                 </table>
                             </div> <!-- End table-responsive -->
+                            <?php if (!empty($swap_requests)): ?>
+  <div class="card shadow mb-4">
+    <div class="card-header"><strong>Permintaan Tukar Jadwal</strong></div>
+    <div class="card-body table-responsive">
+      <table class="table table-bordered text-center">
+        <thead>
+          <tr>
+            <th>Pengaju</th><th>Tanggal</th><th>Waktu</th><th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($swap_requests as $r): ?>
+            <tr>
+              <td><?= htmlspecialchars($r['nama_guru_pengaju']) ?></td>
+              <td><?= htmlspecialchars(date('d F Y', strtotime($r['tanggal_piket_pengaju']))) ?></td>
+              <td><?= htmlspecialchars($r['waktu_piket_pengaju']) ?></td>
+              <td>
+                <button 
+                  class="btn btn-success btn-sm respond-swap-btn" 
+                  data-id="<?= $r['id'] ?>" 
+                  data-action="accept"
+                  data-bs-toggle="modal" 
+                  data-bs-target="#respondSwapModal">
+                  Terima
+                </button>
+                <button 
+                  class="btn btn-danger btn-sm respond-swap-btn" 
+                  data-id="<?= $r['id'] ?>" 
+                  data-action="reject"
+                  data-bs-toggle="modal" 
+                  data-bs-target="#respondSwapModal">
+                  Tolak
+                </button>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<?php endif; ?>
+
                         </div> <!-- End card-body -->
                     </div> <!-- End card -->
 
@@ -685,6 +764,20 @@ if (!empty($jadwal)) {
                 var id_request = $(this).data('id');
                 $('#id_request').val(id_request);
             });
+
+            $('.respond-swap-btn').on('click', function(){
+  $('#id_request').val($(this).data('id'));
+  // optional: atur tombol terima/tolak sesuai data-action
+  $('button[name="action"]').removeClass('btn-success btn-danger');
+  if ($(this).data('action')==='accept') {
+    $('button[name="action"][value="accept"]').addClass('btn-success');
+    $('button[name="action"][value="reject"]').addClass('btn-secondary');
+  } else {
+    $('button[name="action"][value="accept"]').addClass('btn-secondary');
+    $('button[name="action"][value="reject"]').addClass('btn-danger');
+  }
+});
+
         });
     </script>
 

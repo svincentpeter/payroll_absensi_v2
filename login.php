@@ -338,8 +338,7 @@ ob_end_flush(); // Akhiri output buffering
 
       <form action="login.php" method="POST">
         <!-- CSRF token -->
-        <input type="hidden" name="csrf_token"
-               value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? ''); ?>">
 
         <div class="form-group">
           <label for="username">NIP</label>

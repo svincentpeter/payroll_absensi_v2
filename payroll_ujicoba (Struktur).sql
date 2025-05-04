@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 15, 2025 at 03:49 PM
+-- Generation Time: May 04, 2025 at 04:23 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -94,7 +94,8 @@ CREATE TABLE `anggota_sekolah` (
   `foto_profil` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'default.jpg',
   `role` enum('P','TK','M') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `is_delete` tinyint(1) NOT NULL DEFAULT '0',
-  `deleted_at` datetime DEFAULT NULL
+  `deleted_at` datetime DEFAULT NULL,
+  `kategori` enum('guru','karyawan') COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -112,6 +113,17 @@ CREATE TABLE `audit_logs` (
   `user_agent` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `backup_dismiss`
+--
+
+CREATE TABLE `backup_dismiss` (
+  `user_id` int NOT NULL,
+  `yyyymm` char(6) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -192,6 +204,7 @@ CREATE TABLE `jadwal_piket` (
   `id_jadwal` int NOT NULL,
   `nip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `nama_guru` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `jenjang` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `waktu_piket` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `tanggal` date NOT NULL,
   `bulan` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
@@ -238,6 +251,17 @@ CREATE TABLE `laporan_surat` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `msg_read`
+--
+
+CREATE TABLE `msg_read` (
+  `user_id` int NOT NULL,
+  `msg_id` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `notifications`
 --
 
@@ -279,10 +303,12 @@ CREATE TABLE `payheads` (
 
 CREATE TABLE `payhead_groups` (
   `id` int NOT NULL,
-  `group_name` varchar(255) NOT NULL,
-  `payhead_name` varchar(255) NOT NULL,
-  `jenis` enum('earnings','deductions') NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `group_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `payhead_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `jenis` enum('earnings','deductions') COLLATE utf8mb4_general_ci NOT NULL,
+  `role` enum('guru','karyawan') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'guru',
+  `sort_order` int NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -297,6 +323,7 @@ CREATE TABLE `payroll` (
   `bulan` int NOT NULL,
   `tahun` int NOT NULL,
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
+  `salary_index_amount` decimal(15,2) NOT NULL DEFAULT '0.00',
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
   `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
@@ -353,6 +380,7 @@ CREATE TABLE `payroll_final` (
   `bulan` int NOT NULL,
   `tahun` int NOT NULL,
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
+  `salary_index_amount` decimal(15,2) NOT NULL DEFAULT '0.00',
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
   `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
@@ -499,6 +527,12 @@ ALTER TABLE `audit_logs`
   ADD KEY `idx_audit_created_action` (`created_at`,`action`);
 
 --
+-- Indexes for table `backup_dismiss`
+--
+ALTER TABLE `backup_dismiss`
+  ADD PRIMARY KEY (`user_id`,`yyyymm`);
+
+--
 -- Indexes for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
@@ -536,7 +570,8 @@ ALTER TABLE `holidays`
 ALTER TABLE `jadwal_piket`
   ADD PRIMARY KEY (`id_jadwal`),
   ADD KEY `fk_jadwal_piket_anggota` (`nip`),
-  ADD KEY `idx_piket_nip_tanggal` (`nip`,`tanggal`);
+  ADD KEY `idx_piket_nip_tanggal` (`nip`,`tanggal`),
+  ADD KEY `idx_jenjang_tanggal` (`jenjang`,`tanggal`);
 
 --
 -- Indexes for table `kenaikan_gaji_tahunan`
@@ -550,6 +585,12 @@ ALTER TABLE `kenaikan_gaji_tahunan`
 ALTER TABLE `laporan_surat`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_laporan_read` (`id_penerima`,`is_read_receiver`);
+
+--
+-- Indexes for table `msg_read`
+--
+ALTER TABLE `msg_read`
+  ADD PRIMARY KEY (`user_id`,`msg_id`);
 
 --
 -- Indexes for table `notifications`
@@ -595,6 +636,7 @@ ALTER TABLE `payroll_detail`
 --
 ALTER TABLE `payroll_detail_final`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_detail_once` (`id_payroll_final`,`id_payhead`),
   ADD KEY `idx_payroll_final` (`id_payroll_final`),
   ADD KEY `idx_payhead` (`id_payhead`);
 
@@ -603,9 +645,11 @@ ALTER TABLE `payroll_detail_final`
 --
 ALTER TABLE `payroll_final`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_payrollfinal_once` (`id_payroll_asal`),
   ADD KEY `id_anggota` (`id_anggota`),
   ADD KEY `bulan` (`bulan`,`tahun`),
-  ADD KEY `idx_payrollfinal_anggota_blnthn` (`id_anggota`,`bulan`,`tahun`);
+  ADD KEY `idx_payrollfinal_anggota_blnthn` (`id_anggota`,`bulan`,`tahun`),
+  ADD KEY `idx_pf_anggota_blnthn` (`id_anggota`,`bulan`,`tahun`);
 
 --
 -- Indexes for table `pengajuan_ijin`

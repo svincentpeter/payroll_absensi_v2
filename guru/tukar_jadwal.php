@@ -69,39 +69,8 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Fungsi penerjemahan (bulan dan hari)
-function translate_month($month_eng)
-{
-    $months = [
-        'January' => 'Januari',
-        'February' => 'Februari',
-        'March' => 'Maret',
-        'April' => 'April',
-        'May' => 'Mei',
-        'June' => 'Juni',
-        'July' => 'Juli',
-        'August' => 'Agustus',
-        'September' => 'September',
-        'October' => 'Oktober',
-        'November' => 'November',
-        'December' => 'Desember'
-    ];
-    return $months[$month_eng] ?? $month_eng;
-}
-
-function translate_day($day_eng)
-{
-    $days = [
-        'Mon' => 'Senin',
-        'Tue' => 'Selasa',
-        'Wed' => 'Rabu',
-        'Thu' => 'Kamis',
-        'Fri' => 'Jumat',
-        'Sat' => 'Sabtu',
-        'Sun' => 'Minggu'
-    ];
-    return $days[$day_eng] ?? $day_eng;
-}
+$bulan = indo_month($dateObj->format('F'));
+$hari  = indo_day($dateObj->format('D'));
 
 // PROSES PENGAJUAN TUKAR JADWAL
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['swap_request'])) {
