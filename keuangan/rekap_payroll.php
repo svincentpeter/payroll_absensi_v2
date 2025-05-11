@@ -50,9 +50,63 @@ $defaultMeta = ['icon'=>'fas fa-building','color'=>'#16a085','rgba'=>'rgba(22,16
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
-    body { background: #f7f9fc; }
+
+:root {
+  --primary-gradient:     linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --secondary-gradient:   linear-gradient(to right, #4e54c8, #8f94fb);
+  --card-shadow:          0 4px 6px rgba(0,0,0,0.1);
+  --card-hover-shadow:    0 10px 20px rgba(0,0,0,0.2);
+}
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
+.card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25,0.8,0.25,1);
+  box-shadow: var(--card-shadow);
+}
+.card:hover {
+  box-shadow: var(--card-hover-shadow);
+}
+
+.btn {
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+/* Kalau nanti ada .btn-primary di halaman lain (bukan outline), jadikan gradient: */
+.btn-primary {
+  background: var(--primary-gradient);
+  border: none;
+  color: #fff;
+}
+
+body {
+  background: #f7f9fc;
+}
+
 
     /* ─── HEADER PERIODE AS CARD ───────────────────────────────────────── */
     .card-header { 
@@ -73,9 +127,7 @@ $defaultMeta = ['icon'=>'fas fa-building','color'=>'#16a085','rgba'=>'rgba(22,16
       margin-left: 1rem;
     }
     #btnChangePeriod {
-      border: none;
       background: #fff;
-      color: #495057;
       transition: color .2s, box-shadow .2s;
     }
     #btnChangePeriod:hover {
@@ -141,19 +193,24 @@ $defaultMeta = ['icon'=>'fas fa-building','color'=>'#16a085','rgba'=>'rgba(22,16
         <?php include __DIR__ . '/../breadcrumb.php'; ?>
 
         <div class="container-fluid py-4">
-
-          <!-- Card Header Periode -->
-          <div class="card shadow-sm mb-4">
-            <div class="card-header d-flex align-items-center">
-              <h4><i class="fas fa-calendar-alt text-primary me-2"></i> Payroll:</h4>
-              <span class="period-badge">
-                <?= getIndonesianMonthName($filterMonth) . ' ' . $filterYear ?>
-              </span>
-              <button id="btnChangePeriod" class="btn ms-auto">
-                <i class="fas fa-edit me-1"></i> Ganti Periode
-              </button>
-            </div>
-          </div>
+<h1 class="page-title">
+        <i class="fas fa-file-invoice-dollar"></i>
+        Rekap Payroll
+    </h1>
+          <!-- Header periode persis seperti ini -->
+  <div id="selectedMonthDisplay" class="mb-3" style="cursor: pointer;">
+    <div class="card mb-3 border-0 shadow-sm">
+      <div class="card-body d-flex align-items-center py-3">
+        <i class="bi bi-calendar3 me-2 fs-4 text-primary"></i>
+        <span class="fw-bold fs-5">
+          Payroll Bulan: <?= getIndonesianMonthName($filterMonth) . ' ' . $filterYear ?>
+        </span>
+        <button id="btnChangePeriod" class="btn btn-outline-primary ms-auto">
+          <i class="bi bi-pencil-square me-1"></i> Ganti Periode
+        </button>
+      </div>
+    </div>
+  </div>
 
           <!-- Grid Jenjang -->
           <div class="row g-3" id="jenjangGrid">

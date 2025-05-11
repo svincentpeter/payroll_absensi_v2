@@ -178,7 +178,25 @@ $monthNames = [
 
   <style>
     body, .text-gray-800 { color: #000 !important; }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
     .card-header-filter { background: linear-gradient(45deg, #4e73df, #224abe); color: #fff; }
     .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
     .card-calendar { background: linear-gradient(45deg, #0f2027, #203a43, #2c5364); color: #fff; }
@@ -220,10 +238,10 @@ $monthNames = [
         <?php include __DIR__ . '/../breadcrumb.php'; ?>
 
         <div class="container-fluid">
-          <h1 class="h3 mb-4 text-gray-800">
-            <i class="fas fa-users me-2"></i> Dashboard SDM
-          </h1>
-
+          <h1 class="page-title">
+        <i class="fas fa-users me-2"></i>
+        Dashboard SDM
+    </h1>
           <!-- Filter Periode -->
           <div class="card mb-4">
             <div class="card-header card-header-filter">

@@ -259,8 +259,7 @@ function ViewPayrollDetail($conn)
     <div id="content-wrapper" class="d-flex flex-column">
       <div id="content">
         <?php include __DIR__ . '/../navbar.php'; ?>
-        <?php include __DIR__ . '/../breadcrumb.php'; ?>
-
+                <?php include __DIR__ . '/../breadcrumb.php'; ?>
         <div class="container-fluid py-4">
 
           <div class="card mb-4 shadow">
@@ -341,11 +340,6 @@ function ViewPayrollDetail($conn)
 
         </div>
 
-        <footer class="sticky-footer bg-white">
-          <div class="container text-center py-2">
-            &copy; <?= date("Y") ?> Payroll Management System
-          </div>
-        </footer>
 
       </div>
     </div>

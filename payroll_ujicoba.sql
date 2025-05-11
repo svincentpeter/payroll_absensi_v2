@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 04, 2025 at 11:54 AM
+-- Generation Time: May 10, 2025 at 01:23 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -198,19 +198,19 @@ INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`
 (10, 'K-003', '200003', 'e10adc3949ba59abbe56e057f20f883e', 'Rizki Pratama', 'SMP', 'Tenaga Kependidikan Umum', 'Kontrak', '2022-01-01', NULL, '2023-01-01', 3, 1, 3.00, 'Staff pendukung operasional', 'L', '1998-11-12', 27, 'Islam', 'Jl. Sudirman No. 8', 'Jl. Sudirman No. 8', '889900', '081237889900', '', 'Belum Menikah', 'rizki.pratama@example.com', '', 0, '', '', '', 2, 'Level 1', 4000000.00, 'default.jpg', 'TK', 0, NULL, 'karyawan'),
 (11, 'M-001', '300001', 'e10adc3949ba59abbe56e057f20f883e', 'Andini Permata', 'SMA', 'Kepala Sekolah SMA', 'Tetap', '2014-01-27', NULL, NULL, 11, 2, 11.00, 'Memimpin sekolah dengan visi', 'P', '1978-04-22', 47, 'Islam', 'Jl. Merdeka No. 10', 'Jl. Merdeka No. 10', '990011', '081290990011', 'S2 Kesenian', 'Menikah', 'andini.permata@example.com', 'Budi Permata', 2, 'Tina', 'Rina', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
 (12, 'M-002', '300002', 'e10adc3949ba59abbe56e057f20f883e', 'Sie, Vincent Peter S.', 'SMA', 'Keuangan', 'Tetap', '2008-07-01', NULL, NULL, 16, 7, 16.67, 'Mengelola keuangan dengan transparansi', 'L', '1965-06-21', 60, 'Islam', 'Jl. Pendidikan No. 9', 'Jl. Pendidikan No. 9', '112233', '081298112233', 'S2 Teknologi Informasi', 'Menikah', 'joko.widodo@example.com', 'Iriana Widodo', 3, 'Gibran', 'Khalifah', 'Puan', 5, 'Level 4', 7000000.00, 'default.jpg', 'M', 0, NULL, 'karyawan'),
-(13, 'M-003', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Sari Utami', 'SMA', 'SDM', 'Tetap', '2012-11-11', NULL, NULL, 12, 4, 12.33, 'Mengelola SDM dengan profesionalisme', 'P', '1982-02-28', 43, 'Kristen', 'Jl. Simpang Lima No. 5', 'Jl. Simpang Lima No. 56', '445577', '081298445577', 'S1 Akuntansi', 'Menikah', 'sari.utami@example.com', 'Agus Utomo', 2, 'Dina', 'Rini', '', 4, 'Level 3', 6000000.00, 'http://localhost/payroll_absensi_v2/uploads/profile_pics/sari_utami_sma_m_13.jpg', 'M', 0, NULL, 'karyawan'),
+(13, 'M-003', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Sari Utami', 'SMA', 'SDM', 'Tetap', '2012-11-11', NULL, NULL, 12, 4, 12.00, 'Mengelola SDM dengan profesionalisme', 'P', '1982-02-28', 43, 'Kristen', 'Jl. Simpang Lima No. 5', 'Jl. Simpang Lima No. 56', '445577', '081298445577', 'S1 Akuntansi', 'Menikah', 'sari.utami@example.com', 'Agus Utomo', 2, 'Dina', 'Rini', '', 4, 'Level 3', 6000000.00, 'http://localhost/payroll_absensi_v2/uploads/profile_pics/sari_utami_sma_m_13.jpg', 'M', 0, NULL, 'karyawan'),
 (14, 'M-004', '300004', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hartono', 'SMA', 'Superadmin', 'Tetap', '2010-01-01', NULL, NULL, 15, 2, 15.00, 'Administrator sistem IT sekolah', 'L', '1970-12-12', 54, 'Islam', '2A Jl. Empu Sendok Raya', '', '', '', 'D3 Akuntansi', 'Menikah', 'rudi.hartono@example.com', '', 0, '', '', '', 5, 'Level 4', 7000000.00, 'http://localhost/payroll_absensi_v2/uploads/profile_pics/rudi_hartono_sma_m_14.jpg', 'M', 0, NULL, 'karyawan'),
-(16, 'AF292EA2', '100010', '$2y$10$O2Tba35mbtegduiW88Q7Tew8XVSm9e8poYmMHU7GG2bn/eyoq477i', 'Hizkia Fareza', 'TK', 'Guru Membaca', 'Tetap', '2025-03-24', NULL, NULL, 0, 0, 0.00, 'Mengajar membaca anak TK', 'L', '2025-03-24', 23, 'Katolik', '2A Jl. Empu Sendok Raya', '2A Jl. Empu Sendok Raya', '144345343', '082227863969', 'D3 Akuntansi', 'Belum Menikah', 'hizkia@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
-(17, 'CC95288B', '100011', '$2y$10$C8eyrt1VfAV2j.IkvexqP.BxqtNqWV4w1U7nOhaWg0ezI4iQhac4S', 'Hendra Kurniawan', 'TK', 'Guru Balok', 'Tetap', '2025-03-24', NULL, NULL, 0, 0, 0.00, 'Mengajar kreativitas anak', 'L', '2001-05-06', 23, 'Katolik', 'Jalan Tuah', 'Jalan Tuah', '143453453', '082226544333', 'D3 Teknologi Informasi', 'Belum Menikah', 'hendra@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
-(18, 'ABB41A60', '200010', '$2y$10$88G2FLci6/xMJbfvDwhy.uLvAOAMw51oAXM/8ZMew106Lx5Qi4CPa', 'Apin Upin', 'SD', 'Teknisi Kontrol Sistem', 'Tetap', '2025-03-24', NULL, NULL, 0, 0, 0.00, 'Mengatasi Error Sistem', 'L', '1990-01-24', 30, 'Hindu', 'Jalan Kedung', 'Jalan Kedung', '1454654564', '081234567890', '', 'Belum Menikah', '', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'TK', 1, '2025-03-25 21:44:45', 'karyawan'),
-(19, '339AAE5F', '100012', '$2y$10$Fpx3nYVDsj97bWXkp5g5duTy//TbppRdY9v20wXke9OU8zYykMCP.', 'Catherine Wong S', 'SMA', 'Guru Sejarah', 'Tetap', '2025-03-25', NULL, NULL, 0, 0, 0.00, 'Mengajar Sejarah Indonesia', 'P', '2005-06-29', 19, 'Katolik', 'Klipang Raya', 'Klipang Raya', '512443563', '08182344848', 'S1 Sejarah', 'Belum Menikah', 'cathiew@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
+(16, 'AF292EA2', '100010', 'e10adc3949ba59abbe56e057f20f883e', 'Hizkia Fareza', 'TK', 'Guru Membaca', 'Tetap', '2025-03-24', NULL, NULL, 0, 1, 0.00, 'Mengajar membaca anak TK', 'L', '2025-03-24', 23, 'Katolik', '2A Jl. Empu Sendok Raya', '2A Jl. Empu Sendok Raya', '144345343', '082227863969', 'D3 Akuntansi', 'Belum Menikah', 'hizkia@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
+(17, 'CC95288B', '100011', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Kurniawan', 'TK', 'Guru Balok', 'Tetap', '2025-03-24', NULL, NULL, 0, 0, 0.00, 'Mengajar kreativitas anak', 'L', '2001-05-06', 23, 'Katolik', 'Jalan Tuah', 'Jalan Tuah', '143453453', '082226544333', 'D3 Teknologi Informasi', 'Belum Menikah', 'hendra@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
+(18, 'ABB41A60', '200010', 'e10adc3949ba59abbe56e057f20f883e', 'Apin Upin', 'SD', 'Teknisi Kontrol Sistem', 'Tetap', '2025-03-24', NULL, NULL, 0, 0, 0.00, 'Mengatasi Error Sistem', 'L', '1990-01-24', 30, 'Hindu', 'Jalan Kedung', 'Jalan Kedung', '1454654564', '081234567890', '', 'Belum Menikah', '', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'TK', 1, '2025-03-25 21:44:45', 'karyawan'),
+(19, '339AAE5F', '100012', 'e10adc3949ba59abbe56e057f20f883e', 'Catherine Wong S', 'SMA', 'Guru Sejarah', 'Tetap', '2025-03-25', NULL, NULL, 0, 0, 0.00, 'Mengajar Sejarah Indonesia', 'P', '2005-06-29', 19, 'Katolik', 'Klipang Raya', 'Klipang Raya', '512443563', '08182344848', 'S1 Sejarah', 'Belum Menikah', 'cathiew@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
 (20, 'M-005', '300005', 'e10adc3949ba59abbe56e057f20f883e', 'Diana Puspitasari', 'TK', 'Kepala Sekolah TK', 'Tetap', '2015-03-01', NULL, NULL, 10, 0, 10.00, 'Spesialis pendidikan anak usia dini', 'P', '1978-08-19', 46, 'Islam', 'Jl. Anggrek No. 12', 'Jl. Anggrek No. 12', '112233445', '081112223344', 'S2 Pendidikan Anak', 'Menikah', 'diana.puspita@example.com', 'Bambang Puspito', 2, 'Rara', 'Dimas', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
 (21, 'M-006', '300006', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Kurniawan', 'SD', 'Kepala Sekolah SD', 'Tetap', '2010-06-15', NULL, NULL, 14, 9, 14.00, 'Penggagas program literasi sekolah', 'L', '1975-11-05', 49, 'Kristen', 'Jl. Pendidikan No. 45', 'Jl. Pendidikan No. 45', '5544332211', '081334445566', 'S2 Manajemen Pendidikan', 'Menikah', 'hendra.kurnia@example.com', 'Linda Wijaya', 3, 'Kevin', 'Salsa', 'Rafi', 4, 'Level 3', 6000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
 (22, 'M-007', '300007', 'e10adc3949ba59abbe56e057f20f883e', 'Sri Wahyuni', 'SMP', 'Kepala Sekolah SMP', 'Tetap', '2013-02-20', NULL, NULL, 12, 1, 12.00, 'Penerapan kurikulum merdeka', 'P', '1980-04-30', 44, 'Islam', 'Jl. Cendrawasih No. 8', 'Jl. Cendrawasih No. 8', '6677889900', '081556677889', 'S2 Pendidikan Matematika', 'Menikah', 'sri.wahyuni@example.com', 'Ahmad Fauzi', 1, 'Budi', '', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
 (23, 'M-008', '300008', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hermawan', 'SMK 1', 'Kepala Sekolah SMK 1', 'Tetap', '2009-09-01', NULL, NULL, 15, 6, 15.00, 'Fokus pada link and match industri', 'L', '1972-12-12', 52, 'Katolik', 'Jl. Industri No. 22', 'Jl. Industri No. 22', '9988776655', '081778889900', 'S3 Teknik Mesin', 'Menikah', 'rudi.hermawan@example.com', 'Dewi Anggraeni', 2, 'Dika', 'Nina', '', 5, 'Level 4', 7000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
 (24, 'M-009', '300009', 'e10adc3949ba59abbe56e057f20f883e', 'Lina Marlina', 'SMK 2', 'Kepala Sekolah SMK 2', 'Tetap', '2017-04-10', NULL, NULL, 7, 11, 8.00, 'Pengembang teaching factory', 'P', '1985-03-25', 39, 'Islam', 'Jl. Teknologi No. 15', 'Jl. Teknologi No. 15', '1234098765', '081990001122', 'S2 Elektro', 'Menikah', 'lina.marlina@example.com', 'Eko Prasetyo', 1, 'Luna', '', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
 (25, 'M-010', '300010', 'e10adc3949ba59abbe56e057f20f883e', 'Prof. Dr. Bambang Sutejo, M.Sc.', 'Universitas Stivera', 'Kepala Sekolah Universitas Stivera', 'Tetap', '2005-01-01', NULL, NULL, 20, 3, 20.00, 'Rektor berprestasi tingkat nasional', 'L', '1968-07-17', 56, 'Buddha', 'Jl. Kampus No. 1', 'Jl. Kampus No. 1', '1357924680', '082182314967', 'S3 Manajemen Pendidikan', 'Menikah', 'bambang.sutejo@stivera.ac.id', 'Diana Sutejo', 2, 'Adi', 'Rini', '', 5, 'Level 4', 7000000.00, 'default.jpg', 'P', 0, NULL, 'guru'),
-(26, '435BF0BF', '100013', '$2y$10$BhgdOVtR.nkeapBNQssUVuggXGtcDOG4Bi3pPCfUcr4YDbKZ1I5t6', 'Duar Makjreng', 'SD', 'Guru Sejarah', 'Kontrak', '2025-04-06', 6, '2025-10-05', 0, 0, 0.00, 'Mengajar Sejarah Indonesia', 'L', '2025-04-11', 29, 'Katolik', '2A Jl. Empu Sendok Raya', '2A Jl. Empu Sendok Raya', '124453434', '082227863969', 'S2 Kesenian', 'Belum Menikah', 'duar@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL, 'guru');
+(26, '435BF0BF', '100013', 'e10adc3949ba59abbe56e057f20f883e', 'Duar Makjreng', 'SD', 'Guru Sejarah', 'Kontrak', '2025-04-06', 6, '2025-10-05', 0, 0, 0.00, 'Mengajar Sejarah Indonesia', 'L', '2025-04-11', 29, 'Katolik', '2A Jl. Empu Sendok Raya', '2A Jl. Empu Sendok Raya', '124453434', '082227863969', 'S2 Kesenian', 'Belum Menikah', 'duar@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 3000000.00, 'default.jpg', 'P', 0, NULL, 'guru');
 
 -- --------------------------------------------------------
 
@@ -266,7 +266,19 @@ INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amo
 (1, 14, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
 (2, 14, 13, 'deductions', 100000.00, 'draft', 'Potongan Beli Alat', '', NULL, 0),
 (3, 14, 6, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
-(4, 14, 11, 'earnings', 100000.00, 'draft', '', '', NULL, 0);
+(4, 14, 11, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(5, 26, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(6, 26, 13, 'deductions', 15000.00, 'draft', '', '', NULL, 0),
+(7, 26, 11, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(8, 26, 9, 'earnings', 300000.00, 'draft', '', '', NULL, 0),
+(9, 25, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(10, 25, 7, 'earnings', 50000.00, 'draft', '', '', NULL, 0),
+(11, 25, 8, 'earnings', 75000.00, 'draft', '', '', NULL, 0),
+(12, 24, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(13, 24, 7, 'earnings', 50000.00, 'draft', '', '', NULL, 0),
+(14, 24, 8, 'earnings', 75000.00, 'draft', '', '', NULL, 0),
+(15, 13, 5, 'earnings', 150000.00, 'draft', '', '', NULL, 0),
+(16, 13, 6, 'earnings', 100000.00, 'draft', '', '', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -464,6 +476,7 @@ CREATE TABLE `msg_read` (
 --
 
 INSERT INTO `msg_read` (`user_id`, `msg_id`) VALUES
+(0, 'sys-backup-20250508'),
 (0, 'sys-tukar-100');
 
 -- --------------------------------------------------------
@@ -578,7 +591,11 @@ CREATE TABLE `payroll` (
 
 INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
 (11, 14, NULL, 4, 2025, 7000000.00, 7000000.00, 200000.00, 350000.00, 0.00, 13850000.00, '2025-04-30 14:40:58', '2025-04-30 21:40:58', '0', '', 'draft'),
-(12, 14, 25, 4, 2025, 7000000.00, 7000000.00, 200000.00, 350000.00, 150000.00, 13700000.00, '2025-04-30 14:51:57', '2025-04-30 21:51:00', '235443785', '', 'final');
+(12, 14, 25, 4, 2025, 7000000.00, 7000000.00, 200000.00, 350000.00, 150000.00, 13700000.00, '2025-04-30 14:51:57', '2025-04-30 21:51:00', '235443785', '', 'final'),
+(13, 26, NULL, 4, 2025, 3000000.00, 3000000.00, 400000.00, 265000.00, 0.00, 6135000.00, '2025-05-08 15:28:02', '2025-05-08 22:28:02', '124453434', '', 'draft'),
+(14, 25, NULL, 4, 2025, 7000000.00, 7000000.00, 125000.00, 250000.00, 0.00, 13875000.00, '2025-05-09 03:25:02', '2025-05-09 10:25:02', '1357924680', '', 'draft'),
+(15, 24, NULL, 4, 2025, 5000000.00, 5000000.00, 125000.00, 250000.00, 0.00, 9875000.00, '2025-05-09 03:25:13', '2025-05-09 10:25:13', '1234098765', '', 'draft'),
+(16, 13, NULL, 4, 2025, 6000000.00, 6000000.00, 250000.00, 0.00, 0.00, 12250000.00, '2025-05-09 03:25:35', '2025-05-09 10:25:35', '445577', '', 'draft');
 
 -- --------------------------------------------------------
 
@@ -608,7 +625,19 @@ INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_anggota`, `id_payhead`, `j
 (124, 12, 14, 12, 'deductions', 250000.00, 'final'),
 (125, 12, 14, 13, 'deductions', 100000.00, 'final'),
 (126, 12, 14, 6, 'earnings', 100000.00, 'final'),
-(127, 12, 14, 11, 'earnings', 100000.00, 'final');
+(127, 12, 14, 11, 'earnings', 100000.00, 'final'),
+(128, 13, 26, 12, 'deductions', 250000.00, 'draft'),
+(129, 13, 26, 13, 'deductions', 15000.00, 'draft'),
+(130, 13, 26, 11, 'earnings', 100000.00, 'draft'),
+(131, 13, 26, 9, 'earnings', 300000.00, 'draft'),
+(132, 14, 25, 12, 'deductions', 250000.00, 'draft'),
+(133, 14, 25, 7, 'earnings', 50000.00, 'draft'),
+(134, 14, 25, 8, 'earnings', 75000.00, 'draft'),
+(135, 15, 24, 12, 'deductions', 250000.00, 'draft'),
+(136, 15, 24, 7, 'earnings', 50000.00, 'draft'),
+(137, 15, 24, 8, 'earnings', 75000.00, 'draft'),
+(138, 16, 13, 5, 'earnings', 150000.00, 'draft'),
+(139, 16, 13, 6, 'earnings', 100000.00, 'draft');
 
 -- --------------------------------------------------------
 
@@ -723,7 +752,10 @@ CREATE TABLE `permintaan_tukar_jadwal` (
 --
 
 INSERT INTO `permintaan_tukar_jadwal` (`id`, `id_jadwal_pengaju`, `id_jadwal_tujuan`, `status`, `tanggal_permintaan`, `nip_tujuan`, `nip_pengaju`, `nama_pengaju`, `tanggal_piket`) VALUES
-(1, 516, 516, 'Diterima', '2025-05-04 09:32:57', '200001', '100001', 'Ahmad Fauzi', '2025-07-03');
+(1, 516, 516, 'Diterima', '2025-05-04 09:32:57', '200001', '100001', 'Ahmad Fauzi', '2025-07-03'),
+(2, 513, NULL, 'Pending', '2025-05-04 16:36:27', '100010', '100002', 'Siti Rahma', '2025-06-23'),
+(3, 515, NULL, 'Pending', '2025-05-04 17:18:38', '300004', '100002', 'Siti Rahma', '2025-06-24'),
+(4, 517, NULL, 'Pending', '2025-05-04 17:35:58', '100010', '100002', 'Siti Rahma', '2025-07-03');
 
 -- --------------------------------------------------------
 
@@ -769,7 +801,8 @@ INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`
 (22, 23, 4, 2025, 0, 0, 0, 0, 0),
 (23, 18, 4, 2025, 0, 0, 0, 0, 0),
 (24, 6, 4, 2025, 0, 0, 0, 0, 0),
-(25, 14, 4, 2025, 27, 2, 1, 0, 0);
+(25, 14, 4, 2025, 27, 2, 1, 0, 0),
+(26, 13, 4, 2025, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -1063,13 +1096,13 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -1117,13 +1150,13 @@ ALTER TABLE `payhead_groups`
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=128;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=140;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail_final`
@@ -1147,13 +1180,13 @@ ALTER TABLE `pengajuan_ijin`
 -- AUTO_INCREMENT for table `permintaan_tukar_jadwal`
 --
 ALTER TABLE `permintaan_tukar_jadwal`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `rekap_mingguan`

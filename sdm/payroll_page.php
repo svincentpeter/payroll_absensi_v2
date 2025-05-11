@@ -134,6 +134,26 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
             margin: 0;
             font-weight: bold;
         }
+
+        /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
     </style>
     <script>
         const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
@@ -144,7 +164,9 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
     <div id="content-wrapper" class="d-flex flex-column">
         <div id="content">
             <div class="container-fluid">
-                <h1 class="h3 mb-4 text-gray-800"><i class="bi bi-cash-stack"></i> Pengaturan Payheads untuk Payroll</h1>
+                <h1 class="page-title">
+        <i class="bi bi-cash-stack"></i> Halaman Payroll</h1>
+    </h1>
                 <!-- Tombol kembali ke daftar anggota -->
                 <a href="employees.php" class="btn btn-secondary mb-3">
                     <i class="bi bi-arrow-left"></i> Kembali ke Daftar Anggota
@@ -152,7 +174,7 @@ $selectedYear  = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : da
                 <!-- Form Pengaturan Payheads -->
                 <div class="card shadow mb-4">
                     <div class="card-header">
-                        <h5 class="m-0 fw-bold">Tetapkan / Perbarui Payheads ke Anggota</h5>
+                        <h5 class="m-0 fw-bold">Tetapkan / Perbarui Payroll Anggota</h5>
                     </div>
                     <div class="card-body">
                         <form id="assign-payhead-form" enctype="multipart/form-data">

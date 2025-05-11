@@ -230,7 +230,7 @@ function LoadPayrollOverview($conn)
         $filename = basename($fotoDb);
         $local    = __DIR__ . '/../uploads/profile_pics/' . $filename;
         $baseUrl  = getBaseUrl();
-    
+
         if ($fotoDb && strpos($fotoDb, 'http') === 0) {
             // URL eksternal
             $fotoUrl = $fotoDb;
@@ -241,7 +241,7 @@ function LoadPayrollOverview($conn)
             // fallback
             $fotoUrl = "{$baseUrl}/assets/img/undraw_profile.svg";
         }
-    
+
         $rows[] = [
             'id_payroll'         => $row['id_payroll'],
             'id_anggota'         => $row['id_anggota'],
@@ -258,7 +258,7 @@ function LoadPayrollOverview($conn)
             'foto_profil'        => $fotoUrl,
         ];
     }
-    
+
     $stmtData->close();
 
     echo json_encode([
@@ -321,18 +321,64 @@ if ($stmtRole) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <!-- SweetAlert2 CSS (opsional) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            color: #000;
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(to right, #4e54c8, #8f94fb);
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --card-hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
 
-        .breadcrumb {
-            background: none;
+        /* ===== Page Title Styling ===== */
+        .page-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 2.5rem;
+            color: #0d47a1;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 3px solid #1976d2;
+            padding-bottom: 0.3rem;
+            margin-bottom: 1.5rem;
+            animation: fadeInSlide 0.5s ease-in-out both;
         }
+
+        .page-title i {
+            color: #1976d2;
+            font-size: 2.8rem;
+        }
+
+        body {
+            color: #2d3748;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: var(--card-shadow);
+        }
+
 
         .card-header {
-            background: #4e73df;
+            background: var(--secondary-gradient);
             color: white;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 0.5px;
+            padding: 1rem 1.5rem;
+        }
+
+        .card-header h6 {
+            font-weight: 600;
+            margin-bottom: 0;
         }
 
         .processed-month {
@@ -345,25 +391,34 @@ if ($stmtRole) {
         /* Grid styling */
         #payrollCards .col {
             display: flex;
+            margin-bottom: 1.5rem;
         }
 
-        #payrollCards .card {
+        .payroll-card {
             flex: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
+
 
         .employee-photo {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             object-fit: cover;
-            margin: 0 auto 10px;
+            margin: 0 auto 15px;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .badge-status {
             display: inline-block;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
 
         .badge-status.draft {
@@ -390,11 +445,83 @@ if ($stmtRole) {
         #loadingSpinner {
             display: none;
             margin-left: 10px;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-width: 0.2em;
         }
 
-        .card-header {
-            background: linear-gradient(45deg, #0d47a1, #42a5f5);
-            color: white;
+        /* Filter section */
+        .filter-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ced4da;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 0.5rem 1.25rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+        }
+
+        /* Pagination */
+        .pagination .page-item.active .page-link {
+            background-color: #667eea;
+            border-color: #667eea;
+        }
+
+        .page-link {
+            color: #667eea;
+            border-radius: 8px !important;
+            margin: 0 3px;
+            border: none;
+        }
+
+        /* Skeleton loader */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #payrollCards .col {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+
+            .filter-section .col-auto {
+                margin-bottom: 10px;
+                width: 100%;
+            }
+
+            .employee-photo {
+                width: 60px;
+                height: 60px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            #payrollCards .col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -410,96 +537,129 @@ if ($stmtRole) {
                 include __DIR__ . '/../breadcrumb.php';
                 ?>
                 <div class="container-fluid">
-
-
+                    <!-- Page Title -->
+                    <h1 class="page-title">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        Payroll Overview
+                    </h1>
                     <!-- Header: Tampilkan periode payroll yang terpilih (dengan tampilan card) -->
                     <div id="selectedMonthDisplay" class="mb-3" style="cursor: pointer;">
-                        <div class="card mb-3">
-                            <div class="card-body d-flex align-items-center">
-                                <i class="bi bi-calendar3 me-2"></i>
-                                <span class="fw-bold">
+                        <div class="card mb-3 border-0 shadow-sm">
+                            <div class="card-body d-flex align-items-center py-3">
+                                <i class="bi bi-calendar3 me-2 fs-4 text-primary"></i>
+                                <span class="fw-bold fs-5">
                                     Payroll Bulan: <?= date("F", mktime(0, 0, 0, $filterMonth, 1)) . " " . $filterYear; ?>
                                 </span>
-                                <button id="btnChangeCalendar" class="btn btn-link ms-auto">
-                                    <i class="bi bi-pencil-square"></i> Ganti Kalender
+                                <button id="btnChangeCalendar" class="btn btn-outline-primary ms-auto">
+                                    <i class="bi bi-pencil-square me-1"></i> Ganti Periode
                                 </button>
                             </div>
                         </div>
                     </div>
-<!-- Filter Section: Jenjang, Role, dan Pencarian -->
-<div class="card mb-4 shadow">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 fw-bold text-white">
-            <i class="fas fa-search"></i> Filter Payroll
-        </h6>
-    </div>
-    <div class="card-body" style="background-color: #f8f9fa;">
-        <form id="filterPayrollForm" class="row gy-2 gx-3 align-items-center">
-            <!-- Simpan csrf_token -->
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-            
-            <!-- Jenjang -->
-            <div class="col-auto">
-                <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang Pendidikan:</strong></label>
-                <select class="form-control" id="filterJenjang" name="jenjang">
-                    <option value="">Semua Jenjang</option>
-                    <?php
-                    // Ambil daftar jenjang yang telah didefinisikan di helper
-                    $jenjangList = getOrderedJenjang();
-                    foreach ($jenjangList as $jenjang) {
-                        echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
-                    }
-                    ?>
-                </select>
-            </div>
-            
-            <!-- Role -->
-            <div class="col-auto">
-                <label for="filterRole" class="form-label mb-0"><strong>Role:</strong></label>
-                <select class="form-control" id="filterRole" name="role">
-                    <option value="">Semua Role</option>
-                    <?php foreach ($roleOptions as $role): ?>
-                        <option value="<?= htmlspecialchars($role); ?>" <?= ($filterRole === $role) ? 'selected' : ''; ?>>
-                            <?= htmlspecialchars($role); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            
-            <!-- Pencarian -->
-            <div class="col-auto">
-                <label for="filterSearch" class="form-label mb-0"><strong>Pencarian:</strong></label>
-                <input type="text" class="form-control" id="filterSearch" name="search" placeholder="Cari nama / nip...">
-            </div>
-            
-            <!-- Tombol -->
-            <div class="col-auto d-flex align-items-end">
-                <button type="button" class="btn btn-primary me-2" id="btnApplyFilterPayroll">
-                    <i class="fas fa-filter"></i> Terapkan Filter
-                </button>
-                <button type="button" class="btn btn-secondary" id="btnResetFilterPayroll">
-                    <i class="fas fa-undo"></i> Reset Filter
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
 
-                    <!-- Grid Container -->
-                    <div class="card shadow mb-4">
+                    <!-- Filter Section: Jenjang, Role, dan Pencarian -->
+                    <div class="card mb-4 shadow-sm">
                         <div class="card-header py-3 d-flex justify-content-between align-items-center">
                             <h6 class="m-0 fw-bold text-white">
-                                <i class="fas fa-file-invoice-dollar"></i> Daftar Payroll
+                                <i class="fas fa-sliders-h me-2"></i> Filter Payroll
                             </h6>
-                            <div class="spinner-border text-light ms-auto" role="status" id="loadingSpinner">
-                                <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div class="card-body filter-section">
+                            <form id="filterPayrollForm" class="row gy-2 gx-3 align-items-center">
+                                <!-- Simpan csrf_token -->
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+
+                                <!-- Jenjang -->
+                                <div class="col-auto">
+                                    <label for="filterJenjang" class="form-label mb-1"><strong>Jenjang Pendidikan:</strong></label>
+                                    <select class="form-select" id="filterJenjang" name="jenjang">
+                                        <option value="">Semua Jenjang</option>
+                                        <?php
+                                        $jenjangList = getOrderedJenjang();
+                                        foreach ($jenjangList as $jenjang) {
+                                            echo '<option value="' . htmlspecialchars($jenjang) . '"' . ($filterJenjang === $jenjang ? ' selected' : '') . '>' . htmlspecialchars($jenjang) . '</option>';
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+
+                                <!-- Role -->
+                                <div class="col-auto">
+                                    <label for="filterRole" class="form-label mb-1"><strong>Role:</strong></label>
+                                    <select class="form-select" id="filterRole" name="role">
+                                        <option value="">Semua Role</option>
+                                        <?php foreach ($roleOptions as $role): ?>
+                                            <option value="<?= htmlspecialchars($role); ?>" <?= ($filterRole === $role) ? 'selected' : ''; ?>>
+                                                <?= htmlspecialchars($role); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <!-- Pencarian -->
+                                <div class="col-auto">
+                                    <label for="filterSearch" class="form-label mb-1"><strong>Pencarian:</strong></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" id="filterSearch" name="search" placeholder="Cari nama / nip..." value="<?= htmlspecialchars($search ?? '') ?>">
+                                    </div>
+                                </div>
+
+                                <!-- Tombol -->
+                                <div class="col-auto d-flex align-items-end">
+                                    <button type="button" class="btn btn-primary me-2" id="btnApplyFilterPayroll" data-toggle="tooltip" title="Terapkan filter yang dipilih">
+                                        <i class="fas fa-filter me-1"></i> Terapkan
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" id="btnResetFilterPayroll" data-toggle="tooltip" title="Reset semua filter">
+                                        <i class="fas fa-undo me-1"></i> Reset
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Skeleton Loader (hidden by default) -->
+                    <div id="loadingSkeleton" style="display:none;">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-body">
+                                <div class="row">
+                                    <?php for ($i = 0; $i < 4; $i++): ?>
+                                        <div class="col-md-3 mb-4">
+                                            <div class="card h-100">
+                                                <div class="card-body text-center">
+                                                    <div class="skeleton mx-auto" style="width:80px; height:80px; border-radius:50%; margin-bottom:15px;"></div>
+                                                    <div class="skeleton" style="width:80%; height:20px; margin:0 auto 10px;"></div>
+                                                    <div class="skeleton" style="width:60%; height:15px; margin:0 auto 8px;"></div>
+                                                    <div class="skeleton" style="width:70%; height:15px; margin:0 auto 8px;"></div>
+                                                    <div class="skeleton" style="width:50%; height:30px; margin:15px auto 0; border-radius:20px;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endfor; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grid Container -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-file-invoice-dollar me-2"></i> Daftar Payroll
+                            </h6>
+                            <div class="d-flex align-items-center">
+                                <span class="me-2 small text-white" id="recordCount">Memuat data...</span>
+                                <div class="spinner-border text-light" role="status" id="loadingSpinner">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">
                             <!-- Di sinilah grid card akan ditampilkan -->
-                            <div id="payrollCards" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
+                            <div id="payrollCards" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
                                 <!-- Card payroll akan di-generate via JS -->
                             </div>
+
                             <!-- Pagination manual -->
                             <nav class="mt-4">
                                 <ul class="pagination justify-content-center" id="paginationContainer">
@@ -515,7 +675,7 @@ if ($stmtRole) {
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
-                        <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
+                        <span>&copy; <?= date("Y"); ?> Payroll Management System</span>
                     </div>
                 </div>
             </footer>
@@ -527,7 +687,7 @@ if ($stmtRole) {
         <div class="modal-dialog modal-md" style="max-width: 600px;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="salaryMonthModalLabel"><i class="fa fa-calendar"></i> Pilih Bulan untuk Payroll</h5>
+                    <h5 class="modal-title" id="salaryMonthModalLabel"><i class="fa fa-calendar me-2"></i> Pilih Bulan untuk Payroll</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
                 <div class="modal-body">
@@ -577,6 +737,9 @@ if ($stmtRole) {
 
     <script>
         $(document).ready(function() {
+            // Inisialisasi tooltip
+            $('[data-toggle="tooltip"]').tooltip();
+
             // Toast ringkas dengan SweetAlert2
             const Toast = Swal.mixin({
                 toast: true,
@@ -584,6 +747,10 @@ if ($stmtRole) {
                 showConfirmButton: false,
                 timer: 3000,
                 timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
             });
 
             function showToast(message, icon = 'success') {
@@ -593,14 +760,49 @@ if ($stmtRole) {
                 });
             }
 
+            // Fungsi untuk mendapatkan icon berdasarkan status
+            function getStatusIcon(status) {
+                const statusMap = {
+                    'draft': 'pen',
+                    'final': 'check-circle',
+                    'revisi': 'sync-alt'
+                };
+                return statusMap[status.toLowerCase()] || 'info-circle';
+            }
+
+            // Fungsi untuk memformat tanggal
+            function formatDate(dateString) {
+                if (!dateString) return '-';
+                const options = {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                };
+                return new Date(dateString).toLocaleDateString('id-ID', options);
+            }
+
             // Paginasi manual
             let currentPage = 1;
             let pageSize = 8; // jumlah card per halaman
+
+            // Fungsi untuk menampilkan/menyembunyikan skeleton loader
+            function showSkeletonLoader(show = true) {
+                if (show) {
+                    $("#payrollCards").hide();
+                    $("#loadingSkeleton").show();
+                } else {
+                    $("#loadingSkeleton").hide();
+                    $("#payrollCards").show();
+                }
+            }
 
             // Fungsi load data payroll (AJAX)
             function loadPayroll(page) {
                 currentPage = page;
                 let start = (currentPage - 1) * pageSize;
+
+                showSkeletonLoader(true);
+                $("#loadingSpinner").show();
 
                 $.ajax({
                     url: "list_payroll.php?ajax=1",
@@ -609,8 +811,6 @@ if ($stmtRole) {
                         case: "LoadPayrollOverview",
                         start: start,
                         length: pageSize,
-                        // Gunakan filterMonth, filterYear dari server (PHP) => 
-                        // atau boleh disimpan di localStorage, dsb.
                         filterMonth: <?= $filterMonth ?>,
                         filterYear: <?= $filterYear ?>,
                         filterJenjang: $("#filterJenjang").val(),
@@ -619,22 +819,25 @@ if ($stmtRole) {
                         csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
                     },
                     dataType: "json",
-                    beforeSend: function() {
-                        $("#loadingSpinner").show();
-                    },
                     success: function(resp) {
+                        showSkeletonLoader(false);
                         $("#loadingSpinner").hide();
+
                         if (resp.data) {
                             generateCards(resp.data);
                             generatePagination(resp.recordsTotal);
+                            $("#recordCount").text(`${resp.data.length} dari ${resp.recordsTotal} data ditampilkan`);
                         } else {
-                            $("#payrollCards").empty();
+                            $("#payrollCards").html('<div class="col-12 text-center py-5"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><p class="text-muted">Tidak ada data payroll yang ditemukan</p></div>');
                             $("#paginationContainer").empty();
+                            $("#recordCount").text("0 data ditemukan");
                         }
                     },
                     error: function(xhr, status, error) {
+                        showSkeletonLoader(false);
                         $("#loadingSpinner").hide();
                         showToast("Terjadi kesalahan memuat data: " + error, "error");
+                        $("#recordCount").text("Gagal memuat data");
                     }
                 });
             }
@@ -646,6 +849,11 @@ if ($stmtRole) {
             function generateCards(data) {
                 let container = $("#payrollCards");
                 container.empty();
+
+                if (data.length === 0) {
+                    container.html('<div class="col-12 text-center py-5"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><p class="text-muted">Tidak ada data payroll yang ditemukan</p></div>');
+                    return;
+                }
 
                 data.forEach(function(item) {
                     let statusClass = 'default';
@@ -664,32 +872,49 @@ if ($stmtRole) {
                         `?id_anggota=${item.id_anggota}&bulan=${item.bulan}&tahun=${item.tahun}`;
 
                     let cardHtml = `
-              <div class="col">
-                <div class="card shadow-sm p-3 h-100 text-center">
-                  <img src="${photoUrl}" alt="Foto" class="employee-photo mb-2">
-                  <h6 class="mb-0">${item.nama}</h6>
-                  <small class="text-muted">NIP: ${item.nip}</small>
-                  <p class="mt-2 mb-1" style="font-size:0.85rem;">
-                    Role: ${item.role} | <strong>${item.jenjang}</strong>
-                  </p>
-                  <p style="font-size:0.85rem;">
-                    Status: <span class="badge-status ${statusClass}">
-                                ${item.status}
-                            </span>
-                  </p>
-                  <p style="font-size:0.8rem;">
-                    Periode: ${item.bulan}/${item.tahun}
-                  </p>
-                  <a href="${reviewUrl}" class="btn btn-sm btn-warning mt-2">
-                    <i class="bi bi-eye-fill"></i> Review
-                  </a>
-                </div>
-              </div>
-            `;
+                        <div class="col">
+                            <div class="card payroll-card h-100">
+                                <div class="card-header py-2">
+                                    <h6 class="mb-0 text-truncate">${item.nama}</h6>
+                                </div>
+                                <div class="card-body text-center pt-4 pb-3">
+                                    <div class="position-relative mb-3">
+                                        <img src="${photoUrl}" alt="Foto" class="employee-photo shadow">
+                                        <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success">
+                                            ${item.salary_index_level}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-2">
+                                        <span class="text-muted">NIP:</span>
+                                        <span>${item.nip}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-2">
+                                        <span class="text-muted">Jenjang:</span>
+                                        <span class="fw-bold">${item.jenjang}</span>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge-status ${statusClass}">
+                                            <i class="fas fa-${getStatusIcon(item.status)} me-1"></i>
+                                            ${item.status}
+                                        </span>
+                                        <a href="${reviewUrl}" class="btn btn-sm btn-primary" data-toggle="tooltip" title="Review payroll">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-footer small text-muted text-center">
+                                    Diperbarui: ${formatDate(item.tgl_payroll)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
                     container.append(cardHtml);
                 });
-            }
 
+                // Inisialisasi ulang tooltip untuk elemen baru
+                $('[data-toggle="tooltip"]').tooltip();
+            }
 
             // Fungsi generate pagination
             function generatePagination(totalRecords) {
@@ -697,32 +922,101 @@ if ($stmtRole) {
                 let pagination = $("#paginationContainer");
                 pagination.empty();
 
-                for (let i = 1; i <= totalPages; i++) {
-                    let li = $("<li>").addClass("page-item").append(
+                if (totalPages <= 1) return;
+
+                // Tombol Previous
+                pagination.append(
+                    $("<li>").addClass("page-item" + (currentPage === 1 ? " disabled" : "")).append(
+                        $("<a>").addClass("page-link").html("&laquo;").attr("href", "#").on("click", function(e) {
+                            e.preventDefault();
+                            if (currentPage > 1) loadPayroll(currentPage - 1);
+                        })
+                    )
+                );
+
+                // Tampilkan maksimal 5 halaman di sekitar current page
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, currentPage + 2);
+
+                if (startPage > 1) {
+                    pagination.append(
+                        $("<li>").addClass("page-item").append(
+                            $("<a>").addClass("page-link").text("1").attr("href", "#").on("click", function(e) {
+                                e.preventDefault();
+                                loadPayroll(1);
+                            })
+                        )
+                    );
+                    if (startPage > 2) {
+                        pagination.append(
+                            $("<li>").addClass("page-item disabled").append(
+                                $("<a>").addClass("page-link").text("...")
+                            )
+                        );
+                    }
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    let li = $("<li>").addClass("page-item" + (i === currentPage ? " active" : "")).append(
                         $("<a>").addClass("page-link").text(i).attr("href", "#").on("click", function(e) {
                             e.preventDefault();
                             loadPayroll(i);
                         })
                     );
-                    if (i === currentPage) {
-                        li.addClass("active");
-                    }
                     pagination.append(li);
                 }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                        pagination.append(
+                            $("<li>").addClass("page-item disabled").append(
+                                $("<a>").addClass("page-link").text("...")
+                            )
+                        );
+                    }
+                    pagination.append(
+                        $("<li>").addClass("page-item").append(
+                            $("<a>").addClass("page-link").text(totalPages).attr("href", "#").on("click", function(e) {
+                                e.preventDefault();
+                                loadPayroll(totalPages);
+                            })
+                        )
+                    );
+                }
+
+                // Tombol Next
+                pagination.append(
+                    $("<li>").addClass("page-item" + (currentPage === totalPages ? " disabled" : "")).append(
+                        $("<a>").addClass("page-link").html("&raquo;").attr("href", "#").on("click", function(e) {
+                            e.preventDefault();
+                            if (currentPage < totalPages) loadPayroll(currentPage + 1);
+                        })
+                    )
+                );
             }
+
 
             // Panggil loadPayroll pertama kali
             loadPayroll(1);
 
             // Filter (Apply & Reset)
-            $("#btnApplyFilter").on("click", function() {
+            $("#btnApplyFilterPayroll").on("click", function() {
                 loadPayroll(1);
             });
-            $("#btnResetFilter").on("click", function() {
+
+            $("#btnResetFilterPayroll").on("click", function() {
                 $("#filterJenjang").val("");
                 $("#filterRole").val("");
                 $("#filterSearch").val("");
                 loadPayroll(1);
+            });
+
+            // Submit form filter saat tekan Enter di input search
+            $("#filterSearch").on("keypress", function(e) {
+                if (e.which === 13) {
+                    loadPayroll(1);
+                    return false;
+                }
             });
 
             // Modal "Ganti Kalender" => menampilkan SalaryMonthModal
@@ -760,7 +1054,9 @@ if ($stmtRole) {
                                     icon: 'warning',
                                     showCancelButton: true,
                                     confirmButtonText: 'Ya, pilih bulan ini',
-                                    cancelButtonText: 'Batal'
+                                    cancelButtonText: 'Batal',
+                                    confirmButtonColor: '#4e73df',
+                                    cancelButtonColor: '#6c757d'
                                 }).then((result) => {
                                     if (result.isConfirmed) {
                                         // Catat pilihan bulan

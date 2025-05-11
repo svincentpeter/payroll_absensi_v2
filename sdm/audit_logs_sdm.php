@@ -116,9 +116,10 @@ if (!$resultFiltered) {
     die("Query error: " . $conn->error);
 }
 
-// Catat audit log bahwa halaman logs diakses
-$user_id = $_SESSION['user_id'] ?? 0;
-add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs SDM.');
+// Ambil NIP dari session (asumsi Anda menyimpan NIP saat login)
+$user_nip = $_SESSION['nip'] ?? '';
+add_audit_log($conn, $user_nip, 'AccessAuditLogs', 'Mengakses halaman Audit Logs SDM.');
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -218,7 +219,25 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
             color: #6e707e;
             margin-top: 5px;
         }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         @media (max-width: 768px) {
             .vertical-timeline {
                 padding-left: 10px;
@@ -254,9 +273,10 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs 
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 text-gray-800"><i class="fas fa-list-alt"></i> Audit Logs SDM</h1>
-                    </div>
+<h1 class="page-title">
+        <i class="fas fa-list-alt"></i> Audit Logs SDM</h1>
+    </h1>
+                    
 <!-- Filter Audit Logs -->
 <div class="card mb-4 shadow">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">

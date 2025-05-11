@@ -262,6 +262,25 @@ function DeleteGroup($conn) {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     body { padding: 20px; }
+    /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
     .card-header { background: linear-gradient(45deg,#0d47a1,#42a5f5); color:#fff; }
     thead th { background:#343a40; color:#fff; }
     .table-responsive { overflow-x:auto; }
@@ -272,7 +291,9 @@ function DeleteGroup($conn) {
     <button class="btn btn-secondary mb-3" id="btnBack" data-href="/payroll_absensi_v2/sdm/payheads.php">
       <i class="fas fa-arrow-left"></i> Kembali ke Manajemen Payheads
     </button>
-    <h1 class="h3 mb-4"><i class="fas fa-layer-group"></i> Manage Payhead Groups</h1>
+    <h1 class="page-title">
+        <i class="fas fa-layer-group"></i> Manage Payhead Groups</h1>
+    </h1>
     <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#modalAdd">
       <i class="fas fa-plus"></i> Tambah Group
     </button>

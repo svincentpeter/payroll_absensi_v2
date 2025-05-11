@@ -152,7 +152,25 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
         body {
             background-color: #f8f9fc;
         }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         /* Card custom dengan ukuran maksimal tidak terlalu besar */
         .card-custom {
             max-width: 900px;
@@ -269,9 +287,9 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <!-- Page Heading -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 text-gray-800"><i class="fas fa-list-alt"></i> Audit Logs</h1>
-                    </div>
+                     <h1 class="page-title">
+        <i class="fas fa-list-alt"></i> Audit Logs
+    </h1>
 <!-- Filter Audit Logs -->
 <div class="card mb-4 shadow">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">

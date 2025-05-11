@@ -232,6 +232,25 @@ function LoadingPayrollDetails($conn, $jenjang)
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <style>
     body{padding-top:20px;}
+    /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
     .card-header{background:linear-gradient(45deg,#0d47a1,#42a5f5);color:#fff;}
     .table-responsive{overflow-x:auto;}
     table.dataTable th, table.dataTable td{white-space:nowrap;}
@@ -242,11 +261,12 @@ function LoadingPayrollDetails($conn, $jenjang)
     <a href="rekap_payroll.php" class="btn btn-secondary mb-3">
       <i class="fas fa-arrow-left"></i> Kembali
     </a>
-    <h1 class="h3 mb-4" style="color: #000;">
-  <i class="fas fa-file-invoice"></i>
-  Detail Rekap – <?= htmlspecialchars($jenjang) ?>
-</h1>
 
+<h1 class="page-title">
+        <i class="fas fa-file-invoice"></i>
+  Detail Rekap – <?= htmlspecialchars($jenjang) ?>
+    </h1>
+    
     <div class="card shadow mb-4">
       <div class="card-header py-3">
         <h6 class="m-0 fw-bold"><i class="fas fa-list"></i> Daftar Detail Payroll</h6>

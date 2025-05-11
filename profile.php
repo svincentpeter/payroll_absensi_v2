@@ -285,7 +285,25 @@ if (!empty($fotoDb) && strpos($fotoDb, 'http') === 0) {
             max-width: 1000px;
             margin: 20px auto;
         }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         .profile-img {
             width: 180px;
             height: 180px;
@@ -330,15 +348,13 @@ if (!empty($fotoDb) && strpos($fotoDb, 'http') === 0) {
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <!-- Heading Halaman -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">
-                            <i class="fas fa-user-circle me-2"></i>Profil Saya
-                        </h1>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditProfile">
+                        <h1 class="page-title">
+        <i class="fas fa-user-circle me-2"></i>Profil Saya
+    </h1>
+                       
+ <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditProfile">
                             <i class="fas fa-user-edit fa-sm text-white-50"></i> Edit Profil
                         </button>
-                    </div>
-
                     <!-- Kartu Profil -->
                     <div class="card profile-card shadow mb-4">
                         <div class="card-header bg-primary text-white">

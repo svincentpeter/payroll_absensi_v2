@@ -714,6 +714,9 @@ function LoadingEmployees($conn)
             'payroll_status'      => $statusPayroll,
             'has_rapel'           => intval($row['has_rapel']) > 0,
             'foto_profil'         => $fotoUrl,
+            'badge_role'      => getBadgeRole($row['role']),
+        'badge_jenjang'   => getBadgeJenjang($row['jenjang']),
+        'badge_status'    => getBadgeStatusKerja($row['status_kerja']),
         ];
     }
 
@@ -1019,92 +1022,185 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        body,
-        .text-gray-800 {
-            color: #000 !important;
-        }
+    /* ─── ROOT VARS & CARD OVERRIDES ───────────────────────── */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+        --secondary-gradient:    linear-gradient(to right, #4e54c8, #8f94fb);
+        --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        --card-hover-shadow:     0 10px 20px rgba(0,0,0,0.2);
+    }
 
-        .card-header {
-            background: linear-gradient(45deg, #0d47a1, #42a5f5);
-            color: white;
-        }
+    /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
+    .employee-card {
+  /* kita hanya styling tambahan, biar tetap ada .card bootstrap */
+  border-radius: .75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
 
-        #employeeCards {
-            margin-top: 20px;
-        }
+.employee-photo {
+   width: 100px !important;
+  height: 100px !important;
+  object-fit: cover;
+  border-radius: 50%;
+  margin: 1rem auto 0;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
 
-        #employeeCards .col {
-            display: flex;
-        }
+.employee-card .card-body {
+  display: flex;
+  flex-direction: column;
+}
 
-        #employeeCards .card {
-            flex: 1;
-        }
+.employee-card .card-title {
+  font-size: 1.25rem;
+  margin-bottom: .25rem;
+}
 
-        .employee-photo {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin: 0 auto 10px;
-        }
+.employee-card .card-text {
+  margin-bottom: .5rem;
+}
 
-        .badge-status {
-            display: inline-block;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
+.employee-card .badges,
+.employee-card .status,
+.employee-card .rapel {
+  margin-bottom: .5rem;
+}
 
-        .badge-status.final {
-            background-color: #28a745;
-            color: #fff;
-        }
+.employee-card .btn {
+  font-size: .9rem;
+  padding: .5rem;
+}
 
-        .badge-status.draft {
-            background-color: #17a2b8;
-            color: #fff;
-        }
+    .card {
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        box-shadow: var(--card-shadow);
+    }
 
-        .badge-status.revisi {
-            background-color: #ffc107;
-            color: #000;
-        }
+    /* ─── GENERIC BUTTON OVERRIDES ───────────────────────── */
+    .btn {
+        border-radius: 8px;
+        padding: 0.5rem 1.25rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+        color: #fff;
+    }
 
-        .badge-status.default {
-            background-color: #6c757d;
-            color: #fff;
-        }
+    /* ─── BODY & TEXT COLORS ─────────────────────────────── */
+    body {
+        background: #f7f9fc;
+    }
+    body,
+    .text-gray-800 {
+        color: #000 !important;
+    }
 
-        .spinner-border {
-            display: none;
-            margin-left: 5px;
-        }
+    /* ─── HEADER PERIODE (SELECTED MONTH) ─────────────────── */
+    #selectedMonthDisplay {
+        cursor: pointer;
+    }
+    #btnChangeCalendar {
+  background: #fff;
+  border: 1px solid #4e73df;   /* bootstrap primary */
+  color: #4e73df;
+  transition: all .2s;
+}
+    #btnChangeCalendar:hover {
+        color: #0056b3;
+        box-shadow: 0 .2rem .4rem rgba(0,0,0,0.1);
+    }
 
-        #loadingSpinner {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            height: 100px;
-            width: 100px;
-            margin: auto;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-        }
+    /* ─── CARD HEADER UTAMA ───────────────────────────────── */
+    .card-header {
+        background: linear-gradient(45deg, #0d47a1, #42a5f5);
+        color: white;
+    }
 
-        .modal-dialog-scrollable {
-            max-height: 90vh;
-        }
+    /* ─── GRID ANGGOTA & FOTO ────────────────────────────── */
+    #employeeCards {
+        margin-top: 20px;
+    }
+    #employeeCards .col {
+        display: flex;
+    }
+    #employeeCards .card {
+        flex: 1;
+    }
+    .employee-photo {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 10px;
+    }
 
-        .processed-month {
-            background: #343a40 !important;
-            color: #fff !important;
-            pointer-events: none;
-            border: 1px solid #343a40;
-        }
-    </style>
+    /* ─── BADGE STATUS ───────────────────────────────────── */
+    .badge-status {
+        display: inline-block;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+    .badge-status.final   { background-color: #28a745; color: #fff; }
+    .badge-status.draft   { background-color: #17a2b8; color: #fff; }
+    .badge-status.revisi  { background-color: #ffc107; color: #000; }
+    .badge-status.default { background-color: #6c757d; color: #fff; }
+
+    /* ─── LOADING & SPINNER ─────────────────────────────── */
+    .spinner-border {
+        display: none;
+        margin-left: 5px;
+    }
+    #loadingSpinner {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        height: 100px;
+        width: 100px;
+        margin: auto;
+        top: 0; left: 0; right: 0; bottom: 0;
+    }
+
+    /* ─── MODAL SCROLLABLE ───────────────────────────────── */
+    .modal-dialog-scrollable {
+        max-height: 90vh;
+    }
+
+    /* ─── PROCESSED MONTH BADGE ──────────────────────────── */
+    .processed-month {
+        background: #343a40 !important;
+        color: #fff !important;
+        pointer-events: none;
+        border: 1px solid #343a40;
+    }
+</style>
+
     <script>
         const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
     </script>
@@ -1118,20 +1214,25 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                 <?php include __DIR__ . '/../navbar.php'; ?>
                 <?php include __DIR__ . '/../breadcrumb.php'; ?>
                 <div class="container-fluid">
-                    <div id="selectedMonthDisplay" class="mb-3">
-                        <div class="card mb-3">
-                            <div class="card-body d-flex align-items-center">
-                                <i class="bi bi-calendar3 me-2"></i>
-                                <span class="fw-bold">
-                                    Payroll Bulan: <?= date('F', mktime(0, 0, 0, $selectedMonth, 1)) . ' ' . $selectedYear; ?>
-                                </span>
-                                <button id="btnChangeCalendar" class="btn btn-link ms-auto">
-                                    <i class="bi bi-pencil-square"></i> Ganti Kalender
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <h1 class="h3 mb-4 text-gray-800"><i class="bi bi-people-fill"></i> Payroll Anggota</h1>
+                    <h1 class="page-title">
+        <i class="bi bi-people-fill"></i>
+       Payroll Anggota
+    </h1>
+                <!-- Header periode -->
+<div id="selectedMonthDisplay" class="mb-3">
+  <div class="card mb-3 border-0 shadow-sm">
+    <div class="card-body d-flex align-items-center py-3">
+      <i class="bi bi-calendar3 me-2 fs-4 text-primary"></i>
+      <span class="fw-bold fs-5">
+        Payroll Bulan: <?= date("F", mktime(0,0,0,$filterMonth,1)) . ' ' . $filterYear ?>
+      </span>
+      <button id="btnChangeCalendar" class="btn btn-outline-primary ms-auto">
+        <i class="bi bi-pencil-square me-1"></i> Ganti Periode
+      </button>
+    </div>
+  </div>
+</div>
+                    
                     <div id="alert-placeholder"></div>
                     <!-- Filter Anggota -->
                     <div class="card mb-4 shadow">
@@ -1212,7 +1313,7 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                             </div>
                         </div>
                         <div class="card-body">
-                            <div id="employeeCards" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3"></div>
+                            <div id="employeeCards" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4"></div>
                             <!-- Pagination manual -->
                             <nav class="mt-4">
                                 <ul class="pagination justify-content-center" id="paginationContainer"></ul>
@@ -1640,63 +1741,51 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
             let baseUrl = "<?= getBaseUrl(); ?>";
 
             function generateCards(data) {
-                let container = $("#employeeCards");
-                container.empty();
-                data.forEach(function(item) {
-                    // tentukan warna & teks rapel
-                    let rapelBadge = '';
-                    if (item.has_rapel) {
-                        rapelBadge = `<span class="badge" style="background-color: red;">Ada</span>`;
-                    } else {
-                        rapelBadge = `<span class="badge bg-secondary">-</span>`;
-                    }
+  const container = $("#employeeCards").empty();
+  data.forEach(item => {
+    const rapelBadge = item.has_rapel
+      ? `<span class="badge" style="background-color:#dc3545;color:#fff;">Ada</span>`
+      : `<span class="badge bg-secondary">-</span>`;
+    const photoUrl = item.foto_profil || baseUrl + "/assets/img/undraw_profile.svg";
 
-                    let badgeClass = 'default';
-                    if (item.payroll_status.toLowerCase() === 'final') badgeClass = 'final';
-                    else if (item.payroll_status.toLowerCase() === 'draft') badgeClass = 'draft';
-                    else if (item.payroll_status.toLowerCase() === 'revisi') badgeClass = 'revisi';
-
-                    let photoUrl = item.foto_profil && item.foto_profil !== '' ?
-                        item.foto_profil :
-                        baseUrl + "/assets/img/undraw_profile.svg";
-
-                    let cardHtml = `
-          <div class="col">
-            <div class="card shadow-sm p-3 h-100 text-center" data-payroll_status="${item.payroll_status}">
-              <img src="${photoUrl}" alt="Foto" class="employee-photo mb-2">
-              <h6 class="mb-0">${item.nama}</h6>
-              <small class="text-muted">NIP: ${item.nip}</small>
-              <p class="mt-2 mb-1" style="font-size:0.85rem;">
-                Role: ${item.role} | <strong>${item.jenjang}</strong>
-              </p>
-              <p style="font-size:0.85rem;">
-                Status: <span class="badge-status ${badgeClass}">${item.payroll_status}</span>
-              </p>
-              <p style="font-size:0.85rem;">
-                Rapel: ${rapelBadge}
-              </p>
-              <div class="d-grid gap-2">
-                <button class="btn btn-sm btn-primary btnViewDetail" data-id="${item.id}">
-                  <i class="bi bi-eye-fill"></i> Detail Data
-                </button>
-                <button class="btn btn-sm btn-warning btnEdit" data-id="${item.id}">
-                  <i class="bi bi-pencil-square"></i> Edit Data
-                </button>
-                <button class="btn btn-sm btn-info btnAssignPayheads" data-id="${item.id}">
-                  <i class="bi bi-cash-stack"></i> Payroll
-                </button>
-                <button class="btn btn-sm btn-secondary btnRekapAbsensi"
-                        data-id="${item.id}"
-                        data-role="${item.role}">
-                  <i class="bi bi-calendar-check"></i> Rekap Absensi
-                </button>
-              </div>
+    const cardHtml = `
+      <div class="col mb-4">
+        <div class="card employee-card h-100">
+          <img src="${photoUrl}" class="card-img-top employee-photo" alt="Foto Profil">
+          <div class="card-body d-flex flex-column text-center">
+            <h5 class="card-title">${item.nama}</h5>
+            <p class="card-text small text-muted">NIP: ${item.nip}</p>
+            <div class="badges">
+              ${item.badge_role} ${item.badge_jenjang}
+            </div>
+            <div class="status">
+              <strong>Status:</strong> ${item.badge_status}
+            </div>
+            <div class="rapel">
+              <strong>Rapel:</strong> ${rapelBadge}
+            </div>
+            <div class="mt-auto d-grid gap-2">
+              <button class="btn btn-primary btn-sm btnViewDetail" data-id="${item.id}">
+                <i class="bi bi-eye-fill"></i> Detail
+              </button>
+              <button class="btn btn-warning btn-sm btnEdit" data-id="${item.id}">
+                <i class="bi bi-pencil-square"></i> Edit
+              </button>
+              <button class="btn btn-info btn-sm btnAssignPayheads" data-id="${item.id}">
+                <i class="bi bi-cash-stack"></i> Payroll
+              </button>
+              <button class="btn btn-secondary btn-sm btnRekapAbsensi" data-id="${item.id}">
+                <i class="bi bi-calendar-check"></i> Absensi
+              </button>
             </div>
           </div>
-        `;
-                    container.append(cardHtml);
-                });
-            }
+        </div>
+      </div>`;
+    container.append(cardHtml);
+  });
+}
+
+
 
 
             function generatePagination(totalRecords) {

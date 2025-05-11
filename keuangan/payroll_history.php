@@ -209,11 +209,11 @@ function ViewPayrollDetail($conn)
 
     // Format data summary
     $row['gaji_pokok']        = formatNominal($row['gaji_pokok']);
-$row['salary_index_amount'] = formatNominal($row['salary_index_amount']);
-$row['total_pendapatan']  = formatNominal($row['total_pendapatan']);
-$row['total_potongan']    = formatNominal($row['total_potongan']);
-$row['potongan_koperasi'] = formatNominal($row['potongan_koperasi']);
-$row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
+    $row['salary_index_amount'] = formatNominal($row['salary_index_amount']);
+    $row['total_pendapatan']  = formatNominal($row['total_pendapatan']);
+    $row['total_potongan']    = formatNominal($row['total_potongan']);
+    $row['potongan_koperasi'] = formatNominal($row['potongan_koperasi']);
+    $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
     // Konversi bulan -> nama
     $row['bulan']            = getIndonesianMonthName((int)$row['bulan']);
 
@@ -276,6 +276,9 @@ $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
     <title>History Payroll - Payroll Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+
     <!-- Bootstrap 5.3.3 & SB Admin 2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" nonce="<?php echo $nonce; ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
@@ -290,6 +293,28 @@ $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <style>
+        /* Judul Halaman yang Diperbarui */
+        .page-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 2.5rem;
+            color: #0d47a1;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 3px solid #1976d2;
+            padding-bottom: 0.3rem;
+            margin-bottom: 1.5rem;
+
+        }
+        .page-title i {
+            color: #1976d2;
+            font-size: 2.8rem;
+        }
+        
+
+        /* Card Header */
         .card-header {
             background: linear-gradient(45deg, #0d47a1, #42a5f5);
             color: white;
@@ -357,7 +382,7 @@ $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">
+                    <h1 class="page-title">
                         <i class="fas fa-history"></i> History Payroll
                     </h1>
 
@@ -559,21 +584,20 @@ $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
                     }
                 },
                 columns: [
-  { data:'id',               name:'id' },
-  { data:'nama',             name:'nama' },
-  { data:'jenjang',          name:'jenjang' },
-  { data:'bulan',            name:'bulan' },
-  { data:'tahun',            name:'tahun' },
-  { data:'gaji_pokok',       name:'gaji_pokok' },        // 1. Gaji Pokok
-  { data:'salary_index',     name:'salary_index' },      // 2. Salary Indeks
-  { data:'total_pendapatan', name:'total_pendapatan' },  // 3. Total Pendapatan
-  { data:'total_lain_lain',  name:'total_lain_lain' },   // 4. Lain‑lain
-  { data:'potongan_koperasi',name:'potongan_koperasi' }, // 5. Potongan Koperasi
-  { data:'total_potongan',   name:'total_potongan' },    // 6. Total Potongan
-  { data:'gaji_bersih',      name:'gaji_bersih' },       // 7. Gaji Bersih
-  { data:'aksi', orderable:false, searchable:false }     // 8. Aksi
-],
-
+                    { data:'id',               name:'id' },
+                    { data:'nama',             name:'nama' },
+                    { data:'jenjang',          name:'jenjang' },
+                    { data:'bulan',            name:'bulan' },
+                    { data:'tahun',            name:'tahun' },
+                    { data:'gaji_pokok',       name:'gaji_pokok' },
+                    { data:'salary_index',     name:'salary_index' },
+                    { data:'total_pendapatan', name:'total_pendapatan' },
+                    { data:'total_lain_lain',  name:'total_lain_lain' },
+                    { data:'potongan_koperasi',name:'potongan_koperasi' },
+                    { data:'total_potongan',   name:'total_potongan' },
+                    { data:'gaji_bersih',      name:'gaji_bersih' },
+                    { data:'aksi', orderable:false, searchable:false }
+                ],
                 order: [
                     [0, 'desc']
                 ],
@@ -642,67 +666,67 @@ $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
                             detailModal.show();
                         },
                         success: function(response) {
-  if (response.code === 0) {
-    var d = response.result;
-    var html = '<table class="table table-bordered">';
-    html += '<tr><th>ID Payroll</th><td>' + d.id + '</td></tr>';
-    html += '<tr><th>UID</th><td>'    + (d.uid  || '-') + '</td></tr>';
-    html += '<tr><th>NIP</th><td>'    + (d.nip  || '-') + '</td></tr>';
-    html += '<tr><th>Nama</th><td>'   + d.nama + '</td></tr>';
-    html += '<tr><th>Jenjang</th><td>'+ d.jenjang + '</td></tr>';
-    html += '<tr><th>Role</th><td>'   + (d.role || '-') + '</td></tr>';
-    html += '<tr><th>Job Title</th><td>'+ (d.job_title||'-') + '</td></tr>';
-    html += '<tr><th>Status Kerja</th><td>'+ (d.status_kerja||'-') + '</td></tr>';
-    html += '<tr><th>Masa Kerja</th><td>'+ d.masa_kerja + '</td></tr>';
-    html += '<tr><th>No Rekening</th><td>'+ (d.no_rekening||'-') + '</td></tr>';
-    html += '<tr><th>Email</th><td>'  + (d.email||'-') + '</td></tr>';
-    html += '<tr><th>Jenis Kelamin</th><td>'+ (d.jenis_kelamin||'-') + '</td></tr>';
-    html += '<tr><th>Agama</th><td>'  + (d.agama||'-') + '</td></tr>';
+                            if (response.code === 0) {
+                                var d = response.result;
+                                var html = '<table class="table table-bordered">';
+                                html += '<tr><th>ID Payroll</th><td>' + d.id + '</td></tr>';
+                                html += '<tr><th>UID</th><td>'    + (d.uid  || '-') + '</td></tr>';
+                                html += '<tr><th>NIP</th><td>'    + (d.nip  || '-') + '</td></tr>';
+                                html += '<tr><th>Nama</th><td>'   + d.nama + '</td></tr>';
+                                html += '<tr><th>Jenjang</th><td>'+ d.jenjang + '</td></tr>';
+                                html += '<tr><th>Role</th><td>'   + (d.role || '-') + '</td></tr>';
+                                html += '<tr><th>Job Title</th><td>'+ (d.job_title||'-') + '</td></tr>';
+                                html += '<tr><th>Status Kerja</th><td>'+ (d.status_kerja||'-') + '</td></tr>';
+                                html += '<tr><th>Masa Kerja</th><td>'+ d.masa_kerja + '</td></tr>';
+                                html += '<tr><th>No Rekening</th><td>'+ (d.no_rekening||'-') + '</td></tr>';
+                                html += '<tr><th>Email</th><td>'  + (d.email||'-') + '</td></tr>';
+                                html += '<tr><th>Jenis Kelamin</th><td>'+ (d.jenis_kelamin||'-') + '</td></tr>';
+                                html += '<tr><th>Agama</th><td>'  + (d.agama||'-') + '</td></tr>';
 
-    // 1. Gaji Pokok
-    html += '<tr><th>Gaji Pokok</th><td>' + d.gaji_pokok + '</td></tr>';
-    // 2. Salary Indeks
-    html += '<tr><th>Salary Indeks</th><td>' + d.salary_index_amount + '</td></tr>';
+                                // 1. Gaji Pokok
+                                html += '<tr><th>Gaji Pokok</th><td>' + d.gaji_pokok + '</td></tr>';
+                                // 2. Salary Indeks
+                                html += '<tr><th>Salary Indeks</th><td>' + d.salary_index_amount + '</td></tr>';
 
-    // Total Pendapatan + list earnings payheads
-    html += '<tr><th>Total Pendapatan</th><td>' + d.total_pendapatan;
-    if (d.payheads_detail) {
-      d.payheads_detail.filter(ph => ph.jenis==='earnings')
-        .forEach(ph => {
-          var nom = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
-          html += '<div><span class="badge bg-success me-2 text-black">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
-        });
-    }
-    html += '</td></tr>';
+                                // Total Pendapatan + list earnings payheads
+                                html += '<tr><th>Total Pendapatan</th><td>' + d.total_pendapatan;
+                                if (d.payheads_detail) {
+                                    d.payheads_detail.filter(ph => ph.jenis==='earnings')
+                                    .forEach(ph => {
+                                        var nom = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
+                                        html += '<div><span class="badge bg-success me-2 text-black">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
+                                    });
+                                }
+                                html += '</td></tr>';
 
-    // Lain‑lain
-    html += '<tr><th>Lain‑lain</th><td>' + d.total_lain_lain + '</td></tr>';
+                                // Lain‑lain
+                                html += '<tr><th>Lain‑lain</th><td>' + d.total_lain_lain + '</td></tr>';
 
-    // Potongan Koperasi
-    html += '<tr><th>Potongan Koperasi</th><td>' + d.potongan_koperasi + '</td></tr>';
+                                // Potongan Koperasi
+                                html += '<tr><th>Potongan Koperasi</th><td>' + d.potongan_koperasi + '</td></tr>';
 
-    // Total Potongan + list deductions payheads
-    html += '<tr><th>Total Potongan</th><td>' + d.total_potongan;
-    if (d.payheads_detail) {
-      d.payheads_detail.filter(ph => ph.jenis==='deductions')
-        .forEach(ph => {
-          var nom = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
-          html += '<div><span class="badge bg-danger me-2 text-black">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
-        });
-    }
-    html += '</td></tr>';
+                                // Total Potongan + list deductions payheads
+                                html += '<tr><th>Total Potongan</th><td>' + d.total_potongan;
+                                if (d.payheads_detail) {
+                                    d.payheads_detail.filter(ph => ph.jenis==='deductions')
+                                    .forEach(ph => {
+                                        var nom = parseFloat(ph.amount).toLocaleString('id-ID',{minimumFractionDigits:2});
+                                        html += '<div><span class="badge bg-danger me-2 text-black">'+ph.nama_payhead+'</span> Rp '+nom+'</div>';
+                                    });
+                                }
+                                html += '</td></tr>';
 
-    // Gaji Bersih
-    html += '<tr><th>Gaji Bersih</th><td>' + d.gaji_bersih + '</td></tr>';
-    html += '<tr><th>Bulan</th><td>'      + d.bulan + '</td></tr>';
-    html += '<tr><th>Tahun</th><td>'      + d.tahun + '</td></tr>';
-    html += '</table>';
+                                // Gaji Bersih
+                                html += '<tr><th>Gaji Bersih</th><td>' + d.gaji_bersih + '</td></tr>';
+                                html += '<tr><th>Bulan</th><td>'      + d.bulan + '</td></tr>';
+                                html += '<tr><th>Tahun</th><td>'      + d.tahun + '</td></tr>';
+                                html += '</table>';
 
-    $('#detailPayrollContent').html(html);
-  } else {
-    $('#detailPayrollContent').html('<p>'+response.result+'</p>');
-  }
-},
+                                $('#detailPayrollContent').html(html);
+                            } else {
+                                $('#detailPayrollContent').html('<p>'+response.result+'</p>');
+                            }
+                        },
 
                         error: function() {
                             $('#detailPayrollContent').html('<p>Terjadi kesalahan saat memuat detail payroll.</p>');

@@ -219,6 +219,7 @@ function LoadingGuru($conn)
             "nip"                 => htmlspecialchars($row['nip']),
             "nama"                => htmlspecialchars($row['nama']),
             "jenjang"             => $row['jenjang'],
+            "jenjang_badge"  => getBadgeJenjang($row['jenjang']),
             "job_title"           => htmlspecialchars($row['job_title']),
             "role"                => $row['role'],
             "status_kerja"        => $row['status_kerja'],
@@ -834,61 +835,164 @@ function getGajiPokokByRole($conn, $role)
     <link href="https://cdnjs.cloudflare.com/ajax/libs/startbootstrap-sb-admin-2/4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        body,
-        .text-gray-800 {
-            color: #000 !important;
-        }
+/* 1. Base typography & layout */
+body {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    background-color: #f5f6f7;
+    color: #212529 !important;
+    padding: 0;
+    margin: 0;
+}
 
-        .card-header {
-            background: linear-gradient(45deg, #0d47a1, #42a5f5);
-            color: white;
-        }
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
 
-        #loadingSpinner {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            height: 100px;
-            width: 100px;
-            margin: auto;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-        }
+/* Container padding ekstra untuk ruang putih */
+.container-fluid {
+    padding: 0.5rem 1rem;
+}
 
-        #ManageModal .modal-dialog {
-            max-width: 1000px;
-            margin: auto;
-            padding-top: 70px;
-            color: #000 !important;
-        }
+/* 2. Card styling */
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+}
 
-        .employee-initial {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #ff9800;
-            color: #fff;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 10px auto;
-        }
+/* 3. Card headers: gradient lembut */
+.card-header {
+    background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+    color: white;
+    font-weight: 600;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
 
-        #employeeCards {
-            margin-top: 20px;
-        }
+/* 4. Employee‐card khusus */
+.employee-card {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    border: 1px solid #e0e0e0;
+}
 
-        #employeeCards .col {
-            display: flex;
-        }
+.employee-card .card-body {
+    padding: 1.25rem;
+}
 
-        #employeeCards .card {
-            flex: 1;
-        }
-    </style>
+.employee-photo {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 6. Badges (status kerja) */
+.badge {
+    font-size: 0.9rem;
+    padding: 0.4em 0.6em;
+}
+.badge.bg-success {
+    background-color: #218838 !important;
+}
+.badge.bg-warning {
+    background-color: #E0A800 !important;
+    color: #212529 !important;
+}
+
+/* 7. Buttons: area klik lebih besar */
+.btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+}
+.btn-primary {
+    background-color: #4A90E2;
+    border-color: #4A90E2;
+}
+.btn-primary:hover {
+    background-color: #3A78C2;
+    border-color: #3A78C2;
+}
+
+/* 8. Filter section */
+#filterSection {
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+#filterSection .form-label {
+    font-weight: 500;
+}
+
+/* 9. Pagination */
+.pagination .page-link {
+    padding: 0.5rem 0.75rem;
+    color: #4A90E2;
+    border-radius: 0.25rem;
+}
+.pagination .page-item.active .page-link {
+    background-color: #4A90E2;
+    border-color: #4A90E2;
+    color: #ffffff;
+}
+
+/* 10. Loading overlay */
+#loadingSpinner {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 11. Toast size */
+.swal2-toast {
+    font-size: 1rem !important;
+}
+
+/* 12. Konsistensi spasi form-controls */
+.form-control {
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* 13. Navbar & sidebar teks gelap */
+body, .text-gray-800 {
+    color: #212529 !important;
+}
+
+/* 14. Footer */
+.sticky-footer {
+    padding: 1rem 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+</style>
+
 </head>
 
 <body id="page-top">
@@ -907,8 +1011,10 @@ function getGajiPokokByRole($conn, $role)
                 <?php include __DIR__ . '/../breadcrumb.php'; ?>
 
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">Manajemen Data Guru/Karyawan</h1>
-
+  <h1 class="page-title">
+        <i class="bi bi-people-fill me-2 "></i>
+       Manajemen Data Guru/Karyawan
+    </h1>
                     <!-- Bagian Tombol Aksi -->
                     <div class="d-flex justify-content-end mb-3 flex-wrap gap-2">
                         <!-- Tombol Tambah -->
@@ -1853,7 +1959,18 @@ function getGajiPokokByRole($conn, $role)
                     $('#filterForm')[0].reset();
                     loadGuru(1);
                 });
-
+                function getBadgeRole(role) {
+  switch ((role||'').trim()) {
+    case 'P':
+      return '<span class="badge" style="background-color:#007bff;color:#ffffff;">Pendidik</span>';
+    case 'TK':
+      return '<span class="badge" style="background-color:#17a2b8;color:#212529;">Tenaga Kependidikan</span>';
+    case 'M':
+      return '<span class="badge" style="background-color:#dc3545;color:#ffffff;">Manajerial</span>';
+    default:
+      return '<span class="badge bg-secondary">'+ (role||'') +'</span>';
+  }
+}
                 function loadGuru(page) {
                     currentPage = page;
                     let start = (currentPage - 1) * pageSize;
@@ -1905,19 +2022,19 @@ function getGajiPokokByRole($conn, $role)
 
                         let cardHtml = `
                 <div class="col">
-                  <div class="card shadow-sm text-center p-3 h-100">
-                    <img src="${photoUrl}"
-                         alt="Foto Profil"
-                         class="rounded-circle mb-2"
-                         style="width: 60px; height: 60px; object-fit: cover; margin: 0 auto;">
-                    <h6 class="mb-0">${item.nama}</h6>
-                    <p class="text-muted" style="font-size:0.9rem;">NIP: ${item.nip}</p>
-                    <p style="font-size:0.85rem;">
-                      <strong>Masa Kerja:</strong> ${item.masa_kerja || '0 Thn'}<br>
-                      <strong>Jenjang:</strong> ${item.jenjang || '-'}<br>
-                      <strong>Role:</strong> ${item.role} | ${getStatusBadge(item.status_kerja)}
-                    </p>
-                    <div class="d-grid gap-2">
+    <div class="card employee-card h-100">
+        <div class="card-body text-center pt-4 pb-3">
+            <img src="${photoUrl}" class="employee-photo rounded-circle mb-3">
+            <h5 class="mb-1">${item.nama}</h5>
+            <p class="text-muted small mb-2">NIP: ${item.nip}</p>
+            <div class="small mb-2">
+                ${item.jenjang_badge}
+                ${getBadgeRole(item.role)}     <!-- jika sudah punya getBadgeRole di JS -->
+              </div>
+            <p class="small text-muted mb-3">
+                <i class="fas fa-clock me-1"></i> ${item.masa_kerja || '0 Thn'}
+            </p>
+            <div class="d-grid gap-2">
                       <button class="btn btn-sm btn-primary btn-view" data-id="${item.id}">
                         <i class="fas fa-eye"></i> Detail
                       </button>

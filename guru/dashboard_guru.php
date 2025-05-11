@@ -97,7 +97,25 @@ $sumSakit    = intval($sumData['total_sakit'] ?? 0);
         body {
             background-color: #f8f9fc;
         }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         .welcome-message {
             margin-bottom: 20px;
         }
@@ -166,17 +184,13 @@ $sumSakit    = intval($sumData['total_sakit'] ?? 0);
                 <!-- Navbar -->
                 <?php include __DIR__ . '/../navbar.php'; ?>
                 <!-- End Navbar -->
-
+                <?php include __DIR__ . '/../breadcrumb.php'; ?>
                 <!-- Begin Page Content -->
                 <div class="container-fluid py-3">
                     <!-- Header / Judul Halaman -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-3">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-tachometer-alt me-2"></i>
-                            <h1 class="h3 text-gray-800 mb-0"><?= htmlspecialchars($dashboard_title) ?></h1>
-                        </div>
-                    </div>
-
+<h1 class="page-title">
+        <i class="fas fa-tachometer-alt me-2"></i><?= htmlspecialchars($dashboard_title) ?>
+    </h1>
                     <!-- Sambutan -->
                     <div class="welcome-message mb-4">
                         <div class="card shadow bg-white rounded">
@@ -534,15 +548,7 @@ $sumSakit    = intval($sumData['total_sakit'] ?? 0);
             </div>
             <!-- End Main Content -->
 
-            <!-- Footer -->
-            <footer class="sticky-footer bg-white mt-auto">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>&copy; <?= date("Y"); ?> Payroll Management System</span>
-                    </div>
-                </div>
-            </footer>
-            <!-- End Footer -->
+
         </div>
         <!-- End Content Wrapper -->
     </div>

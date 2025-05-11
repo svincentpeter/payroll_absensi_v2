@@ -1,6 +1,26 @@
     <?php
     // File: helpers.php
-
+// Warna untuk semua badge, terpusat di satu tempat:
+$GLOBALS['BADGE_COLORS'] = [
+    'status_kerja' => [
+        'tetap'   => ['bg' => '#28a745','fg'=>'#ffffff'],
+        'kontrak' => ['bg' => '#ffc107','fg'=>'#212529'],
+    ],
+    'role' => [
+        'P'  => ['bg' => '#007bff','fg'=>'#ffffff'],
+        'TK' => ['bg' => '#17a2b8','fg'=>'#212529'],
+        'M'  => ['bg' => '#dc3545','fg'=>'#ffffff'],
+    ],
+    'jenjang' => [
+        'tk'                 => ['bg'=>'#6c757d','fg'=>'#ffffff'],
+        'sd'                 => ['bg'=>'#007bff','fg'=>'#ffffff'],
+        'smp'                => ['bg'=>'#17a2b8','fg'=>'#ffffff'],
+        'sma'                => ['bg'=>'#ffc107','fg'=>'#212529'],
+        'smk1'               => ['bg'=>'#6f42c1','fg'=>'#ffffff'],   // SMK 1
+        'smk2'               => ['bg'=>'#5a32a3','fg'=>'#ffffff'],   // SMK 2
+        'universitasstivera' => ['bg'=>'#343a40','fg'=>'#ffffff'],   // Univ Stivera
+    ],
+];
     /************************************
      * 1. SESSION & KEAMANAN
      ************************************/
@@ -303,51 +323,40 @@
      * @param string $role Kode peran (misal: 'P', 'TK', 'M').
      * @return string HTML badge.
      */
-    function getBadgeRole($role)
-    {
-        switch ($role) {
-            case 'P':
-                return '<span class="badge bg-primary">Pendidik</span>';
-            case 'TK':
-                return '<span class="badge bg-info text-dark">Tenaga Kependidikan</span>';
-            case 'M':
-                return '<span class="badge bg-danger">Manajerial</span>';
-            default:
-                return '<span class="badge bg-secondary">' . htmlspecialchars($role) . '</span>';
-        }
-    }
+    function getBadgeRole(string $role): string
+{
+    $c = $GLOBALS['BADGE_COLORS']['role'][$role] 
+       ?? ['bg'=>'#6c757d','fg'=>'#ffffff'];
+    $labels = ['P'=>'Pendidik','TK'=>'Tenaga Kependidikan','M'=>'Manajerial'];
+    $label = $labels[$role] ?? htmlspecialchars($role);
+    return "<span class=\"badge\" "
+        . "style=\"background-color:{$c['bg']};color:{$c['fg']};\">"
+        . "{$label}</span>";
+}
 
     /**
-     * Menghasilkan badge HTML berdasarkan jenjang pendidikan.
-     *
-     * @param string $jenjang Jenjang pendidikan.
-     * @return string HTML badge.
-     */
-    function getBadgeJenjang($jenjang)
-    {
-        // Normalisasi input dengan uppercase
-        $jenjangUpper = strtoupper(trim($jenjang));
+ * Menghasilkan badge HTML untuk jenjang (TK/SD/SMP/SMA/SMK 1/SMK 2/Univ Stivera).
+ *
+ * @param string $jenjang e.g. "SMK 1", "SMK 2", "Universitas Stivera"
+ * @return string <span class="badge" style="…">…</span>
+ */
+function getBadgeJenjang(string $jenjang): string
+{
+    // normalisasi: hapus spasi & slash, lowercase
+    $key = strtolower(str_replace([' ', '/'], ['', ''], trim($jenjang)));
 
-        switch ($jenjangUpper) {
-            case 'TK':
-                return '<span class="badge bg-success">TK</span>';
-            case 'SD':
-                return '<span class="badge bg-primary">SD</span>';
-            case 'SMP':
-                return '<span class="badge bg-info text-dark">SMP</span>';
-            case 'SMA':
-                return '<span class="badge bg-warning text-dark">SMA</span>';
-            case 'SMK':
-            case 'SMK 1':
-            case 'SMK 2':
-                return '<span class="badge bg-secondary">SMK</span>';
-            case 'UNIVERSITAS STIVERA':
-            case 'STIFERA':
-                return '<span class="badge bg-dark">Universitas Stivera</span>';
-            default:
-                return '<span class="badge bg-light text-dark">' . htmlspecialchars($jenjang) . '</span>';
-        }
-    }
+    // ambil warna, atau fallback abu‐abu
+    $c = $GLOBALS['BADGE_COLORS']['jenjang'][$key]
+       ?? ['bg'=>'#6c757d','fg'=>'#ffffff'];
+
+    // tampilkan label original
+    $label = htmlspecialchars($jenjang, ENT_QUOTES, 'UTF-8');
+
+    return sprintf(
+        '<span class="badge" style="background-color:%s;color:%s;">%s</span>',
+        $c['bg'], $c['fg'], $label
+    );
+}
 
     /**
      * Menghasilkan badge HTML untuk status kerja karyawan.
@@ -355,16 +364,16 @@
      * @param string $status Status kerja (misal: 'tetap' atau 'kontrak').
      * @return string HTML badge.
      */
-    function getBadgeStatusKerja($status)
-    {
-        if (strtolower($status) === 'tetap') {
-            return '<span class="badge bg-success">Tetap</span>';
-        } else if (strtolower($status) === 'kontrak') {
-            return '<span class="badge bg-warning text-dark">Kontrak</span>';
-        } else {
-            return '<span class="badge bg-secondary">' . htmlspecialchars($status) . '</span>';
-        }
-    }
+    function getBadgeStatusKerja(string $status): string
+{
+    $key = strtolower($status);
+    $c   = $GLOBALS['BADGE_COLORS']['status_kerja'][$key] 
+         ?? ['bg'=>'#6c757d','fg'=>'#ffffff'];
+    $label = ucfirst($key);
+    return "<span class=\"badge\" "
+        . "style=\"background-color:{$c['bg']};color:{$c['fg']};\">"
+        . "{$label}</span>";
+}
 
     /************************************
      * 5. OTORISASI & AKSES

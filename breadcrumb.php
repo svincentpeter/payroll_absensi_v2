@@ -7,152 +7,178 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once __DIR__ . '/helpers.php';
 
-// Dapatkan path base dari getBaseUrl (misal "/payroll_absensi_v2")
-$basePath = parse_url(getBaseUrl(), PHP_URL_PATH);
-
-// Dapatkan URL (path) halaman saat ini, misalnya "/payroll_absensi_v2/superadmin/dashboard_superadmin.php"
+// Dapatkan path base (misal "/payroll_absensi_v2")
+$basePath   = parse_url(getBaseUrl(), PHP_URL_PATH);
+// Dapatkan URL (path) halaman saat ini
 $currentUrl = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 /**
- * Definisikan struktur menu untuk breadcrumb.
- * Setiap grup memiliki:
- *   - 'url'   : URL utama grup (relatif, tanpa subfolder)
- *   - 'items' : array item => [label => urlRelatif].
+ * Struktur lengkap menu untuk breadcrumb.
+ * 'url' adalah path relatif ke folder root proyek,
+ * 'items' adalah daftar [Label => URL relatif].
  */
 $menuStructure = [
-    // Grup Superadmin
     'Superadmin' => [
-        'url' => '/superadmin/dashboard_superadmin.php',
+        'url'   => '/superadmin/dashboard_superadmin.php',
         'items' => [
             'Dashboard Superadmin' => '/superadmin/dashboard_superadmin.php',
             'Backup Database'      => '/superadmin/backup_database.php',
-            'Audit Logs'           => '/superadmin/logs.php'
-        ]
+            'Error Log'            => '/superadmin/error_log.php',
+            'Logs'                 => '/superadmin/logs.php',
+        ],
     ],
-    // Grup SDM
     'SDM' => [
-        'url' => '/sdm/dashboard_sdm.php',
+        'url'   => '/sdm/dashboard_sdm.php',
         'items' => [
-            'Dashboard SDM'        => '/sdm/dashboard_sdm.php',
-            'Koreksi Absensi'      => '/sdm/koreksi_absensi.php',
-            'Kelola Guru/Karyawan' => '/sdm/manage_guru_karyawan.php',
-            'Payroll Anggota'      => '/sdm/employees.php',
-            'Payheads'             => '/sdm/payheads.php',
-            'Laporan Surat Ijin'   => '/sdm/laporan_pengajuan_ijin.php',
-            'Pembuatan Surat'      => '/sdm/pembuatan_surat.php',
-            'Audit Logs SDM'       => '/sdm/audit_logs_sdm.php',
-            'Notifikasi SDM'       => '/sdm/notifikasi_sdm.php'
-        ]
+            'Dashboard SDM'           => '/sdm/dashboard_sdm.php',
+            'Audit Logs SDM'          => '/sdm/audit_logs_sdm.php',
+            'Dashboard Employees'     => '/sdm/employees.php',
+            'History Anggota Sekolah' => '/sdm/history_anggota_sekolah.php',
+            'Holidays'                => '/sdm/holidays.php',
+            'Input Jadwal Piket Guru' => '/sdm/input_jadwal_piket_guru.php',
+            'Tambah Jadwal Piket'     => '/sdm/tambah_jadwal_piket.php',
+            'Koreksi Absensi'         => '/sdm/koreksi_absensi.php',
+            'Laporan Jadwal Piket'    => '/sdm/laporan_jadwal_piket.php',
+            'Laporan Pengajuan Ijin'  => '/sdm/laporan_pengajuan_ijin.php',
+            'Manage Groups'           => '/sdm/manage_groups.php',
+            'Manage Guru Karyawan'    => '/sdm/manage_guru_karyawan.php',
+            'Manage Salary Indices'   => '/sdm/manage_salary_indices.php',
+            'Payheads'                => '/sdm/payheads.php',
+            'Payroll Page'            => '/sdm/payroll_page.php',
+            'Pembuatan Surat'         => '/sdm/pembuatan_surat.php',
+            'Template Surat'          => '/sdm/template_surat.php',
+            'Upload Absensi'          => '/sdm/upload_absensi.php',
+            'Notifikasi SDM'          => '/sdm/notifikasi_sdm.php',
+        ],
     ],
-    // Grup Keuangan
     'Keuangan' => [
-        'url' => '/keuangan/dashboard_keuangan.php',
+        'url'   => '/keuangan/dashboard_keuangan.php',
         'items' => [
-            'Dashboard Keuangan'  => '/keuangan/dashboard_keuangan.php',
-            'List Payroll'        => '/keuangan/list_payroll.php',
-            'History Payroll'     => '/keuangan/payroll_history.php',
-            'Rekap Payroll'       => '/keuangan/rekap_payroll.php',
-            'Audit Logs Keuangan' => '/keuangan/audit_logs_keuangan.php',
-            'Notifikasi Keuangan' => '/keuangan/notifikasi_keuangan.php'
-        ]
+            'Dashboard Keuangan'       => '/keuangan/dashboard_keuangan.php',
+            'Audit Logs Keuangan'      => '/keuangan/audit_logs_keuangan.php',
+            'List Payroll'             => '/keuangan/list_payroll.php',
+            'Manage Salary'            => '/keuangan/manage-salary.php',
+            'Payroll Details'          => '/keuangan/payroll-details.php',
+            'Payroll History'          => '/keuangan/payroll_history.php',
+            'Rekap Payroll'            => '/keuangan/rekap_payroll.php',
+            'Rekap Payroll Details'    => '/keuangan/rekap_payroll_details.php',
+            'Rekap Payroll Jenjang'    => '/keuangan/rekap_payroll_jenjang.php',
+        ],
     ],
-    // Grup Guru
-    'Dashboard Guru' => [
-        'url' => '/guru/dashboard_guru.php',
+    'Anggota' => [
+        'url'   => '/guru/dashboard_guru.php',
         'items' => [
-            'Dashboard'            => '/guru/dashboard_guru.php',
-            'Ganti Password'       => '/guru/ganti_password_guru.php',
-            'Ajukan Permohonan Ijin' => '/guru/pengajuan_surat_ijin.php',
-            'Laporan Surat'        => '/guru/laporan_surat.php',
-            'List Hari Libur'      => '/guru/list_hari_libur.php',
-            'Jadwal Piket'         => '/guru/dashboard_jadwal.php'
-        ]
+            'Dashboard Guru'           => '/guru/dashboard_guru.php',
+            'Dashboard Jadwal'         => '/guru/dashboard_jadwal.php',
+            'Hasil Slip Gaji'          => '/guru/hasil-slip_gaji.php',
+            'Laporan Jadwal Piket'     => '/guru/laporan_jadwal_piket.php',
+            'Laporan Surat'            => '/guru/laporan_surat.php',
+            'List Hari Libur'          => '/guru/list_hari_libur.php',
+            'Payroll Details'          => '/guru/payroll-details.php',
+            'Pengajuan Surat Ijin'     => '/guru/pengajuan_surat_ijin.php',
+            'Request Tukar Jadwal'     => '/guru/request_tukar_jadwal.php',
+            'Update Absensi'           => '/guru/update_absensi.php',
+        ],
     ],
-    // Grup Kepala Sekolah
     'Kepala Sekolah' => [
-        'url' => '/kepalasekolah/dashboard_kepala_sekolah.php',
+        'url'   => '/kepalasekolah/dashboard_kepala_sekolah.php',
         'items' => [
-            'Dashboard'          => '/kepalasekolah/dashboard_kepala_sekolah.php',
-            'Laporan Surat Ijin' => '/kepalasekolah/laporan_ijin_ke_kepalasekolah.php'
-        ]
-    ]
+            'Dashboard Kepala Sekolah'      => '/kepalasekolah/dashboard_kepala_sekolah.php',
+            'Laporan Ijin ke Kepala Sekolah' => '/kepalasekolah/laporan_ijin_ke_kepalasekolah.php',
+        ],
+    ],
 ];
 
-// Inisialisasi variabel penyimpan grup dan item aktif
-$activeGroup      = null;
-$activeItemLabel  = null;
-$activeItemUrl    = null;
+// Tentukan grup dan item aktif
+$activeGroup     = null;
+$activeItemLabel = null;
 
-// Cari dalam struktur menu berdasarkan URL saat ini
-// Perhatikan bahwa $itemUrl adalah path relatif (misal "/superadmin/logs.php")
-// sedangkan $basePath adalah "/payroll_absensi_v2" (atau subfolder lain).
-// Maka, gabungan $basePath . $itemUrl => "/payroll_absensi_v2/superadmin/logs.php"
 foreach ($menuStructure as $groupLabel => $groupData) {
     foreach ($groupData['items'] as $itemLabel => $itemUrl) {
-        $fullItemPath = $basePath . $itemUrl; 
-        // Cek apakah $currentUrl diawali dengan $fullItemPath
-        if (strpos($currentUrl, $fullItemPath) === 0) {
+        $fullPath = $basePath . $itemUrl;
+        if (strpos($currentUrl, $fullPath) === 0) {
             $activeGroup     = $groupLabel;
             $activeItemLabel = $itemLabel;
-            $activeItemUrl   = $itemUrl;
             break 2;
         }
     }
 }
 
-// Susun array breadcrumb
-$breadcrumb = [];
-
-// Item pertama: Home (bisa diarahkan ke index.php di root subfolder)
-$breadcrumb[] = [
-    'label' => 'Home',
-    'url'   => '/index.php' // relatif, nanti digabungkan dengan $basePath saat ditampilkan
+// Susun breadcrumb
+$breadcrumb = [
+    [
+        'label' => 'Home',
+        'url'   => '/index.php',
+    ],
 ];
 
-// Jika ditemukan grup aktif, tambahkan grup dan item aktif
 if ($activeGroup !== null) {
-    // Ambil URL grup
-    $groupUrl = $menuStructure[$activeGroup]['url'] ?? '#';
+    // Grup
     $breadcrumb[] = [
         'label' => $activeGroup,
-        'url'   => $groupUrl
+        'url'   => $menuStructure[$activeGroup]['url'],
     ];
-    // Tambahkan item aktif jika ada
-    if ($activeItemLabel !== null) {
-        $breadcrumb[] = [
-            'label'  => $activeItemLabel,
-            'active' => true
-        ];
-    }
+    // Item aktif
+    $breadcrumb[] = [
+        'label'  => $activeItemLabel,
+        'active' => true,
+    ];
 } else {
-    // Jika tidak ditemukan, asumsikan "Halaman Aktif" sebagai default
+    // Default jika tidak ketemu
     $breadcrumb[] = [
         'label'  => 'Halaman Aktif',
-        'active' => true
+        'active' => true,
     ];
 }
 ?>
-<!-- Tampilkan Breadcrumb -->
+<!-- Styling khusus -->
+<style>
+.breadcrumb {
+    background-color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: .375rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "\f054";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    color: #6c757d;
+    margin: 0 0.5rem;
+}
+.breadcrumb-item a {
+    color: #007bff;
+    text-decoration: none;
+}
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+.breadcrumb-item.active {
+    color: #495057;
+    font-weight: 600;
+}
+</style>
+
 <div class="container-fluid">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <?php foreach ($breadcrumb as $item): ?>
-                <?php if (!empty($item['active'])): ?>
-                    <li class="breadcrumb-item active" aria-current="page">
-                        <?= htmlspecialchars($item['label']) ?>
-                    </li>
-                <?php else: ?>
-                    <?php 
-                    // Buat URL absolut untuk link breadcrumb
-                    // (Base path + item url). Contoh: "/payroll_absensi_v2" + "/superadmin/dashboard_superadmin.php"
-                    $fullBreadcrumbUrl = $basePath . ($item['url'] ?? '/');
-                    ?>
-                    <li class="breadcrumb-item">
-                        <a href="<?= htmlspecialchars($fullBreadcrumbUrl) ?>">
+            <?php foreach ($breadcrumb as $idx => $item): ?>
+                <li class="breadcrumb-item <?= !empty($item['active']) ? 'active' : '' ?>"
+                    <?= !empty($item['active']) ? 'aria-current="page"' : '' ?>>
+                    <?php if (empty($item['active'])): ?>
+                        <a href="<?= htmlspecialchars($basePath . $item['url']) ?>">
+                            <?php if ($idx === 0): ?>
+                                <i class="fas fa-home me-1"></i>
+                            <?php elseif ($idx === 1 && $activeGroup): ?>
+                                <i class="fas <?= $groupIcons[$activeGroup] ?> me-1"></i>
+                            <?php endif; ?>
                             <?= htmlspecialchars($item['label']) ?>
                         </a>
-                    </li>
-                <?php endif; ?>
+                    <?php else: ?>
+                        <i class="fas fa-file-alt me-1"></i>
+                        <?= htmlspecialchars($item['label']) ?>
+                    <?php endif; ?>
+                </li>
             <?php endforeach; ?>
         </ol>
     </nav>

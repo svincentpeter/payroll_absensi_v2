@@ -109,6 +109,25 @@ if (!$historyResult) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
+        /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         .badge-pending {
             background-color: #f6c23e;
             color: #fff;
@@ -157,8 +176,9 @@ if (!$historyResult) {
                 <?php include __DIR__ . '/../breadcrumb.php'; ?>
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-envelope"></i> Laporan Pengajuan Izin (SDM)</h1>
-
+<h1 class="page-title">
+        <i class="fas fa-envelope"></i> Laporan Pengajuan Izin (SDM)</h1>
+    </h1>
                     <!-- Notifikasi -->
                     <?php if (isset($_SESSION['notif_success'])): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">

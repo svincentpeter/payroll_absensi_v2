@@ -24,7 +24,6 @@ if (ob_get_length()) {
 // Filter: Bulan dan Tahun dari parameter GET dengan nilai default bulan sekarang dan tahun sekarang
 $bulan = isset($_GET['bulan']) ? intval($_GET['bulan']) : date('n');
 $tahun = isset($_GET['tahun']) ? intval($_GET['tahun']) : date('Y');
-
 if ($bulan < 1 || $bulan > 12) {
     $bulan = date('n');
 }
@@ -32,23 +31,20 @@ if ($tahun < 2000 || $tahun > date('Y')) {
     $tahun = date('Y');
 }
 
+// Filter opsional: Jenjang
+$jenjang_filter = isset($_GET['jenjang_filter']) ? trim($_GET['jenjang_filter']) : 'all';
+
+// Nama bulan untuk grafik dan dropdown
 $namaBulan = [
-    1 => 'Januari',
-    2 => 'Februari',
-    3 => 'Maret',
-    4 => 'April',
-    5 => 'Mei',
-    6 => 'Juni',
-    7 => 'Juli',
-    8 => 'Agustus',
-    9 => 'September',
-    10 => 'Oktober',
-    11 => 'November',
-    12 => 'Desember'
+    1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+    5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+    9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
 ];
 
+// ---------------------------------------------------------
 // Query Data Payroll sesuai filter bulan dan tahun
-$sqlPayroll = "SELECT p.*, a.nama, a.jenjang, si.level 
+// ---------------------------------------------------------
+$sqlPayroll = "SELECT p.*, a.nama, a.jenjang, si.level
                FROM payroll p
                LEFT JOIN anggota_sekolah a ON p.id_anggota = a.id
                LEFT JOIN salary_indices si ON a.salary_index_id = si.id
@@ -62,49 +58,68 @@ $stmtPayroll->execute();
 $resultPayroll = $stmtPayroll->get_result();
 $stmtPayroll->close();
 
-// Query Total Gaji Pokok
-$sqlTotalGaji = "SELECT SUM(gaji_pokok) AS total_gaji_pokok FROM payroll WHERE bulan = ? AND tahun = ?";
-$stmt = $conn->prepare($sqlTotalGaji);
-$stmt->bind_param("ii", $bulan, $tahun);
+// ---------------------------------------------------------
+// HITUNG TOTAL GAJI POKOK & TOTAL YANG DITERIMA SEKALIGUS
+// ---------------------------------------------------------
+$sqlTotals = "
+    SELECT
+      COALESCE(SUM(COALESCE(p.gaji_pokok, a.gaji_pokok)), 0) AS total_gaji_pokok,
+      COALESCE(SUM(p.gaji_bersih), 0)                 AS total_diterima
+    FROM payroll p
+    JOIN anggota_sekolah a ON a.id = p.id_anggota
+    WHERE p.bulan = ?
+      AND p.tahun = ?
+      AND p.status = 'final'
+";
+$types  = "ii";
+$params = [$bulan, $tahun];
+
+if ($jenjang_filter !== 'all') {
+    $sqlTotals .= " AND a.jenjang = ?";
+    $types     .= "s";
+    $params[]  = $jenjang_filter;
+}
+
+$stmt = $conn->prepare($sqlTotals);
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
-$res = $stmt->get_result();
-$totalGajiPokok = $res->fetch_assoc()['total_gaji_pokok'] ?? 0;
+$rowTotals = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-// Query Total Gaji Bersih
-$sqlTotalDiterima = "SELECT SUM(gaji_bersih) AS total_diterima FROM payroll WHERE bulan = ? AND tahun = ?";
-$stmt = $conn->prepare($sqlTotalDiterima);
-$stmt->bind_param("ii", $bulan, $tahun);
-$stmt->execute();
-$res = $stmt->get_result();
-$totalDiterima = $res->fetch_assoc()['total_diterima'] ?? 0;
-$stmt->close();
+$totalGajiPokok = $rowTotals['total_gaji_pokok'];
+$totalDiterima  = $rowTotals['total_diterima'];
 
+// ---------------------------------------------------------
 // Data Grafik Tren Gaji Bulanan untuk tahun yang dipilih
-$sqlGajiBulanan = "SELECT p.bulan, 
-                          SUM(p.gaji_pokok) AS total_gaji_pokok, 
+// ---------------------------------------------------------
+$sqlGajiBulanan = "SELECT p.bulan,
+                          SUM(p.gaji_pokok) AS total_gaji_pokok,
                           SUM(p.gaji_bersih) AS total_gaji_bersih
                    FROM payroll p
                    WHERE p.tahun = ?
+                     AND p.status = 'final'
                    GROUP BY p.bulan
                    ORDER BY p.bulan ASC";
 $stmt = $conn->prepare($sqlGajiBulanan);
 $stmt->bind_param("i", $tahun);
 $stmt->execute();
 $res = $stmt->get_result();
-$bulanGrafik = [];
-$gajiBulananPokok = [];
-$gajiBulananBersih = [];
+$bulanGrafik        = [];
+$gajiBulananPokok   = [];
+$gajiBulananBersih  = [];
 while ($row = $res->fetch_assoc()) {
-    $bulanGrafik[] = $namaBulan[$row['bulan']] ?? $row['bulan'];
-    $gajiBulananPokok[] = floatval($row['total_gaji_pokok']);
+    $bulanGrafik[]       = $namaBulan[$row['bulan']] ?? $row['bulan'];
+    $gajiBulananPokok[]  = floatval($row['total_gaji_pokok']);
     $gajiBulananBersih[] = floatval($row['total_gaji_bersih']);
 }
 $stmt->close();
 
-// Data Perbandingan Guru vs Karyawan (opsional)
-// Filter berdasarkan jenjang, jika diperlukan (default: semua)
-$jenjang_filter = isset($_GET['jenjang_filter']) ? trim($_GET['jenjang_filter']) : 'all';
+// ---------------------------------------------------------
+// Data Perbandingan Guru vs Karyawan
+// ---------------------------------------------------------
 $sqlJenjangOptions = "SELECT DISTINCT jenjang FROM anggota_sekolah WHERE jenjang IS NOT NULL ORDER BY jenjang ASC";
 $resJenjangOptions = $conn->query($sqlJenjangOptions);
 $jenjangOptions = [];
@@ -115,49 +130,60 @@ if ($resJenjangOptions) {
     $resJenjangOptions->close();
 }
 
+// Hitung jumlah guru
 if ($jenjang_filter !== 'all') {
-    $sqlTeacher = "SELECT COUNT(*) AS teacher_count FROM anggota_sekolah WHERE LOWER(job_title) LIKE '%guru%' AND jenjang = ?";
+    $sqlTeacher = "SELECT COUNT(*) AS teacher_count
+                   FROM anggota_sekolah
+                   WHERE LOWER(job_title) LIKE '%guru%'
+                     AND jenjang = ?";
     $stmt = $conn->prepare($sqlTeacher);
     $stmt->bind_param("s", $jenjang_filter);
 } else {
-    $sqlTeacher = "SELECT COUNT(*) AS teacher_count FROM anggota_sekolah WHERE LOWER(job_title) LIKE '%guru%'";
+    $sqlTeacher = "SELECT COUNT(*) AS teacher_count
+                   FROM anggota_sekolah
+                   WHERE LOWER(job_title) LIKE '%guru%'";
     $stmt = $conn->prepare($sqlTeacher);
 }
 $stmt->execute();
-$res = $stmt->get_result();
-$teacher_count = $res->fetch_assoc()['teacher_count'] ?? 0;
+$teacher_count = $stmt->get_result()->fetch_assoc()['teacher_count'] ?? 0;
 $stmt->close();
 
+// Hitung jumlah karyawan
 if ($jenjang_filter !== 'all') {
-    $sqlEmployee = "SELECT COUNT(*) AS employee_count FROM anggota_sekolah WHERE LOWER(job_title) NOT LIKE '%guru%' AND jenjang = ?";
+    $sqlEmployee = "SELECT COUNT(*) AS employee_count
+                    FROM anggota_sekolah
+                    WHERE LOWER(job_title) NOT LIKE '%guru%'
+                      AND jenjang = ?";
     $stmt = $conn->prepare($sqlEmployee);
     $stmt->bind_param("s", $jenjang_filter);
 } else {
-    $sqlEmployee = "SELECT COUNT(*) AS employee_count FROM anggota_sekolah WHERE LOWER(job_title) NOT LIKE '%guru%'";
+    $sqlEmployee = "SELECT COUNT(*) AS employee_count
+                    FROM anggota_sekolah
+                    WHERE LOWER(job_title) NOT LIKE '%guru%'";
     $stmt = $conn->prepare($sqlEmployee);
 }
 $stmt->execute();
-$res = $stmt->get_result();
-$employee_count = $res->fetch_assoc()['employee_count'] ?? 0;
+$employee_count = $stmt->get_result()->fetch_assoc()['employee_count'] ?? 0;
 $stmt->close();
 
+// ---------------------------------------------------------
 // Data Total Anggota Sekolah
+// ---------------------------------------------------------
 $sqlTotalAnggota = "SELECT COUNT(*) as total_anggota FROM anggota_sekolah";
 $resTotal = $conn->query($sqlTotalAnggota);
-$totalAnggota = 0;
-if ($resTotal) {
-    $row = $resTotal->fetch_assoc();
-    $totalAnggota = $row['total_anggota'] ?? 0;
-    $resTotal->close();
-}
+$totalAnggota = ($resTotal ? $resTotal->fetch_assoc()['total_anggota'] : 0);
 
-// Tutup koneksi setelah semua query (opsional, bisa ditutup di akhir file)
-// $conn->close();
+// ---------------------------------------------------------
+// Format untuk tampilan
+// ---------------------------------------------------------
+$displayGajiPokok = 'Rp ' . number_format($totalGajiPokok, 2, ',', '.');
+$displayDiterima  = 'Rp ' . number_format($totalDiterima,  2, ',', '.');
 
-// Konversi data grafik ke format JSON agar bisa dipakai di JavaScript
-$bulanGrafik_json = json_encode($bulanGrafik, JSON_UNESCAPED_SLASHES);
-$gajiBulananPokok_json = json_encode($gajiBulananPokok, JSON_UNESCAPED_SLASHES);
-$gajiBulananBersih_json = json_encode($gajiBulananBersih, JSON_UNESCAPED_SLASHES);
+// Konversi data grafik ke JSON
+$bulanGrafik_json        = json_encode($bulanGrafik, JSON_UNESCAPED_SLASHES);
+$gajiBulananPokok_json   = json_encode($gajiBulananPokok, JSON_UNESCAPED_SLASHES);
+$gajiBulananBersih_json  = json_encode($gajiBulananBersih, JSON_UNESCAPED_SLASHES);
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -183,6 +209,26 @@ $gajiBulananBersih_json = json_encode($gajiBulananBersih, JSON_UNESCAPED_SLASHES
         body {
             color: #000 !important;
         }
+
+        /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
 
         /* Card heading dengan gradient */
         .card-header-gradient {
@@ -291,11 +337,11 @@ $gajiBulananBersih_json = json_encode($gajiBulananBersih, JSON_UNESCAPED_SLASHES
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <!-- Heading -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-3">
-                        <h1 class="h3 text-gray-800">
-                            <i class="bi bi-wallet-fill"></i> Dashboard Keuangan
-                        </h1>
-                    </div>
+                    <!-- Page Title -->
+    <h1 class="page-title">
+        <i class="fas fa-file-invoice-dollar"></i>
+        Dashboard Keuangan
+    </h1>
 
                     <!-- Card Filter Bulan/Tahun -->
                     <div class="card mb-4">

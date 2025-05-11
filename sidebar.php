@@ -86,7 +86,7 @@ function renderCollapseMenu(string $id, string $iconClass, string $title, array 
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
     <!-- Brand -->
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?= getBaseUrl() ?>/index.php">
+    <a class="sidebar-brand d-flex align-items-center justify-content-center">
         <div class="sidebar-brand-icon">
             <img src="<?= getBaseUrl(); ?>/assets/img/logo.png" class="img-fluid" style="max-width:50px" alt="Logo">
         </div>

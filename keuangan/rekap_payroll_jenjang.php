@@ -308,6 +308,26 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
       margin-bottom: 1.5rem;
       box-shadow: 0 .2rem .4rem rgba(0,0,0,.1);
     }
+
+    /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
     .page-header h3 {
       margin: 0; font-weight: 600; color: #333;
     }
@@ -332,10 +352,12 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
       <button onclick="window.history.back()" class="btn back-btn me-3">
         <i class="fas fa-arrow-left"></i>
       </button>
-      <h3>
+
+      <h1 class="page-title">
         <i class="<?= $meta['icon'] ?> me-2"></i>
         Rekap <?= htmlspecialchars($jenjang) ?> – <?= getIndonesianMonthName($bulan) . ' ' . $tahun ?>
-      </h3>
+    </h1>
+    
     </div>
 
     <?php

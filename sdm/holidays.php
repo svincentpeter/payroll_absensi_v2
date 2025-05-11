@@ -369,7 +369,25 @@ function DeleteHoliday($conn)
         body {
             padding-top: 20px;
         }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         #main-content {
             transition: opacity 0.3s ease;
         }
@@ -452,9 +470,9 @@ function DeleteHoliday($conn)
             <i class="fas fa-arrow-left"></i> Kembali ke Manajemen Data Guru/Karyawan
         </button>
 
-        <!-- Konten Halaman Manajemen Hari Libur -->
-        <h1 class="h3 mb-4 text-dark"><i class="fas fa-calendar-alt"></i> Manajemen Hari Libur</h1>
-
+<h1 class="page-title">
+        <i class="fas fa-calendar-alt"></i> Manajemen Hari Libur</h1>
+    </h1>
         <!-- Filter -->
         <div class="card mb-4">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">

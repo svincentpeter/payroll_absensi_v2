@@ -256,7 +256,25 @@
             body {
                 padding-top: 20px;
             }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
             .card-template {
                 cursor: pointer;
                 transition: transform 0.2s;
@@ -291,10 +309,9 @@
             <button class="btn btn-secondary mb-3" id="btnBack" data-href="/payroll_absensi_v2/sdm/pembuatan_surat.php">
                 <i class="fas fa-arrow-left"></i> Kembali ke Pembuatan Surat
             </button>
-            <h1 class="mb-4 text-dark">
-                <i class="fas fa-file-alt"></i> Manajemen Template Surat
-            </h1>
-
+<h1 class="page-title">
+        <i class="fas fa-file-alt"></i> Manajemen Template Surat
+    </h1>
             <!-- Tombol Tambah Template -->
             <div class="d-flex justify-content-end mb-3">
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTemplateModal">

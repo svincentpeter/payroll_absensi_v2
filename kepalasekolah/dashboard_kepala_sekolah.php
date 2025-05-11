@@ -30,7 +30,25 @@ $nama = $_SESSION['nama'] ?? 'Kepala Sekolah';
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         .welcome-message {
             margin-bottom: 20px;
         }
@@ -60,7 +78,10 @@ $nama = $_SESSION['nama'] ?? 'Kepala Sekolah';
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">Dashboard Kepala Sekolah</h1>
+                    <h1 class="page-title">
+        <i class="fas fa-file-invoice-dollar"></i>
+        Dashboard Kepala Sekolah
+    </h1>
                     <div class="alert alert-info">
                         Selamat datang, <?= htmlspecialchars($nama) ?>!
                     </div>

@@ -380,6 +380,26 @@ function ViewSuratDetail($conn)
             bottom: 0;
             right: 0;
         }
+
+        /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
     </style>
 </head>
 
@@ -408,15 +428,12 @@ function ViewSuratDetail($conn)
 
                 <!-- Page Content -->
                 <div class="container-fluid">
+
+                
                     <!-- Judul Halaman -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h1 class="h3 text-gray-800 mb-0">
-                            <i class="fas fa-envelope-open-text me-2"></i>Manajemen Surat
-                        </h1>
-                        <button id="btnTemplateSurat" class="btn btn-info">
-                            <i class="fas fa-file-alt"></i> Kelola Template Surat
-                        </button>
-                    </div>
+                        <h1 class="page-title">
+        <i class="fas fa-envelope-open-text me-2"></i>Manajemen Surat
+    </h1>
 
                     <!-- Card: Form Tambah Surat -->
                     <div class="card mb-4">
@@ -424,6 +441,9 @@ function ViewSuratDetail($conn)
                             <h6 class="m-0 fw-bold text-white">
                                 <i class="fas fa-plus-circle me-2"></i> Buat Surat
                             </h6>
+                            <button id="btnTemplateSurat" class="btn btn-info">
+                            <i class="fas fa-file-alt"></i> Kelola Template Surat
+                        </button>
                         </div>
                         <div class="card-body">
                             <form id="formAddSurat" class="row g-3 needs-validation" novalidate>

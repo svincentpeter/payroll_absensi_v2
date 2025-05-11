@@ -165,15 +165,36 @@ $conn->close();
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
+    <style>
+        /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
+    </style>
 </head>
 
 <body id="page-top">
 
     <div class="container my-4">
-        <h1 class="h3 mb-4 text-gray-800">
-            <i class="fas fa-bell"></i> Notifikasi SDM
-        </h1>
 
+<h1 class="page-title">
+        <i class="fas fa-bell"></i> Notifikasi SDM
+    </h1>
         <?php if (empty($sdmNotifications)): ?>
             <div class="alert alert-success">
                 <i class="bi bi-check-circle-fill"></i> Tidak ada notifikasi SDM saat ini.

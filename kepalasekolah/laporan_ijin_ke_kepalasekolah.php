@@ -120,6 +120,25 @@ $historyResult = $historyStmt->get_result();
     body {
         background-color: #f8f9fc;
     }
+    /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
     .card.section-card {
         margin-bottom: 30px;
         border: 1px solid #e3e6f0;
@@ -169,7 +188,10 @@ $historyResult = $historyStmt->get_result();
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-4 text-gray-800">Laporan Pengajuan Izin (Kepala Sekolah jenjang <?= htmlspecialchars($kepsekJenjang) ?>)</h1>
+                    <h1 class="page-title">
+    <i class="fas fa-envelope"></i>
+    Laporan Pengajuan Izin (Kepala Sekolah jenjang <?= htmlspecialchars($kepsekJenjang) ?>)
+</h1>
 
                     <!-- Notifikasi -->
                     <?php if (isset($_SESSION['notif_success'])): ?>

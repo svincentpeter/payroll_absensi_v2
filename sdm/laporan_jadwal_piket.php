@@ -294,6 +294,25 @@
     <link href="https://cdn.datatables.net/responsive/2.4.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         .card-header { background: linear-gradient(45deg,#0d47a1,#42a5f5); color:white; }
         .table-hover tbody tr:hover { background:#eef; }
         #loadingSpinner { display:none; position:fixed; top:50%;left:50%;transform:translate(-50%,-50%); }
@@ -307,8 +326,9 @@
         <?php include __DIR__.'/../navbar.php'; ?>
         <?php include __DIR__.'/../breadcrumb.php'; ?>
         <div class="container-fluid py-4">
-            <h3 class="mb-4 text-gray-800"><i class="fas fa-calendar-alt me-2"></i>Laporan Jadwal Piket</h3>
-
+<h1 class="page-title">
+        <i class="fas fa-calendar-alt me-2"></i>Laporan Jadwal Piket
+    </h1>
             <!-- Filter Card -->
             <div class="card mb-4 shadow-sm">
             <div class="card-header"><strong><i class="fas fa-filter me-1"></i>Filter Jadwal</strong></div>

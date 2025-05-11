@@ -365,7 +365,25 @@ function DeleteSalaryIndex($conn)
         body {
             padding-top: 20px;
         }
-
+/* ===== Page Title Styling ===== */
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+    color: #0d47a1;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid #1976d2;
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.5rem;
+    animation: fadeInSlide 0.5s ease-in-out both;
+}
+.page-title i {
+    color: #1976d2;
+    font-size: 2.8rem;
+}
         #main-content {
             transition: opacity 0.3s ease;
         }
@@ -432,8 +450,9 @@ function DeleteSalaryIndex($conn)
         </button>
 
         <!-- Konten Halaman Manajemen Indeks Gaji -->
-        <h1 class="h3 mb-4 text-dark"><i class="fas fa-chart-line"></i> Manajemen Indeks/Kenaikan Gaji Pokok</h1>
-
+<h1 class="page-title">
+        <i class="fas fa-chart-line"></i> Manajemen Indeks/Kenaikan Gaji Pokok</h1>
+    </h1>
         <!-- Tombol Tambah -->
         <div class="d-flex justify-content-end mb-3">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSalaryIndexModal">
