@@ -89,6 +89,15 @@ $menuStructure = [
     ],
 ];
 
+// Tambahkan ikon untuk setiap grup (Font Awesome 5)
+$groupIcons = [
+    'Superadmin'      => 'fa-user-shield',
+    'SDM'             => 'fa-users-cog',
+    'Keuangan'        => 'fa-coins',
+    'Anggota'         => 'fa-user-tie',
+    'Kepala Sekolah'  => 'fa-user-graduate',
+];
+
 // Tentukan grup dan item aktif
 $activeGroup     = null;
 $activeItemLabel = null;
@@ -131,7 +140,9 @@ if ($activeGroup !== null) {
     ];
 }
 ?>
-<!-- Styling khusus -->
+<!-- Pastikan Font Awesome sudah di-include di layout utama -->
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> -->
+
 <style>
 .breadcrumb {
     background-color: #fff;
@@ -169,7 +180,7 @@ if ($activeGroup !== null) {
                         <a href="<?= htmlspecialchars($basePath . $item['url']) ?>">
                             <?php if ($idx === 0): ?>
                                 <i class="fas fa-home me-1"></i>
-                            <?php elseif ($idx === 1 && $activeGroup): ?>
+                            <?php elseif ($idx === 1 && $activeGroup && isset($groupIcons[$activeGroup])): ?>
                                 <i class="fas <?= $groupIcons[$activeGroup] ?> me-1"></i>
                             <?php endif; ?>
                             <?= htmlspecialchars($item['label']) ?>
