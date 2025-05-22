@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 04, 2025 at 04:23 AM
+-- Generation Time: May 21, 2025 at 03:51 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -68,6 +68,7 @@ CREATE TABLE `anggota_sekolah` (
   `join_start` date DEFAULT NULL,
   `lama_kontrak` int UNSIGNED DEFAULT NULL,
   `tgl_kontrak_selesai` date DEFAULT NULL,
+  `sudah_kontrak` int NOT NULL DEFAULT '0',
   `masa_kerja_tahun` int DEFAULT NULL,
   `masa_kerja_bulan` int DEFAULT NULL,
   `masa_kerja_efektif` decimal(5,2) DEFAULT '0.00',
@@ -92,6 +93,7 @@ CREATE TABLE `anggota_sekolah` (
   `salary_index_level` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `gaji_pokok` decimal(15,2) NOT NULL DEFAULT '0.00',
   `foto_profil` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'default.jpg',
+  `foto_ktp` varchar(255) COLLATE utf8mb4_general_ci DEFAULT 'default_ktp.jpg',
   `role` enum('P','TK','M') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `is_delete` tinyint(1) NOT NULL DEFAULT '0',
   `deleted_at` datetime DEFAULT NULL,
@@ -426,7 +428,7 @@ CREATE TABLE `permintaan_tukar_jadwal` (
   `nip_tujuan` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `nip_pengaju` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `nama_pengaju` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `tanggal_piket` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
+  `tanggal_piket` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -660,6 +662,14 @@ ALTER TABLE `pengajuan_ijin`
   ADD KEY `idx_ijin_nip_stat` (`nip`,`status`);
 
 --
+-- Indexes for table `permintaan_tukar_jadwal`
+--
+ALTER TABLE `permintaan_tukar_jadwal`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_once` (`id_jadwal_pengaju`,`id_jadwal_tujuan`,`nip_tujuan`,`status`),
+  ADD KEY `id_jadwal_tujuan` (`id_jadwal_tujuan`);
+
+--
 -- Indexes for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
@@ -721,6 +731,12 @@ ALTER TABLE `holidays`
   MODIFY `holiday_id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `jadwal_piket`
+--
+ALTER TABLE `jadwal_piket`
+  MODIFY `id_jadwal` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
@@ -778,6 +794,12 @@ ALTER TABLE `payroll_final`
 -- AUTO_INCREMENT for table `pengajuan_ijin`
 --
 ALTER TABLE `pengajuan_ijin`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `permintaan_tukar_jadwal`
+--
+ALTER TABLE `permintaan_tukar_jadwal`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
@@ -845,6 +867,13 @@ ALTER TABLE `payroll_detail`
 --
 ALTER TABLE `payroll_final`
   ADD CONSTRAINT `fk_payroll_final_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`);
+
+--
+-- Constraints for table `permintaan_tukar_jadwal`
+--
+ALTER TABLE `permintaan_tukar_jadwal`
+  ADD CONSTRAINT `fk_ptj_jadwal_pengaju` FOREIGN KEY (`id_jadwal_pengaju`) REFERENCES `jadwal_piket` (`id_jadwal`) ON DELETE CASCADE,
+  ADD CONSTRAINT `permintaan_tukar_jadwal_ibfk_1` FOREIGN KEY (`id_jadwal_tujuan`) REFERENCES `jadwal_piket` (`id_jadwal`) ON DELETE SET NULL;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

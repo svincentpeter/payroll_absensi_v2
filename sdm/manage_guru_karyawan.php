@@ -94,11 +94,13 @@ function hitungGajiPokok($conn, $role, $pendidikan, $jenjang)
         return getGajiPokokByRole($conn, $role);
     }
 }
+
 function addMonths(string $date, int $months): string
 {
     try {
         $d = new DateTime($date);
-        $d->modify("+{$months} months")->modify('-1 day');   // kontrak berakhir H‑1
+        // kontrak berakhir H-1
+        $d->modify("+{$months} months")->modify('-1 day');
         return $d->format('Y-m-d');
     } catch (Exception $e) {
         return '0000-00-00';
@@ -122,6 +124,22 @@ function calcMasaKerja(string $join_start): array
         return [0, 0, 0.00];
     }
 }
+
+
+function calcAge(string $dob): int
+{
+    if (!$dob || $dob === '0000-00-00') {
+        return 0;
+    }
+    try {
+        $birth = new DateTime($dob);
+        $today = new DateTime();
+        return $birth->diff($today)->y;
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
 
 // --- UPLOAD CONFIG & HELPERS ---
 $uploadDirProfile = __DIR__ . '/../uploads/profile_pics/';
@@ -158,6 +176,54 @@ function getKtpPhotoUrl(string $filename): string
 {
     return getBaseUrl() . '/uploads/ktp_pics/' . ($filename ?: 'ktp_placeholder.png');
 }
+
+/* =========================================================
+ *  HELPER: slug & penyimpanan gambar (sekali pakai bersama)
+ * ======================================================= */
+
+/**
+ * Ubah string menjadi slug sederhana (huruf kecil + underscore).
+ */
+function to_slug(string $s): string
+{
+    return strtolower(preg_replace('/\s+/', '_', trim($s)));
+}
+
+/**
+ * Simpan gambar apa pun menjadi JPG 90 % di folder target.
+ * – $finalName = nama file akhir (tanpa path).
+ * – return: URL absolut gambar.
+ */
+function save_image_as_jpg(string $tmpFile, string $folder, string $finalName): string
+{
+    if (!is_dir($folder)) mkdir($folder, 0755, true);
+
+    $info = getimagesize($tmpFile);
+    if ($info === false) {
+        send_response(1, 'File upload bukan gambar.');
+    }
+
+    switch ($info['mime']) {
+        case 'image/jpeg':
+        case 'image/jpg': $src = imagecreatefromjpeg($tmpFile); break;
+        case 'image/png': $src = imagecreatefrompng($tmpFile);  break;
+        case 'image/gif': $src = imagecreatefromgif($tmpFile);  break;
+        default:          send_response(1, 'Format gambar tidak didukung.');
+    }
+
+    $dest = $folder . $finalName;
+    if (!imagejpeg($src, $dest, 90)) {
+        imagedestroy($src);
+        send_response(1, 'Gagal menyimpan gambar.');
+    }
+    imagedestroy($src);
+
+    /*  '/uploads/…'  */
+    $relPath = substr($dest, strpos($dest, '/uploads'));
+    return getBaseUrl() . $relPath;
+}
+
+
 // Hasilkan CSRF token
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
@@ -325,22 +391,26 @@ function LoadingGuru($conn)
  * =========================================================== */
 function CreateGuru(mysqli $conn)
 {
-    // 1. Sanitasi input awal untuk nanti dipakai menamai file
-    $nip        = bersihkan_input($_POST['nip']           ?? '');
-    $nama       = bersihkan_input($_POST['nama']          ?? '');
-    $jenjang    = bersihkan_input($_POST['jenjang']       ?? '');
-    $job_title  = bersihkan_input($_POST['job_title']     ?? '');
-    $role       = bersihkan_input($_POST['role']          ?? '');
+    /* ---------- 1. Sanitasi & validasi dasar ---------- */
+    $nip        = bersihkan_input($_POST['nip']      ?? '');
+    $nama       = bersihkan_input($_POST['nama']     ?? '');
+    $jenjang    = bersihkan_input($_POST['jenjang']  ?? '');
+    $job_title  = bersihkan_input($_POST['job_title'] ?? '');
+    $role       = bersihkan_input($_POST['role']     ?? '');
     if (!$nip || !$nama || !$jenjang || !$role) {
         send_response(1, 'NIP, Nama, Jenjang, dan Role wajib diisi.');
     }
-    // untuk nama file nanti
-    $uName    = strtolower(preg_replace('/\s+/', '_', $nama));
-    $uJenjang = strtolower(preg_replace('/\s+/', '_', $jenjang));
-    $uRole    = strtolower($_SESSION['role'] ?? 'user');
 
-    // 2. Cek duplikasi NIP
-    $stmtDup = $conn->prepare("SELECT id FROM anggota_sekolah WHERE nip = ?");
+    /* ---------- 1a. Slug untuk nama file ---------- */
+    $slugify = fn(string $s) => strtolower(preg_replace('/\s+/', '_', trim($s)));
+    $slugName   = $slugify($nama);
+    $slugJenjang= $slugify($jenjang);
+    $slugRole   = strtolower($role);
+
+    /* ---------- 2. Cek duplikasi NIP ---------- */
+    $stmtDup = $conn->prepare(
+        "SELECT id FROM anggota_sekolah WHERE nip=? AND is_delete=0"
+    );
     $stmtDup->bind_param('s', $nip);
     $stmtDup->execute();
     if ($stmtDup->get_result()->num_rows) {
@@ -348,77 +418,30 @@ function CreateGuru(mysqli $conn)
     }
     $stmtDup->close();
 
-    // 3. Hitung UID, kontrak, masa kerja & gaji pokok
-    $uid           = generateUID($conn);
-    $status_kerja  = bersihkan_input($_POST['status_kerja'] ?? 'Tetap');
-    $join_start    = bersihkan_input($_POST['join_start']   ?? '');
-    $lama_kontrak  = ($status_kerja === 'Kontrak') ? intval($_POST['lama_kontrak'] ?? 12) : null;
-    $tgl_kontrak   = ($status_kerja === 'Kontrak' && $join_start)
-                     ? addMonths($join_start, $lama_kontrak)
-                     : null;
+    /* ---------- 3. Hitung data turunan ---------- */
+    $uid          = generateUID($conn);
+    $status_kerja = bersihkan_input($_POST['status_kerja'] ?? 'Tetap');
+    $join_start   = bersihkan_input($_POST['join_start']   ?? '');
+    $lama_kontrak = ($status_kerja === 'Kontrak') ? intval($_POST['lama_kontrak'] ?? 12) : null;
+    $tgl_kontrak  = ($status_kerja === 'Kontrak' && $join_start)
+        ? hitungTanggalSelesaiKontrak($join_start, $lama_kontrak)
+        : null;
+
     [$masa_tahun, $masa_bulan, $masa_eff] = calcMasaKerja($join_start);
-    $pendidikan    = bersihkan_input($_POST['pendidikan'] ?? '');
-    $gaji_pokok    = hitungGajiPokok($conn, $role, $pendidikan, $jenjang);
-    $defaultPass   = password_hash('123456', PASSWORD_DEFAULT);
 
-    // 4. Proses upload FOTO PROFIL
-    $foto_profil_url = ''; 
-    $dirProf        = __DIR__ . '/../uploads/profile_pics/';
-    if (!is_dir($dirProf)) mkdir($dirProf, 0755, true);
+    $pendidikan  = bersihkan_input($_POST['pendidikan'] ?? '');
+    $gaji_pokok  = hitungGajiPokok($conn, $role, $pendidikan, $jenjang);
+    $defaultPass = password_hash('123456', PASSWORD_DEFAULT);
 
-    if (!empty($_FILES['foto_profil']['tmp_name']) && $_FILES['foto_profil']['error'] === UPLOAD_ERR_OK) {
-        $tmp  = $_FILES['foto_profil']['tmp_name'];
-        $info = getimagesize($tmp);
-        if ($info === false) send_response(1, 'File profil bukan gambar.');
-        switch ($info['mime']) {
-            case 'image/jpeg': $img = imagecreatefromjpeg($tmp); break;
-            case 'image/png':  $img = imagecreatefrompng($tmp);  break;
-            case 'image/gif':  $img = imagecreatefromgif($tmp);  break;
-            default: send_response(1, 'Format profil tidak didukung.');
-        }
-        $stamp   = time();
-        $newName = "{$uName}_{$uJenjang}_{$uRole}_{$stamp}.jpg";
-        $dest    = $dirProf . $newName;
-        if (!imagejpeg($img, $dest, 90)) {
-            imagedestroy($img);
-            send_response(1, 'Gagal menyimpan foto profil.');
-        }
-        imagedestroy($img);
-        // simpan URL lengkap
-        $foto_profil_url = getBaseUrl() . '/uploads/profile_pics/' . $newName;
-    }
+    /* ---------- 4. Field foto disiapkan kosong ---------- */
+    $foto_profil_url = '';
+    $foto_ktp_url    = '';
 
-    // 5. Proses upload FOTO KTP
-    $foto_ktp_url = '';
-    $dirKtp       = __DIR__ . '/../uploads/ktp_pics/';
-    if (!is_dir($dirKtp)) mkdir($dirKtp, 0755, true);
-
-    if (!empty($_FILES['foto_ktp']['tmp_name']) && $_FILES['foto_ktp']['error'] === UPLOAD_ERR_OK) {
-        $tmp   = $_FILES['foto_ktp']['tmp_name'];
-        $info  = getimagesize($tmp);
-        if ($info === false) send_response(1, 'File KTP bukan gambar.');
-        switch ($info['mime']) {
-            case 'image/jpeg': $img = imagecreatefromjpeg($tmp); break;
-            case 'image/png':  $img = imagecreatefrompng($tmp);  break;
-            case 'image/gif':  $img = imagecreatefromgif($tmp);  break;
-            default: send_response(1, 'Format KTP tidak didukung.');
-        }
-        $stamp    = time();
-        $newName2 = "{$uName}_{$uJenjang}_{$uRole}_{$stamp}_ktp.jpg";
-        $dest2    = $dirKtp . $newName2;
-        if (!imagejpeg($img, $dest2, 90)) {
-            imagedestroy($img);
-            send_response(1, 'Gagal menyimpan foto KTP.');
-        }
-        imagedestroy($img);
-        // simpan URL lengkap
-        $foto_ktp_url = getBaseUrl() . '/uploads/ktp_pics/' . $newName2;
-    }
-
-    // 6. Ambil sisa field dari POST
+    /* ---------- 5. Data pribadi & kontak ---------- */
+    $remark            = bersihkan_input($_POST['remark']            ?? '');
     $jk                = bersihkan_input($_POST['jk']                ?? '');
     $tgl_lahir         = bersihkan_input($_POST['tgl_lahir']         ?? '');
-    $usia              = intval($_POST['usia']                      ?? 0);
+    $usia              = calcAge($tgl_lahir);
     $religion          = bersihkan_input($_POST['religion']          ?? '');
     $alamat_domisili   = bersihkan_input($_POST['alamat_domisili']   ?? '');
     $alamat_ktp        = bersihkan_input($_POST['alamat_ktp']        ?? '');
@@ -438,93 +461,104 @@ function CreateGuru(mysqli $conn)
         $nama_anak_1 = $nama_anak_2 = $nama_anak_3 = '-';
     }
 
-    // 7. Insert ke DB
+    /* ---------- 6. INSERT baris baru (foto masih kosong) ---------- */
+    $salary_index_id = null;
+
     $sql = "INSERT INTO anggota_sekolah (
-                uid, nip, password, nama, jenjang, job_title, status_kerja,
-                join_start, lama_kontrak, tgl_kontrak_selesai,
-                masa_kerja_tahun, masa_kerja_bulan, masa_kerja_efektif,
-                remark, jenis_kelamin, tanggal_lahir, usia, agama,
-                alamat_domisili, alamat_ktp, no_rekening, no_hp, pendidikan,
-                status_perkawinan, email, nama_pasangan, jumlah_anak,
-                nama_anak_1, nama_anak_2, nama_anak_3,
-                salary_index_id, gaji_pokok, role,
-                foto_profil, foto_ktp
+                uid,nip,password,nama,jenjang,job_title,status_kerja,
+                join_start,lama_kontrak,tgl_kontrak_selesai,
+                masa_kerja_tahun,masa_kerja_bulan,masa_kerja_efektif,
+                remark,jenis_kelamin,tanggal_lahir,usia,agama,
+                alamat_domisili,alamat_ktp,no_rekening,no_hp,pendidikan,
+                status_perkawinan,email,nama_pasangan,jumlah_anak,
+                nama_anak_1,nama_anak_2,nama_anak_3,
+                salary_index_id,gaji_pokok,role,foto_profil,foto_ktp
             ) VALUES (
                 ?,?,?,?,?,?,?,
-                ?,?,?,?,
-                ?,?,?,?,?,
-                ?,?,?,?,?,
-                ?,?,?,?,?,?,
-                ?,?,?,?,
-                ?,?,?,?,
-                ?,?
+                ?,?,?, ?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?,?, ?,?,?, ?,?,?,?
             )";
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) send_response(1, 'Query error: ' . $conn->error);
 
-    $salary_index_id = null; // akan di‐update setelah insert
+    /* 35 char type string persis */
+    $types = 'sssssss' . 'sis' . 'iid' . 'sssis' . 'sssss' . 'sssi' . 'sss' . 'idsss';
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        send_response(1,'Query error: '.$conn->error);
+    }
+
     $stmt->bind_param(
-        "sssssss" .   // uid, nip, pass, nama, jenjang, job_title, status_kerja
-        "siisii" .    // join_start, lama_kontrak, tgl_kontrak_selesai, masa_thn, masa_bln, masa_eff
-        "sissss" .    // remark, jk, tgl_lahir, usia, religion, alamat_domisili
-        "sssissss" .  // alamat_ktp, no_rekening, no_hp, pendidikan, status_perkawinan, email, nama_pasangan, jumlah_anak
-        "sss" .       // nama_anak_1, nama_anak_2, nama_anak_3
-        "idsss",      // salary_index_id, gaji_pokok, role, foto_profil, foto_ktp
-        $uid,
-        $nip,
-        $defaultPass,
-        $nama,
-        $jenjang,
-        $job_title,
-        $status_kerja,
-        $join_start,
-        $lama_kontrak,
-        $tgl_kontrak,
-        $masa_tahun,
-        $masa_bulan,
-        $masa_eff,
-        $_POST['remark']          ?? '',
-        $jk,
-        $tgl_lahir,
-        $usia,
-        $religion,
-        $alamat_domisili,
-        $alamat_ktp,
-        $no_rekening,
-        $no_hp,
-        $pendidikan,
-        $status_perkawinan,
-        $email,
-        $nama_pasangan,
-        $jumlah_anak,
-        $nama_anak_1,
-        $nama_anak_2,
-        $nama_anak_3,
-        $salary_index_id,
-        $gaji_pokok,
-        $role,
-        $foto_profil_url,
-        $foto_ktp_url
+        $types,
+        $uid,$nip,$defaultPass,$nama,$jenjang,$job_title,$status_kerja,
+        $join_start,$lama_kontrak,$tgl_kontrak,
+        $masa_tahun,$masa_bulan,$masa_eff,
+        $remark,$jk,$tgl_lahir,$usia,$religion,
+        $alamat_domisili,$alamat_ktp,$no_rekening,$no_hp,$pendidikan,
+        $status_perkawinan,$email,$nama_pasangan,$jumlah_anak,
+        $nama_anak_1,$nama_anak_2,$nama_anak_3,
+        $salary_index_id,$gaji_pokok,$role,$foto_profil_url,$foto_ktp_url
     );
 
-    if ($stmt->execute()) {
-        $newId = $stmt->insert_id;
-        $stmt->close();
-        updateSalaryIndexForUser($conn, $newId);
-        add_audit_log(
-            $conn,
-            $_SESSION['nip'] ?? '',
-            'CreateGuru',
-            "Menambah Guru/Karyawan baru ID=$newId, NIP=$nip, Nama=$nama"
-        );
-        send_response(0, 'Data berhasil disimpan.');
-    } else {
-        $err = $stmt->error;
-        $stmt->close();
-        send_response(1, "Gagal menyimpan data: $err");
+    if (!$stmt->execute()) {
+        $err=$stmt->error; $stmt->close();
+        send_response(1,"Gagal menyimpan data: $err");
     }
-}
 
+    $newId = $stmt->insert_id;
+    $stmt->close();
+
+    /* ---------- 7. Setelah INSERT → proses upload foto ---------- */
+    $slugBase = "{$slugName}_{$slugJenjang}_{$slugRole}";
+
+    if (!empty($_FILES['foto_profil']['tmp_name']) &&
+        $_FILES['foto_profil']['error'] === UPLOAD_ERR_OK) {
+
+        if ($_FILES['foto_profil']['size'] > 2*1024*1024)
+            send_response(1,'Ukuran foto profil maks 2 MB.');
+
+        $foto_profil_url = save_image_as_jpg(
+            $_FILES['foto_profil']['tmp_name'],
+            __DIR__.'/../uploads/profile_pics/',
+            "{$slugBase}_{$newId}.jpg"
+        );
+    }
+
+    if (!empty($_FILES['foto_ktp']['tmp_name']) &&
+        $_FILES['foto_ktp']['error'] === UPLOAD_ERR_OK) {
+
+        if ($_FILES['foto_ktp']['size'] > 2*1024*1024)
+            send_response(1,'Ukuran foto KTP maks 2 MB.');
+
+        $foto_ktp_url = save_image_as_jpg(
+            $_FILES['foto_ktp']['tmp_name'],
+            __DIR__.'/../uploads/ktp_pics/',
+            "{$slugBase}_{$newId}_ktp.jpg"
+        );
+    }
+
+    if ($foto_profil_url || $foto_ktp_url) {
+        $u = $conn->prepare(
+            "UPDATE anggota_sekolah
+                SET foto_profil = IF(?='',foto_profil,?),
+                    foto_ktp    = IF(?='',foto_ktp,?)
+              WHERE id=?"
+        );
+        $empty='';
+        $u->bind_param('ssssi',
+            $foto_profil_url,$foto_profil_url,
+            $foto_ktp_url,$foto_ktp_url,
+            $newId
+        );
+        $u->execute();
+        $u->close();
+    }
+
+    /* ---------- 8. Post-proses ---------- */
+    updateSalaryIndexForUser($conn,$newId);
+    add_audit_log($conn,$_SESSION['nip']??'','CreateGuru',
+        "Menambah Guru/Karyawan baru ID=$newId, NIP=$nip, Nama=$nama");
+
+    send_response(0,'Data berhasil disimpan.');
+}
 
 
 
@@ -543,11 +577,11 @@ function GetGuruDetail(mysqli $conn): array
         SELECT a.*,
                si.level       AS salary_level,
                si.description AS salary_desc
-        FROM anggota_sekolah a
-        LEFT JOIN salary_indices si
-          ON a.salary_index_id = si.id
-        WHERE a.id = ?
-        LIMIT 1
+          FROM anggota_sekolah a
+     LEFT JOIN salary_indices si
+            ON a.salary_index_id = si.id
+         WHERE a.id = ?
+         LIMIT 1
     ");
     $stmt->bind_param("i", $id);
     $stmt->execute();
@@ -561,32 +595,38 @@ function GetGuruDetail(mysqli $conn): array
     // 2. Hilangkan password
     unset($row['password']);
 
-    // 3. Format masa kerja
-    $row['masa_kerja'] = $row['masa_kerja_tahun'] . " Thn " . $row['masa_kerja_bulan'] . " Bln";
+    // 3. Pastikan sudah_kontrak ikut dikirim
+    $row['sudah_kontrak'] = intval($row['sudah_kontrak'] ?? 0);
 
-    // 4. Samakan nama field singkat
+    // 4. Format masa kerja
+    if ($row['status_kerja'] === 'Kontrak') {
+        $row['masa_kerja'] = $row['sudah_kontrak'] . " Thn";
+    } else {
+        $row['masa_kerja'] =
+            $row['masa_kerja_tahun'] . " Thn " .
+            $row['masa_kerja_bulan'] . " Bln";
+    }
+
+    // 5. Samakan nama field singkat
     $row['religion'] = $row['agama'];
     $row['jk']       = $row['jenis_kelamin'];
 
-    // 5. Bangun URL penuh untuk foto_profil & foto_ktp
+    // 6. Bangun URL penuh untuk foto_profil & foto_ktp
     $base = getBaseUrl();
-    foreach (['foto_profil','foto_ktp'] as $field) {
-        // apa yang disimpan di DB
+    foreach (['foto_profil', 'foto_ktp'] as $field) {
         $dbval    = $row[$field] ?? '';
         $filename = basename($dbval);
-        // tentukan folder upload
-        $subdir   = $field === 'foto_profil' ? 'profile_pics' : 'ktp_pics';
+        $subdir   = $field === 'foto_profil'
+            ? 'profile_pics' : 'ktp_pics';
         $local    = __DIR__ . "/../uploads/{$subdir}/{$filename}";
 
         if (strpos($dbval, 'http') === 0) {
-            // sudah URL absolut
             $row[$field] = $dbval;
         } elseif ($filename && file_exists($local)) {
-            // file ada di server, tambah cache‐buster based on mtime
             $row[$field] = "{$base}/uploads/{$subdir}/{$filename}"
-                         . "?v=" . filemtime($local);
+                . "?v=" . filemtime($local);
         } else {
-            // fallback placeholder (pakai SVG profil)
+            // placeholder umum
             $row[$field] = "{$base}/assets/img/undraw_profile.svg";
         }
     }
@@ -594,139 +634,106 @@ function GetGuruDetail(mysqli $conn): array
     send_response(0, $row);
 }
 
-/* =============================================================
+/**
  * 4. Fungsi UpdateGuru: Memperbarui data anggota
- * =========================================================== */
+ * ----------------------------------------------------------- */
 function UpdateGuru(mysqli $conn)
 {
-    // 1. Validasi ID
+    /* ---------- 1. Validasi & data lama ---------- */
     $id = intval($_POST['id'] ?? 0);
     if ($id <= 0) {
         send_response(1, 'ID tidak valid.');
     }
 
-    // 2. Ambil data lama (nama, jenjang, foto lama)
-    $stmt0 = $conn->prepare("
-        SELECT nama, jenjang, foto_profil, foto_ktp
-        FROM anggota_sekolah
-        WHERE id = ? LIMIT 1
-    ");
-    $stmt0->bind_param("i", $id);
+    $stmt0 = $conn->prepare(
+        "SELECT nama, jenjang, foto_profil, foto_ktp
+           FROM anggota_sekolah
+          WHERE id=? LIMIT 1"
+    );
+    $stmt0->bind_param('i', $id);
     $stmt0->execute();
     $old = $stmt0->get_result()->fetch_assoc();
     $stmt0->close();
 
-    $namaOld     = $old['nama'];
-    $jenjangOld  = $old['jenjang'];
-    $urlProfilOld= $old['foto_profil'];
-    $urlKtpOld   = $old['foto_ktp'];
-
-    // 3. Sanitasi input dasar
-    $nip        = bersihkan_input($_POST['nip']           ?? '');
-    $nama       = bersihkan_input($_POST['nama']          ?? $namaOld);
-    $jenjang    = bersihkan_input($_POST['jenjang']       ?? $jenjangOld);
-    $job_title  = bersihkan_input($_POST['job_title']     ?? '');
-    $role       = bersihkan_input($_POST['role']          ?? '');
-    $status_kerja = bersihkan_input($_POST['status_kerja'] ?? 'Tetap');
-    $join_start = bersihkan_input($_POST['join_start']    ?? '');
-
-    if (empty($nip) || empty($nama) || empty($jenjang) || empty($role)) {
-        send_response(1, 'NIP, Nama, Jenjang dan Role wajib diisi.');
+    if (!$old) {
+        send_response(1, 'Data tidak ditemukan.');
     }
 
-    // 4. Cek duplikasi NIP
-    $ck = $conn->prepare("SELECT id FROM anggota_sekolah WHERE nip = ? AND id <> ?");
-    $ck->bind_param("si", $nip, $id);
+    /* ---------- 2. Helper slug ---------- */
+    $slugify = fn(string $s) => strtolower(preg_replace('/\s+/', '_', trim($s)));
+
+    /* ---------- 3. Input utama ---------- */
+    $nip          = bersihkan_input($_POST['nip']          ?? '');
+    $nama         = bersihkan_input($_POST['nama']         ?? $old['nama']);
+    $jenjang      = bersihkan_input($_POST['jenjang']      ?? $old['jenjang']);
+    $job_title    = bersihkan_input($_POST['job_title']    ?? '');
+    $role         = bersihkan_input($_POST['role']         ?? '');
+    $status_kerja = bersihkan_input($_POST['status_kerja'] ?? 'Tetap');
+    $join_start   = bersihkan_input($_POST['join_start']   ?? '');
+
+    if (!$nip || !$nama || !$jenjang || !$role) {
+        send_response(1,'NIP, Nama, Jenjang dan Role wajib diisi.');
+    }
+
+    /* ---------- 4. Cek duplikasi NIP ---------- */
+    $ck = $conn->prepare("SELECT id FROM anggota_sekolah WHERE nip=? AND id<>?");
+    $ck->bind_param('si',$nip,$id);
     $ck->execute();
-    if ($ck->get_result()->num_rows) {
-        send_response(1, 'NIP sudah digunakan oleh user lain.');
+    if ($ck->get_result()->num_rows){
+        send_response(1,'NIP sudah digunakan oleh user lain.');
     }
     $ck->close();
 
-    // 5. Hitung tgl_kontrak & masa kerja
-    $lama_kontrak = ($status_kerja === 'Kontrak')
-                  ? intval($_POST['lama_kontrak'] ?? 12)
-                  : null;
-    $tgl_kontrak = ($status_kerja === 'Kontrak' && $join_start)
-                 ? addMonths($join_start, $lama_kontrak)
-                 : null;
-    list($masa_tahun, $masa_bulan, $masa_eff) = calcMasaKerja($join_start);
+    /* ---------- 5. Hitung kontrak & masa kerja ---------- */
+    $lama_kontrak = ($status_kerja==='Kontrak') ? intval($_POST['lama_kontrak']??12) : null;
+    $tgl_kontrak  = ($status_kerja==='Kontrak' && $join_start)
+                    ? hitungTanggalSelesaiKontrak($join_start,$lama_kontrak) : null;
+    [$masa_tahun,$masa_bulan,$masa_eff] = calcMasaKerja($join_start);
 
-    // siapkan naming
-    $u = strtolower(preg_replace('/\s+/', '_', $nama));
-    $j = strtolower(preg_replace('/\s+/', '_', $jenjang));
-    $r = strtolower($_SESSION['role'] ?? 'user');
+    /* ---------- 6. Upload foto (jika ada) ---------- */
+    $fotoProfilUrl = $old['foto_profil'];
+    $fotoKtpUrl    = $old['foto_ktp'];
 
-    // 6. Upload & rename FOTO PROFIL
-    $fotoProfilUrl = $urlProfilOld;  // fallback URL lama
-    $dirProf = __DIR__ . '/../uploads/profile_pics/';
-    if (!is_dir($dirProf)) mkdir($dirProf, 0755, true);
+    $slugBase = $slugify($nama).'_'.$slugify($jenjang).'_'.strtolower($role);
 
-    if (!empty($_FILES['foto_profil']['tmp_name'])
-        && $_FILES['foto_profil']['error'] === UPLOAD_ERR_OK
-    ) {
-        $tmp  = $_FILES['foto_profil']['tmp_name'];
-        $info = getimagesize($tmp);
-        if ($info === false) {
-            send_response(1, 'File yang diunggah bukan gambar.');
-        }
-        switch ($info['mime']) {
-            case 'image/jpeg': $img = imagecreatefromjpeg($tmp); break;
-            case 'image/png':  $img = imagecreatefrompng($tmp);  break;
-            case 'image/gif':  $img = imagecreatefromgif($tmp);  break;
-            default:
-                send_response(1, 'Format gambar tidak didukung. Hanya JPG/PNG/GIF.');
-        }
-        $fnProf = "{$u}_{$j}_{$r}_{$id}.jpg";
-        $dstProf= $dirProf . $fnProf;
-        if (!imagejpeg($img, $dstProf, 90)) {
-            imagedestroy($img);
-            send_response(1, 'Gagal menyimpan foto profil.');
-        }
-        imagedestroy($img);
-        $fotoProfilUrl = getBaseUrl() . '/uploads/profile_pics/' . $fnProf;
+    // ---- Profil
+    if (!empty($_FILES['foto_profil']['tmp_name']) &&
+        $_FILES['foto_profil']['error'] === UPLOAD_ERR_OK) {
+
+        if ($_FILES['foto_profil']['size'] > 2*1024*1024)
+            send_response(1,'Ukuran foto profil maksimal 2MB.');
+
+        $fotoProfilUrl = save_image_as_jpg(
+            $_FILES['foto_profil']['tmp_name'],
+            __DIR__.'/../uploads/profile_pics/',
+            "{$slugBase}_{$id}.jpg"
+        );
     }
 
-    // 7. Upload & rename FOTO KTP
-    $fotoKtpUrl = $urlKtpOld;
-    $dirKtp = __DIR__ . '/../uploads/ktp_pics/';
-    if (!is_dir($dirKtp)) mkdir($dirKtp, 0755, true);
+    // ---- KTP
+    if (!empty($_FILES['foto_ktp']['tmp_name']) &&
+        $_FILES['foto_ktp']['error'] === UPLOAD_ERR_OK) {
 
-    if (!empty($_FILES['foto_ktp']['tmp_name'])
-        && $_FILES['foto_ktp']['error'] === UPLOAD_ERR_OK
-    ) {
-        $tmp  = $_FILES['foto_ktp']['tmp_name'];
-        $info = getimagesize($tmp);
-        if ($info === false) {
-            send_response(1, 'File KTP bukan gambar.');
-        }
-        switch ($info['mime']) {
-            case 'image/jpeg': $img = imagecreatefromjpeg($tmp); break;
-            case 'image/png':  $img = imagecreatefrompng($tmp);  break;
-            case 'image/gif':  $img = imagecreatefromgif($tmp);  break;
-            default:
-                send_response(1, 'Format KTP tidak didukung.');
-        }
-        $fnKtp = "{$u}_{$j}_{$r}_{$id}_ktp.jpg";
-        $dstKtp= $dirKtp . $fnKtp;
-        if (!imagejpeg($img, $dstKtp, 90)) {
-            imagedestroy($img);
-            send_response(1, 'Gagal menyimpan foto KTP.');
-        }
-        imagedestroy($img);
-        $fotoKtpUrl = getBaseUrl() . '/uploads/ktp_pics/' . $fnKtp;
+        if ($_FILES['foto_ktp']['size'] > 2*1024*1024)
+            send_response(1,'Ukuran foto KTP maksimal 2MB.');
+
+        $fotoKtpUrl = save_image_as_jpg(
+            $_FILES['foto_ktp']['tmp_name'],
+            __DIR__.'/../uploads/ktp_pics/',
+            "{$slugBase}_{$id}_ktp.jpg"
+        );
     }
 
-    // 8. Ambil & sanitasi field lain
+    /* ---------- 7. Data lainnya ---------- */
     $remark            = bersihkan_input($_POST['remark']            ?? '');
     $jk                = bersihkan_input($_POST['jk']                ?? '');
     $tgl_lahir         = bersihkan_input($_POST['tgl_lahir']         ?? '');
-    $usia              = intval($_POST['usia']                       ?? 0);
+    $usia              = intval($_POST['usia'] ?? 0);
     $religion          = bersihkan_input($_POST['religion']          ?? '');
     $alamat_domisili   = bersihkan_input($_POST['alamat_domisili']   ?? '');
     $alamat_ktp        = bersihkan_input($_POST['alamat_ktp']        ?? '');
     $no_rekening       = bersihkan_input($_POST['no_rekening']       ?? '');
-    $no_hp             = bersihkan_input($_POST['no_hp']             ?? '');
+    $no_hp             = formatPhoneNumber(bersihkan_input($_POST['no_hp'] ?? ''));
     $pendidikan        = bersihkan_input($_POST['pendidikan']        ?? '');
     $status_perkawinan = bersihkan_input($_POST['status_perkawinan'] ?? '');
     $email             = bersihkan_input($_POST['email']             ?? '');
@@ -736,96 +743,60 @@ function UpdateGuru(mysqli $conn)
     $nama_anak_2       = bersihkan_input($_POST['nama_anak_2']       ?? '');
     $nama_anak_3       = bersihkan_input($_POST['nama_anak_3']       ?? '');
 
-    if ($status_perkawinan === 'Belum Menikah') {
-        $nama_pasangan = '-';
-        $jumlah_anak   = 0;
-        $nama_anak_1 = $nama_anak_2 = $nama_anak_3 = '-';
+    if ($status_perkawinan==='Belum Menikah'){
+        $nama_pasangan='-'; $jumlah_anak=0;
+        $nama_anak_1=$nama_anak_2=$nama_anak_3='-';
     }
 
-    // 9. Build dynamic UPDATE
+    /* ---------- 8. Siapkan array kolom ---------- */
     $cols = [
-        'nip'                 => $nip,
-        'nama'                => $nama,
-        'jenjang'             => $jenjang,
-        'job_title'           => $job_title,
-        'role'                => $role,
-        'status_kerja'        => $status_kerja,
-        'join_start'          => $join_start,
-        'lama_kontrak'        => $lama_kontrak,
-        'tgl_kontrak_selesai' => $tgl_kontrak,
-        'masa_kerja_tahun'    => $masa_tahun,
-        'masa_kerja_bulan'    => $masa_bulan,
-        'masa_kerja_efektif'  => $masa_eff,
-        'remark'              => $remark,
-        'jenis_kelamin'       => $jk,
-        'tanggal_lahir'       => $tgl_lahir,
-        'usia'                => $usia,
-        'agama'               => $religion,
-        'alamat_domisili'     => $alamat_domisili,
-        'alamat_ktp'          => $alamat_ktp,
-        'no_rekening'         => $no_rekening,
-        'no_hp'               => $no_hp,
-        'pendidikan'          => $pendidikan,
-        'status_perkawinan'   => $status_perkawinan,
-        'email'               => $email,
-        'nama_pasangan'       => $nama_pasangan,
-        'jumlah_anak'         => $jumlah_anak,
-        'nama_anak_1'         => $nama_anak_1,
-        'nama_anak_2'         => $nama_anak_2,
-        'nama_anak_3'         => $nama_anak_3,
-        'foto_profil'         => $fotoProfilUrl,
-        'foto_ktp'            => $fotoKtpUrl,
+        'nip'=>$nip,'nama'=>$nama,'jenjang'=>$jenjang,'job_title'=>$job_title,
+        'role'=>$role,'status_kerja'=>$status_kerja,'join_start'=>$join_start,
+        'lama_kontrak'=>$lama_kontrak,'tgl_kontrak_selesai'=>$tgl_kontrak,
+        'masa_kerja_tahun'=>$masa_tahun,'masa_kerja_bulan'=>$masa_bulan,
+        'masa_kerja_efektif'=>$masa_eff,'remark'=>$remark,'jenis_kelamin'=>$jk,
+        'tanggal_lahir'=>$tgl_lahir,'usia'=>$usia,'agama'=>$religion,
+        'alamat_domisili'=>$alamat_domisili,'alamat_ktp'=>$alamat_ktp,
+        'no_rekening'=>$no_rekening,'no_hp'=>$no_hp,'pendidikan'=>$pendidikan,
+        'status_perkawinan'=>$status_perkawinan,'email'=>$email,
+        'nama_pasangan'=>$nama_pasangan,'jumlah_anak'=>$jumlah_anak,
+        'nama_anak_1'=>$nama_anak_1,'nama_anak_2'=>$nama_anak_2,
+        'nama_anak_3'=>$nama_anak_3,'foto_profil'=>$fotoProfilUrl,
+        'foto_ktp'=>$fotoKtpUrl,
     ];
 
-    // salary_index_id handling
-    if (isset($_POST['salary_index_id']) && $_POST['salary_index_id'] !== '') {
-        $cols['salary_index_id'] = intval($_POST['salary_index_id']);
-    } else {
-        $cols['salary_index_id'] = null;
-    }
+    $cols['salary_index_id'] = ($_POST['salary_index_id']??'')!==''
+        ? intval($_POST['salary_index_id']) : null;
 
-    // build SET clause & types/values
-    $setParts = [];
-    $types = '';
-    $vals  = [];
-    foreach ($cols as $col => $val) {
-        if ($col === 'salary_index_id' && $val === null) {
-            $setParts[] = "salary_index_id = NULL";
-            continue;
+    /* ---------- 9. Build dynamic UPDATE ---------- */
+    $setParts=[]; $types=''; $vals=[];
+    foreach($cols as $c=>$v){
+        if($c==='salary_index_id' && $v===null){
+            $setParts[]="salary_index_id=NULL"; continue;
         }
-        $setParts[] = "$col = ?";
-        if (in_array($col, ['lama_kontrak','masa_kerja_tahun','masa_kerja_bulan','usia','jumlah_anak','salary_index_id'])) {
-            $types .= 'i';
-        } elseif ($col === 'masa_kerja_efektif') {
-            $types .= 'd';
-        } else {
-            $types .= 's';
-        }
-        $vals[] = $val;
+        $setParts[]="`$c`=?";
+        $types .= in_array($c,[
+            'lama_kontrak','masa_kerja_tahun','masa_kerja_bulan',
+            'usia','jumlah_anak','salary_index_id']) ? 'i'
+            : ($c==='masa_kerja_efektif' ? 'd' : 's');
+        $vals[]=$v;
     }
-    // WHERE id
-    $types .= 'i';
-    $vals[]  = $id;
+    $types.='i'; $vals[]=$id;
 
-    $sql = "UPDATE anggota_sekolah
-            SET " . implode(', ', $setParts) . "
-            WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        send_response(1, 'Query error: ' . $conn->error);
-    }
-    $stmt->bind_param($types, ...$vals);
+    $sql="UPDATE anggota_sekolah SET ".implode(', ',$setParts)." WHERE id=?";
+    $st=$conn->prepare($sql);
+    if(!$st) send_response(1,'Query error: '.$conn->error);
+    $st->bind_param($types,...$vals);
 
-    // 10. Eksekusi & response
-    if ($stmt->execute()) {
-        $stmt->close();
-        updateSalaryIndexForUser($conn, $id);
-        add_audit_log($conn, $_SESSION['nip'] ?? '', 'UpdateGuru', "Update ID=$id, NIP=$nip");
-        send_response(0, 'Data berhasil diperbarui.');
-    } else {
-        $err = $stmt->error;
-        $stmt->close();
-        send_response(1, 'Gagal update data: ' . $err);
+    if($st->execute()){
+        $st->close();
+        updateSalaryIndexForUser($conn,$id);
+        add_audit_log($conn,$_SESSION['nip']??'',
+            'UpdateGuru',"Update ID=$id, NIP=$nip");
+        send_response(0,'Data berhasil diperbarui.');
+    }else{
+        $e=$st->error; $st->close();
+        send_response(1,'Gagal update data: '.$e);
     }
 }
 
@@ -889,13 +860,8 @@ function updateGajiPokok($conn)
 
 function updateGajiStrataGuru($conn)
 {
+    global $guruConfig;
     $updates = [];
-    $guruConfig = [
-        'TK'      => ['D3', 'S1', 'S2'],
-        'SD'      => ['S1', 'S2'],
-        'SMP'     => ['S1', 'S2'],
-        'SMA/SMK' => ['S1', 'S2', 'S3']
-    ];
     foreach ($guruConfig as $jenjang => $strataArr) {
         foreach ($strataArr as $strata) {
             $fieldName = strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata);
@@ -928,12 +894,8 @@ function updateGajiStrataGuru($conn)
 
 function updateGajiStrataKaryawan($conn)
 {
+    global $karyawanConfig;
     $updates = [];
-    $karyawanConfig = [
-        'TK'  => ['D3'],
-        'SD'  => ['S1'],
-        'SMP' => ['S2']
-    ];
     foreach ($karyawanConfig as $jenjang => $strataArr) {
         foreach ($strataArr as $strata) {
             $fieldName = strtolower(str_replace('/', '', $jenjang)) . '_' . strtolower($strata);
@@ -1257,6 +1219,10 @@ function getGajiPokokByRole($conn, $role)
             font-size: 0.9rem;
             color: #6c757d;
         }
+
+        .d-none {
+            display: none !important;
+        }
     </style>
 
 </head>
@@ -1517,15 +1483,22 @@ function getGajiPokokByRole($conn, $role)
                                 </div>
                             </div>
                             <!-- Lama Kontrak -->
-                            <div class="col-md-6 add-kontak-only d-none">
+                            <div class="col-md-6 add-kontrak-only d-none">
                                 <div class="form-group">
                                     <label for="addLamaKontrak">Lama Kontrak (bulan)</label>
                                     <select name="lama_kontrak" id="addLamaKontrak" class="form-control">
-                                        <option value="6">6</option>
                                         <option value="12" selected>12</option>
                                         <option value="24">24</option>
                                         <option value="36">36</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            <!-- **Tambahkan preview Tgl Selesai Kontrak** -->
+                            <div class="col-md-6 add-kontrak-only d-none">
+                                <div class="form-group">
+                                    <label for="addTglSelesai">Tanggal Selesai Kontrak</label>
+                                    <input type="date" id="addTglSelesai" class="form-control" readonly>
                                 </div>
                             </div>
                         </div>
@@ -1760,18 +1733,35 @@ function getGajiPokokByRole($conn, $role)
                                 </div>
                             </div>
                             <!-- Lama Kontrak (Tampil jika Status Kerja = Kontrak) -->
-                            <div class="col-md-6 d-none" id="editLamaKontrakContainer">
+                            <div class="col-md-6 edit-kontrak-only d-none" id="editLamaKontrakContainer">
                                 <div class="form-group">
                                     <label for="editLamaKontrak">Lama Kontrak (bulan)</label>
                                     <select name="lama_kontrak" id="editLamaKontrak" class="form-control">
-                                        <option value="6">6</option>
                                         <option value="12" selected>12</option>
                                         <option value="24">24</option>
                                         <option value="36">36</option>
                                     </select>
                                 </div>
                             </div>
+                            <!-- **Tambahkan preview Tgl Selesai Kontrak** -->
+                            <div class="col-md-6 edit-kontrak-only d-none" id="editTglSelesaiContainer">
+                                <div class="form-group">
+                                    <label for="editTglSelesai">Tanggal Selesai Kontrak</label>
+                                    <input type="date" id="editTglSelesai" class="form-control" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editSudahKontrak">Sudah Kontrak (tahun)</label>
+                                <input type="number"
+                                    name="sudah_kontrak"
+                                    id="editSudahKontrak"
+                                    class="form-control"
+                                    readonly
+                                    value="<?= htmlspecialchars($row['sudah_kontrak'] ?? 0) ?>">
+                            </div>
+
                         </div>
+
                         <!-- Tanggal Bergabung -->
                         <div class="row mt-2">
                             <div class="col-md-6">
@@ -1779,6 +1769,7 @@ function getGajiPokokByRole($conn, $role)
                                 <input type="date" name="join_start" id="editJoinStart" class="form-control">
                             </div>
                         </div>
+
                         <h6 class="mt-4 mb-2">Data Pribadi</h6>
                         <div class="row">
                             <div class="col-md-6">
@@ -1977,13 +1968,25 @@ function getGajiPokokByRole($conn, $role)
                             <th>Masa Kerja</th>
                             <td id="detailMasaKerja"></td>
                         </tr>
+                        <tr id="detailLamaKontrakRow">
+                            <th>Lama Kontrak</th>
+                            <td id="detailLamaKontrak"></td>
+                        </tr>
+                        <tr id="detailTglSelesaiRow">
+                            <th>Tanggal Selesai</th>
+                            <td id="detailTglSelesai"></td>
+                        </tr>
                         <tr>
                             <th>Pendidikan</th>
                             <td id="detailPendidikan"></td>
                         </tr>
-                        <tr>
-                            <th>Salary Indeks Level</th>
-                            <td id="detailSalaryIndexId"></td>
+                        <tr id="detailGajiPokokRow">
+                            <th>Gaji Pokok</th>
+                            <td id="detailGajiPokok"></td>
+                        </tr>
+                        <tr id="detailSalaryIndexRow">
+                            <th>Salary Index</th>
+                            <td id="detailSalaryLevel"></td>
                         </tr>
                     </table>
 
@@ -2360,7 +2363,8 @@ function getGajiPokokByRole($conn, $role)
             <p class="text-muted small mb-2">NIP: ${item.nip}</p>
             <div class="small mb-2">
                 ${item.jenjang_badge}
-                ${getBadgeRole(item.role)}     <!-- jika sudah punya getBadgeRole di JS -->
+                ${getBadgeRole(item.role)}
+                 ${getStatusBadge(item.status_kerja)}     <!-- jika sudah punya getBadgeRole di JS -->
               </div>
             <p class="small text-muted mb-3">
                 <i class="fas fa-clock me-1"></i> ${item.masa_kerja || '0 Thn'}
@@ -2451,10 +2455,20 @@ function getGajiPokokByRole($conn, $role)
                             $('#detailJobTitle').text(response.result.job_title);
                             $('#detailRole').text(response.result.role);
                             $('#detailStatusKerja').html(getStatusBadge(response.result.status_kerja));
+                            $('#detailGajiPokok').text(response.result.gaji_pokok);
+                            $('#detailSalaryLevel').text(response.result.salary_level);
+                            $('#detailLamaKontrak').text(response.result.lama_kontrak ? response.result.lama_kontrak + ' Bln' : '-');
+                            $('#detailTglSelesai').text(response.result.tgl_kontrak_selesai || '-');
+                            // hide baris kontrak bila status = Tetap
+                            if (response.result.status_kerja === 'Tetap') {
+                                $('#detailLamaKontrakRow, #detailTglSelesaiRow').hide();
+                            } else {
+                                $('#detailLamaKontrakRow, #detailTglSelesaiRow').show();
+                            }
                             $('#detailJoinStart').text(response.result.join_start);
+                            $('#detailSudahKontrak').text(response.result.sudah_kontrak + ' Thn');
                             $('#detailMasaKerja').text(response.result.masa_kerja);
                             $('#detailPendidikan').text(response.result.pendidikan);
-                            $('#detailSalaryIndexId').text(response.result.salary_level);
                             $('#detailJK').text(response.result.jk);
                             $('#detailTglLahir').text(response.result.tanggal_lahir);
                             $('#detailUsia').text(response.result.usia);
@@ -2472,7 +2486,7 @@ function getGajiPokokByRole($conn, $role)
                             $('#detailNamaAnak2').text(response.result.nama_anak_2 || '');
                             $('#detailNamaAnak3').text(response.result.nama_anak_3 || '');
                             $('#detailFotoProfil').attr('src', response.result.foto_profil || '<?= getBaseUrl() ?>/assets/img/undraw_profile.svg');
-$('#detailFotoKtp')   .attr('src', response.result.foto_ktp    || '<?= getBaseUrl() ?>/assets/img/ktp_placeholder.png');
+                            $('#detailFotoKtp').attr('src', response.result.foto_ktp || '<?= getBaseUrl() ?>/assets/img/ktp_placeholder.png');
                             $('#modalView').modal('show');
                         } else {
                             showToast(response.result, 'error');
@@ -2487,15 +2501,18 @@ $('#detailFotoKtp')   .attr('src', response.result.foto_ktp    || '<?= getBaseUr
 
             /* ===== Toggle Lama Kontrak sesuai Status Kerja ===== */
             function toggleKontrak(prefix) {
-                const status = $(`#${prefix}StatusKerja`).val();
+                let status = $(`#${prefix}StatusKerja`).val();
                 if (status === 'Kontrak') {
-                    $(`.${prefix}-kontak-only`).removeClass('d-none');
+                    $(`.${prefix}-kontrak-only`).removeClass('d-none');
                     $(`#${prefix}LamaKontrak`).prop('required', true);
                 } else {
-                    $(`.${prefix}-kontak-only`).addClass('d-none');
+                    $(`.${prefix}-kontrak-only`).addClass('d-none');
                     $(`#${prefix}LamaKontrak`).prop('required', false).val('');
+                    $(`#${prefix}TglSelesai`).val('');
                 }
             }
+
+            // Bind ke dropdown & modal show
             $('#addStatusKerja').on('change', () => toggleKontrak('add'));
             $('#editStatusKerja').on('change', () => toggleKontrak('edit'));
             $('#modalAdd').on('shown.bs.modal', () => toggleKontrak('add'));
@@ -2871,6 +2888,74 @@ $('#detailFotoKtp')   .attr('src', response.result.foto_ktp    || '<?= getBaseUr
                     }
                     reader.readAsDataURL(this.files[0]);
                 }
+            });
+
+            function previewTglSelesai(prefix) {
+                const joinDate = $(`#${prefix}JoinStart`).val();
+                const lama = parseInt($(`#${prefix}LamaKontrak`).val());
+                if (joinDate && lama) {
+                    const d = new Date(joinDate);
+                    d.setMonth(d.getMonth() + lama);
+                    d.setDate(d.getDate() - 1); // H-1
+                    const yyyy = d.getFullYear().toString().padStart(4, '0');
+                    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+                    const dd = d.getDate().toString().padStart(2, '0');
+                    $(`#${prefix}TglSelesai`).val(`${yyyy}-${mm}-${dd}`);
+                } else {
+                    $(`#${prefix}TglSelesai`).val('');
+                }
+            }
+
+            // Saat tanggal bergabung atau lama kontrak berubah (Tambah)
+            $('#addJoinStart, #addLamaKontrak').on('change', () => {
+                toggleKontrak('add');
+                previewTglSelesai('add');
+            });
+            // Saat tanggal bergabung atau lama kontrak berubah (Edit)
+            $('#editJoinStart, #editLamaKontrak').on('change', () => {
+                toggleLamaKontrakEdit();
+                previewTglSelesai('edit');
+            });
+
+            // Panggil preview sekali saat modal muncul
+            $('#modalAdd').on('shown.bs.modal', () => previewTglSelesai('add'));
+            $('#modalEdit').on('shown.bs.modal', () => {
+                toggleLamaKontrakEdit();
+                previewTglSelesai('edit');
+            });
+
+            // ===== Auto-hitung Usia dari Tanggal Lahir =====
+            function autoCalcAge(tglInputSelector, usiaInputSelector) {
+                const dob = $(tglInputSelector).val();
+                if (!dob) {
+                    $(usiaInputSelector).val('');
+                    return;
+                }
+                const birth = new Date(dob);
+                const today = new Date();
+                let age = today.getFullYear() - birth.getFullYear();
+                const m = today.getMonth() - birth.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+                    age--;
+                }
+                $(usiaInputSelector).val(age);
+            }
+
+            // Bind event pada form Add
+            $('#addTglLahir').on('change', () => {
+                autoCalcAge('#addTglLahir', '#addUsia');
+            });
+            // Bind event pada form Edit
+            $('#editTglLahir').on('change', () => {
+                autoCalcAge('#editTglLahir', '#editUsia');
+            });
+
+            // Kalau mau hitung sekali saat modal muncul (misalnya ada nilai awal)
+            $('#modalAdd').on('shown.bs.modal', () => {
+                autoCalcAge('#addTglLahir', '#addUsia');
+            });
+            $('#modalEdit').on('shown.bs.modal', () => {
+                autoCalcAge('#editTglLahir', '#editUsia');
             });
 
         });

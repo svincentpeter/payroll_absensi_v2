@@ -1149,3 +1149,20 @@ if (!function_exists('getExistingScheduleByNip')) {
 if (!defined('JADWAL_DUP_IDX')) {
     define('JADWAL_DUP_IDX', 'idx_piket_nip_tanggal');
 }
+
+// di helpers.php, paling bawah:
+function getStrataConfig(): array {
+    return [
+      'guru' => [
+        'TK'      => ['D3','S1','S2'],
+        'SD'      => ['S1','S2'],
+        'SMP'     => ['S1','S2'],
+        'SMA/SMK' => ['S1','S2','S3'],
+      ],
+      'karyawan' => [
+        'TK'  => ['D3'],
+        'SD'  => ['S1'],
+        'SMP' => ['S2'],
+      ],
+    ];
+}
