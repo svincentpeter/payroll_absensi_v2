@@ -44,9 +44,12 @@ $GLOBALS['BADGE_COLORS'] = [
      * @return string Data yang telah disanitasi.
      */
     function sanitize_input($data)
-    {
-        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+{
+    if ($data === null) {        // ← tambahkan
+        return '';               //   kembalikan string kosong
     }
+    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+}
 
     // Alias untuk fungsi sanitize_input()
     if (!function_exists('bersihkan_input')) {
@@ -540,95 +543,84 @@ function getBadgeJenjang(string $jenjang): string
      * @return bool True jika update berhasil, false jika gagal.
      */
     if (!function_exists('updateSalaryIndexForUser')) {
-        function updateSalaryIndexForUser($conn, $userId)
-        {
-            // Inisialisasi variabel untuk menghindari warning
-            $role = '';
-            $join_start = '';
-            $pendidikan = '';
-            $jenjang = '';
+    function updateSalaryIndexForUser($conn, $userId)
+    {
+        // Inisialisasi variabel
+        $role = '';
+        $join_start = '';
+        $pendidikan = '';
+        $jenjang = '';
 
-            // Ambil data user dari tabel anggota_sekolah
-            $stmt = $conn->prepare("SELECT role, join_start, pendidikan, jenjang FROM anggota_sekolah WHERE id = ?");
-            if (!$stmt) {
-                error_log("Prepare error (masa kerja): " . $conn->error);
-                return false;
-            }
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            $stmt->bind_result($role, $join_start, $pendidikan, $jenjang);
-            if (!$stmt->fetch()) {
-                $stmt->close();
-                return false;
-            }
-            $stmt->close();
-
-            // Hitung lama kerja dalam tahun menggunakan DateTime
-            $years = 0;
-            if (!empty($join_start) && $join_start != '0000-00-00') {
-                try {
-                    $startDate = new DateTime($join_start);
-                    $now       = new DateTime();
-                    $diff = $now->diff($startDate);
-                    $years = $diff->y;
-                } catch (Exception $e) {
-                    $years = 0;
-                }
-            }
-
-            // Inisialisasi variabel salary index
-            $salaryIndexId = 0;
-            $baseSalary = 0.0;
-            $level = '';
-
-            // Cari salary index yang sesuai berdasarkan masa kerja
-            $stmt3 = $conn->prepare("SELECT id, base_salary, level FROM salary_indices WHERE min_years <= ? AND (max_years IS NULL OR ? <= max_years) ORDER BY min_years DESC LIMIT 1");
-            if (!$stmt3) {
-                error_log("Prepare error (salary_indices): " . $conn->error);
-                return false;
-            }
-            $stmt3->bind_param("ii", $years, $years);
-            $stmt3->execute();
-            $stmt3->bind_result($salaryIndexId, $baseSalary, $level);
-            if (!$stmt3->fetch()) {
-                $stmt3->close();
-                error_log("Tidak ada salary index yang cocok untuk tahun = $years");
-                return false;
-            }
-            $stmt3->close();
-
-            // Tentukan gaji pokok, khusus untuk role 'P' (Pendidik)
-            $gaji_pokok = $baseSalary; // Default ke base salary
-            if ($role === 'P' && !empty($pendidikan)) {
-                $guru_salary = 0.0;
-                $stmtStrata = $conn->prepare("SELECT gaji_pokok FROM gaji_pokok_strata_guru WHERE jenjang=? AND strata=? LIMIT 1");
-                if ($stmtStrata) {
-                    $stmtStrata->bind_param("ss", $jenjang, $pendidikan);
-                    $stmtStrata->execute();
-                    $stmtStrata->bind_result($guru_salary);
-                    if ($stmtStrata->fetch()) {
-                        $gaji_pokok = floatval($guru_salary);
-                    }
-                    $stmtStrata->close();
-                }
-            }
-
-            // Update data user dengan salary index yang telah dihitung
-            $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, salary_index_level = ?, gaji_pokok = ?, masa_kerja_efektif = ? WHERE id = ?");
-            if (!$stmtUpdate) {
-                error_log("Prepare error (update anggota): " . $conn->error);
-                return false;
-            }
-            $masaKerjaEfektif = $years;
-            $stmtUpdate->bind_param("isidi", $salaryIndexId, $level, $gaji_pokok, $masaKerjaEfektif, $userId);
-            $result = $stmtUpdate->execute();
-            if (!$result) {
-                error_log("Execute error (update anggota): " . $stmtUpdate->error);
-            }
-            $stmtUpdate->close();
-            return $result;
+        // Ambil data user dari tabel anggota_sekolah
+        $stmt = $conn->prepare("SELECT role, join_start, pendidikan, jenjang FROM anggota_sekolah WHERE id = ?");
+        if (!$stmt) {
+            error_log("Prepare error (masa kerja): " . $conn->error);
+            return false;
         }
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $stmt->bind_result($role, $join_start, $pendidikan, $jenjang);
+        if (!$stmt->fetch()) {
+            $stmt->close();
+            return false;
+        }
+        $stmt->close();
+
+        // Hitung lama kerja dalam tahun menggunakan DateTime
+        $years = 0;
+        if (!empty($join_start) && $join_start != '0000-00-00') {
+            try {
+                $startDate = new DateTime($join_start);
+                $now       = new DateTime();
+                $diff = $now->diff($startDate);
+                $years = $diff->y;
+            } catch (Exception $e) {
+                $years = 0;
+            }
+        }
+
+        // Ambil salary index sesuai masa kerja
+        $salaryIndexId = 0;
+        $baseSalary = 0.0;
+        $level = '';
+        $stmt3 = $conn->prepare("SELECT id, base_salary, level FROM salary_indices WHERE min_years <= ? AND (max_years IS NULL OR ? <= max_years) ORDER BY min_years DESC LIMIT 1");
+        if (!$stmt3) {
+            error_log("Prepare error (salary_indices): " . $conn->error);
+            return false;
+        }
+        $stmt3->bind_param("ii", $years, $years);
+        $stmt3->execute();
+        $stmt3->bind_result($salaryIndexId, $baseSalary, $level);
+        if (!$stmt3->fetch()) {
+            $stmt3->close();
+            error_log("Tidak ada salary index yang cocok untuk tahun = $years");
+            return false;
+        }
+        $stmt3->close();
+
+        // ==== LOGIC FIX: Panggil fungsi hitungGajiPokok agar pencocokan konsisten ====
+        if (!function_exists('hitungGajiPokok')) {
+            require_once __DIR__ . '/mgk_salary_handler.php'; // pastikan ada
+        }
+        $gaji_pokok = hitungGajiPokok($conn, $role, $pendidikan, $jenjang);
+
+        // Update data user
+        $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, salary_index_level = ?, gaji_pokok = ?, masa_kerja_efektif = ? WHERE id = ?");
+        if (!$stmtUpdate) {
+            error_log("Prepare error (update anggota): " . $conn->error);
+            return false;
+        }
+        $masaKerjaEfektif = $years;
+        $stmtUpdate->bind_param("isidi", $salaryIndexId, $level, $gaji_pokok, $masaKerjaEfektif, $userId);
+        $result = $stmtUpdate->execute();
+        if (!$result) {
+            error_log("Execute error (update anggota): " . $stmtUpdate->error);
+        }
+        $stmtUpdate->close();
+        return $result;
     }
+}
+
 
     /**
      * Menormalisasi input pendidikan agar konsisten (misal: S1, S2, dll).
@@ -751,9 +743,9 @@ function getBadgeJenjang(string $jenjang): string
             'SD',
             'SMP',
             'SMA',
-            'SMK 1',
-            'SMK 2',
-            'Universitas Stivera'
+            'SMK Nusput 1',
+            'SMK Nusput 2',
+            'STIFERA'
         ];
     }
 
@@ -1150,19 +1142,3 @@ if (!defined('JADWAL_DUP_IDX')) {
     define('JADWAL_DUP_IDX', 'idx_piket_nip_tanggal');
 }
 
-// di helpers.php, paling bawah:
-function getStrataConfig(): array {
-    return [
-      'guru' => [
-        'TK'      => ['D3','S1','S2'],
-        'SD'      => ['S1','S2'],
-        'SMP'     => ['S1','S2'],
-        'SMA/SMK' => ['S1','S2','S3'],
-      ],
-      'karyawan' => [
-        'TK'  => ['D3'],
-        'SD'  => ['S1'],
-        'SMP' => ['S2'],
-      ],
-    ];
-}
