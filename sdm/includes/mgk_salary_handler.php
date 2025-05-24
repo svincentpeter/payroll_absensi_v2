@@ -23,28 +23,21 @@
 /* ================================================================
  * 1. Konfigurasi & Helper Strata
  * ================================================================ */
-function getStrataConfig() {
+function getStrataConfig(mysqli $conn): array {
+    // Ambil semua kode_jenjang aktif dari DB
+    $jenjang = [];
+    $res = $conn->query("SELECT kode_jenjang FROM jenjang_sekolah WHERE is_aktif=1 ORDER BY id");
+    while ($r = $res->fetch_assoc()) {
+        $jenjang[] = $r['kode_jenjang'];
+    }
+    // Strata bisa tetap (D3, S1, S2, S3), atau load dari tabel lain jika Anda punya tabel strata
+    $strata = ['D3', 'S1', 'S2', 'S3'];
     return [
-        'guru' => [
-            'TK'           => ['D3', 'S1', 'S2', 'S3'],
-            'SD'           => ['D3', 'S1', 'S2', 'S3'],
-            'SMP'          => ['D3', 'S1', 'S2', 'S3'],
-            'SMA'          => ['D3', 'S1', 'S2', 'S3'],
-            'SMK Nusput 1' => ['D3', 'S1', 'S2', 'S3'],
-            'SMK Nusput 2' => ['D3', 'S1', 'S2', 'S3'],
-            'STIFERA'      => ['D3', 'S1', 'S2', 'S3']
-        ],
-        'karyawan' => [
-            'TK'           => ['D3', 'S1', 'S2', 'S3'],
-            'SD'           => ['D3', 'S1', 'S2', 'S3'],
-            'SMP'          => ['D3', 'S1', 'S2', 'S3'],
-            'SMA'          => ['D3', 'S1', 'S2', 'S3'],
-            'SMK Nusput 1' => ['D3', 'S1', 'S2', 'S3'],
-            'SMK Nusput 2' => ['D3', 'S1', 'S2', 'S3'],
-            'STIFERA'      => ['D3', 'S1', 'S2', 'S3']
-        ]
+        'guru' => array_fill_keys($jenjang, $strata),
+        'karyawan' => array_fill_keys($jenjang, $strata),
     ];
 }
+
 
 
 
@@ -200,67 +193,91 @@ if (!function_exists('updateSalaryIndexForUser')) {
      * Hitung salary_index & gaji_pokok **1 user**; return bool success
      */
     function updateSalaryIndexForUser(mysqli $conn, int $id): bool
-    {
-        /* ambil info kunci */
-        $st = $conn->prepare(
-            "SELECT role, join_start, pendidikan, jenjang
-             FROM anggota_sekolah WHERE id=? LIMIT 1"
-        );
-        if (!$st) return false;
-        $st->bind_param("i", $id);
-        $st->execute();
-        $info = $st->get_result()->fetch_assoc();
-        $st->close();
-        if (!$info) return false;
-
-        /* salary-index cocok */
-        $idx = getRecommendedSalaryIndex($conn, $info['join_start']);
-        if (!$idx) return false;
-
-        /* hitung gaji pokok (bisa beda karena strata) */
-        $gajiPokok = hitungGajiPokok(
-            $conn,
-            $info['role'],
-            $info['pendidikan'],
-            $info['jenjang']
-        );
-
-        $u = $conn->prepare(
-            "UPDATE anggota_sekolah
-                SET salary_index_id   = ?,
-                    salary_index_level = ?,
-                    gaji_pokok         = ?
-              WHERE id = ?"
-        );
-        if (!$u) return false;
-        $u->bind_param(
-            "isdi",
-            $idx['id'],
-            $idx['level'],
-            $gajiPokok,
-            $id
-        );
-        $ok = $u->execute();
-        $u->close();
-        return $ok;
+{
+    $st = $conn->prepare(
+        "SELECT role, join_start, pendidikan, jenjang
+         FROM anggota_sekolah WHERE id=? LIMIT 1"
+    );
+    if (!$st) {
+        file_put_contents(__DIR__ . "/log_test.txt", "[ERR] Tidak bisa prepare anggota_sekolah id=$id\n", FILE_APPEND);
+        return false;
     }
+    $st->bind_param("i", $id);
+    $st->execute();
+    $info = $st->get_result()->fetch_assoc();
+    $st->close();
+    if (!$info) {
+        file_put_contents(__DIR__ . "/log_test.txt", "[ERR] Tidak dapat fetch anggota id=$id\n", FILE_APPEND);
+        return false;
+    }
+
+    $idx = getRecommendedSalaryIndex($conn, $info['join_start']);
+    if (!$idx) {
+        file_put_contents(__DIR__ . "/log_test.txt", "[ERR] Tidak dapat getRecommendedSalaryIndex untuk id=$id, join_start=" . $info['join_start'] . "\n", FILE_APPEND);
+        return false;
+    }
+
+    $gajiPokok = hitungGajiPokok($conn, $info['role'], $info['pendidikan'], $info['jenjang']);
+
+    $u = $conn->prepare(
+        "UPDATE anggota_sekolah
+            SET salary_index_id   = ?,
+                salary_index_level = ?,
+                gaji_pokok         = ?
+          WHERE id = ?"
+    );
+    if (!$u) {
+        file_put_contents(__DIR__ . "/log_test.txt", "[ERR] Tidak bisa prepare UPDATE anggota_sekolah id=$id\n", FILE_APPEND);
+        return false;
+    }
+    $u->bind_param(
+        "isdi",
+        $idx['id'],
+        $idx['level'],
+        $gajiPokok,
+        $id
+    );
+    $ok = $u->execute();
+    if (!$ok) {
+        file_put_contents(__DIR__ . "/log_test.txt", "[ERR] Gagal UPDATE anggota_sekolah id=$id : " . $conn->error . "\n", FILE_APPEND);
+    }
+    $u->close();
+    return $ok;
+}
+
 }
 
 if (!function_exists('updateSalaryIndexForAll')) {
-    /**
-     * Loop semua user yang belum di-delete
-     */
-    function updateSalaryIndexForAll(mysqli $conn): bool
-    {
+    function updateSalaryIndexForAll(mysqli $conn): bool {
         $allOk = true;
         $res = $conn->query("SELECT id FROM anggota_sekolah WHERE is_delete=0");
+        if (!$res) {
+            log_error("Query gagal pada updateSalaryIndexForAll: " . $conn->error);
+            return false;
+        }
         while ($row = $res->fetch_assoc()) {
             $ok = updateSalaryIndexForUser($conn, intval($row['id']));
-            if (!$ok) $allOk = false;
+            if (!$ok) {
+                // LOG lebih detail user dan data terkait
+                $log = date('Y-m-d H:i:s') . " | ERROR updateSalaryIndexForUser id={$row['id']}\n";
+                file_put_contents(__DIR__ . "/log_test.txt", $log, FILE_APPEND);
+
+                // Debug: Tambah detail data anggota
+                $stmt = $conn->prepare("SELECT id, nama, role, join_start, pendidikan, jenjang FROM anggota_sekolah WHERE id=?");
+                $stmt->bind_param("i", $row['id']);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $anggota = $result->fetch_assoc();
+                $stmt->close();
+                file_put_contents(__DIR__ . "/log_test.txt", "[DATA] " . json_encode($anggota) . "\n", FILE_APPEND);
+
+                $allOk = false;
+            }
         }
         return $allOk;
     }
 }
+
 
 /* ================================================================
  * 4. Admin – Update tabel Gaji Pokok
@@ -299,7 +316,7 @@ if (!function_exists('updateGajiPokok')) {
 if (!function_exists('updateGajiStrataGuru')) {
     function updateGajiStrataGuru(mysqli $conn): void
     {
-        $cfg = getStrataConfig()['guru'];
+        $cfg = getStrataConfig($conn)['guru'];  // Perbaikan: kirim $conn
         $updates = [];
         foreach ($cfg as $jenjang => $arr) {
             foreach ($arr as $strata) {
@@ -318,7 +335,7 @@ if (!function_exists('updateGajiStrataGuru')) {
 if (!function_exists('updateGajiStrataKaryawan')) {
     function updateGajiStrataKaryawan(mysqli $conn): void
     {
-        $cfg = getStrataConfig()['karyawan'];
+        $cfg = getStrataConfig($conn)['karyawan'];  // Perbaikan: kirim $conn
         $updates = [];
         foreach ($cfg as $jenjang => $arr) {
             foreach ($arr as $strata) {
@@ -333,6 +350,32 @@ if (!function_exists('updateGajiStrataKaryawan')) {
           : send_response(1,'Sebagian data Karyawan gagal diperbarui.');
     }
 }
+
+
+if (!function_exists('syncAllGajiPokokToStrata')) {
+    /**
+     * Update massal gaji pokok semua anggota agar sesuai strata & jenjang
+     */
+    function syncAllGajiPokokToStrata(mysqli $conn): array
+    {
+        $res = $conn->query("SELECT id, role, pendidikan, jenjang FROM anggota_sekolah WHERE is_delete=0");
+        if (!$res) return ['ok'=>false, 'total'=>0, 'updated'=>0];
+        $total = 0;
+        $updated = 0;
+        while ($row = $res->fetch_assoc()) {
+            $total++;
+            $gaji_pokok = hitungGajiPokok($conn, $row['role'], $row['pendidikan'], $row['jenjang']);
+            $u = $conn->prepare("UPDATE anggota_sekolah SET gaji_pokok=? WHERE id=?");
+            if ($u) {
+                $u->bind_param("di", $gaji_pokok, $row['id']);
+                if ($u->execute()) $updated++;
+                $u->close();
+            }
+        }
+        return ['ok'=>true, 'total'=>$total, 'updated'=>$updated];
+    }
+}
+
 
 /* ================================================================
  * 5. Util private
@@ -363,3 +406,5 @@ if (!function_exists('_runStrataUpdate')) {
         return $all;
     }
 }
+
+

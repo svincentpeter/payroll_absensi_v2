@@ -28,6 +28,7 @@ if (!function_exists('slugify')) {
     }
 }
 
+
 /* ================================================================
  * 1. LoadingGuru  (DataTables style)
  * ================================================================ */
@@ -376,7 +377,7 @@ function GetGuruDetail(mysqli $conn): array
         $filename = basename($dbval);
         $subdir   = $field === 'foto_profil'
             ? 'profile_pics' : 'ktp_pics';
-        $local    = __DIR__ . "/../uploads/{$subdir}/{$filename}";
+        $local    = __DIR__ . "/../../uploads/{$subdir}/{$filename}";
 
         if (strpos($dbval, 'http') === 0) {
             $row[$field] = $dbval;
