@@ -25,7 +25,7 @@ add_audit_log(
 );
 
 // daftar jenjang
-$jenjangList = getOrderedJenjang();
+$jenjangList = getOrderedJenjang($conn);;
 
 // Palet warna & icon per jenjang
 $jenjangMeta = [
@@ -34,6 +34,7 @@ $jenjangMeta = [
   'SMP' => ['icon'=>'fas fa-user-graduate',      'color'=>'#2ecc71','rgba'=>'rgba(46,204,113,0.1)'],
   'SMA' => ['icon'=>'fas fa-chalkboard-teacher', 'color'=>'#f1c40f','rgba'=>'rgba(241,196,15,0.1)'],
   'SMK' => ['icon'=>'fas fa-tools',              'color'=>'#9b59b6','rgba'=>'rgba(155,89,182,0.1)'],
+  'SEMUA' => ['icon'=>'fas fa-layer-group',        'color'=>'#273c75','rgba'=>'rgba(39,60,117,0.10)'],
   // jika ada jenjang lain:
   // 'MAN' => ['icon'=>'fas fa-university','color'=>'#16a085','rgba'=>'rgba(22,160,133,0.1)'],
 ];
@@ -211,22 +212,33 @@ body {
       </div>
     </div>
   </div>
-
-          <!-- Grid Jenjang -->
-          <div class="row g-3" id="jenjangGrid">
-            <?php foreach($jenjangList as $jenjang):
-              $meta = $jenjangMeta[$jenjang] ?? $defaultMeta;
-            ?>
-              <div class="col-6 col-md-4 col-lg-3">
-                <a href="rekap_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $filterMonth ?>&tahun=<?= $filterYear ?>"
-                   class="jenjang-card text-center"
-                   style="background: <?= $meta['rgba'] ?>; border-left: 5px solid <?= $meta['color'] ?>;">
-                  <i class="<?= $meta['icon'] ?> jenjang-icon" style="color: <?= $meta['color'] ?>;"></i>
-                  <div class="jenjang-label"><?= htmlspecialchars($jenjang) ?></div>
-                </a>
-              </div>
-            <?php endforeach; ?>
-          </div>
+<!-- Grid Jenjang -->
+<div class="row g-3" id="jenjangGrid">
+  <?php
+    // Card SEMUA (paling depan)
+    $metaSemua = $jenjangMeta['SEMUA'] ?? $defaultMeta;
+  ?>
+  <div class="col-6 col-md-4 col-lg-3">
+    <a href="rekap_payroll_jenjang.php?jenjang=semua&bulan=<?= $filterMonth ?>&tahun=<?= $filterYear ?>"
+       class="jenjang-card text-center"
+       style="background: <?= $metaSemua['rgba'] ?>; border-left: 5px solid <?= $metaSemua['color'] ?>;">
+      <i class="<?= $metaSemua['icon'] ?> jenjang-icon" style="color: <?= $metaSemua['color'] ?>;"></i>
+      <div class="jenjang-label">SEMUA</div>
+    </a>
+  </div>
+  <?php foreach($jenjangList as $jenjang):
+    $meta = $jenjangMeta[$jenjang] ?? $defaultMeta;
+  ?>
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="rekap_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $filterMonth ?>&tahun=<?= $filterYear ?>"
+         class="jenjang-card text-center"
+         style="background: <?= $meta['rgba'] ?>; border-left: 5px solid <?= $meta['color'] ?>;">
+        <i class="<?= $meta['icon'] ?> jenjang-icon" style="color: <?= $meta['color'] ?>;"></i>
+        <div class="jenjang-label"><?= htmlspecialchars($jenjang) ?></div>
+      </a>
+    </div>
+  <?php endforeach; ?>
+</div>
 
         </div>
       </div>

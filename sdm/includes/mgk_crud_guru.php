@@ -113,7 +113,7 @@ function LoadingGuru($conn)
             "nip"          => htmlspecialchars($row['nip']),
             "nama"         => htmlspecialchars($row['nama']),
             "jenjang"      => $row['jenjang'],
-            "jenjang_badge" => getBadgeJenjang($row['jenjang']),
+            "jenjang_badge" => getBadgeJenjang($row['jenjang'], $conn),
             "job_title"    => htmlspecialchars($row['job_title']),
             "role"         => $row['role'],
             "status_kerja" => $row['status_kerja'],

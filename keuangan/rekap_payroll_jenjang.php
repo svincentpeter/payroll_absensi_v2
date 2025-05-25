@@ -23,6 +23,7 @@ $jenjangMeta = [
   'SMP' => ['icon'=>'fas fa-user-graduate',      'color'=>'#2ecc71'],
   'SMA' => ['icon'=>'fas fa-chalkboard-teacher', 'color'=>'#f1c40f'],
   'SMK' => ['icon'=>'fas fa-tools',              'color'=>'#9b59b6'],
+  'SEMUA' => ['icon'=>'fas fa-layer-group',        'color'=>'#273c75'],
 ];
 $meta = $jenjangMeta[$jenjang] ?? ['icon'=>'fas fa-school','color'=>'#34495e'];
 
@@ -114,9 +115,16 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
   $search = sanitize_input($_POST['search']['value'] ?? '');
 
   // Build WHERE & params
+if (strtolower($jenjang) === 'semua') {
+  $sqlWhere = "WHERE a.kategori=? AND pf.bulan=? AND pf.tahun=?";
+  $params   = [$kategori, $bulan, $tahun];
+  $types    = "sii";
+} else {
   $sqlWhere = "WHERE a.jenjang=? AND a.kategori=? AND pf.bulan=? AND pf.tahun=?";
   $params   = [$jenjang, $kategori, $bulan, $tahun];
   $types    = "ssii";
+}
+
   if ($search !== '') {
     $sqlWhere .= " AND (a.nama LIKE ? OR a.nip LIKE ?)";
     $params[]  = "%$search%";
@@ -354,9 +362,10 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
       </button>
 
       <h1 class="page-title">
-        <i class="<?= $meta['icon'] ?> me-2"></i>
-        Rekap <?= htmlspecialchars($jenjang) ?> – <?= getIndonesianMonthName($bulan) . ' ' . $tahun ?>
-    </h1>
+  <i class="<?= $meta['icon'] ?> me-2"></i>
+  Rekap <?= strtoupper($jenjang)=='SEMUA'?'Semua Jenjang':htmlspecialchars($jenjang) ?> – <?= getIndonesianMonthName($bulan) . ' ' . $tahun ?>
+</h1>
+
     
     </div>
 

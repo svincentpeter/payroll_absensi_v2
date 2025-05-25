@@ -14,7 +14,7 @@ require_once __DIR__ . '/../koneksi.php';
 
 // Hanya user dengan role 'keuangan' dan 'superadmin' yang diizinkan
 authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
-$jenjangList = getOrderedJenjang();
+$jenjangList = getOrderedJenjang($conn);;
 // Panggil fungsi updateSalaryIndexForAll agar data salary index selalu terupdate
 updateSalaryIndexForAll($conn);
 
@@ -367,6 +367,13 @@ if ($stmtRole) {
             box-shadow: var(--card-shadow);
         }
 
+.form-select {
+    min-height: 45px !important;
+    padding-right: 2.5rem !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    background-position: right 1rem center !important;
+}
 
         .card-header {
             background: var(--secondary-gradient);
@@ -575,11 +582,14 @@ if ($stmtRole) {
                                     <select class="form-select" id="filterJenjang" name="jenjang">
                                         <option value="">Semua Jenjang</option>
                                         <?php
-                                        $jenjangList = getOrderedJenjang();
-                                        foreach ($jenjangList as $jenjang) {
-                                            echo '<option value="' . htmlspecialchars($jenjang) . '"' . ($filterJenjang === $jenjang ? ' selected' : '') . '>' . htmlspecialchars($jenjang) . '</option>';
-                                        }
-                                        ?>
+$jenjangList = getOrderedJenjang($conn); // array: ['TK'=>'Taman Kanak-Kanak', ...]
+foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
+    echo '<option value="' . htmlspecialchars($kode_jenjang) . '"'
+        . ($filterJenjang === $kode_jenjang ? ' selected' : '')
+        . '>' . htmlspecialchars($nama_jenjang) . '</option>';
+}
+?>
+
                                     </select>
                                 </div>
 

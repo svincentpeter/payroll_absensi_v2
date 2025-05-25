@@ -342,7 +342,7 @@
                     <label class="form-label"><strong>Jenjang</strong></label>
                     <select id="filterJenjang" class="form-select">
                     <option value="">Semua Jenjang</option>
-                    <?php foreach(getOrderedJenjang() as $j): ?>
+                    <?php foreach(getOrderedJenjang($conn) as $j): ?>
                         <option value="<?= htmlspecialchars($j) ?>"><?= htmlspecialchars($j) ?></option>
                     <?php endforeach; ?>
                     </select>

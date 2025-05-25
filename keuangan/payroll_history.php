@@ -7,7 +7,7 @@ require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
 authorize(['M:Keuangan', 'M:Superadmin']);
-$jenjangList = getOrderedJenjang();
+$jenjangList = getOrderedJenjang($conn);;
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
@@ -401,12 +401,12 @@ function ViewPayrollDetail($conn)
                                     <select class="form-control" id="filterJenjang" name="jenjang">
                                         <option value="">Semua Jenjang</option>
                                         <?php
-                                        // Ambil daftar jenjang yang telah didefinisikan di helper
-                                        $jenjangList = getOrderedJenjang();
-                                        foreach ($jenjangList as $jenjang) {
-                                            echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
-                                        }
-                                        ?>
+$jenjangList = getOrderedJenjang($conn); // array: ['TK'=>'Taman Kanak-Kanak', ...]
+foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
+    echo '<option value="' . htmlspecialchars($kode_jenjang) . '">' . htmlspecialchars($nama_jenjang) . '</option>';
+}
+?>
+
                                     </select>
                                 </div>
 

@@ -26,7 +26,7 @@ init_error_handling();
 authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
 
 /* ===== 4. Data dropdown & konfigurasi strata ===== */
-$jenjangList   = getOrderedJenjang();          // dari helpers.php
+$jenjangList   = getOrderedJenjang($conn);          // dari helpers.php
 $strataConfig  = getStrataConfig($conn);            // fungsi di mgk_salary_handler.php
 $guruConfig     = $strataConfig['guru'];
 $karyawanConfig = $strataConfig['karyawan'];
@@ -117,6 +117,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
       margin: 0;
     }
 
+    .badge {
+  font-weight: 700 !important;
+}
     /* ===== Page Title Styling ===== */
     .page-title {
       font-family: 'Poppins', sans-serif;
@@ -159,56 +162,148 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
       border-radius: 0.5rem 0.5rem 0 0 !important;
     }
 
-    /* 4. Employee‐card khusus */
+    /* ----------- STYLE TAMBAHAN/REPLACE START ----------- */
+    /* Grid untuk employee cards */
+    #employeeCards {
+      margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);   /* <-- fix: 5 kolom! */
+  gap: 20px 20px;                          /* Lebih lega */
+}
+
+    /* Card khusus untuk anggota */
     .employee-card {
-      padding: 1rem;
-      border-radius: 0.5rem;
-      transition: all 0.3s ease;
-      border: 1px solid #e0e0e0;
+  border-radius: 22px;
+  box-shadow: 0 6px 24px rgba(34, 92, 181, 0.10);
+  border: 1.5px solid #eee;
+  background: #fff;
+  transition: box-shadow 0.2s;
+  min-height: 470px;     /* <-- lebih besar */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.8rem 1.1rem 1.4rem 1.1rem;  /* atas, kanan, bawah, kiri */
+}
+.employee-card .card-body {
+  padding: 1.2rem 0.3rem 0.7rem 0.3rem;  /* biar konten lebih lega */
+}
+.employee-photo {
+  width: 105px;
+  height: 105px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  margin-bottom: 14px;
+  margin-top: -4px;
+  box-shadow: 0 2px 10px 0 rgba(32,40,67,.09);
+}
+.employee-card h5 {
+  font-size: 1.19rem;
+}
+
+
+    /* NIP */
+    .employee-card p.text-muted {
+      font-size: 0.98rem;
+      margin-bottom: 0.15rem;
     }
 
-    .employee-card .card-body {
-      padding: 1.25rem;
+    /* Badges */
+    .employee-card .badge {
+      margin: 2px 2px 0 0;
+      font-size: 0.83rem;
+      font-weight: 500;
+      border-radius: 6px;
+      padding: 0.37em 0.8em;
+      letter-spacing: 0.01em;
+      display: inline-block;
+    }
+    .employee-card .badge.bg-success {
+      background: #48bb78 !important; /* green-400 */
+      color: #fff !important;
+    }
+    .employee-card .badge.bg-warning, .employee-card .badge.bg-warning.text-dark {
+      background: #f6e05e !important; /* yellow-300 */
+      color: #684200 !important;
+    }
+    .employee-card .badge.bg-secondary {
+      background: #ececec !important;
+      color: #333 !important;
     }
 
-    .employee-photo {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border: 3px solid #fff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Status kerja */
+    .employee-card .status-label {
+      font-weight: 600;
+      color: #333;
+      font-size: 0.96rem;
+    }
+    .employee-card .status-label .badge {
+      font-size: 0.94rem;
+      margin-left: 4px;
+      vertical-align: middle;
     }
 
-    /* 6. Badges (status kerja) */
-    .badge {
-      font-size: 0.9rem;
-      padding: 0.4em 0.6em;
+    /* Rapel info, agar tidak terlalu rapat */
+    .employee-card .rapel-info {
+      margin-bottom: 0.5rem;
+      font-size: 0.97em;
+      color: #555;
     }
 
-    .badge.bg-success {
-      background-color: #218838 !important;
+    /* Tombol-tombol di dalam card */
+    .employee-card .d-grid.gap-2 {
+      margin-top: 0.7rem;
+      gap: 8px;
+    }
+    .employee-card .btn {
+      font-size: 0.99rem;
+      font-weight: 600;
+      border-radius: 10px;
+      min-width: 100%;
+      min-height: 38px;
+      letter-spacing: 0.01em;
+    }
+    .employee-card .btn-primary {
+      background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%);
+      border: none;
+    }
+    .employee-card .btn-warning {
+      background: #f6e05e;
+      color: #7c5700;
+      border: none;
+    }
+    .employee-card .btn-danger {
+      background: #fa5252;
+      border: none;
+    }
+    .employee-card .btn-info {
+      background: #25a4fa;
+      color: #fff;
+      border: none;
+    }
+    .employee-card .btn-secondary {
+      background: #ececec;
+      color: #333;
+      border: none;
     }
 
-    .badge.bg-warning {
-      background-color: #E0A800 !important;
-      color: #212529 !important;
-    }
-
-    /* 7. Buttons: area klik lebih besar */
-    .btn-sm {
-      padding: 0.5rem 0.75rem;
-      font-size: 1rem;
-    }
-
-    .btn-primary {
-      background-color: #4A90E2;
-      border-color: #4A90E2;
-    }
-
-    .btn-primary:hover {
-      background-color: #3A78C2;
-      border-color: #3A78C2;
-    }
+    /* Responsive: grid jadi 2 kolom di HP */
+    @media (max-width: 1200px) {
+  #employeeCards {
+    grid-template-columns: repeat(3, 1fr); /* Tablet: 3 kolom */
+  }
+}
+@media (max-width: 900px) {
+  #employeeCards {
+    grid-template-columns: repeat(2, 1fr); /* HP landscape: 2 kolom */
+  }
+}
+@media (max-width: 600px) {
+  #employeeCards {
+    grid-template-columns: 1fr;           /* HP potrait: 1 kolom */
+  }
+}
+    /* ----------- STYLE TAMBAHAN/REPLACE END ----------- */
 
     /* 8. Filter section */
     #filterSection {
@@ -276,7 +371,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     .d-none {
       display: none !important;
     }
-  </style>
+</style>
+
 
 </head>
 
@@ -355,11 +451,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                   <select class="form-control" id="filterJenjang" name="jenjang">
                     <option value="">Semua Jenjang</option>
                     <?php
-                    $jenjangList = getOrderedJenjang();
-                    foreach ($jenjangList as $jenjang) {
-                      echo '<option value="' . htmlspecialchars($jenjang) . '">' . htmlspecialchars($jenjang) . '</option>';
-                    }
-                    ?>
+$jenjangList = getOrderedJenjang($conn); // ['TK' => 'Taman Kanak-Kanak', ...]
+foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
+  echo '<option value="' . htmlspecialchars($kode_jenjang) . '">' . htmlspecialchars($nama_jenjang) . '</option>';
+}
+?>
+
                   </select>
                 </div>
                 <!-- Role -->
@@ -403,7 +500,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               </h6>
             </div>
             <div class="card-body">
-              <div id="employeeCards" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3">
+              <div id="employeeCards">
               </div>
               <nav class="mt-4">
                 <ul class="pagination justify-content-center" id="paginationContainer">
@@ -1439,28 +1536,26 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         data.forEach(item => {
           let photo = item.foto_profil ? item.foto_profil : baseUrl + "/assets/img/undraw_profile.svg";
           let html = `
-            <div class="col">
-              <div class="card employee-card h-100">
-                <div class="card-body text-center pt-4 pb-3">
-                  <img src="${photo}" class="employee-photo rounded-circle mb-3">
-                  <h5 class="mb-1">${item.nama}</h5>
-                  <p class="text-muted small mb-2">NIP: ${item.nip}</p>
-                  <div class="small mb-2">
-                    ${item.jenjang_badge}
-                    ${getBadgeRole(item.role)}
-                    ${getStatusBadge(item.status_kerja)}
-                  </div>
-                  <p class="small text-muted mb-3">
-                    <i class="fas fa-clock me-1"></i> ${item.masa_kerja||'0 Thn'}
-                  </p>
-                  <div class="d-grid gap-2">
-                    <button class="btn btn-sm btn-primary btn-view"  data-id="${item.id}"><i class="fas fa-eye"></i> Detail</button>
-                    <button class="btn btn-sm btn-warning btn-edit" data-id="${item.id}"><i class="fas fa-pencil-alt"></i> Edit</button>
-                    <button class="btn btn-sm btn-danger btn-delete" data-id="${item.id}"><i class="fas fa-trash-alt"></i> Hapus</button>
-                  </div>
-                </div>
-              </div>
-            </div>`;
+    <div class="card employee-card h-100">
+      <div class="card-body text-center pt-4 pb-3">
+        <img src="${photo}" class="employee-photo rounded-circle mb-3">
+        <h5 class="mb-1">${item.nama}</h5>
+        <p class="text-muted small mb-2">NIP: ${item.nip}</p>
+        <div class="small mb-1">
+          ${item.jenjang_badge} ${getBadgeRole(item.role)}
+        </div>
+        <div class="status-label mb-1">
+          Status: ${getStatusBadge(item.status_kerja)}
+        </div>
+        <div class="d-grid gap-2">
+          <button class="btn btn-primary btn-sm btn-view" data-id="${item.id}"><i class="fas fa-eye"></i> Detail</button>
+          <button class="btn btn-warning btn-sm btn-edit" data-id="${item.id}"><i class="fas fa-pencil-alt"></i> Edit</button>
+          <button class="btn btn-danger btn-sm btn-delete" data-id="${item.id}"><i class="fas fa-trash-alt"></i> Hapus</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
           c.append(html);
         });
       }

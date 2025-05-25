@@ -278,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $bulan        = $_GET['bulan'] ?? '';
 $departemen   = $_GET['departemen'] ?? '';
 $namaKaryawan = get_nama_karyawan($conn);
-$jenjangList  = getOrderedJenjang();
+$jenjangList  = getOrderedJenjang($conn);
 ?>
 <!DOCTYPE html>
 <html lang="id">

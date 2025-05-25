@@ -1,5 +1,6 @@
     <?php
     // File: helpers.php
+    require_once __DIR__ . '/sdm/includes/mgk_salary_handler.php';
 // Warna untuk semua badge, terpusat di satu tempat:
 $GLOBALS['BADGE_COLORS'] = [
     'status_kerja' => [
@@ -7,20 +8,22 @@ $GLOBALS['BADGE_COLORS'] = [
         'kontrak' => ['bg' => '#ffc107','fg'=>'#212529'],
     ],
     'role' => [
-        'P'  => ['bg' => '#007bff','fg'=>'#ffffff'],
+        'P'  => ['bg' => '#007bff','fg'=>'#212529'],
         'TK' => ['bg' => '#17a2b8','fg'=>'#212529'],
-        'M'  => ['bg' => '#dc3545','fg'=>'#ffffff'],
+        'M'  => ['bg' => '#dc3545','fg'=>'#212529'],
     ],
     'jenjang' => [
-        'tk'                 => ['bg'=>'#6c757d','fg'=>'#ffffff'],
-        'sd'                 => ['bg'=>'#007bff','fg'=>'#ffffff'],
-        'smp'                => ['bg'=>'#17a2b8','fg'=>'#ffffff'],
-        'sma'                => ['bg'=>'#ffc107','fg'=>'#212529'],
-        'smk1'               => ['bg'=>'#6f42c1','fg'=>'#ffffff'],   // SMK 1
-        'smk2'               => ['bg'=>'#5a32a3','fg'=>'#ffffff'],   // SMK 2
-        'universitasstivera' => ['bg'=>'#343a40','fg'=>'#ffffff'],   // Univ Stivera
+        // warna unik, font selalu hitam
+        'tk'       => ['bg'=>'#f06292','fg'=>'#212529'], // Pink
+        'sd'       => ['bg'=>'#ffd600','fg'=>'#212529'], // Kuning terang
+        'smp'      => ['bg'=>'#00b8d4','fg'=>'#212529'], // Cyan
+        'sma'      => ['bg'=>'#64dd17','fg'=>'#212529'], // Hijau terang
+        'smk1'     => ['bg'=>'#ff6d00','fg'=>'#212529'], // Oranye
+        'smk2'     => ['bg'=>'#d500f9','fg'=>'#212529'], // Ungu
+        'stifera'  => ['bg'=>'#90caf9','fg'=>'#212529'], // Biru muda (khusus STIFERA/universitas)
     ],
 ];
+
     /************************************
      * 1. SESSION & KEAMANAN
      ************************************/
@@ -343,23 +346,21 @@ $GLOBALS['BADGE_COLORS'] = [
  * @param string $jenjang e.g. "SMK 1", "SMK 2", "Universitas Stivera"
  * @return string <span class="badge" style="…">…</span>
  */
-function getBadgeJenjang(string $jenjang): string
-{
-    // normalisasi: hapus spasi & slash, lowercase
-    $key = strtolower(str_replace([' ', '/'], ['', ''], trim($jenjang)));
-
-    // ambil warna, atau fallback abu‐abu
-    $c = $GLOBALS['BADGE_COLORS']['jenjang'][$key]
-       ?? ['bg'=>'#6c757d','fg'=>'#ffffff'];
-
-    // tampilkan label original
-    $label = htmlspecialchars($jenjang, ENT_QUOTES, 'UTF-8');
-
-    return sprintf(
-        '<span class="badge" style="background-color:%s;color:%s;">%s</span>',
-        $c['bg'], $c['fg'], $label
-    );
+function getBadgeJenjang($kode_jenjang, $conn) {
+    $sql = "SELECT nama_jenjang, color_bg, color_fg FROM jenjang_sekolah WHERE kode_jenjang=? LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $kode_jenjang);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        return "<span class='badge' style='background:{$row['color_bg']};color:{$row['color_fg']};'><strong>{$row['nama_jenjang']}</strong></span>";
+    }
+    return "<span class='badge bg-secondary'><strong>$kode_jenjang</strong></span>";
 }
+
+
+
+
 
     /**
      * Menghasilkan badge HTML untuk status kerja karyawan.
@@ -731,23 +732,27 @@ function getBadgeJenjang(string $jenjang): string
      * 8. LAIN-LAIN
      ************************************/
 
-    /**
-     * Mengembalikan urutan jenjang pendidikan yang telah ditentukan.
-     *
-     * @return array Urutan jenjang.
-     */
-    function getOrderedJenjang(): array
-    {
-        return [
-            'TK',
-            'SD',
-            'SMP',
-            'SMA',
-            'SMK Nusput 1',
-            'SMK Nusput 2',
-            'STIFERA'
-        ];
+    // helpers.php
+/**
+ * Mengambil daftar jenjang dari database, terurut sesuai urutan id.
+ * Return: array asosiatif kode_jenjang => nama_jenjang
+ * @param mysqli $conn Koneksi database
+ * @param bool $aktifOnly Hanya yang aktif
+ * @return array
+ */
+function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
+{
+    $list = [];
+    $sql = "SELECT kode_jenjang, nama_jenjang FROM jenjang_sekolah"
+         . ($aktifOnly ? " WHERE is_aktif = 1" : "")
+         . " ORDER BY id ASC";
+    $res = mysqli_query($conn, $sql);
+    while ($row = mysqli_fetch_assoc($res)) {
+        $list[$row['kode_jenjang']] = $row['nama_jenjang'];
     }
+    return $list;
+}
+
 
     /**
      * Menutup koneksi database global (jika masih terbuka).
