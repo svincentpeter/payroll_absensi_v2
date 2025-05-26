@@ -219,13 +219,13 @@ if (!function_exists('updateSalaryIndexForUser')) {
 
     $gajiPokok = hitungGajiPokok($conn, $info['role'], $info['pendidikan'], $info['jenjang']);
 
-    $u = $conn->prepare(
-        "UPDATE anggota_sekolah
-            SET salary_index_id   = ?,
-                salary_index_level = ?,
-                gaji_pokok         = ?
-          WHERE id = ?"
-    );
+$u = $conn->prepare(
+    "UPDATE anggota_sekolah
+        SET salary_index_id   = ?,
+            salary_index_level = ?,
+            gaji_pokok         = ?
+      WHERE id = ?"
+);
     if (!$u) {
         file_put_contents(__DIR__ . "/log_test.txt", "[ERR] Tidak bisa prepare UPDATE anggota_sekolah id=$id\n", FILE_APPEND);
         return false;

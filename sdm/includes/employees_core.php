@@ -1,4 +1,6 @@
 <?php
+// File: /payroll_absensi_v2/sdm/includes/employees_core.php
+
 // Semua fungsi utama: Load, Edit, View Detail Employee
 
 require_once __DIR__ . '/../../helpers.php';
@@ -183,7 +185,6 @@ if (!function_exists('EditEmployee')) {
         $stmtU->bind_param("si", $no_rekening, $id);
         if ($stmtU->execute()) {
             $stmtU->close();
-            updateSalaryIndexForUser($conn, $id);
 
             // [Audit log baru]
             $user_nip = $_SESSION['nip'] ?? '';
@@ -196,6 +197,8 @@ if (!function_exists('EditEmployee')) {
         }
     }
 }
+
+
 if (!function_exists('ViewEmployeeDetail')) {
     function ViewEmployeeDetail($conn)
     {
@@ -233,7 +236,6 @@ if (!function_exists('ViewEmployeeDetail')) {
 
             $gajiPokokVal  = floatval($emp['gaji_pokok']);
             $levelIndexVal = floatval($emp['salary_index_base']);
-            updateSalaryIndexForUser($conn, $id);
 
             // --- Tambahan: Cek payroll draft untuk periode ini ---
             $payrollDraft = null;
@@ -312,35 +314,67 @@ if (!function_exists('ViewEmployeeDetail')) {
             $detailsLog = "Melihat detail anggota ID $id (oleh $user_nip).";
             add_audit_log($conn, $user_nip, 'ViewEmployeeDetail', $detailsLog);
 
+            $periodePayroll = sprintf('%04d-%02d-01', $selectedYear, $selectedMonth);
+$stmtKG = $conn->prepare("SELECT * FROM kenaikan_gaji_tahunan
+    WHERE id_anggota = ? AND status = 'aktif'
+    AND tanggal_mulai <= ? AND tanggal_berakhir >= ?
+    ORDER BY tanggal_mulai DESC LIMIT 1");
+$stmtKG->bind_param("iss", $id, $periodePayroll, $periodePayroll);
+$stmtKG->execute();
+$resKG = $stmtKG->get_result();
+$kenaikanGajiAktif = $resKG->num_rows > 0 ? $resKG->fetch_assoc() : null;
+$stmtKG->close();
+
             // ---- Kirim payroll_draft ke frontend ----
             send_response(0, [
-                'id'                    => $emp['id'],
-                'uid'                   => $emp['uid'],
-                'nip'                   => $emp['nip'],
-                'nama'                  => $emp['nama'],
-                'jenjang'               => $emp['jenjang'],
-                'job_title'             => $emp['job_title'],
-                'role'                  => $emp['role'],
-                'status_kerja'          => $emp['status_kerja'],
-                'masa_kerja'            => $masaKerja,
-                'gaji_pokok_val'        => $gajiPokokVal,
-                'gaji_pokok'            => 'Rp ' . number_format($gajiPokokVal, 0, ',', '.'),
-                'salary_index_amount'   => $levelIndexVal,
-                'no_rekening'           => $emp['no_rekening'],
-                'email'                 => $emp['email'],
-                'jenis_kelamin'         => $emp['jenis_kelamin'],
-                'agama'                 => $emp['agama'],
-                'masa_kerja_tahun'      => $emp['masa_kerja_tahun'],
-                'masa_kerja_bulan'      => $emp['masa_kerja_bulan'],
-                'payheads'              => $assigned,
-                'total_pendapatan'      => $totalPendapatan,
-                'total_potongan'        => $totalPotongan,
-                'salary_index_level'    => $emp['salary_index_level'] ?: '-',
-                'salary_index_base'     => $levelIndexVal,
-                'gaji_bersih'           => $gajiBersihVal,
-                'payroll_status'        => $emp['payroll_status'],
-                'foto_profil'           => getFullPhotoUrl($emp['foto_profil'], 'profile_pics'),
-                'foto_ktp'              => getFullPhotoUrl($emp['foto_ktp'], 'ktp_pics'),
+    'id'                    => $emp['id'],
+    'uid'                   => $emp['uid'],
+    'nip'                   => $emp['nip'],
+    'nama'                  => $emp['nama'],
+    'jenjang'               => $emp['jenjang'],
+    'job_title'             => $emp['job_title'],
+    'role'                  => $emp['role'],
+    'status_kerja'          => $emp['status_kerja'],
+    'masa_kerja'            => $masaKerja,
+    'gaji_pokok_val'        => $gajiPokokVal,
+    'gaji_pokok'            => 'Rp ' . number_format($gajiPokokVal, 0, ',', '.'),
+    'salary_index_amount'   => $levelIndexVal,
+    'salary_index_level'    => $emp['salary_index_level'] ?? '-',
+'salary_index_base'     => isset($emp['salary_index_base']) ? floatval($emp['salary_index_base']) : 0,
+    'no_rekening'           => $emp['no_rekening'],
+    'email'                 => $emp['email'],
+    'jenis_kelamin'         => $emp['jenis_kelamin'],
+    'agama'                 => $emp['agama'],
+    'masa_kerja_tahun'      => $emp['masa_kerja_tahun'],
+    'masa_kerja_bulan'      => $emp['masa_kerja_bulan'],
+    'payheads'              => $assigned,
+    'total_pendapatan'      => $totalPendapatan,
+    'total_potongan'        => $totalPotongan,
+    'gaji_bersih'           => $gajiBersihVal,
+    'kenaikan_gaji_tahunan' => $kenaikanGajiAktif,
+    'payroll_status'        => $emp['payroll_status'],
+    // TAMBAHAN UNTUK DETAIL MODAL:
+    'alamat_domisili'       => $emp['alamat_domisili'],
+    'alamat_ktp'            => $emp['alamat_ktp'],
+    'no_hp'                 => $emp['no_hp'],
+    'remark'                => $emp['remark'],
+    'pendidikan'            => $emp['pendidikan'],
+    'strata'                => $emp['strata'],
+    'join_start'            => $emp['join_start'],
+    'lama_kontrak'          => $emp['lama_kontrak'],
+    'tgl_kontrak_selesai'   => $emp['tgl_kontrak_selesai'],
+    'usia'                  => $emp['usia'],
+    'tanggal_lahir'         => $emp['tanggal_lahir'],
+    'status_perkawinan'     => $emp['status_perkawinan'],
+    'nama_pasangan'         => $emp['nama_pasangan'],
+    'jumlah_anak'           => $emp['jumlah_anak'],
+    'nama_anak_1'           => $emp['nama_anak_1'],
+    'nama_anak_2'           => $emp['nama_anak_2'],
+    'nama_anak_3'           => $emp['nama_anak_3'],
+    // FOTO harus pakai url
+    'foto_profil'           => getFullPhotoUrl($emp['foto_profil'], 'profile_pics'),
+    'foto_ktp'              => getFullPhotoUrl($emp['foto_ktp'], 'ktp_pics'),
+
                 // tambahkan di sini!
                 'payroll_draft'         => $payrollDraft ?: null,
                 'payroll_detail_draft'  => $payrollDetailDraft,

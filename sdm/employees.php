@@ -408,11 +408,11 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                                         <option value="">Semua Role</option>
                                         <?php
                                         $stmtRole = $conn->prepare("
-                        SELECT DISTINCT role
-                        FROM anggota_sekolah
-                        WHERE role IS NOT NULL AND role != ''
-                        ORDER BY role ASC
-                    ");
+                                            SELECT DISTINCT role
+                                            FROM anggota_sekolah
+                                            WHERE role IS NOT NULL AND role != ''
+                                            ORDER BY role ASC
+                                            ");
                                         if ($stmtRole) {
                                             $stmtRole->execute();
                                             $resRole = $stmtRole->get_result();
@@ -506,7 +506,7 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                                 </div>
                                 <div class="col-md-4">
                                     <label for="editJenjang" class="form-label">Jenjang Pendidikan</label>
-                                    <input type="text" name="jenjang" id="editJenjang" class="form-control" readonly>
+                                    <input type="text" name="'jenjang'" id="editJenjang" class="form-control" readonly>
                                 </div>
                             </div>
                             <!-- Row 2 -->
@@ -670,6 +670,10 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                             <th>Nominal Level Indeks</th>
                             <td id="detailSalaryIndexNominal"></td>
                         </tr>
+                        <tr id="detailSalaryIndexLevelRow">
+                            <th>Level Salary Indeks</th>
+                            <td id="detailSalaryIndexLevel"></td>
+                        </tr>
                         <tr>
                             <th>Total Pendapatan</th>
                             <td id="detailTotalPendapatan"></td>
@@ -683,16 +687,10 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                             <td id="detailGajiBersih"></td>
                         </tr>
                         <tr>
-                            <th>Kenaikan Gaji Tahunan</th>
-                            <td>
-                                <?php if ($kgData): ?>
-                                    <?= htmlspecialchars($kgData['nama_kenaikan']); ?> (Rp <?= number_format($kgData['jumlah'], 2, ',', '.'); ?>)<br>
-                                    <small><?= date('d M Y', strtotime($kgData['tanggal_mulai'])) . ' - ' . date('d M Y', strtotime($kgData['tanggal_berakhir'])); ?></small>
-                                <?php else: ?>
-                                    <em>Tidak ada kenaikan gaji tahunan</em>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
+    <th>Kenaikan Gaji Tahunan</th>
+    <td id="detailKenaikanGajiTahunan"></td>
+</tr>
+
                         <tr>
                             <th>Payheads</th>
                             <td id="detailPayheads"></td>
@@ -784,695 +782,749 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                         </tr>
                     </table>
                 </div>
-
-
-                <!-- MODAL: Review Rekap Absensi -->
-                <div class="modal fade" id="rekapReviewModal" tabindex="-1" aria-labelledby="rekapReviewModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="rekapReviewModalLabel"><i class="bi bi-eye"></i> Review Rekap Absensi</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="data-display">
-                                    <p><strong>ID Anggota:</strong> <span id="review_id_anggota"></span></p>
-                                    <p><strong>Bulan:</strong> <span id="review_bulan"></span></p>
-                                    <p><strong>Tahun:</strong> <span id="review_tahun"></span></p>
-                                    <p><strong>Total Hadir:</strong> <span id="review_total_hadir"></span></p>
-                                    <p><strong>Total Izin:</strong> <span id="review_total_izin"></span></p>
-                                    <p><strong>Total Cuti:</strong> <span id="review_total_cuti"></span></p>
-                                    <p><strong>Total Tanpa Keterangan:</strong> <span id="review_total_tanpa_keterangan"></span></p>
-                                    <p><strong>Total Sakit:</strong> <span id="review_total_sakit"></span></p>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                                <button type="button" class="btn btn-primary" id="btnOpenEditRekap">Edit</button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Tutup</button>
                 </div>
-
-                <!-- MODAL: Edit Rekap Absensi -->
-                <div class="modal fade" id="rekapAbsensiModal" tabindex="-1" aria-labelledby="rekapAbsensiModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <form id="rekapAbsensiForm">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="rekapAbsensiModalLabel"><i class="bi bi-calendar-check"></i> Edit Rekap Absensi</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <input type="hidden" name="case" value="EditRekapAbsensi">
-                                    <input type="hidden" name="id_anggota" id="rekap_id_anggota_edit">
-                                    <input type="hidden" name="bulan" id="rekap_bulan_edit">
-                                    <input type="hidden" name="tahun" id="rekap_tahun_edit">
-                                    <div class="mb-3">
-                                        <label for="total_hadir_edit" class="form-label">Total Hadir</label>
-                                        <input type="number" class="form-control" name="total_hadir" id="total_hadir_edit" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="total_izin_edit" class="form-label">Total Izin</label>
-                                        <input type="number" class="form-control" name="total_izin" id="total_izin_edit" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="total_cuti_edit" class="form-label">Total Cuti</label>
-                                        <input type="number" class="form-control" name="total_cuti" id="total_cuti_edit" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="total_tanpa_keterangan_edit" class="form-label">Total Tanpa Keterangan</label>
-                                        <input type="number" class="form-control" name="total_tanpa_keterangan" id="total_tanpa_keterangan_edit" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="total_sakit_edit" class="form-label">Total Sakit</label>
-                                        <input type="number" class="form-control" name="total_sakit" id="total_sakit_edit" required>
-                                    </div>
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-save"></i> Simpan Perubahan
-                                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                    </button>
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                        <i class="bi bi-x-circle"></i> Batal
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MODAL: Select Month (Payroll) -->
-                <div class="modal fade" id="SalaryMonthModal" tabindex="-1" aria-labelledby="salaryMonthModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-md" style="max-width: 600px;">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="salaryMonthModalLabel"><i class="fa fa-calendar"></i> Pilih Bulan untuk Payroll</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row text-center">
-                                    <?php
-                                    $currentYear  = date('Y');
-                                    $currentMonth = date('n');
-                                    $startMonth   = $currentMonth - 2;
-                                    $startYear    = $currentYear;
-                                    for ($i = 0; $i < 16; $i++) {
-                                        $month = $startMonth + $i;
-                                        $year  = $startYear;
-                                        if ($month <= 0) {
-                                            $month += 12;
-                                            $year  -= 1;
-                                        } elseif ($month > 12) {
-                                            $month -= 12;
-                                            $year  += 1;
-                                        }
-                                        $highlightClass = 'bg-light';
-                                        foreach ($processedMonths as $pm) {
-                                            if ($pm['bulan'] == $month && $pm['tahun'] == $year) {
-                                                $highlightClass = 'processed-month';
-                                                break;
-                                            }
-                                        }
-                                        if ($month == $selectedMonth && $year == $selectedYear) {
-                                            $highlightClass = 'bg-warning text-dark fw-bold';
-                                        }
-                                        echo '<div class="col-3 mb-3">';
-                                        echo '  <div class="p-2 ' . $highlightClass . '" style="border: 1px solid #ddd; border-radius: 5px;">';
-                                        echo '    <a href="#" class="month-link" data-month-number="' . $month . '" data-month="' . date("F", mktime(0, 0, 0, $month, 1)) . '" data-year="' . $year . '" style="color: inherit; text-decoration: none;">';
-                                        echo '      ' . strtoupper(date("F", mktime(0, 0, 0, $month, 1))) . '<br>' . $year;
-                                        echo '    </a>';
-                                        echo '  </div>';
-                                        echo '</div>';
-                                    }
-                                    ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- JS Dependencies -->
-                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-                <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.8.0/dist/autoNumeric.min.js"></script>
-
-                <script>
-                    $(document).ready(function() {
-
-                        // === SweetAlert2 Toast ===
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true,
-                            didOpen: (toast) => {
-                                toast.addEventListener('mouseenter', Swal.stopTimer);
-                                toast.addEventListener('mouseleave', Swal.resumeTimer);
-                            }
-                        });
-
-                        function showToast(message, icon = 'success') {
-                            Toast.fire({
-                                icon: icon,
-                                title: message
-                            });
-                        }
-
-                        // === Variabel Pagination Manual ===
-                        let currentPage = 1;
-                        let pageSize = 10;
-
-                        function loadEmployees(page) {
-                            currentPage = page;
-                            let start = (currentPage - 1) * pageSize;
-                            let length = pageSize;
-                            $.ajax({
-                                url: "employees.php?ajax=1",
-                                type: "POST",
-                                data: {
-                                    case: "LoadingEmployees",
-                                    start: start,
-                                    length: length,
-                                    jenjang: $("#filterJenjang").val(),
-                                    role: $("#filterRole").val(),
-                                    search: $("#filterSearch").val(),
-                                    selectedMonth: localStorage.getItem("selectedMonthNumber") || <?= $selectedMonth ?>,
-                                    selectedYear: localStorage.getItem("selectedYearPayroll") || <?= $selectedYear ?>,
-                                    csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
-                                },
-                                dataType: "json",
-                                beforeSend: function() {
-                                    $("#loadingSpinner").show();
-                                },
-                                success: function(res) {
-                                    $("#loadingSpinner").hide();
-                                    if (res.data) {
-                                        generateCards(res.data);
-                                        generatePagination(res.recordsTotal);
-                                    } else {
-                                        $("#employeeCards").empty();
-                                        $("#paginationContainer").empty();
-                                        showToast("Data kosong atau gagal di-load", "warning");
-                                    }
-                                },
-                                error: function(xhr, status, error) {
-                                    $("#loadingSpinner").hide();
-                                    showToast("Terjadi kesalahan memuat data: " + error, "error");
-                                }
-                            });
-                        }
-
-                        // Dapatkan baseUrl dari PHP
-                        let baseUrl = "<?= getBaseUrl(); ?>";
-
-                        function generateCards(data) {
-                            const container = $("#employeeCards").empty();
-                            data.forEach(item => {
-                                const rapelBadge = item.has_rapel ?
-                                    `<span class="badge" style="background-color:#dc3545;color:#fff;">Ada</span>` :
-                                    `<span class="badge bg-secondary">-</span>`;
-                                const photoUrl = item.foto_profil || baseUrl + "/assets/img/undraw_profile.svg";
-
-                                const cardHtml = `
-      <div class="col mb-4">
-        <div class="card employee-card h-100">
-          <img src="${photoUrl}" class="card-img-top employee-photo" alt="Foto Profil">
-          <div class="card-body d-flex flex-column text-center">
-            <h5 class="card-title">${item.nama}</h5>
-            <p class="card-text small text-muted">NIP: ${item.nip}</p>
-            <div class="badges">
-              ${item.badge_role} ${item.badge_jenjang}
             </div>
-            <div class="status">
-              <strong>Status:</strong> ${item.badge_status}
-            </div>
-            <div class="rapel">
-              <strong>Rapel:</strong> ${rapelBadge}
-            </div>
-            <div class="mt-auto d-grid gap-2">
-              <button class="btn btn-primary btn-sm btnViewDetail" data-id="${item.id}">
-                <i class="bi bi-eye-fill"></i> Detail
-              </button>
-              <button class="btn btn-warning btn-sm btnEdit" data-id="${item.id}">
-                <i class="bi bi-pencil-square"></i> Edit
-              </button>
-              <button class="btn btn-info btn-sm btnAssignPayheads" data-id="${item.id}">
-                <i class="bi bi-cash-stack"></i> Payroll
-              </button>
-              <button class="btn btn-secondary btn-sm btnRekapAbsensi" data-id="${item.id}">
-                <i class="bi bi-calendar-check"></i> Absensi
-              </button>
-            </div>
-          </div>
         </div>
-      </div>`;
-                                container.append(cardHtml);
-                            });
-                        }
+    </div>
 
 
+    <!-- MODAL: Review Rekap Absensi -->
+    <div class="modal fade" id="rekapReviewModal" tabindex="-1" aria-labelledby="rekapReviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rekapReviewModalLabel"><i class="bi bi-eye"></i> Review Rekap Absensi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="data-display">
+                        <p><strong>ID Anggota:</strong> <span id="review_id_anggota"></span></p>
+                        <p><strong>Bulan:</strong> <span id="review_bulan"></span></p>
+                        <p><strong>Tahun:</strong> <span id="review_tahun"></span></p>
+                        <p><strong>Total Hadir:</strong> <span id="review_total_hadir"></span></p>
+                        <p><strong>Total Izin:</strong> <span id="review_total_izin"></span></p>
+                        <p><strong>Total Cuti:</strong> <span id="review_total_cuti"></span></p>
+                        <p><strong>Total Tanpa Keterangan:</strong> <span id="review_total_tanpa_keterangan"></span></p>
+                        <p><strong>Total Sakit:</strong> <span id="review_total_sakit"></span></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary" id="btnOpenEditRekap">Edit</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- MODAL: Edit Rekap Absensi -->
+    <div class="modal fade" id="rekapAbsensiModal" tabindex="-1" aria-labelledby="rekapAbsensiModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="rekapAbsensiForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="rekapAbsensiModalLabel"><i class="bi bi-calendar-check"></i> Edit Rekap Absensi</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="case" value="EditRekapAbsensi">
+                        <input type="hidden" name="id_anggota" id="rekap_id_anggota_edit">
+                        <input type="hidden" name="bulan" id="rekap_bulan_edit">
+                        <input type="hidden" name="tahun" id="rekap_tahun_edit">
+                        <div class="mb-3">
+                            <label for="total_hadir_edit" class="form-label">Total Hadir</label>
+                            <input type="number" class="form-control" name="total_hadir" id="total_hadir_edit" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="total_izin_edit" class="form-label">Total Izin</label>
+                            <input type="number" class="form-control" name="total_izin" id="total_izin_edit" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="total_cuti_edit" class="form-label">Total Cuti</label>
+                            <input type="number" class="form-control" name="total_cuti" id="total_cuti_edit" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="total_tanpa_keterangan_edit" class="form-label">Total Tanpa Keterangan</label>
+                            <input type="number" class="form-control" name="total_tanpa_keterangan" id="total_tanpa_keterangan_edit" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="total_sakit_edit" class="form-label">Total Sakit</label>
+                            <input type="number" class="form-control" name="total_sakit" id="total_sakit_edit" required>
+                        </div>
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Simpan Perubahan
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Batal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-                        function generatePagination(totalRecords) {
-                            let totalPages = Math.ceil(totalRecords / pageSize);
-                            let pagination = $("#paginationContainer");
-                            pagination.empty();
-                            for (let i = 1; i <= totalPages; i++) {
-                                let li = $("<li>").addClass("page-item").append(
-                                    $("<a>").addClass("page-link").text(i).attr("href", "#").on("click", function(e) {
-                                        e.preventDefault();
-                                        loadEmployees(i);
-                                    })
-                                );
-                                if (i === currentPage) li.addClass("active");
-                                pagination.append(li);
+    <!-- MODAL: Select Month (Payroll) -->
+    <div class="modal fade" id="SalaryMonthModal" tabindex="-1" aria-labelledby="salaryMonthModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md" style="max-width: 600px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="salaryMonthModalLabel"><i class="fa fa-calendar"></i> Pilih Bulan untuk Payroll</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row text-center">
+                        <?php
+                        $currentYear  = date('Y');
+                        $currentMonth = date('n');
+                        $startMonth   = $currentMonth - 2;
+                        $startYear    = $currentYear;
+                        for ($i = 0; $i < 16; $i++) {
+                            $month = $startMonth + $i;
+                            $year  = $startYear;
+                            if ($month <= 0) {
+                                $month += 12;
+                                $year  -= 1;
+                            } elseif ($month > 12) {
+                                $month -= 12;
+                                $year  += 1;
                             }
-                        }
-
-                        loadEmployees(1);
-
-                        $("#btnApplyFilter").on("click", function() {
-                            loadEmployees(1);
-                        });
-                        $("#btnResetFilter").on("click", function() {
-                            $("#filterForm")[0].reset();
-                            $("#filterSearch").val("");
-                            loadEmployees(1);
-                        });
-
-                        $(document).on("click", ".btnAssignPayheads", function() {
-                            let cardStatus = $(this).parents('.card').attr('data-payroll_status');
-                            if (typeof cardStatus !== 'undefined' && cardStatus.toLowerCase() === 'final') {
-                                showToast("Payroll sudah final, tidak dapat mengubah payheads.", "warning");
-                                return;
-                            }
-                            let id = $(this).data("id");
-                            let filterMonth = localStorage.getItem("selectedMonthNumber") || <?= $selectedMonth ?>;
-                            let filterYear = localStorage.getItem("selectedYearPayroll") || <?= $selectedYear ?>;
-                            window.location.href = 'payroll_page.php?empcode=' + id + '&filterMonth=' + filterMonth + '&filterYear=' + filterYear;
-                        });
-
-                        function calcPotonganAbsensi(role, totalIzin, totalCuti, totalTK, totalSakit) {
-                            let totalTidakHadir = totalIzin + totalCuti + totalTK + totalSakit;
-                            let potongan = 0;
-                            if (role === 'P' || role === 'TK') {
-                                const biayaPerHari = 75000;
-                                potongan = Math.min(totalTidakHadir, 2) * biayaPerHari;
-                            } else if (role === 'M') {
-                                const biayaPerHariManajerial = 50000;
-                                potongan = totalTidakHadir * biayaPerHariManajerial;
-                            }
-                            return potongan;
-                        }
-
-                        // Event handler untuk Edit Data
-                        $(document).on("click", ".btnEdit", function() {
-                            let id = $(this).data("id");
-                            $.ajax({
-                                url: 'employees.php?ajax=1',
-                                type: 'POST',
-                                data: {
-                                    case: 'ViewEmployeeDetail',
-                                    id: id,
-                                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>',
-                                    selectedMonth: localStorage.getItem("selectedMonthNumber"),
-                                    selectedYear: localStorage.getItem("selectedYearPayroll")
-                                },
-                                dataType: 'json',
-                                success: function(resp) {
-                                    if (resp.code === 0) {
-                                        var e = resp.result;
-                                        $('#editEmployeeId').val(e.id);
-                                        $('#editNip').val(e.nip);
-                                        $('#editNama').val(e.nama);
-                                        $('#editJenjang').val(e.jenjang);
-                                        $('#editJobTitle').val(e.job_title);
-                                        $('#editStatusKerja').val(e.status_kerja);
-                                        $('#editNoRekening').val(e.no_rekening);
-                                        $('#editEmail').val(e.email);
-                                        $('#editJenisKelamin').val(e.jenis_kelamin);
-                                        $('#editAgama').val(e.agama);
-                                        $('#editEmployeeModal').modal('show');
-                                    } else {
-                                        showToast(resp.result, 'error');
-                                    }
-                                },
-                                error: function(xhr, status, error) {
-                                    showToast('Terjadi kesalahan saat memuat data anggota: ' + error, 'error');
+                            $highlightClass = 'bg-light';
+                            foreach ($processedMonths as $pm) {
+                                if ($pm['bulan'] == $month && $pm['tahun'] == $year) {
+                                    $highlightClass = 'processed-month';
+                                    break;
                                 }
-                            });
-                        });
+                            }
+                            if ($month == $selectedMonth && $year == $selectedYear) {
+                                $highlightClass = 'bg-warning text-dark fw-bold';
+                            }
+                            echo '<div class="col-3 mb-3">';
+                            echo '  <div class="p-2 ' . $highlightClass . '" style="border: 1px solid #ddd; border-radius: 5px;">';
+                            echo '    <a href="#" class="month-link" data-month-number="' . $month . '" data-month="' . date("F", mktime(0, 0, 0, $month, 1)) . '" data-year="' . $year . '" style="color: inherit; text-decoration: none;">';
+                            echo '      ' . strtoupper(date("F", mktime(0, 0, 0, $month, 1))) . '<br>' . $year;
+                            echo '    </a>';
+                            echo '  </div>';
+                            echo '</div>';
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                        $('#editEmployeeForm').on('submit', function(e) {
+    <!-- JS Dependencies -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.8.0/dist/autoNumeric.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+
+            // === SweetAlert2 Toast ===
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+
+            function showToast(message, icon = 'success') {
+                Toast.fire({
+                    icon: icon,
+                    title: message
+                });
+            }
+
+            // === Variabel Pagination Manual ===
+            let currentPage = 1;
+            let pageSize = 10;
+
+            function loadEmployees(page) {
+                currentPage = page;
+                let start = (currentPage - 1) * pageSize;
+                let length = pageSize;
+                $.ajax({
+                    url: "employees.php?ajax=1",
+                    type: "POST",
+                    data: {
+                        case: "LoadingEmployees",
+                        start: start,
+                        length: length,
+                        jenjang: $("#filterJenjang").val(),
+                        role: $("#filterRole").val(),
+                        search: $("#filterSearch").val(),
+                        selectedMonth: localStorage.getItem("selectedMonthNumber") || <?= $selectedMonth ?>,
+                        selectedYear: localStorage.getItem("selectedYearPayroll") || <?= $selectedYear ?>,
+                        csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        $("#loadingSpinner").show();
+                    },
+                    success: function(res) {
+                        $("#loadingSpinner").hide();
+                        if (res.data) {
+                            generateCards(res.data);
+                            generatePagination(res.recordsTotal);
+                        } else {
+                            $("#employeeCards").empty();
+                            $("#paginationContainer").empty();
+                            showToast("Data kosong atau gagal di-load", "warning");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $("#loadingSpinner").hide();
+                        showToast("Terjadi kesalahan memuat data: " + error, "error");
+                    }
+                });
+            }
+
+            // Dapatkan baseUrl dari PHP
+            let baseUrl = "<?= getBaseUrl(); ?>";
+
+            function generateCards(data) {
+                const container = $("#employeeCards").empty();
+                data.forEach(item => {
+                    const rapelBadge = item.has_rapel ?
+                        `<span class="badge" style="background-color:#dc3545;color:#fff;">Ada</span>` :
+                        `<span class="badge bg-secondary">-</span>`;
+                    const photoUrl = item.foto_profil || baseUrl + "/assets/img/undraw_profile.svg";
+
+                    // --- TAMBAH BADGE WARNA STATUS PAYROLL ---
+                    let payrollBadge = '';
+                    if (item.payroll_status === 'Final') {
+                        payrollBadge = `<span class="badge bg-success"><i class="bi bi-check-circle"></i> Final</span>`;
+                    } else if (item.payroll_status === 'Revisi') {
+                        payrollBadge = `<span class="badge bg-warning text-dark"><i class="bi bi-pencil"></i> Revisi</span>`;
+                    } else if (item.payroll_status === 'Draft') {
+                        payrollBadge = `<span class="badge bg-info text-dark"><i class="bi bi-file-earmark-text"></i> Draft</span>`;
+                    } else {
+                        payrollBadge = `<span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> Belum Diproses</span>`;
+                    }
+
+                    const isPayrollFinal = item.payroll_status === 'Final';
+                    const btnAssignDisabled = isPayrollFinal ? 'disabled style="pointer-events:none;opacity:0.6;" title="Payroll sudah final, tidak bisa diubah."' : '';
+
+
+                    const cardHtml = `
+  <div class="col mb-4">
+    <div class="card employee-card h-100" data-payroll_status="${item.payroll_status}">
+      <img src="${photoUrl}" class="card-img-top employee-photo" alt="Foto Profil">
+      <div class="card-body d-flex flex-column text-center">
+        <h5 class="card-title">${item.nama}</h5>
+        <p class="card-text small text-muted">NIP: ${item.nip}</p>
+        <div class="badges">
+          ${item.badge_role} ${item.badge_jenjang}
+        </div>
+        <div class="status">
+          <strong>Status:</strong> ${item.badge_status}
+        </div>
+        <div class="payroll_status mb-2">
+          <strong>Status Payroll:</strong> ${payrollBadge}
+        </div>
+        <div class="rapel">
+          <strong>Rapel:</strong> ${rapelBadge}
+        </div>
+        <div class="mt-auto d-grid gap-2">
+          <button class="btn btn-primary btn-sm btnViewDetail" data-id="${item.id}">
+            <i class="bi bi-eye-fill"></i> Detail
+          </button>
+          <button class="btn btn-warning btn-sm btnEdit" data-id="${item.id}">
+            <i class="bi bi-pencil-square"></i> Edit
+          </button>
+          <button class="btn btn-info btn-sm btnAssignPayheads" data-id="${item.id}" ${btnAssignDisabled}>
+            <i class="bi bi-cash-stack"></i> Payroll
+          </button>
+          <button class="btn btn-secondary btn-sm btnRekapAbsensi" data-id="${item.id}">
+            <i class="bi bi-calendar-check"></i> Absensi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+                    container.append(cardHtml);
+                });
+            }
+
+
+            function generatePagination(totalRecords) {
+                let totalPages = Math.ceil(totalRecords / pageSize);
+                let pagination = $("#paginationContainer");
+                pagination.empty();
+                for (let i = 1; i <= totalPages; i++) {
+                    let li = $("<li>").addClass("page-item").append(
+                        $("<a>").addClass("page-link").text(i).attr("href", "#").on("click", function(e) {
                             e.preventDefault();
-                            var form = $(this);
-                            var dataToSend = {
-                                case: 'EditEmployee',
-                                id: $('#editEmployeeId').val(),
-                                no_rekening: $('#editNoRekening').val(),
-                                csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
-                            };
-                            $.ajax({
-                                url: 'employees.php?ajax=1',
-                                type: 'POST',
-                                data: dataToSend,
-                                dataType: 'json',
-                                beforeSend: function() {
-                                    form.find('button[type="submit"]').prop('disabled', true);
-                                    form.find('.spinner-border').removeClass('d-none');
-                                },
-                                success: function(resp) {
-                                    form.find('button[type="submit"]').prop('disabled', false);
-                                    form.find('.spinner-border').addClass('d-none');
-                                    if (resp.code === 0) {
-                                        showToast(resp.result, 'success');
-                                        loadEmployees(currentPage);
-                                        $('#editEmployeeModal').modal('hide');
-                                    } else {
-                                        showToast(resp.result, 'error');
-                                    }
-                                },
-                                error: function() {
-                                    form.find('button[type="submit"]').prop('disabled', false);
-                                    form.find('.spinner-border').addClass('d-none');
-                                    showToast('Terjadi kesalahan saat memperbarui data anggota.', 'error');
-                                }
-                            });
-                        });
+                            loadEmployees(i);
+                        })
+                    );
+                    if (i === currentPage) li.addClass("active");
+                    pagination.append(li);
+                }
+            }
 
-                        // Event handler untuk View Detail
-                        $(document).on("click", ".btnViewDetail", function() {
-                            let id = $(this).data("id");
-                            $.ajax({
-                                url: 'employees.php?ajax=1',
-                                type: 'POST',
-                                data: {
-                                    case: 'ViewEmployeeDetail',
-                                    id: id,
-                                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>',
-                                    selectedMonth: localStorage.getItem("selectedMonthNumber"),
-                                    selectedYear: localStorage.getItem("selectedYearPayroll")
-                                },
-                                dataType: 'json',
-                                success: function(resp) {
-                                    if (resp.code === 0) {
-                                        var e = resp.result;
-                                        // --- FOTO Profil & KTP
-                                        $('#detailFotoProfil').attr('src', e.foto_profil || baseUrl + "/assets/img/undraw_profile.svg");
-                                        $('#detailFotoKtp').attr('src', e.foto_ktp || baseUrl + "/assets/img/ktp_placeholder.png");
+            loadEmployees(1);
 
-                                        // --- DATA PEKERJAAN
-                                        $('#detailId').text(e.id ?? '-');
-                                        $('#detailUid').text(e.uid ?? '-');
-                                        $('#detailNip').text(e.nip ?? '-');
-                                        $('#detailNama').text(e.nama ?? '-');
-                                        $('#detailJenjang').text(e.jenjang ?? '-');
-                                        $('#detailRole').text(e.role ?? '-');
-                                        $('#detailJobTitle').text(e.job_title ?? '-');
-                                        $('#detailStatusKerja').text(e.status_kerja ?? '-');
-                                        $('#detailJoinStart').text(e.join_start ?? '-');
-                                        $('#detailMasaKerja').text(e.masa_kerja ?? '-');
-                                        $('#detailPendidikan').text(e.pendidikan ?? '-');
-                                        $('#detailStrata').text(e.strata ?? '-');
-                                        $('#detailLamaKontrak').text(e.lama_kontrak ? (e.lama_kontrak + ' Bln') : '-');
-                                        $('#detailTglSelesai').text(e.tgl_kontrak_selesai ?? '-');
-                                        $('#detailGajiPokok').text(e.gaji_pokok !== undefined ? e.gaji_pokok : '-');
+            $("#btnApplyFilter").on("click", function() {
+                loadEmployees(1);
+            });
+            $("#btnResetFilter").on("click", function() {
+                $("#filterForm")[0].reset();
+                $("#filterSearch").val("");
+                loadEmployees(1);
+            });
 
-                                        // --- SALARY INDEX/LEVEL (Nominal)
-                                        let baseSalary = parseFloat(e.salary_index_base) || 0;
-                                        $('#detailSalaryIndexNominal').text('Rp ' + baseSalary.toLocaleString('id-ID', {
-                                            minimumFractionDigits: 2
-                                        }));
+            $(document).on("click", ".btnAssignPayheads", function() {
+                let cardStatus = $(this).parents('.card').attr('data-payroll_status');
+                if (typeof cardStatus !== 'undefined' && cardStatus.toLowerCase() === 'final') {
+                    showToast("Payroll sudah final, tidak dapat mengubah payheads.", "warning");
+                    return;
+                }
+                let id = $(this).data("id");
+                let filterMonth = localStorage.getItem("selectedMonthNumber") || <?= $selectedMonth ?>;
+                let filterYear = localStorage.getItem("selectedYearPayroll") || <?= $selectedYear ?>;
+                window.location.href = 'payroll_page.php?empcode=' + id + '&filterMonth=' + filterMonth + '&filterYear=' + filterYear;
+            });
 
-                                        // --- PAYHEADS (Rincian)
-                                        if (e.payheads && e.payheads.length > 0) {
-                                            var s = '<ul>';
-                                            e.payheads.forEach(function(ph) {
-                                                var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {
-                                                    minimumFractionDigits: 2
-                                                });
-                                                var jns = (ph.jenis_payhead === 'earnings') ? 'Pendapatan' : 'Potongan';
-                                                var clr = (ph.jenis_payhead === 'earnings') ? 'green' : 'red';
-                                                s += `<li style="color:${clr}">${ph.nama_payhead} (${jns}): Rp ${nominal}`;
-                                                if (ph.support_doc_path && ph.support_doc_path.trim() !== "") {
-                                                    s += ` - <a href="download_payhead.php?file=${encodeURIComponent(ph.support_doc_path)}&name=${encodeURIComponent(ph.nama_payhead)}" download="${ph.nama_payhead}" target="_blank">Lihat Dokumen</a>`;
-                                                }
-                                                s += `</li>`;
-                                            });
-                                            s += '</ul>';
-                                            $('#detailPayheads').html(s);
-                                        } else {
-                                            $('#detailPayheads').html('<i>Tidak ada payheads</i>');
-                                        }
+            function calcPotonganAbsensi(role, totalIzin, totalCuti, totalTK, totalSakit) {
+                let totalTidakHadir = totalIzin + totalCuti + totalTK + totalSakit;
+                let potongan = 0;
+                if (role === 'P' || role === 'TK') {
+                    const biayaPerHari = 75000;
+                    potongan = Math.min(totalTidakHadir, 2) * biayaPerHari;
+                } else if (role === 'M') {
+                    const biayaPerHariManajerial = 50000;
+                    potongan = totalTidakHadir * biayaPerHariManajerial;
+                }
+                return potongan;
+            }
 
-                                        // --- TOTAL PENDAPATAN/POTONGAN/GAJI BERSIH
-                                        $('#detailTotalPendapatan').text('Rp ' + (parseFloat(e.total_pendapatan) || 0).toLocaleString('id-ID', {
-                                            minimumFractionDigits: 2
-                                        }));
-                                        $('#detailTotalPotongan').text('Rp ' + (parseFloat(e.total_potongan) || 0).toLocaleString('id-ID', {
-                                            minimumFractionDigits: 2
-                                        }));
-                                        $('#detailGajiBersih').text('Rp ' + (parseFloat(e.gaji_bersih) || 0).toLocaleString('id-ID', {
-                                            minimumFractionDigits: 2
-                                        }));
-
-                                        // --- DATA PRIBADI
-                                        $('#detailJenisKelamin').text(e.jenis_kelamin === 'L' ? 'Laki-laki' : e.jenis_kelamin === 'P' ? 'Perempuan' : '-');
-                                        $('#detailTglLahir').text(e.tanggal_lahir ?? '-');
-                                        $('#detailUsia').text(e.usia ?? '-');
-                                        $('#detailAgama').text(e.agama ?? '-');
-                                        $('#detailStatusPerkawinan').text(e.status_perkawinan ?? '-');
-                                        $('#detailNamaPasangan').text(e.nama_pasangan ?? '-');
-                                        $('#detailJumlahAnak').text(e.jumlah_anak ?? '-');
-                                        $('#detailNamaAnak1').text(e.nama_anak_1 ?? '-');
-                                        $('#detailNamaAnak2').text(e.nama_anak_2 ?? '-');
-                                        $('#detailNamaAnak3').text(e.nama_anak_3 ?? '-');
-
-                                        // --- DATA KONTAK
-                                        $('#detailAlamatDomisili').text(e.alamat_domisili ?? '-');
-                                        $('#detailAlamatKTP').text(e.alamat_ktp ?? '-');
-                                        $('#detailNoRekening').text(e.no_rekening ?? '-');
-                                        $('#detailNoHP').text(e.no_hp ?? '-');
-                                        $('#detailEmail').text(e.email ?? '-');
-
-                                        // --- LAIN-LAIN / REMARK
-                                        $('#detailRemark').text(e.remark ?? '-');
-
-                                        // --- KONDISIONAL FIELD KONTRAK
-                                        if ((e.status_kerja || '').toLowerCase() === 'tetap') {
-                                            $('#detailLamaKontrakRow,#detailTglSelesaiRow').hide();
-                                        } else {
-                                            $('#detailLamaKontrakRow,#detailTglSelesaiRow').show();
-                                        }
-
-                                        // --- MODAL SHOW
-                                        $('#viewDetailModal').modal('show');
-                                    } else {
-                                        showToast(resp.result, 'error');
-                                    }
-                                },
-                                error: function() {
-                                    showToast('Terjadi kesalahan saat mengambil detail anggota.', 'error');
-                                }
-                            });
-                        });
-
-
-                        // Handler untuk rekapan absensi
-                        $(document).on('click', '.btnRekapAbsensi', function() {
-                            var id = $(this).data('id');
-                            var role = $(this).data('role');
-                            var selectedMonth = localStorage.getItem('selectedMonthNumber') || <?= $selectedMonth ?>;
-                            var selectedYear = localStorage.getItem('selectedYearPayroll') || <?= $selectedYear ?>;
-                            $.ajax({
-                                url: 'employees.php?ajax=1',
-                                type: 'POST',
-                                dataType: 'json',
-                                data: {
-                                    case: 'ViewRekapAbsensi',
-                                    id: id,
-                                    selectedMonth: selectedMonth,
-                                    selectedYear: selectedYear,
-                                    csrf_token: CSRF_TOKEN
-                                },
-                                success: function(resp) {
-                                    if (resp.code === 0) {
-                                        var data = resp.result;
-                                        $("#review_id_anggota").text(data.id_anggota);
-                                        $("#review_bulan").text(data.bulan);
-                                        $("#review_tahun").text(data.tahun);
-                                        $("#review_total_hadir").text(data.total_hadir);
-                                        $("#review_total_izin").text(data.total_izin);
-                                        $("#review_total_cuti").text(data.total_cuti);
-                                        $("#review_total_tanpa_keterangan").text(data.total_tanpa_keterangan);
-                                        $("#review_total_sakit").text(data.total_sakit);
-                                        $('#rekap_id_anggota_edit').val(data.id_anggota);
-                                        $('#rekap_bulan_edit').val(data.bulan);
-                                        $('#rekap_tahun_edit').val(data.tahun);
-                                        $('#total_hadir_edit').val(data.total_hadir);
-                                        $('#total_izin_edit').val(data.total_izin);
-                                        $('#total_cuti_edit').val(data.total_cuti);
-                                        $('#total_tanpa_keterangan_edit').val(data.total_tanpa_keterangan);
-                                        $('#total_sakit_edit').val(data.total_sakit);
-                                        let potonganAbsensi = calcPotonganAbsensi(role, data.total_izin, data.total_cuti, data.total_tanpa_keterangan, data.total_sakit);
-                                        window.potonganAbsensiGlobal = potonganAbsensi;
-                                        $('#rekapReviewModal').modal('show');
-                                    } else {
-                                        $("#review_id_anggota, #review_bulan, #review_tahun").text('');
-                                        $("#review_total_hadir, #review_total_izin, #review_total_cuti, #review_total_tanpa_keterangan, #review_total_sakit").text('0');
-                                        window.potonganAbsensiGlobal = 0;
-                                    }
-                                },
-                                error: function() {
-                                    $("#review_total_hadir, #review_total_izin, #review_total_cuti, #review_total_tanpa_keterangan, #review_total_sakit").text("0");
-                                    window.potonganAbsensiGlobal = 0;
-                                }
-                            });
-                        });
-
-                        $('#btnOpenEditRekap').on('click', function() {
-                            $('#rekapReviewModal').modal('hide');
-                            $('#rekapAbsensiModal').modal('show');
-                        });
-
-                        $('#rekapAbsensiForm').on('submit', function(e) {
-                            e.preventDefault();
-                            var form = $(this);
-                            $.ajax({
-                                url: 'employees.php?ajax=1',
-                                type: 'POST',
-                                dataType: 'json',
-                                data: form.serialize(),
-                                beforeSend: function() {
-                                    form.find('button[type="submit"]').prop('disabled', true);
-                                    form.find('.spinner-border').removeClass('d-none');
-                                },
-                                success: function(resp) {
-                                    form.find('button[type="submit"]').prop('disabled', false);
-                                    form.find('.spinner-border').addClass('d-none');
-                                    if (resp.code === 0) {
-                                        showToast(resp.result, 'success');
-                                        $('#rekapAbsensiModal').modal('hide');
-                                    } else {
-                                        showToast(resp.result, 'error');
-                                    }
-                                },
-                                error: function() {
-                                    form.find('button[type="submit"]').prop('disabled', false);
-                                    form.find('.spinner-border').addClass('d-none');
-                                    showToast('Terjadi kesalahan saat menyimpan rekap absensi.', 'error');
-                                }
-                            });
-                        });
-
-                        function initSelectedMonthDisplay() {
-                            if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
-                                var selMonth = localStorage.getItem('selectedMonthPayroll');
-                                var selYear = localStorage.getItem('selectedYearPayroll');
-                                $('#selectedMonthDisplay').html(
-                                    '<div class="card mb-3">' +
-                                    '<div class="card-body d-flex align-items-center">' +
-                                    '<i class="bi bi-calendar3 me-2"></i>' +
-                                    '<span class="fw-bold">Payroll Bulan: ' + selMonth + ' ' + selYear + '</span>' +
-                                    '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
-                                    '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
-                                    '</button>' +
-                                    '</div>' +
-                                    '</div>'
-                                );
-                            } else {
-                                $('#selectedMonthDisplay').html('<h4>Klik di sini untuk memilih bulan payroll</h4>');
-                                $('#SalaryMonthModal').modal('show');
-                            }
+            // Event handler untuk Edit Data
+            $(document).on("click", ".btnEdit", function() {
+                let id = $(this).data("id");
+                $.ajax({
+                    url: 'employees.php?ajax=1',
+                    type: 'POST',
+                    data: {
+                        case: 'ViewEmployeeDetail',
+                        id: id,
+                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>',
+                        selectedMonth: localStorage.getItem("selectedMonthNumber"),
+                        selectedYear: localStorage.getItem("selectedYearPayroll")
+                    },
+                    dataType: 'json',
+                    success: function(resp) {
+                        if (resp.code === 0) {
+                            var e = resp.result;
+                            $('#editEmployeeId').val(e.id);
+                            $('#editNip').val(e.nip);
+                            $('#editNama').val(e.nama);
+                            $('#editJenjang').val(e.jenjang);
+                            $('#editJobTitle').val(e.job_title);
+                            $('#editStatusKerja').val(e.status_kerja);
+                            $('#editNoRekening').val(e.no_rekening);
+                            $('#editEmail').val(e.email);
+                            $('#editJenisKelamin').val(e.jenis_kelamin);
+                            $('#editAgama').val(e.agama);
+                            $('#editEmployeeModal').modal('show');
+                        } else {
+                            showToast(resp.result, 'error');
                         }
-                        initSelectedMonthDisplay();
-                        loadEmployees(1);
+                    },
+                    error: function(xhr, status, error) {
+                        showToast('Terjadi kesalahan saat memuat data anggota: ' + error, 'error');
+                    }
+                });
+            });
 
-                        $("#btnChangeCalendar").on("click", function() {
-                            $("#SalaryMonthModal").modal("show");
-                        });
+            $('#editEmployeeForm').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                var dataToSend = {
+                    case: 'EditEmployee',
+                    id: $('#editEmployeeId').val(),
+                    no_rekening: $('#editNoRekening').val(),
+                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+                };
+                $.ajax({
+                    url: 'employees.php?ajax=1',
+                    type: 'POST',
+                    data: dataToSend,
+                    dataType: 'json',
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(resp) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (resp.code === 0) {
+                            showToast(resp.result, 'success');
+                            loadEmployees(currentPage);
+                            $('#editEmployeeModal').modal('hide');
+                        } else {
+                            showToast(resp.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat memperbarui data anggota.', 'error');
+                    }
+                });
+            });
 
-                        $(document).on("click", ".month-link", function(e) {
-                            e.preventDefault();
-                            var monthNumber = $(this).data('month-number');
-                            var monthName = $(this).data('month');
-                            var year = $(this).data('year');
-                            if (window.currentEmpId) {
-                                var employeeId = window.currentEmpId;
-                                var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
-                                targetUrl += "?id_anggota=" + employeeId;
-                                targetUrl += "&bulan=" + encodeURIComponent(monthName);
-                                targetUrl += "&tahun=" + encodeURIComponent(year);
-                                window.location.href = targetUrl;
-                            } else {
-                                $.ajax({
-                                    url: 'employees.php?ajax=1',
-                                    type: 'POST',
-                                    dataType: 'json',
-                                    data: {
-                                        case: 'CheckPayrollCompletion',
-                                        selectedMonth: monthNumber,
-                                        selectedYear: year,
-                                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
-                                    },
-                                    success: function(resp) {
-                                        if (resp.code === 0) {
-                                            if (resp.result.complete === false) {
-                                                var messages = resp.result.messages;
-                                                var messageText = messages.join("<br>");
-                                                Swal.fire({
-                                                    title: 'Perhatian!',
-                                                    html: messageText + "<br><br>Apakah Anda tetap ingin memilih bulan ini?",
-                                                    icon: 'warning',
-                                                    showCancelButton: true,
-                                                    confirmButtonText: 'Ya, pilih bulan ini',
-                                                    cancelButtonText: 'Batal'
-                                                }).then((result) => {
-                                                    if (result.isConfirmed) {
-                                                        simpanPilihanBulan(monthNumber, monthName, year);
-                                                    }
-                                                });
-                                            } else {
-                                                simpanPilihanBulan(monthNumber, monthName, year);
-                                            }
-                                        } else {
-                                            showToast(resp.result, 'error');
-                                        }
-                                    },
-                                    error: function(xhr, status, error) {
-                                        showToast('Terjadi kesalahan saat mengecek payroll: ' + error, 'error');
+
+            function formatDate(str) {
+    if (!str) return '-';
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('id-ID', {year:'numeric', month:'short', day:'numeric'});
+}
+
+            // Event handler untuk View Detail
+            $(document).on("click", ".btnViewDetail", function() {
+                let id = $(this).data("id");
+                $.ajax({
+                    url: 'employees.php?ajax=1',
+                    type: 'POST',
+                    data: {
+                        case: 'ViewEmployeeDetail',
+                        id: id,
+                        csrf_token: '<?= htmlspecialchars($csrf_token); ?>',
+                        selectedMonth: localStorage.getItem("selectedMonthNumber"),
+                        selectedYear: localStorage.getItem("selectedYearPayroll")
+                    },
+                    dataType: 'json',
+                    success: function(resp) {
+                        if (resp.code === 0) {
+                            var e = resp.result;
+                            // --- FOTO Profil & KTP
+                            $('#detailFotoProfil').attr('src', e.foto_profil || baseUrl + "/assets/img/undraw_profile.svg");
+                            $('#detailFotoKtp').attr('src', e.foto_ktp || baseUrl + "/assets/img/ktp_placeholder.png");
+
+                            // --- DATA PEKERJAAN
+                            $('#detailId').text(e.id ?? '-');
+                            $('#detailUid').text(e.uid ?? '-');
+                            $('#detailNip').text(e.nip ?? '-');
+                            $('#detailNama').text(e.nama ?? '-');
+                            $('#detailJenjang').text(e.jenjang ?? '-');
+                            $('#detailRole').text(e.role ?? '-');
+                            $('#detailJobTitle').text(e.job_title ?? '-');
+                            $('#detailStatusKerja').text(e.status_kerja ?? '-');
+                            $('#detailJoinStart').text(e.join_start ?? '-');
+                            $('#detailMasaKerja').text(e.masa_kerja ?? '-');
+                            $('#detailPendidikan').text(e.pendidikan ?? '-');
+                            $('#detailStrata').text(e.strata ?? '-');
+                            $('#detailLamaKontrak').text(e.lama_kontrak ? (e.lama_kontrak + ' Bln') : '-');
+                            $('#detailTglSelesai').text(e.tgl_kontrak_selesai ?? '-');
+                            $('#detailGajiPokok').text(e.gaji_pokok !== undefined ? e.gaji_pokok : '-');
+
+                            // --- SALARY INDEX/LEVEL (Nominal)
+                            let salaryIndexNom = e.salary_index_base !== undefined && e.salary_index_base !== null ?
+                                parseFloat(e.salary_index_base) :
+                                0;
+                            $('#detailSalaryIndexNominal').text('Rp ' + salaryIndexNom.toLocaleString('id-ID', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }));
+
+                            $('#detailSalaryIndexLevel').text(e.salary_index_level ?? '-');
+
+                            // --- PAYHEADS (Rincian)
+                            if (e.payheads && e.payheads.length > 0) {
+                                var s = '<ul>';
+                                e.payheads.forEach(function(ph) {
+                                    var nominal = parseFloat(ph.amount).toLocaleString('id-ID', {
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    });
+                                    var jns = (ph.jenis_payhead === 'earnings') ? 'Pendapatan' : 'Potongan';
+                                    var clr = (ph.jenis_payhead === 'earnings') ? 'green' : 'red';
+                                    s += `<li style="color:${clr}">${ph.nama_payhead} (${jns}): Rp ${nominal}`;
+                                    if (ph.support_doc_path && ph.support_doc_path.trim() !== "") {
+                                        s += ` - <a href="download_payhead.php?file=${encodeURIComponent(ph.support_doc_path)}&name=${encodeURIComponent(ph.nama_payhead)}" download="${ph.nama_payhead}" target="_blank">Lihat Dokumen</a>`;
                                     }
+                                    s += `</li>`;
                                 });
+                                s += '</ul>';
+                                $('#detailPayheads').html(s);
+                            } else {
+                                $('#detailPayheads').html('<i>Tidak ada payheads</i>');
                             }
-                        });
 
-                        function simpanPilihanBulan(monthNumber, monthName, year) {
-                            localStorage.setItem('selectedMonthPayroll', monthName);
-                            localStorage.setItem('selectedMonthNumber', monthNumber);
-                            localStorage.setItem('selectedYearPayroll', year);
-                            $('#selectedMonthDisplay').html(
-                                '<div class="card mb-3">' +
-                                '<div class="card-body d-flex align-items-center">' +
-                                '<i class="bi bi-calendar3 me-2"></i>' +
-                                '<span class="fw-bold">Payroll Bulan: ' + monthName + ' ' + year + '</span>' +
-                                '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
-                                '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
-                                '</button>' +
-                                '</div>' +
-                                '</div>'
-                            );
-                            $('#SalaryMonthModal').modal('hide');
-                            var newUrl = "employees.php?filterMonth=" + monthNumber + "&filterYear=" + year;
-                            window.location.href = newUrl;
+                            // --- TOTAL PENDAPATAN/POTONGAN/GAJI BERSIH
+                            $('#detailTotalPendapatan').text('Rp ' + (parseFloat(e.total_pendapatan) || 0).toLocaleString('id-ID', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }));
+                            $('#detailTotalPotongan').text('Rp ' + (parseFloat(e.total_potongan) || 0).toLocaleString('id-ID', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }));
+                            $('#detailGajiBersih').text('Rp ' + (parseFloat(e.gaji_bersih) || 0).toLocaleString('id-ID', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }));
+                            // --- KENAIKAN GAJI TAHUNAN
+                            if (e.kenaikan_gaji_tahunan && e.kenaikan_gaji_tahunan.status === 'aktif') {
+                                $('#detailKenaikanGajiTahunan').html(
+                                    `<span class="text-success fw-bold">
+            ${e.kenaikan_gaji_tahunan.nama_kenaikan || '-'}<br>
+            Rp ${(parseFloat(e.kenaikan_gaji_tahunan.jumlah) || 0).toLocaleString('id-ID', {minimumFractionDigits:0})}
+            <br><small>Berlaku: ${formatDate(e.kenaikan_gaji_tahunan.tanggal_mulai)} - ${formatDate(e.kenaikan_gaji_tahunan.tanggal_berakhir)}</small>
+        </span>`
+                                );
+                            } else {
+                                $('#detailKenaikanGajiTahunan').html('<i>Tidak ada kenaikan gaji tahunan</i>');
+                            }
+
+                            // --- DATA PRIBADI
+                            $('#detailJenisKelamin').text(e.jenis_kelamin === 'L' ? 'Laki-laki' : e.jenis_kelamin === 'P' ? 'Perempuan' : '-');
+                            $('#detailTglLahir').text(e.tanggal_lahir ?? '-');
+                            $('#detailUsia').text(e.usia ?? '-');
+                            $('#detailAgama').text(e.agama ?? '-');
+                            $('#detailStatusPerkawinan').text(e.status_perkawinan ?? '-');
+                            $('#detailNamaPasangan').text(e.nama_pasangan ?? '-');
+                            $('#detailJumlahAnak').text(e.jumlah_anak ?? '-');
+                            $('#detailNamaAnak1').text(e.nama_anak_1 ?? '-');
+                            $('#detailNamaAnak2').text(e.nama_anak_2 ?? '-');
+                            $('#detailNamaAnak3').text(e.nama_anak_3 ?? '-');
+
+                            // --- DATA KONTAK
+                            $('#detailAlamatDomisili').text(e.alamat_domisili ?? '-');
+                            $('#detailAlamatKTP').text(e.alamat_ktp ?? '-');
+                            $('#detailNoRekening').text(e.no_rekening ?? '-');
+                            $('#detailNoHP').text(e.no_hp ?? '-');
+                            $('#detailEmail').text(e.email ?? '-');
+
+                            // --- LAIN-LAIN / REMARK
+                            $('#detailRemark').text(e.remark ?? '-');
+
+                            // --- KONDISIONAL FIELD KONTRAK
+                            if ((e.status_kerja || '').toLowerCase() === 'tetap') {
+                                $('#detailLamaKontrakRow,#detailTglSelesaiRow').hide();
+                            } else {
+                                $('#detailLamaKontrakRow,#detailTglSelesaiRow').show();
+                            }
+
+                            // --- MODAL SHOW
+                            $('#viewDetailModal').modal('show');
+                        } else {
+                            showToast(resp.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        showToast('Terjadi kesalahan saat mengambil detail anggota.', 'error');
+                    }
+                });
+            });
+
+
+            // Handler untuk rekapan absensi
+            $(document).on('click', '.btnRekapAbsensi', function() {
+                var id = $(this).data('id');
+                var role = $(this).data('role');
+                var selectedMonth = localStorage.getItem('selectedMonthNumber') || <?= $selectedMonth ?>;
+                var selectedYear = localStorage.getItem('selectedYearPayroll') || <?= $selectedYear ?>;
+                $.ajax({
+                    url: 'employees.php?ajax=1',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        case: 'ViewRekapAbsensi',
+                        id: id,
+                        selectedMonth: selectedMonth,
+                        selectedYear: selectedYear,
+                        csrf_token: CSRF_TOKEN
+                    },
+                    success: function(resp) {
+                        if (resp.code === 0) {
+                            var data = resp.result;
+                            $("#review_id_anggota").text(data.id_anggota);
+                            $("#review_bulan").text(data.bulan);
+                            $("#review_tahun").text(data.tahun);
+                            $("#review_total_hadir").text(data.total_hadir);
+                            $("#review_total_izin").text(data.total_izin);
+                            $("#review_total_cuti").text(data.total_cuti);
+                            $("#review_total_tanpa_keterangan").text(data.total_tanpa_keterangan);
+                            $("#review_total_sakit").text(data.total_sakit);
+                            $('#rekap_id_anggota_edit').val(data.id_anggota);
+                            $('#rekap_bulan_edit').val(data.bulan);
+                            $('#rekap_tahun_edit').val(data.tahun);
+                            $('#total_hadir_edit').val(data.total_hadir);
+                            $('#total_izin_edit').val(data.total_izin);
+                            $('#total_cuti_edit').val(data.total_cuti);
+                            $('#total_tanpa_keterangan_edit').val(data.total_tanpa_keterangan);
+                            $('#total_sakit_edit').val(data.total_sakit);
+                            let potonganAbsensi = calcPotonganAbsensi(role, data.total_izin, data.total_cuti, data.total_tanpa_keterangan, data.total_sakit);
+                            window.potonganAbsensiGlobal = potonganAbsensi;
+                            const modalRekap = new bootstrap.Modal(document.getElementById('rekapReviewModal'));
+                            modalRekap.show();
+
+                        } else {
+                            $("#review_id_anggota, #review_bulan, #review_tahun").text('');
+                            $("#review_total_hadir, #review_total_izin, #review_total_cuti, #review_total_tanpa_keterangan, #review_total_sakit").text('0');
+                            window.potonganAbsensiGlobal = 0;
+                        }
+                    },
+                    error: function() {
+                        $("#review_total_hadir, #review_total_izin, #review_total_cuti, #review_total_tanpa_keterangan, #review_total_sakit").text("0");
+                        window.potonganAbsensiGlobal = 0;
+                    }
+                });
+            });
+
+            $('#btnOpenEditRekap').on('click', function() {
+                $('#rekapReviewModal').modal('hide');
+                $('#rekapAbsensiModal').modal('show');
+            });
+
+            $('#rekapAbsensiForm').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                $.ajax({
+                    url: 'employees.php?ajax=1',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: form.serialize(),
+                    beforeSend: function() {
+                        form.find('button[type="submit"]').prop('disabled', true);
+                        form.find('.spinner-border').removeClass('d-none');
+                    },
+                    success: function(resp) {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        if (resp.code === 0) {
+                            showToast(resp.result, 'success');
+                            $('#rekapAbsensiModal').modal('hide');
+                        } else {
+                            showToast(resp.result, 'error');
+                        }
+                    },
+                    error: function() {
+                        form.find('button[type="submit"]').prop('disabled', false);
+                        form.find('.spinner-border').addClass('d-none');
+                        showToast('Terjadi kesalahan saat menyimpan rekap absensi.', 'error');
+                    }
+                });
+            });
+
+            function initSelectedMonthDisplay() {
+                if (localStorage.getItem('selectedMonthPayroll') && localStorage.getItem('selectedYearPayroll')) {
+                    var selMonth = localStorage.getItem('selectedMonthPayroll');
+                    var selYear = localStorage.getItem('selectedYearPayroll');
+                    $('#selectedMonthDisplay').html(
+                        '<div class="card mb-3">' +
+                        '<div class="card-body d-flex align-items-center">' +
+                        '<i class="bi bi-calendar3 me-2"></i>' +
+                        '<span class="fw-bold">Payroll Bulan: ' + selMonth + ' ' + selYear + '</span>' +
+                        '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
+                        '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
+                        '</button>' +
+                        '</div>' +
+                        '</div>'
+                    );
+                } else {
+                    $('#selectedMonthDisplay').html('<h4>Klik di sini untuk memilih bulan payroll</h4>');
+                    $('#SalaryMonthModal').modal('show');
+                }
+            }
+            initSelectedMonthDisplay();
+            loadEmployees(1);
+
+            $("#btnChangeCalendar").on("click", function() {
+                $("#SalaryMonthModal").modal("show");
+            });
+
+            $(document).on("click", ".month-link", function(e) {
+                e.preventDefault();
+                var monthNumber = $(this).data('month-number');
+                var monthName = $(this).data('month');
+                var year = $(this).data('year');
+                if (window.currentEmpId) {
+                    var employeeId = window.currentEmpId;
+                    var targetUrl = "/payroll_absensi_v2/payroll/keuangan/manage-salary.php";
+                    targetUrl += "?id_anggota=" + employeeId;
+                    targetUrl += "&bulan=" + encodeURIComponent(monthName);
+                    targetUrl += "&tahun=" + encodeURIComponent(year);
+                    window.location.href = targetUrl;
+                } else {
+                    $.ajax({
+                        url: 'employees.php?ajax=1',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            case: 'CheckPayrollCompletion',
+                            selectedMonth: monthNumber,
+                            selectedYear: year,
+                            csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
+                        },
+                        success: function(resp) {
+                            if (resp.code === 0) {
+                                if (resp.result.complete === false) {
+                                    var messages = resp.result.messages;
+                                    var messageText = messages.join("<br>");
+                                    Swal.fire({
+                                        title: 'Perhatian!',
+                                        html: messageText + "<br><br>Apakah Anda tetap ingin memilih bulan ini?",
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Ya, pilih bulan ini',
+                                        cancelButtonText: 'Batal'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            simpanPilihanBulan(monthNumber, monthName, year);
+                                        }
+                                    });
+                                } else {
+                                    simpanPilihanBulan(monthNumber, monthName, year);
+                                }
+                            } else {
+                                showToast(resp.result, 'error');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            showToast('Terjadi kesalahan saat mengecek payroll: ' + error, 'error');
                         }
                     });
-                </script>
+                }
+            });
+
+            function simpanPilihanBulan(monthNumber, monthName, year) {
+                localStorage.setItem('selectedMonthPayroll', monthName);
+                localStorage.setItem('selectedMonthNumber', monthNumber);
+                localStorage.setItem('selectedYearPayroll', year);
+                $('#selectedMonthDisplay').html(
+                    '<div class="card mb-3">' +
+                    '<div class="card-body d-flex align-items-center">' +
+                    '<i class="bi bi-calendar3 me-2"></i>' +
+                    '<span class="fw-bold">Payroll Bulan: ' + monthName + ' ' + year + '</span>' +
+                    '<button id="btnChangeCalendar" class="btn btn-link ms-auto">' +
+                    '<i class="bi bi-pencil-square"></i> Ganti Kalender' +
+                    '</button>' +
+                    '</div>' +
+                    '</div>'
+                );
+                $('#SalaryMonthModal').modal('hide');
+                var newUrl = "employees.php?filterMonth=" + monthNumber + "&filterYear=" + year;
+                window.location.href = newUrl;
+            }
+        });
+    </script>
 </body>
 
 </html>

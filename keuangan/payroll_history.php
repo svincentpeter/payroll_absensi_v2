@@ -7,13 +7,14 @@ require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
 authorize(['M:Keuangan', 'M:Superadmin']);
+require_once __DIR__ . '/../koneksi.php';
 $jenjangList = getOrderedJenjang($conn);;
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 $nonce = '';
 
-require_once __DIR__ . '/../koneksi.php';
+
 if (ob_get_length()) {
     ob_end_clean();
 }

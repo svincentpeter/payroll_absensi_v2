@@ -4,25 +4,26 @@
 // Warna untuk semua badge, terpusat di satu tempat:
 $GLOBALS['BADGE_COLORS'] = [
     'status_kerja' => [
-        'tetap'   => ['bg' => '#28a745','fg'=>'#ffffff'],
-        'kontrak' => ['bg' => '#ffc107','fg'=>'#212529'],
+        'tetap'   => ['bg' => '#43a047', 'fg'=>'#ffffff'], // Green
+        'kontrak' => ['bg' => '#ffe082', 'fg'=>'#212529'], // Soft Yellow
     ],
     'role' => [
-        'P'  => ['bg' => '#007bff','fg'=>'#212529'],
-        'TK' => ['bg' => '#17a2b8','fg'=>'#212529'],
-        'M'  => ['bg' => '#dc3545','fg'=>'#212529'],
+        'P'  => ['bg' => '#90caf9', 'fg'=>'#212529'], // Light Blue
+        'TK' => ['bg' => '#ffb74d', 'fg'=>'#212529'], // Soft Orange
+        'M'  => ['bg' => '#e57373', 'fg'=>'#212529'], // Soft Red
     ],
     'jenjang' => [
-        // warna unik, font selalu hitam
-        'tk'       => ['bg'=>'#f06292','fg'=>'#212529'], // Pink
-        'sd'       => ['bg'=>'#ffd600','fg'=>'#212529'], // Kuning terang
-        'smp'      => ['bg'=>'#00b8d4','fg'=>'#212529'], // Cyan
-        'sma'      => ['bg'=>'#64dd17','fg'=>'#212529'], // Hijau terang
-        'smk1'     => ['bg'=>'#ff6d00','fg'=>'#212529'], // Oranye
-        'smk2'     => ['bg'=>'#d500f9','fg'=>'#212529'], // Ungu
-        'stifera'  => ['bg'=>'#90caf9','fg'=>'#212529'], // Biru muda (khusus STIFERA/universitas)
+        // Semua warna pastel/terang, tetap readable untuk font hitam tebal
+        'tk'       => ['bg'=>'#f8bbd0', 'fg'=>'#212529'], // Pastel Pink
+        'sd'       => ['bg'=>'#fff59d', 'fg'=>'#212529'], // Lemon Yellow
+        'smp'      => ['bg'=>'#80deea', 'fg'=>'#212529'], // Pastel Cyan
+        'sma'      => ['bg'=>'#aed581', 'fg'=>'#212529'], // Pastel Green
+        'smk1'     => ['bg'=>'#ffd180', 'fg'=>'#212529'], // Light Peach/Orange
+        'smk2'     => ['bg'=>'#ce93d8', 'fg'=>'#212529'], // Soft Purple
+        'stifera'  => ['bg'=>'#b3e5fc', 'fg'=>'#212529'], // Soft Sky Blue
     ],
 ];
+
 
     /************************************
      * 1. SESSION & KEAMANAN

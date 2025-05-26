@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 25, 2025 at 05:22 AM
+-- Generation Time: May 25, 2025 at 03:50 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -276,7 +276,8 @@ INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amo
 (19, 26, 8, 'earnings', 75000.00, 'draft', '', '', NULL, 0),
 (20, 25, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
 (21, 25, 13, 'deductions', 100000.00, 'draft', '', '', NULL, 0),
-(22, 25, 9, 'earnings', 300000.00, 'draft', '', '', NULL, 0);
+(22, 25, 9, 'earnings', 300000.00, 'draft', '', '', NULL, 0),
+(24, 26, 100, 'earnings', 125000.00, 'draft', 'Kenaikan Gaji 2024/2025', '', '', 0);
 
 -- --------------------------------------------------------
 
@@ -493,6 +494,13 @@ CREATE TABLE `kenaikan_gaji_tahunan` (
   `dibuat_pada` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `pindah_ke_lain_lain` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `kenaikan_gaji_tahunan`
+--
+
+INSERT INTO `kenaikan_gaji_tahunan` (`id`, `id_anggota`, `nama_kenaikan`, `jumlah`, `tanggal_mulai`, `tanggal_berakhir`, `status`, `dibuat_pada`, `pindah_ke_lain_lain`) VALUES
+(4, 26, 'Kenaikan Gaji 2024/2025', 125000.00, '2025-05-01', '2026-04-30', 'aktif', '2025-05-25 22:34:20', 0);
 
 -- --------------------------------------------------------
 
@@ -1080,13 +1088,13 @@ ALTER TABLE `anggota_sekolah`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=305;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -1110,7 +1118,7 @@ ALTER TABLE `jenjang_sekolah`
 -- AUTO_INCREMENT for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `laporan_surat`

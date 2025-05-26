@@ -36,7 +36,7 @@ try {
 
         // 3. Perbarui atau insert ke employee_payheads untuk payhead 'Lain-lain'
         // Misal, ID payhead untuk "Lain-lain" di master payheads adalah 99.
-        $idPayheadLainLain = 99;
+        $idPayheadLainLain = 100;
         $sqlCheck = "SELECT * FROM employee_payheads WHERE id_anggota = ? AND id_payhead = ?";
         $stmtCheck = $conn->prepare($sqlCheck);
         $stmtCheck->bind_param("ii", $idAnggota, $idPayheadLainLain);

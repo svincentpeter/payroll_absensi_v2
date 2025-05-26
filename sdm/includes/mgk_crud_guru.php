@@ -37,7 +37,16 @@ function LoadingGuru($conn)
     // 1. Ambil parameter paging & filter
     $start   = isset($_POST['start'])         ? intval($_POST['start']) : 0;
     $length  = isset($_POST['length'])        ? intval($_POST['length']) : 10;
-    $search  = isset($_POST['search']['value']) ? bersihkan_input($_POST['search']['value']) : '';
+    // Tambahan: Ambil juga keyword dari filter form
+    $keyword = isset($_POST['keyword']) ? bersihkan_input($_POST['keyword']) : '';
+    // Gabungkan pencarian dari DataTables dan filter form (prioritaskan DataTables jika ada)
+    $search  = '';
+    if (isset($_POST['search']['value']) && $_POST['search']['value'] !== '') {
+        $search = bersihkan_input($_POST['search']['value']);
+    } elseif (!empty($keyword)) {
+        $search = $keyword;
+    }
+
     $jenjang = isset($_POST['jenjang'])       ? bersihkan_input($_POST['jenjang']) : '';
     $role    = isset($_POST['role'])          ? bersihkan_input($_POST['role']) : '';
     $status  = isset($_POST['status_kerja'])  ? bersihkan_input($_POST['status_kerja']) : '';
@@ -53,9 +62,11 @@ function LoadingGuru($conn)
     $params = [];
     $types  = "";
 
+    // Tambahan: cari juga di job_title
     if ($search) {
-        $where .= " AND (nip LIKE CONCAT('%', ?, '%') OR nama LIKE CONCAT('%', ?, '%'))";
-        $types   .= "ss";
+        $where .= " AND (nip LIKE CONCAT('%', ?, '%') OR nama LIKE CONCAT('%', ?, '%') OR job_title LIKE CONCAT('%', ?, '%'))";
+        $types   .= "sss";
+        $params[] = $search;
         $params[] = $search;
         $params[] = $search;
     }
@@ -134,6 +145,8 @@ function LoadingGuru($conn)
     echo json_encode(["recordsTotal" => $recordsTotal, "data" => $data], JSON_UNESCAPED_UNICODE);
     exit();
 }
+
+
 function CreateGuru(mysqli $conn)
 {
     // 1. Sanitasi & validasi dasar

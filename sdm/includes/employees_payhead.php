@@ -1,4 +1,6 @@
 <?php
+// File: /payroll_absensi_v2/sdm/includes/employees_payhead.php
+
 // Semua fungsi terkait payhead karyawan
 if (!function_exists('GetAllPayheads')) {
     function GetAllPayheads($conn)
@@ -173,7 +175,7 @@ if (!function_exists('AssignPayheadsToEmployee')) {
                             $oldPath = __DIR__ . '/../' . ltrim($oldPayheads[$pidInt]['support_doc_path'], '/');
                             if (is_file($oldPath)) unlink($oldPath);
                         }
-                        $payrollDir = __DIR__ . '/../uploads/payroll_docs/' . $empcode . '/' . $selectedYear . '_' . $selectedMonth . '/';
+                        $payrollDir = __DIR__ . '/../../uploads/payroll_docs/' . $empcode . '/' . $selectedYear . '_' . $selectedMonth . '/';
                         if (!is_dir($payrollDir)) {
                             mkdir($payrollDir, 0775, true);
                         }

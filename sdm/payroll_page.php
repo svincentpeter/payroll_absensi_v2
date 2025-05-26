@@ -45,12 +45,13 @@ if ($empcode > 0) {
     $stmt2->close();
 
     // 3. Cek kenaikan gaji tahunan aktif (hanya yang aktif & masa berlaku masih berlaku)
-    $now = date('Y-m-d');
+    // GUNAKAN TANGGAL PERIODE PAYROLL (BUKAN SEKARANG)
+    $periodePayroll = sprintf('%04d-%02d-01', $selectedYear, $selectedMonth);
     $stmtKg = $conn->prepare("SELECT * FROM kenaikan_gaji_tahunan 
-        WHERE id_anggota = ? AND status = 'aktif' 
-        AND tanggal_mulai <= ? AND tanggal_berakhir >= ?
-        ORDER BY tanggal_mulai DESC LIMIT 1");
-    $stmtKg->bind_param('iss', $empcode, $now, $now);
+    WHERE id_anggota = ? AND status = 'aktif' 
+    AND tanggal_mulai <= ? AND tanggal_berakhir >= ?
+    ORDER BY tanggal_mulai DESC LIMIT 1");
+    $stmtKg->bind_param('iss', $empcode, $periodePayroll, $periodePayroll);
     $stmtKg->execute();
     $kgData = $stmtKg->get_result()->fetch_assoc();
     $stmtKg->close();
@@ -295,7 +296,7 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
                                                 <div class="mb-3">
                                                     <label>Tanggal Payroll</label>
                                                     <input type="datetime-local" class="form-control" id="inputTanggalPayroll" name="tgl_payroll"
-    value="<?= htmlspecialchars($tgl_payroll_value) ?>" required>
+                                                        value="<?= htmlspecialchars($tgl_payroll_value) ?>" required>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label>Catatan Payroll</label>
@@ -352,11 +353,18 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
                                     </div>
                                     <div class="card-body py-2 px-2" style="background-color: #fff8f8;">
                                         <div class="form-check mb-2">
-                                            <input class="form-check-input" type="checkbox" id="chkKenaikanGajiTahunan" name="chkKenaikanGajiTahunan" value="1"
-                                                <?= isset($kgData['status']) && $kgData['status'] === 'aktif' ? 'checked disabled' : '' ?>>
-                                            <label class="form-check-label fw-bold ms-1" for="chkKenaikanGajiTahunan" style="font-size:13px;">
-                                                Aktifkan Kenaikan Gaji Tahunan
-                                            </label>
+                                           <input class="form-check-input" type="checkbox" id="chkKenaikanGajiTahunan" name="chkKenaikanGajiTahunan" value="1"
+    <?= isset($kgData['status']) && $kgData['status'] === 'aktif' ? 'checked disabled' : '' ?>>
+<label class="form-check-label fw-bold ms-1" for="chkKenaikanGajiTahunan" style="font-size:13px;">
+    Aktifkan Kenaikan Gaji Tahunan
+</label>
+<?php if (isset($kgData['status']) && $kgData['status'] === 'aktif'): ?>
+    <!-- Hidden field untuk memastikan nilai ikut terkirim meski checkbox disable -->
+    <input type="hidden" name="chkKenaikanGajiTahunan" value="1">
+    <input type="hidden" name="nama_kenaikan" value="<?= htmlspecialchars($kgData['nama_kenaikan'] ?? '') ?>">
+    <input type="hidden" name="nominal_kenaikan" value="<?= $kgData['jumlah'] ?? 0 ?>">
+<?php endif; ?>
+
                                         </div>
                                         <div id="kenaikanGajiTahunanFields" style="display:<?= (isset($kgData['status']) && $kgData['status'] === 'aktif') ? 'block' : 'none' ?>;">
                                             <div class="row g-1">
@@ -507,25 +515,27 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
 <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.8.0/dist/autoNumeric.min.js"></script>
 <script>
     $(document).ready(function() {
+        // --- DEBUG (boleh nonaktifkan di produksi) ---
+        console.groupCollapsed("DEBUG: Data Awal JavaScript dari PHP");
+        console.log("payrollDraft:", payrollDraft);
+        console.log("payheadDraft:", payheadDraft);
+        console.log("kgData:", kgData);
+        console.groupEnd();
 
-        // Prefill field dari draft jika ada
-        if (typeof payrollDraft === 'object' && payrollDraft && Object.keys(payrollDraft).length > 0) {
+        // Prefill payrollDraft
+        if (payrollDraft && typeof payrollDraft === 'object') {
             $("#inputNoRek").val(payrollDraft.no_rekening || "");
-            $("#inputTanggalPayroll").val(payrollDraft.tgl_payroll ? payrollDraft.tgl_payroll.replace(' ', 'T') : "");
+            $("#inputTanggalPayroll").val(payrollDraft.tgl_payroll ? toDatetimeLocal(payrollDraft.tgl_payroll) : "");
             $("#inputDescription").val(payrollDraft.catatan || "");
         }
-        // Prefill tabel komponen payroll draft
-        if (Array.isArray(payheadDraft) && payheadDraft.length > 0) {
-            renderAssignedPayheads(payheadDraft);
-        }
-        // Prefill kenaikan gaji tahunan (draft/aktif)
+
+        // Prefill kenaikan gaji tahunan
         if (kgData && kgData.status === "aktif") {
-            $("#chkKenaikanGajiTahunan").prop("checked", true).trigger("change");
-            $("#inputNamaKenaikan").val(kgData.nama_kenaikan);
-            $("#inputNominalKenaikan").val(Number(kgData.jumlah).toLocaleString('id-ID', {
-                minimumFractionDigits: 0
-            }));
+            $("#chkKenaikanGajiTahunan").prop("checked", true).prop("disabled", true).trigger("change");
+            $("#inputNamaKenaikan").val(kgData.nama_kenaikan).prop("readonly", true);
+            $("#inputNominalKenaikan").val(kgData.jumlah).prop("readonly", true);
         }
+
 
         // Initialize a SweetAlert2 Toast
         const Toast = Swal.mixin({
@@ -547,7 +557,8 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
                 title: message
             });
         }
-        // Inisialisasi AutoNumeric khusus untuk Nominal Indeks dan Gaji Pokok
+
+        // AutoNumeric init
         const anIndexNominal = new AutoNumeric('#inputIndexNominal', {
             digitGroupSeparator: '.',
             decimalCharacter: ',',
@@ -560,7 +571,6 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
             decimalPlaces: 0,
             readOnly: true
         });
-        // Inisialisasi AutoNumeric untuk input lain yang menggunakan class .currency-input
         if ($('.currency-input:not(#inputIndexNominal):not(#inputGajiPokok)').length > 0) {
             new AutoNumeric('.currency-input:not(#inputIndexNominal):not(#inputGajiPokok)', {
                 digitGroupSeparator: '.',
@@ -1020,24 +1030,24 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
             });
         }
 
-
+        // Helper: Format unformat nilai dari input ribuan (AutoNumeric)
+        function parseCurrency(val) {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            return parseInt((val + '').replace(/\./g, '').replace(',', '.')) || 0;
+        }
         // Fungsi re-calc total payheads
         function recalcPayheadsTotals() {
-            let totalEarnings = 0;
-            let totalDeductions = 0;
+            let totalEarnings = 0,
+                totalDeductions = 0;
             $("#selected_payamount_table tbody tr").each(function() {
                 let rapelChecked = $(this).find("input.rapel-checkbox").prop("checked");
-                if (rapelChecked) {
-                    return true;
-                }
+                if (rapelChecked) return true;
                 let type = ($(this).data("type") || "").toLowerCase();
                 let val = $(this).find("input.currency-input").val();
-                let amount = parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
-                if (type === "earnings") {
-                    totalEarnings += amount;
-                } else if (type === "deduction" || type === "deductions" || type === "potongan") {
-                    totalDeductions += amount;
-                }
+                let amount = parseCurrency(val);
+                if (type === "earnings") totalEarnings += amount;
+                else totalDeductions += amount;
             });
 
             function formatNumber(num) {
@@ -1048,10 +1058,8 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
             }
             $("#inputTotalEarnings").val("Rp " + formatNumber(totalEarnings));
             $("#inputTotalDeductions").val("Rp " + formatNumber(totalDeductions));
-            let gajiPokokText = $("#inputGajiPokok").val().replace(/[Rp\s.]/g, '').replace(',', '.');
-            let gajiPokok = parseFloat(gajiPokokText) || 0;
-            let indexNominalText = $("#inputIndexNominal").val().replace(/[Rp\s.]/g, '').replace(',', '.');
-            let indexNominal = parseFloat(indexNominalText) || 0;
+            let gajiPokok = parseCurrency($("#inputGajiPokok").val());
+            let indexNominal = parseCurrency($("#inputIndexNominal").val());
             let potonganAbsensi = window.potonganAbsensiGlobal || 0;
             $("#inputPotonganAbsensi").val("Rp " + formatNumber(potonganAbsensi));
             let netSalary = gajiPokok + indexNominal + totalEarnings - totalDeductions - potonganAbsensi;
@@ -1270,80 +1278,74 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
             });
         });
 
-        // Handler untuk submit form Assign Payheads
+        // --- Submit Assignment Payheads ---
         $('#assign-payhead-form').on('submit', function(e) {
             e.preventDefault();
-            var form = $(this);
-            var payHeads = [];
+            const form = $(this);
+            const payHeads = [];
             $("#selected_payamount_table tbody tr").each(function() {
                 payHeads.push($(this).data('id'));
             });
-            var payAmounts = {};
-            payHeads.forEach(function(payheadId) {
-                var inputSel = `input[name="pay_amounts[${payheadId}]"]`;
-                var amount = $(inputSel).val();
-                payAmounts[payheadId] = amount;
+            const payAmounts = {};
+            payHeads.forEach(id => {
+                // PENTING: gunakan AutoNumeric.getNumber untuk dapat angka asli
+                payAmounts[id] = AutoNumeric.getNumber(
+                    $(`input[name="pay_amounts[${id}]"]`)[0]
+                ) || 0;
             });
-            // Kumpulkan nilai checkbox rapel
-            var rapels = {};
+            const rapels = {};
             $("#selected_payamount_table tbody tr").each(function() {
-                var payheadId = $(this).data("id");
-                var checked = $(this).find("input.rapel-checkbox").prop("checked") ? 1 : 0;
-                rapels[payheadId] = checked;
+                const id = $(this).data('id');
+                rapels[id] = $(this)
+                    .find("input.rapel-checkbox")
+                    .prop("checked") ? 1 : 0;
             });
-            var isValid = true;
-            payHeads.forEach(function(payheadId) {
-                var amount = payAmounts[payheadId];
-                var numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
-                if (!amount || isNaN(numericAmount) || numericAmount <= 0) {
-                    $(`input[name="pay_amounts[${payheadId}]"]`).addClass('is-invalid');
-                    isValid = false;
+            // Validasi >0
+            let valid = true;
+            payHeads.forEach(id => {
+                if (!payAmounts[id] || isNaN(payAmounts[id])) {
+                    $(`input[name="pay_amounts[${id}]"]`).addClass('is-invalid');
+                    valid = false;
                 } else {
-                    $(`input[name="pay_amounts[${payheadId}]"]`).removeClass('is-invalid');
+                    $(`input[name="pay_amounts[${id}]"]`).removeClass('is-invalid');
                 }
             });
-            if (!isValid) {
-                showToast('Pastikan semua jumlah payhead valid (angka & > 0)!', 'error');
+            if (!valid) {
+                Swal.fire('Error', 'Pastikan semua nominal > 0', 'error');
                 return;
             }
-            var formData = new FormData(form[0]);
-            formData.append('payheads', JSON.stringify(payHeads));
-            formData.append('pay_amounts', JSON.stringify(payAmounts));
-            formData.append('rapels', JSON.stringify(rapels));
+            const data = new FormData(form[0]);
+            data.append('payheads', JSON.stringify(payHeads));
+            data.append('pay_amounts', JSON.stringify(payAmounts));
+            data.append('rapels', JSON.stringify(rapels));
             $.ajax({
-        url: 'employees.php?ajax=1',
-        type: 'POST',
-        dataType: 'json',
-        data: formData,
-        processData: false,
-        contentType: false,
-        beforeSend: function() {
-            form.find('button[type="submit"]').prop('disabled', true);
-            form.find('.spinner-border').removeClass('d-none');
-        },
-        success: function(resp) {
-            form.find('button[type="submit"]').prop('disabled', false);
-            form.find('.spinner-border').addClass('d-none');
-            if (resp.code === 0) {
-                showToast(resp.result, 'success');
-                window.location.href = 'employees.php';
-                setTimeout(function() {
-                    $('#ManageModal').modal('hide');
-                    form[0].reset();
-                    $("#all_payheads").empty();
-                    $("#selected_payamount_table tbody").empty();
-                }, 200);
-            } else {
-                showToast(resp.result, 'error');
-            }
-        },
-        error: function(xhr, status, error) {
-            form.find('button[type="submit"]').prop('disabled', false);
-            form.find('.spinner-border').addClass('d-none');
-            showToast('Terjadi kesalahan saat menetapkan payheads: ' + error, 'error');
-        }
-    });
-});
+                url: 'employees.php?ajax=1',
+                type: 'POST',
+                dataType: 'json',
+                data: data,
+                processData: false,
+                contentType: false,
+                beforeSend() {
+                    form.find('button[type="submit"]').prop('disabled', true);
+                    form.find('.spinner-border').removeClass('d-none');
+                },
+                success(resp) {
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    if (resp.code === 0) {
+                        Swal.fire('Sukses', resp.result, 'success')
+                            .then(() => window.location.href = 'employees.php');
+                    } else {
+                        Swal.fire('Error', resp.result, 'error');
+                    }
+                },
+                error(xhr, st, err) {
+                    form.find('button[type="submit"]').prop('disabled', false);
+                    form.find('.spinner-border').addClass('d-none');
+                    Swal.fire('Error', 'Gagal simpan: ' + err, 'error');
+                }
+            });
+        });
 
         function savePayheads(callback) {
             var form = $('#assign-payhead-form');
@@ -1511,14 +1513,14 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
                 }
             });
         });
-function toDatetimeLocal(val) {
-  if (!val) return '';
-  const date = new Date(val.replace(' ', 'T'));
-  if (isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0,16); // "YYYY-MM-DDTHH:mm"
-}
-$("#inputTanggalPayroll").val(toDatetimeLocal(payrollDraft.tgl_payroll));
 
+        // Helper: Format tanggal local
+        function toDatetimeLocal(val) {
+            if (!val) return '';
+            const date = new Date(val.replace(' ', 'T'));
+            if (isNaN(date.getTime())) return '';
+            return date.toISOString().slice(0, 16);
+        }
 
     });
 </script>

@@ -58,15 +58,18 @@ function parseDateTimeString($mysqlDate, $timeStr)
     }
     return $mysqlDate . ' ' . $timeFormatted; // "2024-12-09 06:28:00"
 }
-
 /**
  * Fungsi untuk mengimpor data absensi dari file Excel.
  * Departemen diisi dari form, bukan dari Excel.
  */
 function impor_absensi($conn, $file, $departemen)
 {
-    // Validasi departemen yang dipilih dari form
-    $allowed_departemen = ['TK', 'SD', 'SMP', 'SMA', 'SMK'];
+    // Validasi departemen yang dipilih dari form (dinamis)
+    $allowed_departemen = [];
+    $res = mysqli_query($conn, "SELECT kode_jenjang FROM jenjang_sekolah WHERE is_aktif=1");
+    while ($r = mysqli_fetch_assoc($res)) {
+        $allowed_departemen[] = strtoupper($r['kode_jenjang']);
+    }
     $departemen_val_upper = strtoupper($departemen);
     if (!in_array($departemen_val_upper, $allowed_departemen)) {
         return [
@@ -151,7 +154,6 @@ function impor_absensi($conn, $file, $departemen)
     }, $header);
 
     // Definisikan alias kolom untuk setiap field
-    // *Tanpa* departemen, karena diisi dari form
     $field_aliases = [
         'tanggal'           => ['tanggal'],
         'jadwal'            => ['jadwal'],
@@ -190,7 +192,6 @@ function impor_absensi($conn, $file, $departemen)
         if (count($columnIndexes) === 1) {
             return $columnIndexes[0];
         }
-
         // Pilih kolom dengan sel non-kosong terbanyak
         $bestIndex = null;
         $bestNonEmptyCount = -1;
@@ -225,7 +226,6 @@ function impor_absensi($conn, $file, $departemen)
             $missing_headers[] = ucfirst($field);
         }
     }
-
     if (!empty($missing_headers)) {
         return [
             'status' => 'error',
@@ -237,13 +237,13 @@ function impor_absensi($conn, $file, $departemen)
         ];
     }
 
-    // Siapkan statement INSERT
+    // ================== MODIFIKASI QUERY: TAMBAH status_kehadiran ==================
     $sql_insert = "
         INSERT INTO $tabel_absensi
         (tanggal, jadwal, jam_kerja, valid, pin, nip, nama, departemen,
          lembur, jam_masuk, scan_masuk, terlambat, scan_istirahat_1,
-         scan_istirahat_2, jam_pulang, scan_pulang, id_anggota)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         scan_istirahat_2, jam_pulang, scan_pulang, status_kehadiran, id_anggota)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ";
     $stmt = mysqli_prepare($conn, $sql_insert);
     if (!$stmt) {
@@ -271,8 +271,8 @@ function impor_absensi($conn, $file, $departemen)
         ];
     }
 
-    // Tipe data bind (17 kolom, dengan id_anggota sebagai integer)
-    $type_string = 'sssissssississssi'; // 's' untuk string, 'i' untuk integer
+    // ================== TAMBAH 's' di type_string ==================
+    $type_string = 'sssissssississsssi'; // 18 kolom, status_kehadiran = 's'
 
     $totalRows    = count($data);
     $successCount = 0;
@@ -280,7 +280,6 @@ function impor_absensi($conn, $file, $departemen)
     $details      = [];
     $rowNumber    = 3; // baris data mulai dari row ke-3
 
-    // Array untuk menyimpan periode terpengaruh (untuk update rekap)
     $affected_periods = [];
 
     foreach ($data as $row) {
@@ -316,24 +315,26 @@ function impor_absensi($conn, $file, $departemen)
         }
 
         // (2) Konversi jam/time
-        $jam_masuk  = parseTimeString($jam_masuk_raw);            // format hh:mm:ss
+        $jam_masuk  = parseTimeString($jam_masuk_raw);
         $jam_pulang = parseTimeString($jam_pulang_raw);
 
         // (3) Konversi scan/datetime (gabungkan tanggal + jam)
-        $scan_masuk       = parseDateTimeString($tanggal, $scan_masuk_raw);      // yyyy-mm-dd hh:mm:ss
+        $scan_masuk       = parseDateTimeString($tanggal, $scan_masuk_raw);
         $scan_istirahat_1 = parseDateTimeString($tanggal, $scan_i1_raw);
         $scan_istirahat_2 = parseDateTimeString($tanggal, $scan_i2_raw);
         $scan_pulang      = parseDateTimeString($tanggal, $scan_pulang_raw);
 
         // (4) Konversi valid, lembur, terlambat ke integer
-        $valid     = intval($valid) ?: 0;  // 0 atau 1
+        $valid     = intval($valid) ?: 0;
         $lembur    = intval($lembur) ?: 0;
         $terlambat = intval($terlambat) ?: 0;
-
-        // Pastikan valid hanya bernilai 0 atau 1
         $valid     = ($valid === 1) ? 1 : 0;
 
-        // (5) Cek dan ambil id_anggota dari anggota_sekolah berdasarkan nip
+        // (5) Tentukan status kehadiran otomatis (default: hadir)
+        $status_kehadiran = 'hadir';
+        $status_kehadiran = ($terlambat > 0) ? 'hadir' : 'hadir'; // atau 'terlambat' jika ingin
+
+        // (6) Cek dan ambil id_anggota dari anggota_sekolah berdasarkan nip
         mysqli_stmt_bind_param($stmt_get_id, 's', $nip);
         mysqli_stmt_execute($stmt_get_id);
         $result_id = mysqli_stmt_get_result($stmt_get_id);
@@ -353,7 +354,26 @@ function impor_absensi($conn, $file, $departemen)
 
         $id_anggota = intval($row_id['id']);
 
-        // Binding parameter untuk statement INSERT
+        // ---------- CEK DUPLIKASI DATA ABSENSI ----------
+        $sql_cek = "SELECT id FROM absensi WHERE tanggal = ? AND nip = ?";
+        $stmt_cek = $conn->prepare($sql_cek);
+        $stmt_cek->bind_param("ss", $tanggal, $nip);
+        $stmt_cek->execute();
+        $res_cek = $stmt_cek->get_result();
+        if ($res_cek->num_rows > 0) {
+            $stmt_cek->close();
+            $failCount++;
+            $details[] = [
+                'row' => $rowNumber,
+                'status' => 'fail',
+                'reason' => "Data absensi untuk tanggal $tanggal dan NIP $nip sudah ada. Diabaikan (duplikat)."
+            ];
+            $rowNumber++;
+            continue;
+        }
+        $stmt_cek->close();
+
+        // Binding parameter untuk statement INSERT (18 kolom termasuk status_kehadiran)
         mysqli_stmt_bind_param(
             $stmt,
             $type_string,
@@ -373,6 +393,7 @@ function impor_absensi($conn, $file, $departemen)
             $scan_istirahat_2,    // DATETIME
             $jam_pulang,          // TIME
             $scan_pulang,         // DATETIME
+            $status_kehadiran,    // VARCHAR (hadir)
             $id_anggota           // INT (foreign key)
         );
 
@@ -424,7 +445,6 @@ function impor_absensi($conn, $file, $departemen)
         $stmt_rekap->close();
     }
 
-    // ================== MODIFIKASI DI BAWAH INI ==================
     // [1] Kumpulkan semua tanggal yang berhasil diimpor
     $dates = [];
     foreach ($affected_periods as $period) {
@@ -449,7 +469,6 @@ function impor_absensi($conn, $file, $departemen)
             "Update rekap dari $min_date hingga $max_date"
         );
     }
-    // ================== MODIFIKASI DI ATAS INI ==================
 
     return [
         'status' => 'ok',
@@ -505,30 +524,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.6/dist/sweetalert2.min.css">
     <!-- Custom styles (sesuaikan dengan kebutuhan) -->
     <style>
         body {
             padding-top: 20px;
         }
-/* ===== Page Title Styling ===== */
-.page-title {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    font-size: 2.5rem;
-    color: #0d47a1;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 3px solid #1976d2;
-    padding-bottom: 0.3rem;
-    margin-bottom: 1.5rem;
-    animation: fadeInSlide 0.5s ease-in-out both;
-}
-.page-title i {
-    color: #1976d2;
-    font-size: 2.8rem;
-}
+
+        /* ===== Page Title Styling ===== */
+        .page-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 2.5rem;
+            color: #0d47a1;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 3px solid #1976d2;
+            padding-bottom: 0.3rem;
+            margin-bottom: 1.5rem;
+            animation: fadeInSlide 0.5s ease-in-out both;
+        }
+
+        .page-title i {
+            color: #1976d2;
+            font-size: 2.8rem;
+        }
+
         #main-content {
             transition: opacity 0.3s ease;
         }
@@ -571,16 +594,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </button>
 
         <!-- Header Halaman -->
-<h1 class="page-title">
-        <i class="fas fa-upload"></i> Upload Absensi</h1>
-    </h1>
-        <!-- Notifikasi -->
-        <?php if (!empty($message)): ?>
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                <i class="fas fa-info-circle"></i> <?= htmlspecialchars($message) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php endif; ?>
+        <h1 class="page-title">
+            <i class="fas fa-upload"></i> Upload Absensi
+        </h1>
+        </h1>
 
         <!-- Notifikasi Rekap Mingguan -->
         <?php if (!empty($hasilImport['rekap_periode'])): ?>
@@ -591,23 +608,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
 
-<!-- === Panduan Statis (Card) === -->
-<div class="card mb-4">
-      <div class="card-header bg-light">
-        <h5 class="mb-0"><i class="fas fa-question-circle"></i> Panduan Upload Absensi</h5>
-      </div>
-      <div class="card-body" style="color:#000;">
-        <ul class="mb-0">
-          <li><strong>Pilih Departemen</strong> sesuai jenjang (TK/SD/SMP/SMA/SMK).</li>
-          <li><strong>Pilih File Excel</strong> hasil export fingerprint (.xls/.xlsx).</li>
-          <li><strong>Klik</strong> <kbd>Upload &amp; Import</kbd> → tunggu proses selesai.</li>
-          <li>Periksa ringkasan Total Baris / Sukses / Gagal di atas form.</li>
-          <li>Jika gagal, periksa format kolom tanggal (dd-mm-yyyy) &amp; jam di file Excel.</li>
-        </ul>
-      </div>
-    </div>
-    <!-- === End Panduan === -->
-        
+        <!-- === Panduan Statis (Card) === -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-question-circle"></i> Panduan Upload Absensi</h5>
+            </div>
+            <div class="card-body" style="color:#000;">
+                <ul class="mb-0">
+                    <li><strong>Pilih Departemen</strong> sesuai jenjang (TK/SD/SMP/SMA/SMK).</li>
+                    <li><strong>Pilih File Excel</strong> hasil export fingerprint (.xls/.xlsx).</li>
+                    <li><strong>Klik</strong> <kbd>Upload &amp; Import</kbd> → tunggu proses selesai.</li>
+                    <li>Periksa ringkasan Total Baris / Sukses / Gagal di atas form.</li>
+                    <li>Jika gagal, periksa format kolom tanggal (dd-mm-yyyy) &amp; jam di file Excel.</li>
+                </ul>
+            </div>
+        </div>
+        <!-- === End Panduan === -->
+
         <!-- Form Upload Absensi -->
         <div class="card shadow mb-4">
             <div class="card-header">
@@ -619,12 +636,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="departemen" class="form-label">Pilih Departemen</label>
                         <select name="departemen" id="departemen" class="form-select" required>
                             <option value="">--Pilih--</option>
-                            <option value="TK">TK</option>
-                            <option value="SD">SD</option>
-                            <option value="SMP">SMP</option>
-                            <option value="SMA">SMA</option>
-                            <option value="SMK">SMK</option>
+                            <?php
+                            // Query semua jenjang aktif
+                            $qjenjang = mysqli_query($conn, "SELECT kode_jenjang, nama_jenjang FROM jenjang_sekolah WHERE is_aktif=1 ORDER BY id ASC");
+                            while ($jenjang = mysqli_fetch_assoc($qjenjang)):
+                            ?>
+                                <option value="<?= htmlspecialchars($jenjang['kode_jenjang']) ?>">
+                                    <?= htmlspecialchars($jenjang['nama_jenjang']) ?>
+                                </option>
+                            <?php endwhile; ?>
                         </select>
+
                     </div>
                     <div class="mb-3">
                         <label for="file_absensi" class="form-label">Upload File Absensi (Excel, .xls/.xlsx)</label>
@@ -698,9 +720,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- DataTables JS (opsional jika diperlukan) -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.6/dist/sweetalert2.all.min.js"></script>
     <!-- Script custom -->
     <script>
         $(document).ready(function() {
+            // === Notifikasi Import Absensi (SweetAlert2) ===
+    <?php if (!empty($message)): ?>
+        Swal.fire({
+            icon: '<?= (isset($hasilImport) && $hasilImport['status']==='ok') ? 'success' : 'error' ?>',
+            title: <?= json_encode((isset($hasilImport) && $hasilImport['status']==='ok') ? 'Berhasil!' : 'Gagal!') ?>,
+            html: <?= json_encode($message) ?>,
+            confirmButtonColor: '#1976d2',
+            customClass: {
+                title: 'swal2-title mb-2',
+                popup: 'swal2-popup swal2-popup-wide'
+            }
+        });
+    <?php endif; ?>
+
             // Back button dengan transisi smooth
             $('#btnBack').on('click', function(e) {
                 e.preventDefault();

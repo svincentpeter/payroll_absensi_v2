@@ -444,8 +444,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               </h6>
             </div>
             <div class="card-body" style="background-color: #f8f9fa;">
+              
               <form id="filterForm" method="GET" class="row gy-2 gx-3 align-items-center">
-                <!-- Jenjang -->
+                <!-- Jenjang --><!-- Search Keyword -->
+<div class="col-auto">
+  <label for="filterKeyword" class="form-label mb-0"><strong>Pencarian:</strong></label>
+  <input type="text" class="form-control" id="filterKeyword" name="keyword" placeholder="Nama, NIP, Job Title...">
+</div>
+
                 <div class="col-auto">
                   <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang:</strong></label>
                   <select class="form-control" id="filterJenjang" name="jenjang">
@@ -1509,6 +1515,7 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
             jenjang: $('#filterJenjang').val(),
             role: $('#filterRole').val(),
             status_kerja: $('#filterStatus').val(),
+            keyword: $('#filterKeyword').val(),  
             csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
           },
           dataType: "json",
@@ -1541,6 +1548,10 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
         <img src="${photo}" class="employee-photo rounded-circle mb-3">
         <h5 class="mb-1">${item.nama}</h5>
         <p class="text-muted small mb-2">NIP: ${item.nip}</p>
+        <p class="mb-0 fw-bold">
+  ${item.job_title}
+</p>
+
         <div class="small mb-1">
           ${item.jenjang_badge} ${getBadgeRole(item.role)}
         </div>
@@ -1573,6 +1584,13 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
           ul.append(li);
         }
       }
+
+      $('#filterKeyword').on('keydown', function(e){
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    loadGuru(1);
+  }
+});
 
       // --- [3.4] TOGGLE KONTRAK FIELDS ---
       function toggleKontrak(pref) {

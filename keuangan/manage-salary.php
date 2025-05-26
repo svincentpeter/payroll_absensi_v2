@@ -196,6 +196,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         $temp_deductions = 0.0;
         $temp_bersih     = 0.0;
 
+        // Reset status payroll existing ke draft sebelum insert baru (agar tidak nyangkut revisi)
+$stmtReset = $conn->prepare("UPDATE payroll SET status='draft' WHERE id_anggota=? AND bulan=? AND tahun=? AND status='revisi'");
+$stmtReset->bind_param("iii", $id_anggota, $bulan_int, $tahun);
+$stmtReset->execute();
+$stmtReset->close();
+
         // 2) Insert sementara ke payroll
         $status = 'final';
         $stmtPayroll = $conn->prepare("
@@ -360,13 +366,17 @@ if ($stmtExists->num_rows > 0) {
 // 6) Snapshot detail => payroll_detail_final
 $stmtSnap = $conn->prepare("
     INSERT IGNORE INTO payroll_detail_final
-    (id_payroll_final, id_payhead, nama_payhead, jenis, amount)
+    (id_payroll_final, id_payhead, nama_payhead, jenis, amount, is_rapel)
     SELECT
-      ?, pd.id_payhead, ph.nama_payhead, pd.jenis, pd.amount
+      ?, pd.id_payhead, ph.nama_payhead, pd.jenis, pd.amount, IFNULL(ep.is_rapel,0)
     FROM payroll_detail pd
     JOIN payheads ph ON ph.id = pd.id_payhead
+    LEFT JOIN employee_payheads ep 
+      ON ep.id_payhead = pd.id_payhead 
+     AND ep.id_anggota = pd.id_anggota
     WHERE pd.id_payroll = ?
 ");
+
 if (!$stmtSnap) {
     throw new Exception("Prepare failed (snapshot detail): " . $conn->error);
 }
@@ -445,8 +455,6 @@ if ($bulan <= 0 || $tahun <= 0) {
     die("Parameter bulan/tahun tidak valid.");
 }
 
-// Pastikan salary index update
-updateSalaryIndexForUser($conn, $id_anggota);
 
 // Cek payroll, ambil juga potongan_koperasi
 $stmtCheck = $conn->prepare("
@@ -587,12 +595,22 @@ $timestamp    = strtotime($tglPayrollParam);
 $tanggalCetak = date('d', $timestamp) . ' ' . getIndonesianMonthName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
 $periode      = getIndonesianMonthName($bulan) . ' ' . $tahun;
 
-$stmtKG = $conn->prepare("SELECT nama_kenaikan, jumlah, tanggal_mulai, tanggal_berakhir FROM kenaikan_gaji_tahunan WHERE id_anggota=? AND status='aktif' ORDER BY tanggal_mulai DESC LIMIT 1");
-$stmtKG->bind_param("i", $id_anggota);
+$stmtKG = $conn->prepare("
+    SELECT nama_kenaikan, jumlah, tanggal_mulai, tanggal_berakhir
+    FROM kenaikan_gaji_tahunan
+    WHERE id_anggota = ?
+      AND status = 'aktif'
+      AND ? BETWEEN tanggal_mulai AND tanggal_berakhir
+    ORDER BY tanggal_mulai DESC
+    LIMIT 1
+");
+$periodePayroll = "$tahun-$bulan-01"; // ex: 2026-05-01
+$stmtKG->bind_param("is", $id_anggota, $periodePayroll);
 $stmtKG->execute();
 $resultKG = $stmtKG->get_result();
 $kgData = $resultKG->fetch_assoc();
 $stmtKG->close();
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -866,7 +884,7 @@ $stmtKG->close();
       <td class="non-editable">
         <?php if (!empty($ph['support_doc_path'])): ?>
           <a class="btn btn-sm btn-info"
-             href="<?= '/payroll_absensi_v2/uploads/payhead_support/' . basename($ph['support_doc_path']); ?>"
+             href="<?= '/payroll_absensi_v2/uploads/payroll_docs/' . $id_anggota . '/' . $tahun . '_' . $bulan . '/' . basename($ph['support_doc_path']); ?>"
              download="<?= $downloadName; ?>">
             <i class="bi bi-download"></i> Download Dokumen
           </a>
