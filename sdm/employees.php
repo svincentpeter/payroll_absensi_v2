@@ -626,6 +626,10 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                             <th>Jenjang Pendidikan</th>
                             <td id="detailJenjang"></td>
                         </tr>
+                        <tr id="detailUnitPenempatanRow">
+                            <th>Unit Penempatan</th>
+                            <td id="detailUnitPenempatan"></td>
+                        </tr>
                         <tr>
                             <th>Job Title</th>
                             <td id="detailJobTitle"></td>
@@ -687,9 +691,9 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                             <td id="detailGajiBersih"></td>
                         </tr>
                         <tr>
-    <th>Kenaikan Gaji Tahunan</th>
-    <td id="detailKenaikanGajiTahunan"></td>
-</tr>
+                            <th>Kenaikan Gaji Tahunan</th>
+                            <td id="detailKenaikanGajiTahunan"></td>
+                        </tr>
 
                         <tr>
                             <th>Payheads</th>
@@ -1027,7 +1031,7 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
         <h5 class="card-title">${item.nama}</h5>
         <p class="card-text small text-muted">NIP: ${item.nip}</p>
         <div class="badges">
-          ${item.badge_role} ${item.badge_jenjang}
+          ${item.badge_role} ${item.badge_jenjang} ${item.badge_unit}
         </div>
         <div class="status">
           <strong>Status:</strong> ${item.badge_status}
@@ -1189,11 +1193,15 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
 
 
             function formatDate(str) {
-    if (!str) return '-';
-    const d = new Date(str);
-    if (isNaN(d.getTime())) return '-';
-    return d.toLocaleDateString('id-ID', {year:'numeric', month:'short', day:'numeric'});
-}
+                if (!str) return '-';
+                const d = new Date(str);
+                if (isNaN(d.getTime())) return '-';
+                return d.toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            }
 
             // Event handler untuk View Detail
             $(document).on("click", ".btnViewDetail", function() {
@@ -1222,6 +1230,7 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                             $('#detailNip').text(e.nip ?? '-');
                             $('#detailNama').text(e.nama ?? '-');
                             $('#detailJenjang').text(e.jenjang ?? '-');
+                            $('#detailUnitPenempatan').text(e.unit_penempatan || '-');
                             $('#detailRole').text(e.role ?? '-');
                             $('#detailJobTitle').text(e.job_title ?? '-');
                             $('#detailStatusKerja').text(e.status_kerja ?? '-');
@@ -1243,7 +1252,11 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                             }));
 
                             $('#detailSalaryIndexLevel').text(e.salary_index_level ?? '-');
-
+                            if ((e.jenjang || '').toUpperCase() === 'UMUM') {
+                                $('#detailUnitPenempatanRow').show();
+                            } else {
+                                $('#detailUnitPenempatanRow').hide();
+                            }
                             // --- PAYHEADS (Rincian)
                             if (e.payheads && e.payheads.length > 0) {
                                 var s = '<ul>';

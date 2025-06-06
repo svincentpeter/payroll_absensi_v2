@@ -88,17 +88,18 @@ function LoadingGuru($conn)
 
     // 4. Siapkan SQL dengan LIMIT ?, ?
     $sql = "
-        SELECT
-            id, uid, nip, nama, jenjang, job_title, role, status_kerja,
-            join_start, lama_kontrak, tgl_kontrak_selesai,
-            masa_kerja_tahun, masa_kerja_bulan, masa_kerja_efektif,
-            pendidikan, email, no_hp,
-            foto_profil, foto_ktp
-        FROM anggota_sekolah
-        $where
-        ORDER BY id DESC
-        LIMIT ?, ?
-    ";
+    SELECT
+        id, uid, nip, nama, jenjang, unit_penempatan, job_title, role, status_kerja,
+        join_start, lama_kontrak, tgl_kontrak_selesai,
+        masa_kerja_tahun, masa_kerja_bulan, masa_kerja_efektif,
+        pendidikan, email, no_hp,
+        foto_profil, foto_ktp
+    FROM anggota_sekolah
+    $where
+    ORDER BY id DESC
+    LIMIT ?, ?
+";
+
     // tambahkan parameter untuk LIMIT
     $types   .= "ii";
     $params[] = $start;
@@ -124,6 +125,7 @@ function LoadingGuru($conn)
             "nip"          => htmlspecialchars($row['nip']),
             "nama"         => htmlspecialchars($row['nama']),
             "jenjang"      => $row['jenjang'],
+            'unit_penempatan' => $row['unit_penempatan'],
             "jenjang_badge" => getBadgeJenjang($row['jenjang'], $conn),
             "job_title"    => htmlspecialchars($row['job_title']),
             "role"         => $row['role'],
@@ -153,6 +155,7 @@ function CreateGuru(mysqli $conn)
     $nip        = bersihkan_input($_POST['nip']      ?? '');
     $nama       = bersihkan_input($_POST['nama']     ?? '');
     $jenjang    = bersihkan_input($_POST['jenjang']  ?? '');
+    $unit_penempatan = bersihkan_input($_POST['unit_penempatan'] ?? '');
     $job_title  = bersihkan_input($_POST['job_title'] ?? '');
     $role       = bersihkan_input($_POST['role']     ?? '');
     $strata     = bersihkan_input($_POST['strata']   ?? '');
@@ -226,39 +229,39 @@ function CreateGuru(mysqli $conn)
     $sudah_kontrak = 0; // default (harus isi, INT!)
 
     $sql = "INSERT INTO anggota_sekolah (
-        uid, nip, password, nama, jenjang, strata, job_title, status_kerja,
-        join_start, lama_kontrak, tgl_kontrak_selesai, sudah_kontrak,
-        masa_kerja_tahun, masa_kerja_bulan, masa_kerja_efektif,
-        remark, jenis_kelamin, tanggal_lahir, usia, agama,
-        alamat_domisili, alamat_ktp, no_rekening, no_hp, pendidikan,
-        status_perkawinan, email, nama_pasangan, jumlah_anak,
-        nama_anak_1, nama_anak_2, nama_anak_3,
-        salary_index_id, gaji_pokok, foto_profil, foto_ktp, role, kategori
+    uid, nip, password, nama, jenjang, unit_penempatan, strata, job_title, status_kerja,
+    join_start, lama_kontrak, tgl_kontrak_selesai, sudah_kontrak,
+    masa_kerja_tahun, masa_kerja_bulan, masa_kerja_efektif,
+    remark, jenis_kelamin, tanggal_lahir, usia, agama,
+    alamat_domisili, alamat_ktp, no_rekening, no_hp, pendidikan,
+    status_perkawinan, email, nama_pasangan, jumlah_anak,
+    nama_anak_1, nama_anak_2, nama_anak_3,
+    salary_index_id, gaji_pokok, foto_profil, foto_ktp, role, kategori
     ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )";
 
     // types: s=string, i=integer, d=double (decimal)
     $types =  'sssssssssisiiidsssis'
-            . 'sssssssssisss'
-            . 'idsss'; // total 38 field
+        . 'sssssssssisss'
+        . 'idsss'; // total 38 field
 
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         send_response(1, 'Query error: ' . $conn->error);
     }
     $stmt->bind_param(
-        $types,
-        $uid, $nip, $defaultPass, $nama, $jenjang, $strata, $job_title, $status_kerja,
-        $join_start, $lama_kontrak, $tgl_kontrak, $sudah_kontrak,
-        $masa_tahun, $masa_bulan, $masa_eff,
-        $remark, $jk, $tgl_lahir, $usia, $religion,
-        $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan,
-        $status_perkawinan, $email, $nama_pasangan, $jumlah_anak,
-        $nama_anak_1, $nama_anak_2, $nama_anak_3,
-        $salary_index_id, $gaji_pokok, $foto_profil_url, $foto_ktp_url, $role, $kategori
+    $types,
+    $uid, $nip, $defaultPass, $nama, $jenjang, $unit_penempatan, $strata, $job_title, $status_kerja,
+    $join_start, $lama_kontrak, $tgl_kontrak, $sudah_kontrak,
+    $masa_tahun, $masa_bulan, $masa_eff,
+    $remark, $jk, $tgl_lahir, $usia, $religion,
+    $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan,
+    $status_perkawinan, $email, $nama_pasangan, $jumlah_anak,
+    $nama_anak_1, $nama_anak_2, $nama_anak_3,
+    $salary_index_id, $gaji_pokok, $foto_profil_url, $foto_ktp_url, $role, $kategori
     );
 
     if (!$stmt->execute()) {
@@ -435,6 +438,7 @@ function UpdateGuru(mysqli $conn)
     $nip          = bersihkan_input($_POST['nip']          ?? '');
     $nama         = bersihkan_input($_POST['nama']         ?? $old['nama']);
     $jenjang      = bersihkan_input($_POST['jenjang']      ?? $old['jenjang']);
+    $unit_penempatan = bersihkan_input($_POST['unit_penempatan'] ?? '');
     $job_title    = bersihkan_input($_POST['job_title']    ?? '');
     $role         = bersihkan_input($_POST['role']         ?? '');
     $strata       = bersihkan_input($_POST['strata']       ?? ''); // TAMBAHAN
@@ -526,6 +530,7 @@ function UpdateGuru(mysqli $conn)
         'nip' => $nip,
         'nama' => $nama,
         'jenjang' => $jenjang,
+        'unit_penempatan' => $unit_penempatan,
         'job_title' => $job_title,
         'role' => $role,
         'status_kerja' => $status_kerja,

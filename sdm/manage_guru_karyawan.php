@@ -118,8 +118,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     }
 
     .badge {
-  font-weight: 700 !important;
-}
+      font-weight: 700 !important;
+    }
+
     /* ===== Page Title Styling ===== */
     .page-title {
       font-family: 'Poppins', sans-serif;
@@ -166,40 +167,48 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     /* Grid untuk employee cards */
     #employeeCards {
       margin-top: 8px;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);   /* <-- fix: 5 kolom! */
-  gap: 20px 20px;                          /* Lebih lega */
-}
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      /* <-- fix: 5 kolom! */
+      gap: 20px 20px;
+      /* Lebih lega */
+    }
 
     /* Card khusus untuk anggota */
     .employee-card {
-  border-radius: 22px;
-  box-shadow: 0 6px 24px rgba(34, 92, 181, 0.10);
-  border: 1.5px solid #eee;
-  background: #fff;
-  transition: box-shadow 0.2s;
-  min-height: 470px;     /* <-- lebih besar */
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 1.8rem 1.1rem 1.4rem 1.1rem;  /* atas, kanan, bawah, kiri */
-}
-.employee-card .card-body {
-  padding: 1.2rem 0.3rem 0.7rem 0.3rem;  /* biar konten lebih lega */
-}
-.employee-photo {
-  width: 105px;
-  height: 105px;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 3px solid #fff;
-  margin-bottom: 14px;
-  margin-top: -4px;
-  box-shadow: 0 2px 10px 0 rgba(32,40,67,.09);
-}
-.employee-card h5 {
-  font-size: 1.19rem;
-}
+      border-radius: 22px;
+      box-shadow: 0 6px 24px rgba(34, 92, 181, 0.10);
+      border: 1.5px solid #eee;
+      background: #fff;
+      transition: box-shadow 0.2s;
+      min-height: 470px;
+      /* <-- lebih besar */
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 1.8rem 1.1rem 1.4rem 1.1rem;
+      /* atas, kanan, bawah, kiri */
+    }
+
+    .employee-card .card-body {
+      padding: 1.2rem 0.3rem 0.7rem 0.3rem;
+      /* biar konten lebih lega */
+    }
+
+    .employee-photo {
+      width: 105px;
+      height: 105px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      margin-bottom: 14px;
+      margin-top: -4px;
+      box-shadow: 0 2px 10px 0 rgba(32, 40, 67, .09);
+    }
+
+    .employee-card h5 {
+      font-size: 1.19rem;
+    }
 
 
     /* NIP */
@@ -218,14 +227,20 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
       letter-spacing: 0.01em;
       display: inline-block;
     }
+
     .employee-card .badge.bg-success {
-      background: #48bb78 !important; /* green-400 */
+      background: #48bb78 !important;
+      /* green-400 */
       color: #fff !important;
     }
-    .employee-card .badge.bg-warning, .employee-card .badge.bg-warning.text-dark {
-      background: #f6e05e !important; /* yellow-300 */
+
+    .employee-card .badge.bg-warning,
+    .employee-card .badge.bg-warning.text-dark {
+      background: #f6e05e !important;
+      /* yellow-300 */
       color: #684200 !important;
     }
+
     .employee-card .badge.bg-secondary {
       background: #ececec !important;
       color: #333 !important;
@@ -237,6 +252,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
       color: #333;
       font-size: 0.96rem;
     }
+
     .employee-card .status-label .badge {
       font-size: 0.94rem;
       margin-left: 4px;
@@ -255,6 +271,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
       margin-top: 0.7rem;
       gap: 8px;
     }
+
     .employee-card .btn {
       font-size: 0.99rem;
       font-weight: 600;
@@ -263,24 +280,29 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
       min-height: 38px;
       letter-spacing: 0.01em;
     }
+
     .employee-card .btn-primary {
       background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%);
       border: none;
     }
+
     .employee-card .btn-warning {
       background: #f6e05e;
       color: #7c5700;
       border: none;
     }
+
     .employee-card .btn-danger {
       background: #fa5252;
       border: none;
     }
+
     .employee-card .btn-info {
       background: #25a4fa;
       color: #fff;
       border: none;
     }
+
     .employee-card .btn-secondary {
       background: #ececec;
       color: #333;
@@ -289,20 +311,26 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
     /* Responsive: grid jadi 2 kolom di HP */
     @media (max-width: 1200px) {
-  #employeeCards {
-    grid-template-columns: repeat(3, 1fr); /* Tablet: 3 kolom */
-  }
-}
-@media (max-width: 900px) {
-  #employeeCards {
-    grid-template-columns: repeat(2, 1fr); /* HP landscape: 2 kolom */
-  }
-}
-@media (max-width: 600px) {
-  #employeeCards {
-    grid-template-columns: 1fr;           /* HP potrait: 1 kolom */
-  }
-}
+      #employeeCards {
+        grid-template-columns: repeat(3, 1fr);
+        /* Tablet: 3 kolom */
+      }
+    }
+
+    @media (max-width: 900px) {
+      #employeeCards {
+        grid-template-columns: repeat(2, 1fr);
+        /* HP landscape: 2 kolom */
+      }
+    }
+
+    @media (max-width: 600px) {
+      #employeeCards {
+        grid-template-columns: 1fr;
+        /* HP potrait: 1 kolom */
+      }
+    }
+
     /* ----------- STYLE TAMBAHAN/REPLACE END ----------- */
 
     /* 8. Filter section */
@@ -371,8 +399,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     .d-none {
       display: none !important;
     }
-</style>
-
+  </style>
 
 </head>
 
@@ -393,48 +420,77 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
         <div class="container-fluid">
           <h1 class="page-title">
-            <i class="bi bi-people-fill me-2 "></i>
+            <i class="bi bi-people-fill me-2"></i>
             Manajemen Data Guru/Karyawan
           </h1>
           <!-- Bagian Tombol Aksi -->
           <div class="d-flex justify-content-end mb-3 flex-wrap gap-2">
             <!-- Tombol Tambah -->
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdd">
+            <button
+              class="btn btn-sm"
+              data-bs-toggle="modal" data-bs-target="#modalAdd"
+              style="background:#ffd600; color:#111; border:none;">
               <i class="fas fa-plus"></i> Tambah Guru/Karyawan
             </button>
 
             <!-- Tombol History -->
-            <a href="history_anggota_sekolah.php" class="btn btn-dark btn-sm">
+            <a href="history_anggota_sekolah.php"
+              class="btn btn-sm"
+              style="background:#a7ffeb; color:#111; border:none;">
               <i class="fas fa-history"></i> Lihat History
             </a>
 
             <!-- Tombol Atur Gaji Pokok -->
-            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalGajiPokok">
+            <button
+              class="btn btn-sm"
+              data-bs-toggle="modal" data-bs-target="#modalGajiPokok"
+              style="background:#ffe082; color:#111; border:none;">
               <i class="fas fa-dollar-sign"></i> Atur Gaji Pokok
             </button>
 
             <!-- Tombol Atur Salary Indeks -->
-            <button class="btn btn-info btn-sm" id="btnManageSalaryIndices" data-href="/payroll_absensi_v2/sdm/manage_salary_indices.php">
+            <button
+              class="btn btn-sm"
+              id="btnManageSalaryIndices"
+              data-href="/payroll_absensi_v2/sdm/manage_salary_indices.php"
+              style="background:#b2ff59; color:#111; border:none;">
               <i class="fas fa-money-bill-wave"></i> Atur Salary Indeks
             </button>
 
             <!-- Tombol Atur Hari Libur -->
-            <button class="btn btn-warning btn-sm" id="btnManageHolidays" data-href="/payroll_absensi_v2/sdm/holidays.php">
+            <button
+              class="btn btn-sm"
+              id="btnManageHolidays"
+              data-href="/payroll_absensi_v2/sdm/holidays.php"
+              style="background:#c5e1a5; color:#111; border:none;">
               <i class="fas fa-calendar-alt"></i> Atur Hari Libur
             </button>
 
-            <!-- Tombol Kelola Jenjang (TAMBAHAN BARU) -->
-  <a href="jenjang.php" class="btn btn-secondary btn-sm">
-    <i class="fas fa-layer-group"></i> Kelola Jenjang
-  </a>
-  
-            <button class="btn btn-danger btn-sm"
+            <!-- Tombol Kelola Jenjang -->
+            <a href="jenjang.php"
+              class="btn btn-sm"
+              style="background:#ffd1dc; color:#111; border:none;">
+              <i class="fas fa-layer-group"></i> Kelola Jenjang
+            </a>
+
+            <!-- Tombol Sinkron Gaji Massal -->
+            <button
+              class="btn btn-sm"
               id="btnSyncAllGajiPokok"
-              title="Update semua gaji pokok anggota agar sesuai dengan Strata dan Jenjang">
+              title="Update semua gaji pokok anggota agar sesuai dengan Strata dan Jenjang"
+              style="background:#ffccbc; color:#111; border:none;">
               <i class="fas fa-sync-alt"></i> Sinkron Gaji Massal
             </button>
 
+            <!-- Tombol Import Excel -->
+            <a href="import_anggota_sekolah.php"
+              class="btn btn-sm"
+              style="background:#b3e5fc; color:#111; border:none;">
+              <i class="fas fa-file-excel"></i> Import Excel
+            </a>
           </div>
+
+
 
           <!-- Filter Section: Data Guru/Karyawan -->
           <div class="card mb-4 shadow">
@@ -444,24 +500,24 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               </h6>
             </div>
             <div class="card-body" style="background-color: #f8f9fa;">
-              
+
               <form id="filterForm" method="GET" class="row gy-2 gx-3 align-items-center">
                 <!-- Jenjang --><!-- Search Keyword -->
-<div class="col-auto">
-  <label for="filterKeyword" class="form-label mb-0"><strong>Pencarian:</strong></label>
-  <input type="text" class="form-control" id="filterKeyword" name="keyword" placeholder="Nama, NIP, Job Title...">
-</div>
+                <div class="col-auto">
+                  <label for="filterKeyword" class="form-label mb-0"><strong>Pencarian:</strong></label>
+                  <input type="text" class="form-control" id="filterKeyword" name="keyword" placeholder="Nama, NIP, Job Title...">
+                </div>
 
                 <div class="col-auto">
                   <label for="filterJenjang" class="form-label mb-0"><strong>Jenjang:</strong></label>
                   <select class="form-control" id="filterJenjang" name="jenjang">
                     <option value="">Semua Jenjang</option>
                     <?php
-$jenjangList = getOrderedJenjang($conn); // ['TK' => 'Taman Kanak-Kanak', ...]
-foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
-  echo '<option value="' . htmlspecialchars($kode_jenjang) . '">' . htmlspecialchars($nama_jenjang) . '</option>';
-}
-?>
+                    $jenjangList = getOrderedJenjang($conn); // ['TK' => 'Taman Kanak-Kanak', ...]
+                    foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
+                      echo '<option value="' . htmlspecialchars($kode_jenjang) . '">' . htmlspecialchars($nama_jenjang) . '</option>';
+                    }
+                    ?>
 
                   </select>
                 </div>
@@ -593,12 +649,19 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
                 <label for="addJenjang">Jenjang <span class="text-danger">*</span></label>
                 <select name="jenjang" id="addJenjang" class="form-control" required>
                   <option value="">-- Pilih Jenjang --</option>
-                  <?php foreach ($jenjangList as $jenjang): ?>
-                    <option value="<?= htmlspecialchars($jenjang) ?>"><?= htmlspecialchars($jenjang) ?></option>
+                  <?php foreach ($jenjangList as $kode_jenjang => $nama_jenjang): ?>
+                    <option value="<?= htmlspecialchars($kode_jenjang) ?>"><?= htmlspecialchars($nama_jenjang) ?></option>
                   <?php endforeach; ?>
                 </select>
+
                 <div class="invalid-feedback">Jenjang wajib dipilih.</div>
               </div>
+              <div class="col-md-4 d-none" id="addUnitPenempatanContainer">
+                <label for="addUnitPenempatan">Unit Penempatan <span class="text-danger">*</span></label>
+                <input type="text" name="unit_penempatan" id="addUnitPenempatan" class="form-control" placeholder="Contoh: Perpustakaan, TU, dsb">
+                <div class="invalid-feedback">Unit penempatan wajib diisi untuk Jenjang UMUM.</div>
+              </div>
+
               <div class="col-md-4">
                 <label for="addRole">Role <span class="text-danger">*</span></label>
                 <select name="role" id="addRole" class="form-control" required>
@@ -845,12 +908,19 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
                 <label for="editJenjang">Jenjang <span class="text-danger">*</span></label>
                 <select name="jenjang" id="editJenjang" class="form-control" required>
                   <option value="">-- Pilih Jenjang --</option>
-                  <?php foreach ($jenjangList as $jenjang): ?>
-                    <option value="<?= htmlspecialchars($jenjang) ?>"><?= htmlspecialchars($jenjang) ?></option>
+                  <?php foreach ($jenjangList as $kode_jenjang => $nama_jenjang): ?>
+                    <option value="<?= htmlspecialchars($kode_jenjang) ?>"><?= htmlspecialchars($nama_jenjang) ?></option>
                   <?php endforeach; ?>
                 </select>
+
                 <div class="invalid-feedback">Jenjang wajib dipilih.</div>
               </div>
+              <div class="col-md-4 d-none" id="editUnitPenempatanContainer">
+                <label for="editUnitPenempatan">Unit Penempatan <span class="text-danger">*</span></label>
+                <input type="text" name="unit_penempatan" id="editUnitPenempatan" class="form-control" placeholder="Contoh: Perpustakaan, TU, dsb">
+                <div class="invalid-feedback">Unit penempatan wajib diisi untuk Jenjang UMUM.</div>
+              </div>
+
               <div class="col-md-4">
                 <label for="editRole">Role <span class="text-danger">*</span></label>
                 <select name="role" id="editRole" class="form-control" required>
@@ -1455,14 +1525,23 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
     function syncStrataOptions(jenjang, role, prefix = '') {
       let sel = $(`#${prefix}Strata`);
       sel.empty().append('<option value="">-- Pilih Strata --</option>');
-      jenjang = (jenjang || '').trim();
+
+      jenjang = (jenjang || '').trim().toUpperCase();
       role = (role || '').trim();
+
       let arr = [];
-      if (role === 'P' && GURU_CONFIG[jenjang]) arr = GURU_CONFIG[jenjang];
-      if ((role === 'TK' || role === 'M') && KARYAWAN_CONFIG[jenjang]) arr = KARYAWAN_CONFIG[jenjang];
+      if (role === 'P' && GURU_CONFIG[jenjang]) {
+        arr = GURU_CONFIG[jenjang];
+      }
+      if ((role === 'TK' || role === 'M') && KARYAWAN_CONFIG[jenjang]) {
+        arr = KARYAWAN_CONFIG[jenjang];
+      }
+
       arr.forEach(s => sel.append(`<option value="${s}">${s}</option>`));
       sel.val('');
     }
+
+
 
     /* ============================================================
        =============== [3] MAIN JQUERY HANDLER ===================
@@ -1515,7 +1594,7 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
             jenjang: $('#filterJenjang').val(),
             role: $('#filterRole').val(),
             status_kerja: $('#filterStatus').val(),
-            keyword: $('#filterKeyword').val(),  
+            keyword: $('#filterKeyword').val(),
             csrf_token: "<?= htmlspecialchars($csrf_token); ?>"
           },
           dataType: "json",
@@ -1542,34 +1621,69 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
         c.empty();
         data.forEach(item => {
           let photo = item.foto_profil ? item.foto_profil : baseUrl + "/assets/img/undraw_profile.svg";
+
+          // Badge untuk jenjang
+          let jenjangBadge = '';
+          if (item.jenjang) {
+            if (item.jenjang.toUpperCase() === 'UMUM') {
+              jenjangBadge = `<span class="badge bg-secondary me-1">Umum</span>`;
+            } else {
+              jenjangBadge = `<span class="badge bg-secondary me-1">${item.jenjang}</span>`;
+            }
+          }
+          // Badge untuk unit penempatan (khusus UMUM)
+          let unitBadge = '';
+          if ((item.jenjang && item.jenjang.toUpperCase() === 'UMUM') && item.unit_penempatan) {
+            unitBadge = `<span class="badge" style="background:#0097A7;color:#fff;margin-left:3px;">${item.unit_penempatan}</span>`;
+          }
+
+          // Role badge
+          let roleBadge = getBadgeRole(item.role);
+
+          // ========== PERUBAHAN UTAMA DI SINI ==========
+          // Bagian job_title, gunakan style transparan, bold, rounded
+          let jobTitleDisplay = '';
+          if (item.job_title) {
+            jobTitleDisplay = `
+        <span 
+          class="d-inline-block mb-2 px-3 py-1 fw-semibold"
+          style="background:rgba(0,123,255,0.13); color:#212529; border-radius:1rem; font-size:15px;">
+          ${item.job_title}
+        </span>
+      `;
+          }
+          // ========== END PERUBAHAN ==========
+
           let html = `
-    <div class="card employee-card h-100">
-      <div class="card-body text-center pt-4 pb-3">
-        <img src="${photo}" class="employee-photo rounded-circle mb-3">
-        <h5 class="mb-1">${item.nama}</h5>
-        <p class="text-muted small mb-2">NIP: ${item.nip}</p>
-        <p class="mb-0 fw-bold">
-  ${item.job_title}
-</p>
-
-        <div class="small mb-1">
-          ${item.jenjang_badge} ${getBadgeRole(item.role)}
+      <div class="card employee-card h-100">
+        <div class="card-body text-center pt-4 pb-3">
+          <img src="${photo}" class="employee-photo rounded-circle mb-3">
+          <h5 class="mb-1">${item.nama}</h5>
+          <p class="text-muted small mb-2">NIP: ${item.nip}</p>
+          ${jobTitleDisplay}
+          <div class="small mb-1">
+            ${jenjangBadge}${unitBadge} ${roleBadge}
+          </div>
+          <div class="status-label mb-1">
+            Status: ${getStatusBadge(item.status_kerja)}
+          </div>
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary btn-sm btn-view" data-id="${item.id}">
+              <i class="fas fa-eye"></i> Detail
+            </button>
+            <button class="btn btn-warning btn-sm btn-edit" data-id="${item.id}">
+              <i class="fas fa-pencil-alt"></i> Edit
+            </button>
+            <button class="btn btn-danger btn-sm btn-delete" data-id="${item.id}">
+              <i class="fas fa-trash-alt"></i> Hapus
+            </button>
+          </div>
         </div>
-        <div class="status-label mb-1">
-          Status: ${getStatusBadge(item.status_kerja)}
-        </div>
-        <div class="d-grid gap-2">
-          <button class="btn btn-primary btn-sm btn-view" data-id="${item.id}"><i class="fas fa-eye"></i> Detail</button>
-          <button class="btn btn-warning btn-sm btn-edit" data-id="${item.id}"><i class="fas fa-pencil-alt"></i> Edit</button>
-          <button class="btn btn-danger btn-sm btn-delete" data-id="${item.id}"><i class="fas fa-trash-alt"></i> Hapus</button>
-        </div>
-      </div>
-    </div>
-  </div>`;
-
+      </div>`;
           c.append(html);
         });
       }
+
 
       function generatePagination(total) {
         let pages = Math.ceil(total / pageSize),
@@ -1585,12 +1699,12 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
         }
       }
 
-      $('#filterKeyword').on('keydown', function(e){
-  if(e.key === 'Enter'){
-    e.preventDefault();
-    loadGuru(1);
-  }
-});
+      $('#filterKeyword').on('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          loadGuru(1);
+        }
+      });
 
       // --- [3.4] TOGGLE KONTRAK FIELDS ---
       function toggleKontrak(pref) {
@@ -1796,6 +1910,8 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
 
               // Jenjang dan Role DULU!
               $('#editJenjang').val(r.jenjang || '');
+              $('#editUnitPenempatan').val(r.unit_penempatan || '');
+              toggleUnitPenempatan(r.jenjang, 'edit');
               $('#editRole').val(r.role || '');
 
               // Generate ulang dropdown Strata
@@ -1804,7 +1920,7 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
               setTimeout(function() {
                 $('#editStrata').val(r.strata || '');
               }, 50);
-
+              $('#editUnitPenempatan').val(r.unit_penempatan || '');
               // Field lain
               $('#editJK').val(r.jk || '');
               $('#editTglLahir').val(r.tanggal_lahir || '');
@@ -2090,6 +2206,41 @@ foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
 
       });
 
+      /* ============================================================
+   =============== [2.1] TOGGLE UNIT PENEMPATAN ================
+   ============================================================ */
+      function toggleUnitPenempatan(jenjang, prefix) {
+  const isUmum = (jenjang || '').toUpperCase() === 'UMUM';
+  const kontainer = $(`#${prefix}UnitPenempatanContainer`);
+  const input     = $(`#${prefix}UnitPenempatan`);
+
+  if (isUmum) {
+    kontainer.removeClass('d-none');
+    input.prop('required', true);
+  } else {
+    kontainer.addClass('d-none');
+    input.prop('required', false).val('');
+  }
+}
+
+
+      // === PANGGIL toggleUnitPenempatan di event Jenjang Add/Edit ===
+      $('#addJenjang').change(function() {
+        toggleUnitPenempatan($(this).val(), 'add');
+      });
+      $('#editJenjang').change(function() {
+        toggleUnitPenempatan($(this).val(), 'edit');
+      });
+      $('#modalAdd').on('shown.bs.modal', function() {
+        toggleUnitPenempatan($('#addJenjang').val(), 'add');
+      });
+      $('#modalEdit').on('shown.bs.modal', function() {
+        toggleUnitPenempatan($('#editJenjang').val(), 'edit');
+      });
+
 
     }); // end document.ready
   </script>
+</body>
+
+</html>

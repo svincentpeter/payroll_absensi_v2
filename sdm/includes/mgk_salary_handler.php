@@ -31,7 +31,7 @@ function getStrataConfig(mysqli $conn): array {
         $jenjang[] = $r['kode_jenjang'];
     }
     // Strata bisa tetap (D3, S1, S2, S3), atau load dari tabel lain jika Anda punya tabel strata
-    $strata = ['D3', 'S1', 'S2', 'S3'];
+    $strata = ['D3', 'S1', 'S2', 'S3'] ;
     return [
         'guru' => array_fill_keys($jenjang, $strata),
         'karyawan' => array_fill_keys($jenjang, $strata),
@@ -161,32 +161,90 @@ if (!function_exists('hitungGajiPokok')) {
  * ================================================================ */
 if (!function_exists('getRecommendedSalaryIndex')) {
     /**
-     * Row salary_indices terdekat (atau null)
+     * Row salary_indices terdekat (atau null) menggunakan masa kerja efektif (float tahun)
      */
     function getRecommendedSalaryIndex(mysqli $conn, string $joinStart): ?array
-    {
-        if (!$joinStart || $joinStart === '0000-00-00') return null;
+{
+    if (!$joinStart || $joinStart === '0000-00-00') return null;
 
-        try {
-            $diffY = (new DateTime())->diff(new DateTime($joinStart))->y;
-        } catch (Exception $e) {
-            $diffY = 0;
-        }
-
-        $st = $conn->prepare(
-            "SELECT * FROM salary_indices
-             WHERE min_years <= ? AND (max_years >= ? OR max_years IS NULL)
-             ORDER BY min_years DESC LIMIT 1"
-        );
-        if (!$st) return null;
-        $st->bind_param("ii", $diffY, $diffY);
-        $st->execute();
-        $res = $st->get_result();
-        $row = $res->fetch_assoc() ?: null;
-        $st->close();
-        return $row;
+    try {
+        $start = new DateTime($joinStart);
+        $now = new DateTime();
+        $interval = $now->diff($start);
+        $masaKerjaTahun = intval($interval->y); // gunakan tahun bulat saja!
+    } catch (Exception $e) {
+        $masaKerjaTahun = 0;
     }
+
+    // SQL QUERY HARUS: min_years <= ? AND (max_years IS NULL OR max_years >= ?)
+    $sql = "SELECT * FROM salary_indices
+            WHERE min_years <= ?
+              AND (max_years IS NULL OR max_years >= ?)
+            ORDER BY min_years DESC
+            LIMIT 1";
+    $st = $conn->prepare($sql);
+    if (!$st) {
+        error_log("Error preparing statement: " . $conn->error);
+        return null;
+    }
+
+    // Pastikan tipe data INT, pakai 'ii'
+    $st->bind_param("ii", $masaKerjaTahun, $masaKerjaTahun);
+
+    if (!$st->execute()) {
+        error_log("Execute error: " . $conn->error);
+        $st->close();
+        return null;
+    }
+
+    $res = $st->get_result();
+    $row = $res->fetch_assoc();
+    $st->close();
+
+    return $row ?: null;
 }
+function getRecommendedSalaryIndex(mysqli $conn, string $joinStart): ?array
+{
+    if (!$joinStart || $joinStart === '0000-00-00') return null;
+
+    try {
+        $start = new DateTime($joinStart);
+        $now = new DateTime();
+        $interval = $now->diff($start);
+        $masaKerjaTahun = intval($interval->y); // gunakan tahun bulat saja!
+    } catch (Exception $e) {
+        $masaKerjaTahun = 0;
+    }
+
+    // SQL QUERY HARUS: min_years <= ? AND (max_years IS NULL OR max_years >= ?)
+    $sql = "SELECT * FROM salary_indices
+            WHERE min_years <= ?
+              AND (max_years IS NULL OR max_years >= ?)
+            ORDER BY min_years DESC
+            LIMIT 1";
+    $st = $conn->prepare($sql);
+    if (!$st) {
+        error_log("Error preparing statement: " . $conn->error);
+        return null;
+    }
+
+    // Pastikan tipe data INT, pakai 'ii'
+    $st->bind_param("ii", $masaKerjaTahun, $masaKerjaTahun);
+
+    if (!$st->execute()) {
+        error_log("Execute error: " . $conn->error);
+        $st->close();
+        return null;
+    }
+
+    $res = $st->get_result();
+    $row = $res->fetch_assoc();
+    $st->close();
+
+    return $row ?: null;
+}
+
+
 
 if (!function_exists('updateSalaryIndexForUser')) {
     /**
@@ -406,5 +464,4 @@ if (!function_exists('_runStrataUpdate')) {
         return $all;
     }
 }
-
-
+}

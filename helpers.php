@@ -1,6 +1,7 @@
     <?php
     // File: helpers.php
     require_once __DIR__ . '/sdm/includes/mgk_salary_handler.php';
+    require_once __DIR__ . '/sdm/includes/mgk_date_utils.php';
 // Warna untuk semua badge, terpusat di satu tempat:
 $GLOBALS['BADGE_COLORS'] = [
     'status_kerja' => [
@@ -21,6 +22,7 @@ $GLOBALS['BADGE_COLORS'] = [
         'smk1'     => ['bg'=>'#ffd180', 'fg'=>'#212529'], // Light Peach/Orange
         'smk2'     => ['bg'=>'#ce93d8', 'fg'=>'#212529'], // Soft Purple
         'stifera'  => ['bg'=>'#b3e5fc', 'fg'=>'#212529'], // Soft Sky Blue
+        'umum' => ['bg'=>'#cfd8dc', 'fg'=>'#212529'], // Soft grey-blue
     ],
 ];
 
@@ -347,21 +349,24 @@ $GLOBALS['BADGE_COLORS'] = [
  * @param string $jenjang e.g. "SMK 1", "SMK 2", "Universitas Stivera"
  * @return string <span class="badge" style="…">…</span>
  */
-function getBadgeJenjang($kode_jenjang, $conn) {
-    $sql = "SELECT nama_jenjang, color_bg, color_fg FROM jenjang_sekolah WHERE kode_jenjang=? LIMIT 1";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $kode_jenjang);
+function getBadgeJenjang(string $kode, mysqli $conn): string {
+    $kode = strtoupper(trim($kode));             // normalisasi
+    $stmt = $conn->prepare(
+        "SELECT nama_jenjang,color_bg,color_fg
+           FROM jenjang_sekolah
+          WHERE UPPER(kode_jenjang)=? LIMIT 1"
+    );
+    $stmt->bind_param("s", $kode);
     $stmt->execute();
-    $result = $stmt->get_result();
-    if ($row = $result->fetch_assoc()) {
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if ($row) {
         return "<span class='badge' style='background:{$row['color_bg']};color:{$row['color_fg']};'><strong>{$row['nama_jenjang']}</strong></span>";
     }
-    return "<span class='badge bg-secondary'><strong>$kode_jenjang</strong></span>";
+    // fallback
+    return "<span class='badge bg-secondary'><strong>{$kode}</strong></span>";
 }
-
-
-
-
 
     /**
      * Menghasilkan badge HTML untuk status kerja karyawan.
@@ -676,58 +681,48 @@ function getBadgeJenjang($kode_jenjang, $conn) {
      * @return array Array dengan salary_index_id dan penjelasan.
      */
     function getRecommendedSalaryIndex($conn, $joinStart)
-    {
-        if (empty($joinStart) || $joinStart == '0000-00-00') {
-            return [
-                'salary_index_id' => 0,
-                'explanation' => 'Tanggal bergabung belum diisi / tidak valid'
-            ];
-        }
-        try {
-            $startDate = new DateTime($joinStart);
-            $now       = new DateTime();
-            if ($startDate > $now) {
-                $masaKerjaTahun = 0;
-            } else {
-                $diff = $now->diff($startDate);
-                $masaKerjaTahun = $diff->y;
-            }
-        } catch (\Exception $e) {
-            return [
-                'salary_index_id' => 0,
-                'explanation' => 'Error parsing date: ' . $e->getMessage()
-            ];
-        }
-
-        $sql = "SELECT id, level 
-                FROM salary_indices
-                WHERE min_years <= ?
-                AND (max_years IS NULL OR ? <= max_years)
-                ORDER BY min_years DESC
-                LIMIT 1";
-        $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            return [
-                'salary_index_id' => 0,
-                'explanation' => 'Query error: ' . $conn->error
-            ];
-        }
-        $stmt->bind_param("ii", $masaKerjaTahun, $masaKerjaTahun);
-        $stmt->execute();
-        $res2 = $stmt->get_result();
-        if ($res2 && $res2->num_rows > 0) {
-            $row = $res2->fetch_assoc();
-            return [
-                'salary_index_id' => (int)$row['id'],
-                'explanation' => 'Cocok dengan level: ' . $row['level']
-            ];
-        } else {
-            return [
-                'salary_index_id' => 0,
-                'explanation' => 'Tidak ada level salary_indices yang cocok'
-            ];
-        }
+{
+    if (empty($joinStart) || $joinStart == '0000-00-00') {
+        return [
+            'salary_index_id' => 0,
+            'explanation' => 'Tanggal bergabung belum diisi / tidak valid'
+        ];
     }
+
+    // Ambil masa kerja efektif (tahun desimal)
+    list($thn, $bln, $efektif) = calcMasaKerja($joinStart);
+    $masaKerjaEfektif = floatval($efektif);
+
+    $sql = "SELECT id, level
+            FROM salary_indices
+            WHERE min_years <= ?
+            AND (max_years IS NULL OR ? <= max_years)
+            ORDER BY min_years DESC
+            LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        return [
+            'salary_index_id' => 0,
+            'explanation' => 'Query error: ' . $conn->error
+        ];
+    }
+    $stmt->bind_param("dd", $masaKerjaEfektif, $masaKerjaEfektif);
+    $stmt->execute();
+    $res2 = $stmt->get_result();
+    if ($res2 && $res2->num_rows > 0) {
+        $row = $res2->fetch_assoc();
+        return [
+            'salary_index_id' => (int)$row['id'],
+            'explanation' => 'Cocok dengan level: ' . $row['level']
+        ];
+    } else {
+        return [
+            'salary_index_id' => 0,
+            'explanation' => 'Tidak ada level salary_indices yang cocok'
+        ];
+    }
+}
+
 
     /************************************
      * 8. LAIN-LAIN
