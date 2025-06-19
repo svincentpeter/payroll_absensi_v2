@@ -7,7 +7,7 @@ require_once __DIR__ . '/../koneksi.php';
 start_session_safe();
 
 // Hanya SDM atau Superadmin
-authorize(['M:sdm', 'M:superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM']);
 
 $currentDay   = (int) date('d');
 $currentMonth = (int) date('n');

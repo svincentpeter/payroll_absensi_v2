@@ -5,6 +5,7 @@ session_start();
 require_once __DIR__ . '/../vendor/autoload.php'; // Sesuaikan path jika perlu
 require_once __DIR__ . '/../koneksi.php';         // Koneksi database
 
+authorize(['M:SDM']);
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 

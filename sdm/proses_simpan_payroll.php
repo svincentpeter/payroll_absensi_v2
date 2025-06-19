@@ -6,7 +6,7 @@ require_once __DIR__ . '/../koneksi.php';
 
 start_session_safe();
 init_error_handling();
-authorize(['M:SDM', 'M:Superadmin']);
+authorize(['M:SDM']);
 
 function getJenisPayhead($id_payhead, $conn) {
     $jenis = null;

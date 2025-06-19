@@ -5,7 +5,7 @@ $pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:Keuangan']);
 
 // Koneksi ke database
 require_once __DIR__ . '/../koneksi.php';

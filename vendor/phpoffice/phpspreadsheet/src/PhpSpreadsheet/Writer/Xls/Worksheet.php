@@ -67,6 +67,8 @@ class Worksheet extends BIFFwriter
 
     /**
      * Array containing format information for columns.
+     *
+     * @var array<array{int, int, float, int, int, int}>
      */
     private array $columnInfo;
 
@@ -109,11 +111,15 @@ class Worksheet extends BIFFwriter
 
     /**
      * Reference to the array containing all the unique strings in the workbook.
+     *
+     * @var array<string, int>
      */
     private array $stringTable;
 
     /**
      * Color cache.
+     *
+     * @var mixed[]
      */
     private array $colors;
 
@@ -149,6 +155,8 @@ class Worksheet extends BIFFwriter
 
     /**
      * Array of font hashes associated to FONT records index.
+     *
+     * @var array<int|string>
      */
     public array $fontHashIndex;
 
@@ -163,8 +171,8 @@ class Worksheet extends BIFFwriter
      *
      * @param int $str_total Total number of strings
      * @param int $str_unique Total number of unique strings
-     * @param array $str_table String Table
-     * @param array $colors Colour Table
+     * @param array<string, int> $str_table String Table
+     * @param mixed[] $colors Colour Table
      * @param Parser $parser The formula parser created for the Workbook
      * @param bool $preCalculateFormulas Flag indicating whether formulas should be calculated or just written
      * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $phpSheet The worksheet to write
@@ -378,6 +386,7 @@ class Worksheet extends BIFFwriter
                     // Position FROM
                     $str_pos += StringHelper::countCharacters($element->getText(), 'UTF-8');
                 }
+                /** @var array<int, array{strlen: int, fontidx: int}> $arrcRun */
                 $this->writeRichTextString($row, $column, $cVal->getPlainText(), $xfIndex, $arrcRun);
             } else {
                 switch ($cell->getDatatype()) {
@@ -458,13 +467,14 @@ class Worksheet extends BIFFwriter
             [$column, $row] = Coordinate::indexesFromString($coordinate);
 
             $url = $hyperlink->getUrl();
-
-            if (str_contains($url, 'sheet://')) {
+            if ($url[0] === '#') {
+                $url = "internal:$url";
+            } elseif (str_starts_with($url, 'sheet://')) {
                 // internal to current workbook
                 $url = str_replace('sheet://', 'internal:', $url);
             } elseif (Preg::isMatch('/^(http:|https:|ftp:|mailto:)/', $url)) {
                 // URL
-            } elseif (!empty($hyperlinkbase) && !Preg::isMatch('~^([A-Za-z]:)?[/\\\\]~', $url)) {
+            } elseif (!empty($hyperlinkbase) && !Preg::isMatch('~^([A-Za-z]:)?[/\\\]~', $url)) {
                 $url = "$hyperlinkbase$url";
                 if (!Preg::isMatch('/^(http:|https:|ftp:|mailto:)/', $url)) {
                     $url = 'external:' . $url;
@@ -568,12 +578,22 @@ class Worksheet extends BIFFwriter
 
         // extract first cell, e.g. 'A1'
         $firstCell = $explodes[0];
+        if (ctype_alpha($firstCell)) {
+            $firstCell .= '1';
+        } elseif (ctype_digit($firstCell)) {
+            $firstCell = "A$firstCell";
+        }
 
         // extract last cell, e.g. 'B6'
         if (count($explodes) == 1) {
             $lastCell = $firstCell;
         } else {
             $lastCell = $explodes[1];
+        }
+        if (ctype_alpha($lastCell)) {
+            $lastCell .= (string) self::MAX_XLS_ROW;
+        } elseif (ctype_digit($lastCell)) {
+            $lastCell = self::MAX_XLS_COLUMN_STRING . $lastCell;
         }
 
         $firstCellCoordinates = Coordinate::indexesFromString($firstCell); // e.g. [0, 1]
@@ -675,7 +695,7 @@ class Worksheet extends BIFFwriter
      * @param int $col Column index (0-based)
      * @param string $str The string
      * @param int $xfIndex The XF format index for the cell
-     * @param array $arrcRun Index to Font record and characters beginning
+     * @param array<int, array{strlen: int, fontidx: int}> $arrcRun Index to Font record and characters beginning
      */
     private function writeRichTextString(int $row, int $col, string $str, int $xfIndex, array $arrcRun): void
     {
@@ -936,12 +956,11 @@ class Worksheet extends BIFFwriter
         // Check for internal/external sheet links or default to web link
         if (Preg::isMatch('[^internal:]', $url)) {
             $this->writeUrlInternal($row1, $col1, $row2, $col2, $url);
-        }
-        if (Preg::isMatch('[^external:]', $url)) {
+        } elseif (Preg::isMatch('[^external:]', $url)) {
             $this->writeUrlExternal($row1, $col1, $row2, $col2, $url);
+        } else {
+            $this->writeUrlWeb($row1, $col1, $row2, $col2, $url);
         }
-
-        $this->writeUrlWeb($row1, $col1, $row2, $col2, $url);
     }
 
     /**
@@ -1050,7 +1069,7 @@ class Worksheet extends BIFFwriter
     {
         // Network drives are different. We will handle them separately
         // MS/Novell network drives and shares start with \\
-        if (Preg::isMatch('[^external:\\\\]', $url)) {
+        if (Preg::isMatch('[^external:\\\]', $url)) {
             return;
         }
 
@@ -1075,7 +1094,7 @@ class Worksheet extends BIFFwriter
         // parameters accordingly.
         // Split the dir name and sheet name (if it exists)
         $dir_long = $url;
-        if (Preg::isMatch('/\\#/', $url)) {
+        if (Preg::isMatch('/\#/', $url)) {
             $link_type |= 0x08;
         }
 
@@ -1083,11 +1102,11 @@ class Worksheet extends BIFFwriter
         $link_type = pack('V', $link_type);
 
         // Calculate the up-level dir count e.g.. (..\..\..\ == 3)
-        $up_count = Preg::isMatchAll('/\\.\\.\\\\/', $dir_long, $useless);
+        $up_count = Preg::isMatchAll('/\.\.\\\/', $dir_long, $useless);
         $up_count = pack('v', $up_count);
 
         // Store the short dos dir name (null terminated)
-        $dir_short = Preg::replace('/\\.\\.\\\\/', '', $dir_long) . "\0";
+        $dir_short = Preg::replace('/\.\.\\\/', '', $dir_long) . "\0";
 
         // Store the long dir name as a wchar string (non-null terminated)
         //$dir_long = $dir_long . "\0";
@@ -1291,7 +1310,7 @@ class Worksheet extends BIFFwriter
      * Note: The SDK says the record length is 0x0B but Excel writes a 0x0C
      * length record.
      *
-     * @param array $col_array This is the only parameter received and is composed of the following:
+     * @param array{?int, ?int, ?float, ?int, ?int, ?int} $col_array This is the only parameter received and is composed of the following:
      *                0 => First formatted column,
      *                1 => Last formatted column,
      *                2 => Col width (8.43 is Excel default),
@@ -2156,6 +2175,10 @@ class Worksheet extends BIFFwriter
             ? $this->processBitmapGd($bitmap)
             : $this->processBitmap($bitmap);
         [$width, $height, $size, $data] = $bitmap_array;
+        /** @var int $width */
+        /** @var int $height */
+        /** @var int $size */
+        /** @var string $data */
 
         // Scale the frame of the image.
         $width *= $scale_x;
@@ -2385,11 +2408,8 @@ class Worksheet extends BIFFwriter
                 $data .= str_repeat("\x00", 4 - 3 * $width % 4);
             }
         }
-        // Phpstan says this always throws an exception before getting here.
-        // I don't see why, but I think this is code is never exercised
-        // in unit tests, so I can't say for sure it's wrong.
 
-        return [$width, $height, strlen($data), $data]; //* @phpstan-ignore-line
+        return [$width, $height, strlen($data), $data];
     }
 
     /**
@@ -2399,7 +2419,7 @@ class Worksheet extends BIFFwriter
      *
      * @param string $bitmap The bitmap to process
      *
-     * @return array Array with data and properties of the bitmap
+     * @return mixed[] Array with data and properties of the bitmap
      */
     public function processBitmap(string $bitmap): array
     {
@@ -2431,6 +2451,7 @@ class Worksheet extends BIFFwriter
         // the data size at offset 0x22.
         //
         $size_array = unpack('Vsa', substr($data, 0, 4)) ?: [];
+        /** @var int */
         $size = $size_array['sa'];
         $data = substr($data, 4);
         $size -= 0x36; // Subtract size of bitmap header.
@@ -2605,7 +2626,14 @@ class Worksheet extends BIFFwriter
     private function writeDataValidity(): void
     {
         // Datavalidation collection
-        $dataValidationCollection = $this->phpSheet->getDataValidationCollection();
+        $dataValidationCollection1 = $this->phpSheet->getDataValidationCollection();
+        $dataValidationCollection = [];
+        foreach ($dataValidationCollection1 as $key => $dataValidation) {
+            $keyParts = explode(' ', $key);
+            foreach ($keyParts as $keyPart) {
+                $dataValidationCollection[$keyPart] = $dataValidation;
+            }
+        }
 
         // Write data validations?
         if (!empty($dataValidationCollection)) {

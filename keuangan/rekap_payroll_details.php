@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:Keuangan']);
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 

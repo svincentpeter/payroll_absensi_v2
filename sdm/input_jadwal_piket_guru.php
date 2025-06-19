@@ -4,7 +4,7 @@
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM']);
 require_once __DIR__ . '/../koneksi.php';
 if (ob_get_length()) ob_end_clean();
 
@@ -13,7 +13,7 @@ generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 // ambil semua jenjang terurut
-$jenjangAll = getOrderedJenjang();
+$jenjangAll = getOrderedJenjang($conn); 
 
 // ambil data guru (nip,nama,jenjang)
 $guruData = [];

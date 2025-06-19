@@ -15,7 +15,7 @@
     require_once __DIR__ . '/../koneksi.php';
 
     // Pastikan hanya superadmin yang dapat mengakses halaman ini
-    authorize('M:superadmin', '/payroll_absensi_v2/login.php');
+    authorize(['M:Superadmin']);
 
     // 2. Query Audit Logs untuk Preview (5 data terbaru)
     $sqlLogs = "SELECT a.*, u.nama AS username, u.role 
@@ -102,25 +102,28 @@
                 background: linear-gradient(45deg, #0d47a1, #42a5f5);
                 color: white;
             }
-/* ===== Page Title Styling ===== */
-.page-title {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    font-size: 2.5rem;
-    color: #0d47a1;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 3px solid #1976d2;
-    padding-bottom: 0.3rem;
-    margin-bottom: 1.5rem;
-    animation: fadeInSlide 0.5s ease-in-out both;
-}
-.page-title i {
-    color: #1976d2;
-    font-size: 2.8rem;
-}
+
+            /* ===== Page Title Styling ===== */
+            .page-title {
+                font-family: 'Poppins', sans-serif;
+                font-weight: 600;
+                font-size: 2.5rem;
+                color: #0d47a1;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                border-bottom: 3px solid #1976d2;
+                padding-bottom: 0.3rem;
+                margin-bottom: 1.5rem;
+                animation: fadeInSlide 0.5s ease-in-out both;
+            }
+
+            .page-title i {
+                color: #1976d2;
+                font-size: 2.8rem;
+            }
+
             /* Timeline Styles */
             .vertical-timeline {
                 position: relative;
@@ -229,10 +232,10 @@
                     <!-- Begin Page Content -->
                     <div class="container-fluid">
                         <!-- Page Heading -->
-<h1 class="page-title">
-        <i class="fas fa-users me-2"></i>
-        Dashboard Superadmin
-    </h1>
+                        <h1 class="page-title">
+                            <i class="fas fa-users me-2"></i>
+                            Dashboard Superadmin
+                        </h1>
                         <!-- Notifikasi jika ada -->
                         <?php if (isset($_SESSION['notif_success'])): ?>
                             <div class="alert alert-success">

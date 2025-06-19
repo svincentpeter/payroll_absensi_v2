@@ -88,16 +88,11 @@ $csrfToken = htmlspecialchars($_SESSION['csrf_token']);
         <a class="dropdown-item" href="<?= $baseUrl; ?>/profile.php">
           <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i> Profile
         </a>
-        <a class="dropdown-item" href="<?= $baseUrl; ?>/settings.php">
-          <i class="fas fa-cogs fa-sm fa-fw me-2 text-gray-400"></i> Settings
-        </a>
-        <a class="dropdown-item" href="<?= $baseUrl; ?>/activity_log.php">
-          <i class="fas fa-list fa-sm fa-fw me-2 text-gray-400"></i> Activity Log
-        </a>
         <div class="dropdown-divider"></div>
-        <a class="dropdown-item" href="<?= $baseUrl; ?>/logout.php">
-          <i class="fas fa-sign-out-alt fa-sm fa-fw me-2 text-gray-400"></i> Logout
-        </a>
+        <a class="dropdown-item" href="#" id="logoutBtn">
+  <i class="fas fa-sign-out-alt fa-sm fa-fw me-2 text-gray-400"></i> Logout
+</a>
+
       </div>
     </li>
   </ul>
@@ -120,8 +115,30 @@ $csrfToken = htmlspecialchars($_SESSION['csrf_token']);
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.6/dist/sweetalert2.all.min.js"></script>
+
 <script>
 $(function(){
+
+  $(document).on('click', '#logoutBtn', function(e) {
+  e.preventDefault();
+  Swal.fire({
+    title: 'Yakin ingin logout?',
+    text: "Sesi Anda akan berakhir.",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya, logout!',
+    cancelButtonText: 'Batal'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      window.location.href = "<?= $baseUrl; ?>/logout.php";
+    }
+  });
+});
+
+
   const csrfToken = $('meta[name="csrf-token"]').attr('content');
 
   /* helper untuk escape text */

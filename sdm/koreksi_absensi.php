@@ -11,7 +11,7 @@ require_once __DIR__ . '/../koneksi.php';
 
 start_session_safe();
 init_error_handling();
-authorize(['M:SDM', 'M:Superadmin']); // Hanya SDM & Superadmin
+authorize(['M:SDM']); // Hanya SDM 
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
@@ -149,36 +149,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $jamPulang  = $row['jam_pulang']  ? date('H:i', strtotime($row['jam_pulang'])) : '-';
       $scanPulang = $row['scan_pulang'] ? date('H:i', strtotime($row['scan_pulang'])) : '-';
       $aksi = '<div class="dropdown">
-                      <button class="btn btn-sm" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></button>
-                      <ul class="dropdown-menu">
-                        <li><a class="dropdown-item btn-edit" href="#" data-bs-toggle="modal" data-bs-target="#modalEdit"
-                             ' .
-        'data-id="' . $row['id'] . '" ' .
-        'data-tanggal="' . htmlspecialchars($row['tanggal']) . '" ' .
-        'data-jadwal="' . htmlspecialchars($row['jadwal']) . '" ' .
-        'data-jam_kerja="' . htmlspecialchars($row['jam_kerja']) . '" ' .
-        'data-valid="' . $row['valid'] . '" ' .
-        'data-pin="' . htmlspecialchars($row['pin']) . '" ' .
-        'data-nip="' . htmlspecialchars($row['nip']) . '" ' .
-        'data-nama="' . htmlspecialchars($row['nama']) . '" ' .
-        'data-departemen="' . htmlspecialchars($row['departemen']) . '" ' .
-        'data-lembur="' . $row['lembur'] . '" ' .
-        'data-jam_masuk="' . ($jamMasuk === '-' ? '' : $jamMasuk) . '" ' .
-        'data-scan_masuk="' . ($scanMasuk === '-' ? '' : $scanMasuk) . '" ' .
-        'data-terlambat="' . $row['terlambat'] . '" ' .
-        'data-scan_istirahat_1="' . htmlspecialchars($row['scan_istirahat_1'] ?: '') . '" ' .
-        'data-scan_istirahat_2="' . htmlspecialchars($row['scan_istirahat_2'] ?: '') . '" ' .
-        'data-jam_pulang="' . ($jamPulang === '-' ? '' : $jamPulang) . '" ' .
-        'data-scan_pulang="' . ($scanPulang === '-' ? '' : $scanPulang) . '" ' .
-        'data-jenis_absensi="' . htmlspecialchars($row['jenis_absensi']) . '"' .
-        '><i class="fas fa-edit"></i> Edit</a></li>
-                        <li><a class="dropdown-item btn-delete" href="#" data-bs-toggle="modal" data-bs-target="#modalDelete"
-                             data-id="' . $row['id'] . '" 
-                             data-nama="' . htmlspecialchars($row['nama']) . '" 
-                             data-tanggal="' . htmlspecialchars($row['tanggal']) . '">
-                             <i class="fas fa-trash-alt"></i> Hapus</a></li>
-                      </ul>
-                     </div>';
+            <button class="btn btn-sm" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item btn-edit" href="#" data-bs-toggle="modal" data-bs-target="#modalEdit"
+                   '
+    . 'data-id="' . $row['id'] . '" '
+    . 'data-tanggal="' . htmlspecialchars($row['tanggal'] ?? '') . '" '
+    . 'data-jadwal="' . htmlspecialchars($row['jadwal'] ?? '') . '" '
+    . 'data-jam_kerja="' . htmlspecialchars($row['jam_kerja'] ?? '') . '" '
+    . 'data-valid="' . $row['valid'] . '" '
+    . 'data-pin="' . htmlspecialchars($row['pin'] ?? '') . '" '
+    . 'data-nip="' . htmlspecialchars($row['nip'] ?? '') . '" '
+    . 'data-nama="' . htmlspecialchars($row['nama'] ?? '') . '" '
+    . 'data-departemen="' . htmlspecialchars($row['departemen'] ?? '') . '" '
+    . 'data-lembur="' . $row['lembur'] . '" '
+    . 'data-jam_masuk="' . ($jamMasuk === '-' ? '' : $jamMasuk) . '" '
+    . 'data-scan_masuk="' . ($scanMasuk === '-' ? '' : $scanMasuk) . '" '
+    . 'data-terlambat="' . $row['terlambat'] . '" '
+    . 'data-scan_istirahat_1="' . htmlspecialchars($row['scan_istirahat_1'] ?? '') . '" '
+    . 'data-scan_istirahat_2="' . htmlspecialchars($row['scan_istirahat_2'] ?? '') . '" '
+    . 'data-jam_pulang="' . ($jamPulang === '-' ? '' : $jamPulang) . '" '
+    . 'data-scan_pulang="' . ($scanPulang === '-' ? '' : $scanPulang) . '" '
+    . 'data-jenis_absensi="' . htmlspecialchars($row['jenis_absensi'] ?? '') . '"'
+    . '><i class="fas fa-edit"></i> Edit</a></li>
+              <li><a class="dropdown-item btn-delete" href="#" data-bs-toggle="modal" data-bs-target="#modalDelete"
+                   data-id="' . $row['id'] . '" 
+                   data-nama="' . htmlspecialchars($row['nama'] ?? '') . '" 
+                   data-tanggal="' . htmlspecialchars($row['tanggal'] ?? '') . '">
+                   <i class="fas fa-trash-alt"></i> Hapus</a></li>
+            </ul>
+          </div>';
+
       $badgeJenis = 'badge-secondary';
       switch (strtolower($row['jenis_absensi'])) {
         case 'izin':
@@ -201,26 +202,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           break;
       }
       $nested = [
-        $no++,
-        htmlspecialchars($row['tanggal']),
-        htmlspecialchars($row['jadwal']),
-        htmlspecialchars($row['jam_kerja']),
-        $row['valid'] ? '1' : '0',
-        htmlspecialchars($row['pin']),
-        htmlspecialchars($row['nip']),
-        htmlspecialchars($row['nama']),
-        htmlspecialchars(strtoupper($row['departemen'])),
-        htmlspecialchars($row['lembur']),
-        htmlspecialchars($jamMasuk),
-        htmlspecialchars($scanMasuk),
-        $row['terlambat'] ? '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Ya</span>' : '<span class="badge bg-success"><i class="fas fa-check"></i> Tidak</span>',
-        htmlspecialchars($row['scan_istirahat_1'] ?: '-'),
-        htmlspecialchars($row['scan_istirahat_2'] ?: '-'),
-        htmlspecialchars($jamPulang),
-        htmlspecialchars($scanPulang),
-        '<span class="badge ' . $badgeJenis . '"><i class="fas fa-check-circle"></i> ' . ucfirst($row['jenis_absensi']) . '</span>',
-        $aksi
-      ];
+  $no++,
+  htmlspecialchars($row['tanggal'] ?? ''),
+  htmlspecialchars($row['jadwal'] ?? ''),
+  htmlspecialchars($row['jam_kerja'] ?? ''),
+  $row['valid'] ? '1' : '0',
+  htmlspecialchars($row['pin'] ?? ''),
+  htmlspecialchars($row['nip'] ?? ''),
+  htmlspecialchars($row['nama'] ?? ''),
+  htmlspecialchars(strtoupper($row['departemen'] ?? '')),
+  htmlspecialchars($row['lembur'] ?? ''),
+  htmlspecialchars($jamMasuk ?? ''),
+  htmlspecialchars($scanMasuk ?? ''),
+  $row['terlambat'] ? '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Ya</span>' : '<span class="badge bg-success"><i class="fas fa-check"></i> Tidak</span>',
+  htmlspecialchars($row['scan_istirahat_1'] ?: '-'),
+  htmlspecialchars($row['scan_istirahat_2'] ?: '-'),
+  htmlspecialchars($jamPulang ?? ''),
+  htmlspecialchars($scanPulang ?? ''),
+  '<span class="badge ' . $badgeJenis . '"><i class="fas fa-check-circle"></i> ' . ucfirst($row['jenis_absensi']) . '</span>',
+  $aksi
+];
+
       $data[] = $nested;
     }
     $out = [

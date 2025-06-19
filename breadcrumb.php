@@ -22,9 +22,11 @@ $menuStructure = [
         'url'   => '/superadmin/dashboard_superadmin.php',
         'items' => [
             'Dashboard Superadmin' => '/superadmin/dashboard_superadmin.php',
+            'Manage Manajerial' => '/superadmin/manage_manajerial.php',
             'Backup Database'      => '/superadmin/backup_database.php',
             'Error Log'            => '/superadmin/error_log.php',
             'Logs'                 => '/superadmin/logs.php',
+
         ],
     ],
     'SDM' => [

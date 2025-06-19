@@ -6,7 +6,7 @@
     require_once __DIR__ . '/../helpers.php';
     start_session_safe();
     init_error_handling();
-    authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+    authorize(['M:SDM']);
 
     // Koneksi DB
     require_once __DIR__ . '/../koneksi.php';

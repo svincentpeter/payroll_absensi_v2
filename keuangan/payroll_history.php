@@ -6,7 +6,7 @@ $pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['M:Keuangan', 'M:Superadmin']);
+authorize(['M:Keuangan']);
 require_once __DIR__ . '/../koneksi.php';
 $jenjangList = getOrderedJenjang($conn);;
 generate_csrf_token();

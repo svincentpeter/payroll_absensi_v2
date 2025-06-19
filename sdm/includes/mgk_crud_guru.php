@@ -88,17 +88,22 @@ function LoadingGuru($conn)
 
     // 4. Siapkan SQL dengan LIMIT ?, ?
     $sql = "
-    SELECT
-        id, uid, nip, nama, jenjang, unit_penempatan, job_title, role, status_kerja,
-        join_start, lama_kontrak, tgl_kontrak_selesai,
-        masa_kerja_tahun, masa_kerja_bulan, masa_kerja_efektif,
-        pendidikan, email, no_hp,
-        foto_profil, foto_ktp
-    FROM anggota_sekolah
-    $where
-    ORDER BY id DESC
-    LIMIT ?, ?
+SELECT
+    a.id, a.uid, a.nip, a.nama, a.jenjang, a.unit_penempatan, a.job_title, a.role, a.status_kerja,
+    a.join_start, a.lama_kontrak, a.tgl_kontrak_selesai,
+    a.masa_kerja_tahun, a.masa_kerja_bulan, a.masa_kerja_efektif,
+    a.pendidikan, a.email, a.no_hp,
+    a.foto_profil, a.foto_ktp,
+    a.faskes_bpjs, a.faskes_inhealth, a.faskes_ket,
+    j.color_bg as jenjang_bg,
+    j.color_fg as jenjang_fg
+FROM anggota_sekolah a
+LEFT JOIN jenjang_sekolah j ON a.jenjang = j.kode_jenjang
+$where
+ORDER BY a.id DESC
+LIMIT ?, ?
 ";
+
 
     // tambahkan parameter untuk LIMIT
     $types   .= "ii";
@@ -118,29 +123,34 @@ function LoadingGuru($conn)
     // 6. Ambil data dan format
     $data = [];
     while ($row = $res->fetch_assoc()) {
-        $masa = $row['masa_kerja_tahun'] . ' Thn ' . $row['masa_kerja_bulan'] . ' Bln';
-        $data[] = [
-            "id"           => $row['id'],
-            "uid"          => htmlspecialchars($row['uid']),
-            "nip"          => htmlspecialchars($row['nip']),
-            "nama"         => htmlspecialchars($row['nama']),
-            "jenjang"      => $row['jenjang'],
-            'unit_penempatan' => $row['unit_penempatan'],
-            "jenjang_badge" => getBadgeJenjang($row['jenjang'], $conn),
-            "job_title"    => htmlspecialchars($row['job_title']),
-            "role"         => $row['role'],
-            "status_kerja" => $row['status_kerja'],
-            "join_start"   => $row['join_start'],
-            "lama_kontrak" => $row['lama_kontrak'],
-            "tgl_kontrak_selesai" => $row['tgl_kontrak_selesai'],
-            "masa_kerja"   => $masa,
-            "pendidikan"   => htmlspecialchars($row['pendidikan']),
-            "email"        => htmlspecialchars($row['email']),
-            "no_hp"        => htmlspecialchars($row['no_hp']),
-            "foto_profil"  => getProfilePhotoUrl($row['foto_profil']),
-            "foto_ktp"     => getKtpPhotoUrl($row['foto_ktp']),
-        ];
-    }
+    $masa = $row['masa_kerja_tahun'] . ' Thn ' . $row['masa_kerja_bulan'] . ' Bln';
+    $data[] = [
+        "id"           => $row['id'],
+        "uid"          => htmlspecialchars($row['uid'] ?? ''),
+        "nip"          => htmlspecialchars($row['nip'] ?? ''),
+        "nama"         => htmlspecialchars($row['nama'] ?? ''),
+        "jenjang"      => $row['jenjang'],
+        'unit_penempatan' => $row['unit_penempatan'],
+        "jenjang_badge" => getBadgeJenjang($row['jenjang'], $conn),
+        "jenjang_bg"   => $row['jenjang_bg'] ?? null,   // <- Tambahkan ini
+        "jenjang_fg"   => $row['jenjang_fg'] ?? null,   // <- Tambahkan ini
+        "job_title"    => htmlspecialchars($row['job_title'] ?? ''),
+        "role"         => $row['role'],
+        "status_kerja" => $row['status_kerja'],
+        "join_start"   => $row['join_start'],
+        "lama_kontrak" => $row['lama_kontrak'],
+        "tgl_kontrak_selesai" => $row['tgl_kontrak_selesai'],
+        "masa_kerja"   => $masa,
+        "pendidikan"   => htmlspecialchars($row['pendidikan'] ?? ''),
+        "email"        => htmlspecialchars($row['email'] ?? ''),
+        "no_hp"        => htmlspecialchars($row['no_hp'] ?? ''),
+        "foto_profil"  => getProfilePhotoUrl($row['foto_profil']),
+        "foto_ktp"     => getKtpPhotoUrl($row['foto_ktp']),
+        "faskes_bpjs"     => $row['faskes_bpjs'],
+        "faskes_inhealth" => $row['faskes_inhealth'],
+        "faskes_ket"      => $row['faskes_ket'],
+    ];
+}
     $stmt->close();
 
     // 7. Kirim hasil
@@ -182,7 +192,7 @@ function CreateGuru(mysqli $conn)
     $stmtDup->close();
 
     // 3. Hitung data turunan
-    $uid          = generateUID($conn);
+    $uid = generateUID($conn, $jenjang);
     $status_kerja = bersihkan_input($_POST['status_kerja'] ?? 'Tetap');
     $join_start   = bersihkan_input($_POST['join_start']   ?? '');
     $lama_kontrak = ($status_kerja === 'Kontrak') ? intval($_POST['lama_kontrak'] ?? 12) : null;
@@ -217,6 +227,9 @@ function CreateGuru(mysqli $conn)
     $nama_anak_1       = bersihkan_input($_POST['nama_anak_1']       ?? '');
     $nama_anak_2       = bersihkan_input($_POST['nama_anak_2']       ?? '');
     $nama_anak_3       = bersihkan_input($_POST['nama_anak_3']       ?? '');
+    $faskes_bpjs     = isset($_POST['faskes_bpjs']) ? intval($_POST['faskes_bpjs']) : 0;
+    $faskes_inhealth = isset($_POST['faskes_inhealth']) ? intval($_POST['faskes_inhealth']) : 0;
+    $faskes_ket      = bersihkan_input($_POST['faskes_ket'] ?? null);
 
     if ($status_perkawinan === 'Belum Menikah') {
         $nama_pasangan = '-';
@@ -235,33 +248,66 @@ function CreateGuru(mysqli $conn)
     remark, jenis_kelamin, tanggal_lahir, usia, agama,
     alamat_domisili, alamat_ktp, no_rekening, no_hp, pendidikan,
     status_perkawinan, email, nama_pasangan, jumlah_anak,
-    nama_anak_1, nama_anak_2, nama_anak_3,
-    salary_index_id, gaji_pokok, foto_profil, foto_ktp, role, kategori
+    nama_anak_1, nama_anak_2, nama_anak_3,  
+    salary_index_id, gaji_pokok, foto_profil, foto_ktp, role, kategori,
+    'faskes_bpjs', 'faskes_inhealth', 'faskes_ket'
     ) VALUES (
     ?, ?, ?, ?, ?, ?, ?, ?, ?,
     ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )";
 
     // types: s=string, i=integer, d=double (decimal)
-    $types =  'sssssssssisiiidsssis'
-        . 'sssssssssisss'
-        . 'idsss'; // total 38 field
+    $types = 'sssssssssisiiidsssis' . 'sssssssssisss' . 'idsss' . 'iis'; // total 41
 
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         send_response(1, 'Query error: ' . $conn->error);
     }
     $stmt->bind_param(
-    $types,
-    $uid, $nip, $defaultPass, $nama, $jenjang, $unit_penempatan, $strata, $job_title, $status_kerja,
-    $join_start, $lama_kontrak, $tgl_kontrak, $sudah_kontrak,
-    $masa_tahun, $masa_bulan, $masa_eff,
-    $remark, $jk, $tgl_lahir, $usia, $religion,
-    $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan,
-    $status_perkawinan, $email, $nama_pasangan, $jumlah_anak,
-    $nama_anak_1, $nama_anak_2, $nama_anak_3,
-    $salary_index_id, $gaji_pokok, $foto_profil_url, $foto_ktp_url, $role, $kategori
+        $types,
+        $uid,
+        $nip,
+        $defaultPass,
+        $nama,
+        $jenjang,
+        $unit_penempatan,
+        $strata,
+        $job_title,
+        $status_kerja,
+        $join_start,
+        $lama_kontrak,
+        $tgl_kontrak,
+        $sudah_kontrak,
+        $masa_tahun,
+        $masa_bulan,
+        $masa_eff,
+        $remark,
+        $jk,
+        $tgl_lahir,
+        $usia,
+        $religion,
+        $alamat_domisili,
+        $alamat_ktp,
+        $no_rekening,
+        $no_hp,
+        $pendidikan,
+        $status_perkawinan,
+        $email,
+        $nama_pasangan,
+        $jumlah_anak,
+        $nama_anak_1,
+        $nama_anak_2,
+        $nama_anak_3,
+        $salary_index_id,
+        $gaji_pokok,
+        $foto_profil_url,
+        $foto_ktp_url,
+        $role,
+        $kategori,
+        $faskes_bpjs,
+        $faskes_inhealth,
+        $faskes_ket
     );
 
     if (!$stmt->execute()) {
@@ -405,6 +451,9 @@ function GetGuruDetail(mysqli $conn): array
             $row[$field] = "{$base}/assets/img/undraw_profile.svg";
         }
     }
+    $row['faskes_bpjs']     = intval($row['faskes_bpjs'] ?? 0);
+    $row['faskes_inhealth'] = intval($row['faskes_inhealth'] ?? 0);
+    $row['faskes_ket']      = $row['faskes_ket'] ?? '';
 
     send_response(0, $row);
 }
@@ -518,6 +567,9 @@ function UpdateGuru(mysqli $conn)
     $nama_anak_1       = bersihkan_input($_POST['nama_anak_1']       ?? '');
     $nama_anak_2       = bersihkan_input($_POST['nama_anak_2']       ?? '');
     $nama_anak_3       = bersihkan_input($_POST['nama_anak_3']       ?? '');
+    $faskes_bpjs     = isset($_POST['faskes_bpjs']) ? intval($_POST['faskes_bpjs']) : 0;
+    $faskes_inhealth = isset($_POST['faskes_inhealth']) ? intval($_POST['faskes_inhealth']) : 0;
+    $faskes_ket      = bersihkan_input($_POST['faskes_ket'] ?? null);
 
     if ($status_perkawinan === 'Belum Menikah') {
         $nama_pasangan = '-';
@@ -561,6 +613,9 @@ function UpdateGuru(mysqli $conn)
         'nama_anak_3' => $nama_anak_3,
         'foto_profil' => $fotoProfilUrl,
         'foto_ktp' => $fotoKtpUrl,
+        'faskes_bpjs'     => $faskes_bpjs,
+        'faskes_inhealth' => $faskes_inhealth,
+        'faskes_ket'      => $faskes_ket,
     ];
 
     $cols['salary_index_id'] = ($_POST['salary_index_id'] ?? '') !== ''
@@ -646,16 +701,31 @@ function DeleteGuru($conn)
  * 6. generateUID  (8 char hex unik)
  * ================================================================ */
 if (!function_exists('generateUID')) {
-    function generateUID(mysqli $conn): string
+    function generateUID(mysqli $conn, string $jenjang): string
     {
-        do {
-            $uid = strtoupper(substr(md5(uniqid('', true)), 0, 8));
-            $st = $conn->prepare("SELECT id FROM anggota_sekolah WHERE uid=?");
-            $st->bind_param("s", $uid);
-            $st->execute();
-            $dup = $st->get_result()->num_rows;
-            $st->close();
-        } while ($dup);
-        return $uid;
+        return mapJenjangToUidCode($jenjang); // Hanya 2 digit
     }
+}
+
+/**
+ * Konversi teks jenjang (“TK”, “SMK 1”, dst.) menjadi
+ * 2-digit string sesuai aturan perusahaan.
+ */
+function mapJenjangToUidCode(string $jenjang): string
+{
+    $map = [
+        'tk'       => '01',
+        'sd'       => '02',
+        'smp'      => '03',
+        'sma'      => '04',
+        'smk 1'    => '05',
+        'smk1'     => '05',   // agar “SMK1” tanpa spasi tetap ter-handle
+        'smk 2'    => '06',
+        'smk2'     => '06',
+        'stifera'  => '07',
+        'umum'     => '08',
+    ];
+
+    $key = strtolower(trim($jenjang));
+    return $map[$key] ?? '00';           // fallback “00” bila jenjang tak dikenal
 }

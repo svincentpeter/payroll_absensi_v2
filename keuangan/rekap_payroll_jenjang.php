@@ -6,7 +6,7 @@ $pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['M:Keuangan','M:Superadmin']);
+authorize(['M:Keuangan']);
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 require_once __DIR__ . '/../koneksi.php';
@@ -18,14 +18,14 @@ $tahun   = intval($_GET['tahun'] ?? date('Y'));
 
 // Mapping warna & icon sesuai jenjang
 $jenjangMeta = [
-  'TK'  => ['icon'=>'fas fa-child',              'color'=>'#e74c3c'],
-  'SD'  => ['icon'=>'fas fa-book-open',          'color'=>'#3498db'],
-  'SMP' => ['icon'=>'fas fa-user-graduate',      'color'=>'#2ecc71'],
-  'SMA' => ['icon'=>'fas fa-chalkboard-teacher', 'color'=>'#f1c40f'],
-  'SMK' => ['icon'=>'fas fa-tools',              'color'=>'#9b59b6'],
-  'SEMUA' => ['icon'=>'fas fa-layer-group',        'color'=>'#273c75'],
+  'TK'  => ['icon' => 'fas fa-child',              'color' => '#e74c3c'],
+  'SD'  => ['icon' => 'fas fa-book-open',          'color' => '#3498db'],
+  'SMP' => ['icon' => 'fas fa-user-graduate',      'color' => '#2ecc71'],
+  'SMA' => ['icon' => 'fas fa-chalkboard-teacher', 'color' => '#f1c40f'],
+  'SMK' => ['icon' => 'fas fa-tools',              'color' => '#9b59b6'],
+  'SEMUA' => ['icon' => 'fas fa-layer-group',        'color' => '#273c75'],
 ];
-$meta = $jenjangMeta[$jenjang] ?? ['icon'=>'fas fa-school','color'=>'#34495e'];
+$meta = $jenjangMeta[$jenjang] ?? ['icon' => 'fas fa-school', 'color' => '#34495e'];
 
 // -----------------------------------------------------------------------------
 // 1) Ambil konfigurasi payhead
@@ -53,7 +53,7 @@ $rs->free();
 
 // ambil semua earning payheads (kecuali yg grouped)
 $inList = $groupMembers
-  ? "'" . implode("','", array_map([$conn,'real_escape_string'],$groupMembers)) . "'"
+  ? "'" . implode("','", array_map([$conn, 'real_escape_string'], $groupMembers)) . "'"
   : "''";
 $earningPayheads = [];
 $rs = $conn->query("
@@ -90,7 +90,7 @@ $PAYHEADS = array_merge($earningPayheads, $deductionPayheads);
 // -----------------------------------------------------------------------------
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    send_response(405,'Metode tidak diizinkan');
+    send_response(405, 'Metode tidak diizinkan');
   }
   verify_csrf_token($_POST['csrf_token'] ?? '');
   $category = sanitize_input($_GET['category'] ?? '');
@@ -100,12 +100,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
       loadDetail($conn, $jenjang, $bulan, $tahun, $category);
       break;
     default:
-      send_response(400,'Kategori tidak valid');
+      send_response(400, 'Kategori tidak valid');
   }
   exit;
 }
 
-function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
+function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
+{
   global $earningPayheads, $deductionPayheads, $PAYHEAD_GROUPS, $PAYHEADS;
 
   // DataTables params
@@ -115,15 +116,15 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori) {
   $search = sanitize_input($_POST['search']['value'] ?? '');
 
   // Build WHERE & params
-if (strtolower($jenjang) === 'semua') {
-  $sqlWhere = "WHERE a.kategori=? AND pf.bulan=? AND pf.tahun=?";
-  $params   = [$kategori, $bulan, $tahun];
-  $types    = "sii";
-} else {
-  $sqlWhere = "WHERE a.jenjang=? AND a.kategori=? AND pf.bulan=? AND pf.tahun=?";
-  $params   = [$jenjang, $kategori, $bulan, $tahun];
-  $types    = "ssii";
-}
+  if (strtolower($jenjang) === 'semua') {
+    $sqlWhere = "WHERE a.kategori=? AND pf.bulan=? AND pf.tahun=?";
+    $params   = [$kategori, $bulan, $tahun];
+    $types    = "sii";
+  } else {
+    $sqlWhere = "WHERE a.jenjang=? AND a.kategori=? AND pf.bulan=? AND pf.tahun=?";
+    $params   = [$jenjang, $kategori, $bulan, $tahun];
+    $types    = "ssii";
+  }
 
   if ($search !== '') {
     $sqlWhere .= " AND (a.nama LIKE ? OR a.nip LIKE ?)";
@@ -298,9 +299,10 @@ if (strtolower($jenjang) === 'semua') {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
-  <title>Detail <?=htmlspecialchars($jenjang)?> – <?=getIndonesianMonthName($bulan).' '.$tahun?></title>
+  <title>Detail <?= htmlspecialchars($jenjang) ?> – <?= getIndonesianMonthName($bulan) . ' ' . $tahun ?></title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <!-- CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -314,45 +316,74 @@ if (strtolower($jenjang) === 'semua') {
       border-left: 5px solid <?= $meta['color'] ?>;
       padding: 1rem 1.5rem;
       margin-bottom: 1.5rem;
-      box-shadow: 0 .2rem .4rem rgba(0,0,0,.1);
+      box-shadow: 0 .2rem .4rem rgba(0, 0, 0, .1);
     }
 
     /* ===== Page Title Styling ===== */
-.page-title {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    font-size: 2.5rem;
-    color: #0d47a1;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 3px solid #1976d2;
-    padding-bottom: 0.3rem;
-    margin-bottom: 1.5rem;
-    animation: fadeInSlide 0.5s ease-in-out both;
-}
-.page-title i {
-    color: #1976d2;
-    font-size: 2.8rem;
-}
-    .page-header h3 {
-      margin: 0; font-weight: 600; color: #333;
+    .page-title {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 2.5rem;
+      color: #0d47a1;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 3px solid #1976d2;
+      padding-bottom: 0.3rem;
+      margin-bottom: 1.5rem;
+      animation: fadeInSlide 0.5s ease-in-out both;
     }
-    .back-btn {
-      color: #fff; background: <?= $meta['color'] ?>; border: none;
-    }
-    .back-btn:hover { filter: brightness(90%); }
 
-    table.dataTable, table.dataTable th, table.dataTable td {
+    .page-title i {
+      color: #1976d2;
+      font-size: 2.8rem;
+    }
+
+    .page-header h3 {
+      margin: 0;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .back-btn {
+      color: #fff;
+      background: <?= $meta['color'] ?>;
+      border: none;
+    }
+
+    .back-btn:hover {
+      filter: brightness(90%);
+    }
+
+    table.dataTable,
+    table.dataTable th,
+    table.dataTable td {
       font-size: 0.85rem;
     }
-    .card-header { background: #0d47a1; color: #fff; }
-    table.dataTable thead th { background: #343a40; color: #fff; text-align: center; }
-    table.dataTable td, table.dataTable th { vertical-align: middle; }
-    tfoot th { font-weight: bold; }
+
+    .card-header {
+      background: #0d47a1;
+      color: #fff;
+    }
+
+    table.dataTable thead th {
+      background: #343a40;
+      color: #fff;
+      text-align: center;
+    }
+
+    table.dataTable td,
+    table.dataTable th {
+      vertical-align: middle;
+    }
+
+    tfoot th {
+      font-weight: bold;
+    }
   </style>
 </head>
+
 <body>
   <div class="container-fluid py-4">
     <!-- PAGE HEADER -->
@@ -362,97 +393,131 @@ if (strtolower($jenjang) === 'semua') {
       </button>
 
       <h1 class="page-title">
-  <i class="<?= $meta['icon'] ?> me-2"></i>
-  Rekap <?= strtoupper($jenjang)=='SEMUA'?'Semua Jenjang':htmlspecialchars($jenjang) ?> – <?= getIndonesianMonthName($bulan) . ' ' . $tahun ?>
-</h1>
-
-    
+        <i class="<?= $meta['icon'] ?> me-2"></i>
+        Rekap <?= strtoupper($jenjang) == 'SEMUA' ? 'Semua Jenjang' : htmlspecialchars($jenjang) ?> – <?= getIndonesianMonthName($bulan) . ' ' . $tahun ?>
+      </h1>
     </div>
 
-    <?php
-      function renderColsHeader($list) {
-        foreach ($list as $item) {
-          echo "<th>{$item}</th>";
-        }
-      }
-      function renderColsFooter($list) {
-        foreach ($list as $_) {
-          echo "<th></th>";
-        }
-      }
-    ?>
 
-    <!-- Rekap Guru -->
-    <div class="card mb-4 shadow">
-      <div class="card-header"><i class="fas fa-chalkboard-teacher"></i> Rekap Guru</div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table id="tblGuru" class="table table-sm table-bordered table-striped w-100">
-            <thead>
-              <tr>
-                <th>NIP</th><th>Nama</th><th>Keterangan</th>
-                <th>Gaji Pokok</th><th>Indeks</th>
-                <?php renderColsHeader($earningPayheads); ?>
-                <?php renderColsHeader($PAYHEAD_GROUPS); ?>
-                <?php renderColsHeader($deductionPayheads); ?>
-                <th>Pembulatan</th>
-                <th>Jumlah Pendapatan</th>
-                <th>Max Pot. Kop</th>
-                <th>Pot. Koperasi</th>
-                <th>Jumlah Potongan</th>
-                <th>Jumlah Yang Diterima</th>
-              </tr>
-            </thead>
-            <tfoot>
-              <tr>
-                <th colspan="5" class="text-end">Jumlah:</th>
-                <?php renderColsFooter($earningPayheads); ?>
-                <?php renderColsFooter($PAYHEAD_GROUPS); ?>
-                <?php renderColsFooter($deductionPayheads); ?>
-                <th></th><th></th><th></th><th></th><th></th><th></th>
-              </tr>
-            </tfoot>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+  </div>
 
-    <!-- Rekap Karyawan -->
-    <div class="card mb-4 shadow">
-      <div class="card-header"><i class="fas fa-users"></i> Rekap Karyawan</div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table id="tblKaryawan" class="table table-sm table-bordered table-striped w-100">
-            <thead>
-              <tr>
-                <th>NIP</th><th>Nama</th><th>Keterangan</th>
-                <th>Gaji Pokok</th><th>Indeks</th>
-                <?php renderColsHeader($earningPayheads); ?>
-                <?php renderColsHeader($PAYHEAD_GROUPS); ?>
-                <?php renderColsHeader($deductionPayheads); ?>
-                <th>Pembulatan</th>
-                <th>Jumlah Pendapatan</th>
-                <th>Max Pot. Kop</th>
-                <th>Pot. Koperasi</th>
-                <th>Jumlah Potongan</th>
-                <th>Jumlah Yang Diterima</th>
-              </tr>
-            </thead>
-            <tfoot>
-              <tr>
-                <th colspan="5" class="text-end">Jumlah:</th>
-                <?php renderColsFooter($earningPayheads); ?>
-                <?php renderColsFooter($PAYHEAD_GROUPS); ?>
-                <?php renderColsFooter($deductionPayheads); ?>
-                <th></th><th></th><th></th><th></th><th></th><th></th>
-              </tr>
-            </tfoot>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
+  <?php
+  function renderColsHeader($list)
+  {
+    foreach ($list as $item) {
+      echo "<th>{$item}</th>";
+    }
+  }
+  function renderColsFooter($list)
+  {
+    foreach ($list as $_) {
+      echo "<th></th>";
+    }
+  }
+  ?>
+
+  <!-- Rekap Guru -->
+<div class="card mb-4 shadow">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="fas fa-chalkboard-teacher"></i> Rekap Guru</span>
+    <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=guru"
+      class="btn btn-success btn-sm d-flex align-items-center"
+      target="_blank" title="Export Excel">
+      <i class="fas fa-file-excel me-2"></i> Export Excel
+    </a>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table id="tblGuru" class="table table-sm table-bordered table-striped w-100">
+        <thead>
+          <tr>
+            <th>NIP</th>
+            <th>Nama</th>
+            <th>Keterangan</th>
+            <th>Gaji Pokok</th>
+            <th>Indeks</th>
+            <?php renderColsHeader($earningPayheads); ?>
+            <?php renderColsHeader($PAYHEAD_GROUPS); ?>
+            <?php renderColsHeader($deductionPayheads); ?>
+            <th>Pembulatan</th>
+            <th>Jumlah Pendapatan</th>
+            <th>Max Pot. Kop</th>
+            <th>Pot. Koperasi</th>
+            <th>Jumlah Potongan</th>
+            <th>Jumlah Yang Diterima</th>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th colspan="5" class="text-end">Jumlah:</th>
+            <?php renderColsFooter($earningPayheads); ?>
+            <?php renderColsFooter($PAYHEAD_GROUPS); ?>
+            <?php renderColsFooter($deductionPayheads); ?>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+        </tfoot>
+        <tbody></tbody>
+      </table>
     </div>
+  </div>
+</div>
+
+<!-- Rekap Karyawan -->
+<div class="card mb-4 shadow">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="fas fa-users"></i> Rekap Karyawan</span>
+    <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=karyawan"
+      class="btn btn-success btn-sm d-flex align-items-center"
+      target="_blank" title="Export Excel">
+      <i class="fas fa-file-excel me-2"></i> Export Excel
+    </a>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table id="tblKaryawan" class="table table-sm table-bordered table-striped w-100">
+        <thead>
+          <tr>
+            <th>NIP</th>
+            <th>Nama</th>
+            <th>Keterangan</th>
+            <th>Gaji Pokok</th>
+            <th>Indeks</th>
+            <?php renderColsHeader($earningPayheads); ?>
+            <?php renderColsHeader($PAYHEAD_GROUPS); ?>
+            <?php renderColsHeader($deductionPayheads); ?>
+            <th>Pembulatan</th>
+            <th>Jumlah Pendapatan</th>
+            <th>Max Pot. Kop</th>
+            <th>Pot. Koperasi</th>
+            <th>Jumlah Potongan</th>
+            <th>Jumlah Yang Diterima</th>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th colspan="5" class="text-end">Jumlah:</th>
+            <?php renderColsFooter($earningPayheads); ?>
+            <?php renderColsFooter($PAYHEAD_GROUPS); ?>
+            <?php renderColsFooter($deductionPayheads); ?>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+        </tfoot>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
   </div>
 
   <!-- JS -->
@@ -461,43 +526,71 @@ if (strtolower($jenjang) === 'semua') {
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
   <script>
-    const csrf = '<?=$csrf_token?>';
-    const baseUrl = 'rekap_payroll_jenjang.php?ajax=1'
-      + '&jenjang=<?=urlencode($jenjang)?>'
-      + '&bulan=<?=$bulan?>'
-      + '&tahun=<?=$tahun?>';
+    const csrf = '<?= $csrf_token ?>';
+    const baseUrl = 'rekap_payroll_jenjang.php?ajax=1' +
+      '&jenjang=<?= urlencode($jenjang) ?>' +
+      '&bulan=<?= $bulan ?>' +
+      '&tahun=<?= $tahun ?>';
 
     // bangun dynamic columns
-    let dynEarnings = [], dynGroups = [], dynDeductions = [];
-    <?php foreach($earningPayheads as $ph): ?>
-      dynEarnings.push({ data:'ph_<?=substr(md5($ph),0,8)?>' });
+    let dynEarnings = [],
+      dynGroups = [],
+      dynDeductions = [];
+    <?php foreach ($earningPayheads as $ph): ?>
+      dynEarnings.push({
+        data: 'ph_<?= substr(md5($ph), 0, 8) ?>'
+      });
     <?php endforeach; ?>
-    <?php foreach($PAYHEAD_GROUPS as $g): ?>
-      dynGroups.push({ data:'gr_<?=substr(md5($g),0,8)?>' });
+    <?php foreach ($PAYHEAD_GROUPS as $g): ?>
+      dynGroups.push({
+        data: 'gr_<?= substr(md5($g), 0, 8) ?>'
+      });
     <?php endforeach; ?>
-    <?php foreach($deductionPayheads as $ph): ?>
-      dynDeductions.push({ data:'ph_<?=substr(md5($ph),0,8)?>' });
+    <?php foreach ($deductionPayheads as $ph): ?>
+      dynDeductions.push({
+        data: 'ph_<?= substr(md5($ph), 0, 8) ?>'
+      });
     <?php endforeach; ?>
 
     function initTable(selector, category) {
-      let cols = [
-        { data:'nip' },
-        { data:'nama' },
-        { data:'keterangan' },
-        { data:'gaji_pokok' },
-        { data:'idx_amount' }
-      ]
-      .concat(dynEarnings)
-      .concat(dynGroups)
-      .concat(dynDeductions)
-      .concat([
-        { data:'pembulatan' },
-        { data:'total_pendapatan' },
-        { data:'max_pot_kop' },
-        { data:'pot_koperasi' },
-        { data:'total_potongan' },
-        { data:'net_received' }
-      ]);
+      let cols = [{
+            data: 'nip'
+          },
+          {
+            data: 'nama'
+          },
+          {
+            data: 'keterangan'
+          },
+          {
+            data: 'gaji_pokok'
+          },
+          {
+            data: 'idx_amount'
+          }
+        ]
+        .concat(dynEarnings)
+        .concat(dynGroups)
+        .concat(dynDeductions)
+        .concat([{
+            data: 'pembulatan'
+          },
+          {
+            data: 'total_pendapatan'
+          },
+          {
+            data: 'max_pot_kop'
+          },
+          {
+            data: 'pot_koperasi'
+          },
+          {
+            data: 'total_potongan'
+          },
+          {
+            data: 'net_received'
+          }
+        ]);
 
       return $(selector).DataTable({
         processing: true,
@@ -505,35 +598,44 @@ if (strtolower($jenjang) === 'semua') {
         ajax: {
           url: baseUrl + '&category=' + category,
           type: 'POST',
-          data: { csrf_token: csrf }
+          data: {
+            csrf_token: csrf
+          }
         },
         columns: cols,
-        order: [[1,'asc']],
+        order: [
+          [1, 'asc']
+        ],
         footerCallback: function(row, data, start, end, display) {
           let api = this.api();
-          let parse = v => typeof v==='string'
-            ? parseFloat(v.replace(/[^0-9]/g,''))||0
-            : (typeof v==='number'?v:0);
+          let parse = v => typeof v === 'string' ?
+            parseFloat(v.replace(/[^0-9]/g, '')) || 0 :
+            (typeof v === 'number' ? v : 0);
 
           api.columns().every(function(idx) {
             if (idx < 3) return;
-            let total = this.data().reduce((a,b) => parse(a)+parse(b), 0);
+            let total = this.data().reduce((a, b) => parse(a) + parse(b), 0);
             $(this.footer()).html(
-              'Rp ' + total.toLocaleString('id-ID',{ minimumFractionDigits:0 })
+              'Rp ' + total.toLocaleString('id-ID', {
+                minimumFractionDigits: 0
+              })
             );
           });
         },
         dom: 'Bfrtip',
-        buttons: ['excel','pdf','print'],
-        lengthMenu: [10,25,50,100],
-        language: { url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json" }
+        buttons: ['excel', 'pdf', 'print'],
+        lengthMenu: [10, 25, 50, 100],
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.10.21/i18n/Indonesian.json"
+        }
       });
     }
 
-    $(document).ready(function(){
-      initTable('#tblGuru','guru');
-      initTable('#tblKaryawan','karyawan');
+    $(document).ready(function() {
+      initTable('#tblGuru', 'guru');
+      initTable('#tblKaryawan', 'karyawan');
     });
   </script>
 </body>
+
 </html>

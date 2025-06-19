@@ -10,7 +10,7 @@ generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 require_once __DIR__ . '/../koneksi.php';
-authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM']);
 
 // ======= MODULARISASI: load semua fungsi dari includes =======
 require_once __DIR__ . '/includes/employees_core.php';
@@ -367,7 +367,7 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                             <div class="card-body d-flex align-items-center py-3">
                                 <i class="bi bi-calendar3 me-2 fs-4 text-primary"></i>
                                 <span class="fw-bold fs-5">
-                                    Payroll Bulan: <?= date("F", mktime(0, 0, 0, $filterMonth, 1)) . ' ' . $filterYear ?>
+                                    Payroll Bulan: <?= date("F", mktime(0, 0, 0, $selectedMonth, 1)) . ' ' . $selectedYear ?>
                                 </span>
                                 <button id="btnChangeCalendar" class="btn btn-outline-primary ms-auto">
                                     <i class="bi bi-pencil-square me-1"></i> Ganti Periode

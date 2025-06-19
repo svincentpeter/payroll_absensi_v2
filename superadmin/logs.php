@@ -11,7 +11,7 @@ generate_csrf_token();
 generate_csrf_token();
 
 // Pastikan hanya superadmin yang dapat mengakses halaman ini
-authorize('M:superadmin', '/payroll_absensi_v2/login.php');
+authorize(['M:Superadmin']);
 
 // Koneksi ke database
 require_once __DIR__ . '/../koneksi.php';
@@ -152,25 +152,28 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
         body {
             background-color: #f8f9fc;
         }
-/* ===== Page Title Styling ===== */
-.page-title {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    font-size: 2.5rem;
-    color: #0d47a1;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 3px solid #1976d2;
-    padding-bottom: 0.3rem;
-    margin-bottom: 1.5rem;
-    animation: fadeInSlide 0.5s ease-in-out both;
-}
-.page-title i {
-    color: #1976d2;
-    font-size: 2.8rem;
-}
+
+        /* ===== Page Title Styling ===== */
+        .page-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 2.5rem;
+            color: #0d47a1;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 3px solid #1976d2;
+            padding-bottom: 0.3rem;
+            margin-bottom: 1.5rem;
+            animation: fadeInSlide 0.5s ease-in-out both;
+        }
+
+        .page-title i {
+            color: #1976d2;
+            font-size: 2.8rem;
+        }
+
         /* Card custom dengan ukuran maksimal tidak terlalu besar */
         .card-custom {
             max-width: 900px;
@@ -287,58 +290,58 @@ add_audit_log($conn, $user_id, 'AccessAuditLogs', 'Mengakses halaman Audit Logs.
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <!-- Page Heading -->
-                     <h1 class="page-title">
-        <i class="fas fa-list-alt"></i> Audit Logs
-    </h1>
-<!-- Filter Audit Logs -->
-<div class="card mb-4 shadow">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 fw-bold text-white">
-            <i class="fas fa-filter"></i> Filter Audit Logs
-        </h6>
-    </div>
-    <div class="card-body" style="background-color: #f8f9fa;">
-        <form method="GET" id="filterForm" class="row gy-2 gx-3 align-items-center">
-            <!-- Start Date -->
-            <div class="col-auto">
-                <label for="start_date" class="form-label mb-0"><strong>Start Date:</strong></label>
-                <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
-            </div>
-            <!-- End Date -->
-            <div class="col-auto">
-                <label for="end_date" class="form-label mb-0"><strong>End Date:</strong></label>
-                <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
-            </div>
-            <!-- Role -->
-            <div class="col-auto">
-                <label for="role" class="form-label mb-0"><strong>Role:</strong></label>
-                <select class="form-control" id="role" name="role">
-                    <option value="">All</option>
-                    <option value="superadmin" <?php echo (isset($_GET['role']) && $_GET['role'] == 'superadmin') ? 'selected' : ''; ?>>Superadmin</option>
-                    <option value="keuangan" <?php echo (isset($_GET['role']) && $_GET['role'] == 'keuangan') ? 'selected' : ''; ?>>Keuangan</option>
-                    <option value="sdm" <?php echo (isset($_GET['role']) && $_GET['role'] == 'sdm') ? 'selected' : ''; ?>>SDM</option>
-                    <option value="guru" <?php echo (isset($_GET['role']) && $_GET['role'] == 'guru') ? 'selected' : ''; ?>>Guru</option>
-                    <option value="karyawan" <?php echo (isset($_GET['role']) && $_GET['role'] == 'karyawan') ? 'selected' : ''; ?>>Karyawan</option>
-                </select>
-            </div>
-            <!-- Search -->
-            <div class="col-auto">
-                <label for="search" class="form-label mb-0"><strong>Search:</strong></label>
-                <input type="text" class="form-control" id="search" name="search" placeholder="Action or Details" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-            </div>
-            <!-- Tombol -->
-            <div class="col-auto d-flex align-items-end">
-                <button type="submit" class="btn btn-primary me-2">
-                    <i class="fas fa-search"></i> Filter
-                </button>
-                <a href="logs.php" class="btn btn-warning">
-                    <i class="fas fa-sync-alt"></i> Reset
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
-<!-- End Filter Audit Logs -->
+                    <h1 class="page-title">
+                        <i class="fas fa-list-alt"></i> Audit Logs
+                    </h1>
+                    <!-- Filter Audit Logs -->
+                    <div class="card mb-4 shadow">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-white">
+                                <i class="fas fa-filter"></i> Filter Audit Logs
+                            </h6>
+                        </div>
+                        <div class="card-body" style="background-color: #f8f9fa;">
+                            <form method="GET" id="filterForm" class="row gy-2 gx-3 align-items-center">
+                                <!-- Start Date -->
+                                <div class="col-auto">
+                                    <label for="start_date" class="form-label mb-0"><strong>Start Date:</strong></label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo isset($_GET['start_date']) ? htmlspecialchars($_GET['start_date']) : ''; ?>">
+                                </div>
+                                <!-- End Date -->
+                                <div class="col-auto">
+                                    <label for="end_date" class="form-label mb-0"><strong>End Date:</strong></label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo isset($_GET['end_date']) ? htmlspecialchars($_GET['end_date']) : ''; ?>">
+                                </div>
+                                <!-- Role -->
+                                <div class="col-auto">
+                                    <label for="role" class="form-label mb-0"><strong>Role:</strong></label>
+                                    <select class="form-control" id="role" name="role">
+                                        <option value="">All</option>
+                                        <option value="superadmin" <?php echo (isset($_GET['role']) && $_GET['role'] == 'superadmin') ? 'selected' : ''; ?>>Superadmin</option>
+                                        <option value="keuangan" <?php echo (isset($_GET['role']) && $_GET['role'] == 'keuangan') ? 'selected' : ''; ?>>Keuangan</option>
+                                        <option value="sdm" <?php echo (isset($_GET['role']) && $_GET['role'] == 'sdm') ? 'selected' : ''; ?>>SDM</option>
+                                        <option value="guru" <?php echo (isset($_GET['role']) && $_GET['role'] == 'guru') ? 'selected' : ''; ?>>Guru</option>
+                                        <option value="karyawan" <?php echo (isset($_GET['role']) && $_GET['role'] == 'karyawan') ? 'selected' : ''; ?>>Karyawan</option>
+                                    </select>
+                                </div>
+                                <!-- Search -->
+                                <div class="col-auto">
+                                    <label for="search" class="form-label mb-0"><strong>Search:</strong></label>
+                                    <input type="text" class="form-control" id="search" name="search" placeholder="Action or Details" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+                                </div>
+                                <!-- Tombol -->
+                                <div class="col-auto d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary me-2">
+                                        <i class="fas fa-search"></i> Filter
+                                    </button>
+                                    <a href="logs.php" class="btn btn-warning">
+                                        <i class="fas fa-sync-alt"></i> Reset
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- End Filter Audit Logs -->
 
                     <!-- Audit Logs Timeline Card -->
                     <div class="card card-custom">

@@ -1,9 +1,7 @@
 <?php
 // File: /payroll_absensi_v2/sdm/dashboard_sdm.php
 
-// =========================
 // 1. Inisialisasi Session, Keamanan, & Koneksi Database
-// =========================
 $pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 
 require_once __DIR__ . '/../helpers.php';
@@ -12,20 +10,44 @@ init_error_handling();
 require_once __DIR__ . '/../koneksi.php';
 
 // Otorisasi pengguna (hanya role sdm & superadmin)
-authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM']);
 
 // Pastikan CSRF token telah di-generate
 generate_csrf_token();
 
-$jenjangMeta = [
-    'TK'  => ['icon'=>'fas fa-child',              'color'=>'#e74c3c'],
-    'SD'  => ['icon'=>'fas fa-book-open',          'color'=>'#3498db'],
-    'SMP' => ['icon'=>'fas fa-user-graduate',      'color'=>'#2ecc71'],
-    'SMA' => ['icon'=>'fas fa-chalkboard-teacher', 'color'=>'#f1c40f'],
-    'SMK' => ['icon'=>'fas fa-tools',              'color'=>'#9b59b6'],
+// --- [MODIF] ---
+// Tarik meta jenjang dari DB, bukan hardcode!
+$jenjangMeta = [];
+$res = $conn->query("SELECT kode_jenjang, nama_jenjang, color_bg, color_fg FROM jenjang_sekolah WHERE is_aktif=1");
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $icon = match(strtoupper($row['kode_jenjang'])) {
+            'TK'        => 'fas fa-child',
+            'SD'        => 'fas fa-book-open',
+            'SMP'       => 'fas fa-user-graduate',
+            'SMA'       => 'fas fa-chalkboard-teacher',
+            'SMK1', 'SMK2' => 'fas fa-tools',
+            'STIFERA'   => 'fas fa-microscope',
+            'STIFERA'   => 'fas fa-microscope',
+            'UMUM'      => 'fas fa-users',
+            default     => 'fas fa-school',
+        };
+        $jenjangMeta[$row['kode_jenjang']] = [
+            'icon'  => $icon,
+            'color' => $row['color_bg'],
+            'fg'    => $row['color_fg'],
+            'label' => $row['nama_jenjang']
+        ];
+    }
+    $res->close();
+}
+// Fallback (Lainnya)
+$defaultMeta = [
+    'icon'=>'fas fa-school',
+    'color'=>'#34495e',
+    'fg'=>'#fff',
+    'label'=>'Lainnya'
 ];
-// default untuk jenjang lain
-$defaultMeta = ['icon'=>'fas fa-school','color'=>'#34495e'];
 
 // =========================
 // 2. Tangani Permintaan AJAX
@@ -45,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             SUM(role='M')  AS M
           FROM anggota_sekolah
           GROUP BY jenjang
-          ORDER BY FIELD(jenjang,'SD','SMP','SMA') ASC, jenjang ASC
+          ORDER BY FIELD(jenjang,'TK','SD','SMP','SMA','SMK1','SMK2','STIFERA','UMUM'), jenjang ASC
         ";
         $stmt = $conn->prepare($query);
         if (!$stmt) {
@@ -142,9 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// =========================
 // 3. Ambil Data Penting (KPI, dsb.)
-// =========================
 $sqlTotalAnggota = "SELECT COUNT(*) AS total_anggota FROM anggota_sekolah";
 $resTotal        = $conn->query($sqlTotalAnggota);
 $totalAnggota    = 0;
@@ -153,9 +173,7 @@ if ($resTotal) {
     $resTotal->close();
 }
 
-// =========================
 // 4. Render Halaman
-// =========================
 $monthNames = [
     1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
     4 => 'April',   5 => 'Mei',      6 => 'Juni',
@@ -178,53 +196,35 @@ $monthNames = [
 
   <style>
     body, .text-gray-800 { color: #000 !important; }
-/* ===== Page Title Styling ===== */
-.page-title {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    font-size: 2.5rem;
-    color: #0d47a1;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 3px solid #1976d2;
-    padding-bottom: 0.3rem;
-    margin-bottom: 1.5rem;
-    animation: fadeInSlide 0.5s ease-in-out both;
-}
-.page-title i {
-    color: #1976d2;
-    font-size: 2.8rem;
-}
+    .page-title {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        font-size: 2.5rem;
+        color: #0d47a1;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 3px solid #1976d2;
+        padding-bottom: 0.3rem;
+        margin-bottom: 1.5rem;
+        animation: fadeInSlide 0.5s ease-in-out both;
+    }
+    .page-title i {
+        color: #1976d2;
+        font-size: 2.8rem;
+    }
     .card-header-filter { background: linear-gradient(45deg, #4e73df, #224abe); color: #fff; }
     .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
     .card-calendar { background: linear-gradient(45deg, #0f2027, #203a43, #2c5364); color: #fff; }
     .calendar { width:100%; table-layout:fixed; }
     .calendar th, .calendar td { text-align:center; padding:5px; font-size:.9rem; }
     .calendar .today { background:#42a5f5; color:#fff; font-weight:bold; }
-
     #digitalClock {
       font-size:2rem; font-weight:bold; text-align:center;
       background:#f8f9fc; padding:.75rem; border-radius:.25rem;
       margin-bottom:1rem;
     }
-
-    .card-unpaid .list-group-item.SD       { border-left:.25rem solid #28a745; }
-    .card-unpaid .list-group-item.SMP      { border-left:.25rem solid #ffc107; }
-    .card-unpaid .list-group-item.SMA      { border-left:.25rem solid #17a2b8; }
-    .card-unpaid .list-group-item.Lainnya { border-left:.25rem solid #6c757d; }
-
-    .jenjang-list .list-group-item.SD       { border-left:.25rem solid #28a745; }
-    .jenjang-list .list-group-item.SMP      { border-left:.25rem solid #ffc107; }
-    .jenjang-list .list-group-item.SMA      { border-left:.25rem solid #17a2b8; }
-    .jenjang-list .list-group-item.Lainnya { border-left:.25rem solid #6c757d; }
-
-    .jenjang-list .badge.SD       { background:#28a745; }
-    .jenjang-list .badge.SMP      { background:#ffc107; }
-    .jenjang-list .badge.SMA      { background:#17a2b8; }
-    .jenjang-list .badge.Lainnya { background:#6c757d; }
-
     .jenjang-table tbody tr:nth-child(odd) { background:rgba(0,0,0,0.03); }
     .jenjang-table tbody tr:hover          { background:rgba(0,0,0,0.05); }
   </style>
@@ -239,9 +239,9 @@ $monthNames = [
 
         <div class="container-fluid">
           <h1 class="page-title">
-        <i class="fas fa-users me-2"></i>
-        Dashboard SDM
-    </h1>
+            <i class="fas fa-users me-2"></i>
+            Dashboard SDM
+          </h1>
           <!-- Filter Periode -->
           <div class="card mb-4">
             <div class="card-header card-header-filter">
@@ -404,7 +404,10 @@ $monthNames = [
       didOpen:t=>{t.addEventListener('mouseenter',Swal.stopTimer);t.addEventListener('mouseleave',Swal.resumeTimer);}
     });
     const showToast = (msg,icon='success')=>Toast.fire({icon,title:msg});
-    const jenjangColors = { SD:'#28a745', SMP:'#ffc107', SMA:'#17a2b8', Lainnya:'#6c757d' };
+    // Warna untuk unpaid summary chart
+    function getJenjangColor(jenjang) {
+      return jenjangMeta[jenjang]?.color || defaultMeta.color;
+    }
 
     function updateClock(){
       const now=new Date(),
@@ -468,11 +471,17 @@ $monthNames = [
         }
         let totalAll=0;
         let listHtml='<ul class="list-group mb-3">';
-        data.forEach(d=>{ totalAll+=d.total; listHtml+=`
-          <li class="list-group-item d-flex justify-content-between align-items-center ${d.jenjang}">
-            <strong>${d.jenjang}</strong>
-            <span class="badge bg-danger">${d.total}</span>
-          </li>`});
+        data.forEach(d=>{
+          totalAll+=d.total;
+          const cfg = jenjangMeta[d.jenjang] ?? defaultMeta;
+          const label = cfg.label || d.jenjang;
+          listHtml+=`
+            <li class="list-group-item d-flex justify-content-between align-items-center"
+                style="border-left:.25rem solid ${cfg.color};">
+              <strong><i class="${cfg.icon} me-2" style="color:${cfg.color}"></i>${label}</strong>
+              <span class="badge bg-danger">${d.total}</span>
+            </li>`;
+        });
         listHtml+='</ul><p class="fw-bold">Total belum final: '+totalAll+'</p>';
         $('#unpaidSummaryContainer').html(listHtml);
 
@@ -481,12 +490,15 @@ $monthNames = [
         unpaidChart=new Chart(ctx,{
           type:'bar',
           data:{
-            labels:data.map(d=>d.jenjang),
+            labels:data.map(d=>{
+              const cfg = jenjangMeta[d.jenjang] ?? defaultMeta;
+              return cfg.label || d.jenjang;
+            }),
             datasets:[{
               label:'Belum Final',
               data:data.map(d=>d.total),
-              backgroundColor:data.map(d=>jenjangColors[d.jenjang]||jenjangColors.Lainnya),
-              borderColor:data.map(d=>jenjangColors[d.jenjang]||jenjangColors.Lainnya),
+              backgroundColor:data.map(d=>getJenjangColor(d.jenjang)),
+              borderColor:data.map(d=>getJenjangColor(d.jenjang)),
               borderWidth:1
             }]
           },
@@ -503,21 +515,26 @@ $monthNames = [
         const { detailData, meta, default: defaultMeta } = resp.result;
         $('#jenjangList').html(detailData.map(d => {
           const cfg = meta[d.jenjang] ?? defaultMeta;
+          const label = cfg.label || d.jenjang;
           return `
             <li class="list-group-item d-flex justify-content-between align-items-center"
                 style="border-left:.25rem solid ${cfg.color};">
-              <div><i class="${cfg.icon} me-2" style="color:${cfg.color}"></i>${d.jenjang}</div>
-              <span class="badge" style="background-color:${cfg.color}">${d.total}</span>
+              <div><i class="${cfg.icon} me-2" style="color:${cfg.color}"></i>${label}</div>
+              <span class="badge" style="background-color:${cfg.color};color:${cfg.fg}">${d.total}</span>
             </li>`;
         }).join(''));
-        $('#jenjangDetailTable tbody').html(detailData.map(d=>`
-          <tr>
-            <td>${d.jenjang}</td>
-            <td>${d.total}</td>
-            <td>${d.P}</td>
-            <td>${d.TK}</td>
-            <td>${d.M}</td>
-          </tr>`).join(''));
+        $('#jenjangDetailTable tbody').html(detailData.map(d=>{
+          const cfg = meta[d.jenjang] ?? defaultMeta;
+          const label = cfg.label || d.jenjang;
+          return `
+            <tr>
+              <td><i class="${cfg.icon} me-2" style="color:${cfg.color}"></i>${label}</td>
+              <td>${d.total}</td>
+              <td>${d.P}</td>
+              <td>${d.TK}</td>
+              <td>${d.M}</td>
+            </tr>`;
+        }).join(''));
       }).fail(err=>console.error(err));
     }
 

@@ -462,16 +462,17 @@ function getBadgeJenjang(string $kode, mysqli $conn): string {
      * @return string URL dasar aplikasi.
      */
     if (!function_exists('getBaseUrl')) {
-        function getBaseUrl()
-        {
-            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
-                || $_SERVER['SERVER_PORT'] == 443)
-                ? "https://" : "http://";
-            $host = $_SERVER['HTTP_HOST'];
-            $subfolder = '/payroll_absensi_v2';
-            return $protocol . $host . $subfolder;
-        }
+    function getBaseUrl()
+    {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
+            || $_SERVER['SERVER_PORT'] == 443)
+            ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'];
+        $subfolder = '/payroll_absensi_v2'; // ← GANTI INI jika di hosting/subfolder beda
+        return $protocol . $host . $subfolder;
     }
+}
+
 
     /**
      * Menentukan halaman dashboard yang sesuai berdasarkan role dan job title user.

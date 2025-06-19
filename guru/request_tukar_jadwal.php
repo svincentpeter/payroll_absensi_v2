@@ -8,7 +8,8 @@ generate_csrf_token();
 
 // Hanya role P atau TK (atau superadmin via non_admin_mode)
 if (!($_SESSION['non_admin_mode'] ?? false)) {
-    authorize(['P','TK'], '/login.php');
+    // Jika tidak dalam mode non-admin, otorisasi hanya untuk role Pendidik dan Tenaga Kependidikan.
+    authorize(['P', 'TK']);
 }
 
 require_once __DIR__ . '/../koneksi.php';

@@ -23,7 +23,7 @@ require_once __DIR__ . '/includes/mgk_crud_guru.php';       // LoadingGuru(), Cr
 /* ===== 3. Session, error-handling, auth ===== */
 start_session_safe();
 init_error_handling();
-authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM']);
 
 /* ===== 4. Data dropdown & konfigurasi strata ===== */
 $jenjangList   = getOrderedJenjang($conn);          // dari helpers.php
@@ -653,7 +653,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                     <option value="<?= htmlspecialchars($kode_jenjang) ?>"><?= htmlspecialchars($nama_jenjang) ?></option>
                   <?php endforeach; ?>
                 </select>
-
                 <div class="invalid-feedback">Jenjang wajib dipilih.</div>
               </div>
               <div class="col-md-4 d-none" id="addUnitPenempatanContainer">
@@ -661,7 +660,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 <input type="text" name="unit_penempatan" id="addUnitPenempatan" class="form-control" placeholder="Contoh: Perpustakaan, TU, dsb">
                 <div class="invalid-feedback">Unit penempatan wajib diisi untuk Jenjang UMUM.</div>
               </div>
-
               <div class="col-md-4">
                 <label for="addRole">Role <span class="text-danger">*</span></label>
                 <select name="role" id="addRole" class="form-control" required>
@@ -823,7 +821,32 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               </div>
             </div>
 
+            <!-- SECTION: FASKES KESEHATAN -->
+            <div class="alert alert-primary fw-bold mb-3" role="alert">
+              FASKES KESEHATAN
+            </div>
+            <div class="row mb-2">
+              <div class="col-md-4">
+                <label for="addFaskesBpjs">BPJS</label>
+                <select name="faskes_bpjs" id="addFaskesBpjs" class="form-control">
+                  <option value="0" selected>Tidak</option>
+                  <option value="1">Terdaftar</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label for="addFaskesInhealth">IN HEALTH</label>
+                <select name="faskes_inhealth" id="addFaskesInhealth" class="form-control">
+                  <option value="0" selected>Tidak</option>
+                  <option value="1">Terdaftar</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label for="addFaskesKet">Keterangan Faskes</label>
+                <input type="text" name="faskes_ket" id="addFaskesKet" class="form-control" maxlength="100" placeholder="Keterangan lain-lain">
+              </div>
+            </div>
           </div>
+
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
             <button type="submit" class="btn btn-success">
@@ -1081,6 +1104,31 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               </div>
             </div>
 
+            <!-- SECTION: FASKES KESEHATAN -->
+            <div class="alert alert-primary fw-bold mb-3" role="alert">
+              FASKES KESEHATAN
+            </div>
+            <div class="row mb-4">
+              <div class="col-md-4">
+                <label for="editFaskesBpjs">BPJS</label>
+                <select name="faskes_bpjs" id="editFaskesBpjs" class="form-control">
+                  <option value="0">Tidak</option>
+                  <option value="1">Terdaftar</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label for="editFaskesInhealth">IN HEALTH</label>
+                <select name="faskes_inhealth" id="editFaskesInhealth" class="form-control">
+                  <option value="0">Tidak</option>
+                  <option value="1">Terdaftar</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label for="editFaskesKet">Keterangan Faskes</label>
+                <input type="text" name="faskes_ket" id="editFaskesKet" class="form-control" maxlength="100" placeholder="Keterangan lain-lain">
+              </div>
+            </div>
+
             <!-- SECTION: Ubah Password -->
             <div class="alert alert-primary fw-bold mb-3" role="alert">
               Ubah Password (Opsional)
@@ -1286,7 +1334,25 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               <th>Nama Anak 3</th>
               <td id="detailNamaAnak3"></td>
             </tr>
-          </table>
+
+            <!-- SECTION: FASKES KESEHATAN -->
+            <div class="alert alert-primary fw-bold mb-3" role="alert">
+              FASKES KESEHATAN
+            </div>
+            <table class="table table-sm mb-4">
+              <tr>
+                <th>BPJS</th>
+                <td id="detailFaskesBpjs"></td>
+              </tr>
+              <tr>
+                <th>IN HEALTH</th>
+                <td id="detailFaskesInhealth"></td>
+              </tr>
+              <tr>
+                <th>Keterangan Faskes</th>
+                <td id="detailFaskesKet"></td>
+              </tr>
+            </table>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -1522,7 +1588,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     /* ============================================================
        =============== [2] SYNC STRATA DROPDOWN ===================
        ============================================================ */
-    function syncStrataOptions(jenjang, role, prefix = '') {
+    function syncStrataOptions(jenjang, role, prefix = '', callback = null) {
       let sel = $(`#${prefix}Strata`);
       sel.empty().append('<option value="">-- Pilih Strata --</option>');
 
@@ -1538,7 +1604,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
       }
 
       arr.forEach(s => sel.append(`<option value="${s}">${s}</option>`));
-      sel.val('');
+
+      // Jalankan callback jika ada, setelah semua option selesai di-append
+      if (typeof callback === 'function') callback();
     }
 
 
@@ -1624,13 +1692,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
           // Badge untuk jenjang
           let jenjangBadge = '';
-          if (item.jenjang) {
-            if (item.jenjang.toUpperCase() === 'UMUM') {
-              jenjangBadge = `<span class="badge bg-secondary me-1">Umum</span>`;
-            } else {
-              jenjangBadge = `<span class="badge bg-secondary me-1">${item.jenjang}</span>`;
-            }
-          }
+if (item.jenjang) {
+  if (item.jenjang.toUpperCase() === 'UMUM') {
+    jenjangBadge = `<span class="badge bg-secondary me-1">Umum</span>`;
+  } else {
+    // Pakai warna dari backend (dari DB)
+    let bg = item.jenjang_bg || '#ececec';
+    let fg = item.jenjang_fg || '#333';
+    jenjangBadge = `<span class="badge me-1" style="background:${bg};color:${fg};">${item.jenjang}</span>`;
+  }
+}
+
           // Badge untuk unit penempatan (khusus UMUM)
           let unitBadge = '';
           if ((item.jenjang && item.jenjang.toUpperCase() === 'UMUM') && item.unit_penempatan) {
@@ -1861,6 +1933,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               $('#detailNamaAnak3').text(r.nama_anak_3 || '');
               $('#detailFotoProfil').attr('src', r.foto_profil || baseUrl + "/assets/img/undraw_profile.svg");
               $('#detailFotoKtp').attr('src', r.foto_ktp || baseUrl + "/assets/img/ktp_placeholder.png");
+
+              // SECTION: FASKES KESEHATAN
+              $('#detailFaskesBpjs').html(getFaskesBadge(r.faskes_bpjs, 'BPJS'));
+              $('#detailFaskesInhealth').html(getFaskesBadge(r.faskes_inhealth, 'INHEALTH'));
+              $('#detailFaskesKet').text(r.faskes_ket || '-');
+
               $('#modalView').modal('show');
             } else showToast(res.result, 'error');
           },
@@ -1870,6 +1948,20 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
           }
         });
       });
+
+      /**
+       * Badge generator untuk FASKES
+       * value = 1 atau 0
+       * type = 'BPJS' | 'INHEALTH'
+       */
+      function getFaskesBadge(value, type) {
+        if (value == 1) {
+          return `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Terdaftar</span>`;
+        } else {
+          return `<span class="badge bg-secondary"><i class="fas fa-minus-circle me-1"></i>Tidak</span>`;
+        }
+      }
+
       $(document).on('click', '.btn-edit', function() {
         let id = $(this).data('id'),
           modal = $('#modalEdit'),
@@ -1915,11 +2007,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               $('#editRole').val(r.role || '');
 
               // Generate ulang dropdown Strata
-              syncStrataOptions(r.jenjang, r.role, 'edit');
-              // Set Strata setelah dropdown terisi (pasti MUNCUL!)
-              setTimeout(function() {
-                $('#editStrata').val(r.strata || '');
-              }, 50);
+              syncStrataOptions(r.jenjang, r.role, 'edit', function() {
+                // Setelah opsi Strata sudah ada, baru set nilainya
+                $('#editStrata').val((r.strata || '').trim().toUpperCase());
+              });
+
               $('#editUnitPenempatan').val(r.unit_penempatan || '');
               // Field lain
               $('#editJK').val(r.jk || '');
@@ -1937,6 +2029,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               $('#editNamaAnak1').val(r.nama_anak_1 || '');
               $('#editNamaAnak2').val(r.nama_anak_2 || '');
               $('#editNamaAnak3').val(r.nama_anak_3 || '');
+              $('#editFaskesBpjs').val(r.faskes_bpjs || '0');
+              $('#editFaskesInhealth').val(r.faskes_inhealth || '0');
+              $('#editFaskesKet').val(r.faskes_ket || '');
 
               // Foto profil/ktp
               $('#previewEditFotoProfil').attr('src', r.foto_profil || "<?= getBaseUrl() ?>/assets/img/undraw_profile.svg");
@@ -2210,18 +2305,18 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
    =============== [2.1] TOGGLE UNIT PENEMPATAN ================
    ============================================================ */
       function toggleUnitPenempatan(jenjang, prefix) {
-  const isUmum = (jenjang || '').toUpperCase() === 'UMUM';
-  const kontainer = $(`#${prefix}UnitPenempatanContainer`);
-  const input     = $(`#${prefix}UnitPenempatan`);
+        const isUmum = (jenjang || '').toUpperCase() === 'UMUM';
+        const kontainer = $(`#${prefix}UnitPenempatanContainer`);
+        const input = $(`#${prefix}UnitPenempatan`);
 
-  if (isUmum) {
-    kontainer.removeClass('d-none');
-    input.prop('required', true);
-  } else {
-    kontainer.addClass('d-none');
-    input.prop('required', false).val('');
-  }
-}
+        if (isUmum) {
+          kontainer.removeClass('d-none');
+          input.prop('required', true);
+        } else {
+          kontainer.addClass('d-none');
+          input.prop('required', false).val('');
+        }
+      }
 
 
       // === PANGGIL toggleUnitPenempatan di event Jenjang Add/Edit ===

@@ -9,7 +9,7 @@ generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 
 // Pastikan user berhak akses
-authorize(['M:SDM', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM']);
 
 // Get parameter
 $empcode = isset($_GET['empcode']) ? intval($_GET['empcode']) : 0;

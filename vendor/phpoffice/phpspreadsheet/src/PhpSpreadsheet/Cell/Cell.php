@@ -63,7 +63,7 @@ class Cell implements Stringable
      *
      * @var null|array<string, string>
      */
-    private mixed $formulaAttributes = null;
+    private ?array $formulaAttributes = null;
 
     private IgnoredErrors $ignoredErrors;
 
@@ -181,9 +181,7 @@ class Cell implements Stringable
 
     public function getValueString(): string
     {
-        $value = $this->value;
-
-        return ($value === '' || is_scalar($value) || $value instanceof Stringable) ? "$value" : '';
+        return StringHelper::convertToString($this->value, false);
     }
 
     /**
@@ -204,9 +202,9 @@ class Cell implements Stringable
 
     protected static function updateIfCellIsTableHeader(?Worksheet $workSheet, self $cell, mixed $oldValue, mixed $newValue): void
     {
-        $oldValue = (is_scalar($oldValue) || $oldValue instanceof Stringable) ? ((string) $oldValue) : null;
-        $newValue = (is_scalar($newValue) || $newValue instanceof Stringable) ? ((string) $newValue) : null;
-        if (StringHelper::strToLower($oldValue ?? '') === StringHelper::strToLower($newValue ?? '') || $workSheet === null) {
+        $oldValue = StringHelper::convertToString($oldValue, false);
+        $newValue = StringHelper::convertToString($newValue, false);
+        if (StringHelper::strToLower($oldValue) === StringHelper::strToLower($newValue) || $workSheet === null) {
             return;
         }
 
@@ -279,24 +277,19 @@ class Cell implements Stringable
                 // no break
             case DataType::TYPE_INLINE:
                 // Rich text
-                if ($value !== null && !is_scalar($value) && !($value instanceof Stringable)) {
-                    throw new SpreadsheetException('Invalid unstringable value for datatype Inline/String/String2');
-                }
-                $this->value = DataType::checkString(($value instanceof RichText) ? $value : ((string) $value));
+                $value2 = StringHelper::convertToString($value, true);
+                $this->value = DataType::checkString(($value instanceof RichText) ? $value : $value2);
 
                 break;
             case DataType::TYPE_NUMERIC:
-                if (is_string($value) && !is_numeric($value)) {
+                if ($value !== null && !is_bool($value) && !is_numeric($value)) {
                     throw new SpreadsheetException('Invalid numeric value for datatype Numeric');
                 }
                 $this->value = 0 + $value;
 
                 break;
             case DataType::TYPE_FORMULA:
-                if ($value !== null && !is_scalar($value) && !($value instanceof Stringable)) {
-                    throw new SpreadsheetException('Invalid unstringable value for datatype Formula');
-                }
-                $this->value = (string) $value;
+                $this->value = StringHelper::convertToString($value, true);
 
                 break;
             case DataType::TYPE_BOOL:
@@ -391,7 +384,7 @@ class Cell implements Stringable
             $value = array_shift($value);
         }
 
-        return ($value === '' || is_scalar($value) || $value instanceof Stringable) ? "$value" : '';
+        return StringHelper::convertToString($value, false);
     }
 
     /**
@@ -408,9 +401,6 @@ class Cell implements Stringable
         $oldAttributesT = $oldAttributes['t'] ?? '';
         $coordinate = $this->getCoordinate();
         $oldAttributesRef = $oldAttributes['ref'] ?? $coordinate;
-        if (!str_contains($oldAttributesRef, ':')) {
-            $oldAttributesRef .= ":$oldAttributesRef";
-        }
         $originalValue = $this->value;
         $originalDataType = $this->dataType;
         $this->formulaAttributes = [];
@@ -433,6 +423,14 @@ class Cell implements Stringable
                     while (is_array($result)) {
                         $result = array_shift($result);
                     }
+                }
+                if (
+                    !is_array($result)
+                    && $calculation->getInstanceArrayReturnType() === Calculation::RETURN_ARRAY_AS_ARRAY
+                    && $oldAttributesT === 'array'
+                    && ($oldAttributesRef === $coordinate || $oldAttributesRef === "$coordinate:$coordinate")
+                ) {
+                    $result = [$result];
                 }
                 // if return_as_array for formula like '=sheet!cell'
                 if (is_array($result) && count($result) === 1) {
@@ -466,6 +464,7 @@ class Cell implements Stringable
                                         }
                                     }
                                 }
+                                /** @var string $newColumn */
                                 ++$newColumn;
                             }
                             ++$newRow;
@@ -499,12 +498,12 @@ class Cell implements Stringable
                                 if (isset($matches[3])) {
                                     $minCol = $matches[1];
                                     $minRow = (int) $matches[2];
-                                    // https://github.com/phpstan/phpstan/issues/11602
-                                    $maxCol = $matches[4]; // @phpstan-ignore-line
+                                    $maxCol = $matches[4];
                                     ++$maxCol;
-                                    $maxRow = (int) $matches[5]; // @phpstan-ignore-line
+                                    $maxRow = (int) $matches[5];
                                     for ($row = $minRow; $row <= $maxRow; ++$row) {
                                         for ($col = $minCol; $col !== $maxCol; ++$col) {
+                                            /** @var string $col */
                                             if ("$col$row" !== $coordinate) {
                                                 $thisworksheet->getCell("$col$row")->setValue(null);
                                             }
@@ -527,8 +526,11 @@ class Cell implements Stringable
                             $newColumn = $column;
                             foreach ($resultRow as $resultValue) {
                                 if ($row !== $newRow || $column !== $newColumn) {
-                                    $thisworksheet->getCell($newColumn . $newRow)->setValue($resultValue);
+                                    $thisworksheet
+                                        ->getCell($newColumn . $newRow)
+                                        ->setValue($resultValue);
                                 }
+                                /** @var string $newColumn */
                                 ++$newColumn;
                             }
                             ++$newRow;
@@ -560,6 +562,8 @@ class Cell implements Stringable
             SharedDate::setExcelCalendar($currentCalendar);
 
             if ($result === Functions::NOT_YET_IMPLEMENTED) {
+                $this->formulaAttributes = $oldAttributes;
+
                 return $this->calculatedValue; // Fallback if calculation engine does not support the formula.
             }
 
@@ -935,9 +939,7 @@ class Cell implements Stringable
     /**
      * Set the formula attributes.
      *
-     * @param $attributes null|array<string, string>
-     *
-     * @return $this
+     * @param null|array<string, string> $attributes
      */
     public function setFormulaAttributes(?array $attributes): self
     {
@@ -963,7 +965,7 @@ class Cell implements Stringable
     {
         $retVal = $this->value;
 
-        return ($retVal === null || is_scalar($retVal) || $retVal instanceof Stringable) ? ((string) $retVal) : '';
+        return StringHelper::convertToString($retVal, false);
     }
 
     public function getIgnoredErrors(): IgnoredErrors

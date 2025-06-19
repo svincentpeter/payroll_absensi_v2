@@ -13,7 +13,7 @@ $csrf_token = $_SESSION['csrf_token'];
 require_once __DIR__ . '/../koneksi.php';
 
 // Hanya user dengan role 'keuangan' dan 'superadmin' yang diizinkan
-authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:Keuangan']);
 $jenjangList = getOrderedJenjang($conn);;
 // Panggil fungsi updateSalaryIndexForAll agar data salary index selalu terupdate
 updateSalaryIndexForAll($conn);

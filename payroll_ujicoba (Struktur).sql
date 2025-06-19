@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 21, 2025 at 03:51 PM
+-- Generation Time: Jun 19, 2025 at 03:34 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -62,7 +62,9 @@ CREATE TABLE `anggota_sekolah` (
   `nip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `nama` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `jenjang` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `jenjang` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `unit_penempatan` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `strata` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `job_title` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `status_kerja` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `join_start` date DEFAULT NULL,
@@ -97,7 +99,10 @@ CREATE TABLE `anggota_sekolah` (
   `role` enum('P','TK','M') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `is_delete` tinyint(1) NOT NULL DEFAULT '0',
   `deleted_at` datetime DEFAULT NULL,
-  `kategori` enum('guru','karyawan') COLLATE utf8mb4_general_ci DEFAULT NULL
+  `kategori` enum('guru','karyawan') COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `faskes_bpjs` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0=tidak terdaftar,1=terdaftar',
+  `faskes_inhealth` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0=tidak,1=terdaftar',
+  `faskes_ket` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'keterangan fasilitas'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -165,7 +170,7 @@ CREATE TABLE `gaji_pokok_roles` (
 --
 
 CREATE TABLE `gaji_pokok_strata_guru` (
-  `jenjang` varchar(10) NOT NULL,
+  `jenjang` varchar(20) NOT NULL,
   `strata` varchar(10) NOT NULL,
   `gaji_pokok` decimal(15,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -177,7 +182,7 @@ CREATE TABLE `gaji_pokok_strata_guru` (
 --
 
 CREATE TABLE `gaji_pokok_strata_karyawan` (
-  `jenjang` varchar(10) NOT NULL,
+  `jenjang` varchar(20) NOT NULL,
   `strata` varchar(10) NOT NULL,
   `gaji_pokok` decimal(15,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -213,6 +218,22 @@ CREATE TABLE `jadwal_piket` (
   `tahun` int NOT NULL,
   `status` enum('pending','hadir','tidak hadir') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'pending'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `jenjang_sekolah`
+--
+
+CREATE TABLE `jenjang_sekolah` (
+  `id` int NOT NULL,
+  `kode_jenjang` varchar(50) NOT NULL,
+  `nama_jenjang` varchar(100) NOT NULL,
+  `deskripsi` text,
+  `is_aktif` tinyint(1) NOT NULL DEFAULT '1',
+  `color_bg` varchar(16) DEFAULT '#6c757d',
+  `color_fg` varchar(16) DEFAULT '#ffffff'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -514,11 +535,11 @@ ALTER TABLE `absensi`
 --
 ALTER TABLE `anggota_sekolah`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uid` (`uid`),
   ADD UNIQUE KEY `uk_nip` (`nip`),
   ADD KEY `salary_index_id` (`salary_index_id`),
   ADD KEY `idx_kontrak_expiry` (`status_kerja`,`tgl_kontrak_selesai`),
-  ADD KEY `idx_kontrak_status_tgl` (`status_kerja`,`tgl_kontrak_selesai`);
+  ADD KEY `idx_kontrak_status_tgl` (`status_kerja`,`tgl_kontrak_selesai`),
+  ADD KEY `idx_unit_penempatan` (`unit_penempatan`);
 
 --
 -- Indexes for table `audit_logs`
@@ -574,6 +595,13 @@ ALTER TABLE `jadwal_piket`
   ADD KEY `fk_jadwal_piket_anggota` (`nip`),
   ADD KEY `idx_piket_nip_tanggal` (`nip`,`tanggal`),
   ADD KEY `idx_jenjang_tanggal` (`jenjang`,`tanggal`);
+
+--
+-- Indexes for table `jenjang_sekolah`
+--
+ALTER TABLE `jenjang_sekolah`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `kode_jenjang` (`kode_jenjang`);
 
 --
 -- Indexes for table `kenaikan_gaji_tahunan`
@@ -737,6 +765,12 @@ ALTER TABLE `jadwal_piket`
   MODIFY `id_jadwal` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `jenjang_sekolah`
+--
+ALTER TABLE `jenjang_sekolah`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
@@ -825,12 +859,6 @@ ALTER TABLE `template_surat`
 --
 
 --
--- Constraints for table `absensi`
---
-ALTER TABLE `absensi`
-  ADD CONSTRAINT `fk_absensi_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
@@ -840,7 +868,6 @@ ALTER TABLE `anggota_sekolah`
 -- Constraints for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  ADD CONSTRAINT `fk_employee_payheads_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`),
   ADD CONSTRAINT `fk_employee_payheads_payheads` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`);
 
 --
@@ -850,23 +877,11 @@ ALTER TABLE `jadwal_piket`
   ADD CONSTRAINT `fk_jadwal_piket_anggota` FOREIGN KEY (`nip`) REFERENCES `anggota_sekolah` (`nip`) ON DELETE CASCADE;
 
 --
--- Constraints for table `payroll`
---
-ALTER TABLE `payroll`
-  ADD CONSTRAINT `fk_payroll_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`);
-
---
 -- Constraints for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
   ADD CONSTRAINT `fk_payroll_detail_payheads` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`),
   ADD CONSTRAINT `fk_payroll_detail_payroll` FOREIGN KEY (`id_payroll`) REFERENCES `payroll` (`id`);
-
---
--- Constraints for table `payroll_final`
---
-ALTER TABLE `payroll_final`
-  ADD CONSTRAINT `fk_payroll_final_anggota` FOREIGN KEY (`id_anggota`) REFERENCES `anggota_sekolah` (`id`);
 
 --
 -- Constraints for table `permintaan_tukar_jadwal`

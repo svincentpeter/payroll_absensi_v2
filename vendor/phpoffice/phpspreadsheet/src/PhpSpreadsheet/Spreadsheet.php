@@ -7,15 +7,12 @@ use PhpOffice\PhpSpreadsheet\Calculation\Calculation;
 use PhpOffice\PhpSpreadsheet\Cell\IValueBinder;
 use PhpOffice\PhpSpreadsheet\Document\Properties;
 use PhpOffice\PhpSpreadsheet\Document\Security;
-use PhpOffice\PhpSpreadsheet\Reader\Xlsx as XlsxReader;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
-use PhpOffice\PhpSpreadsheet\Shared\File;
 use PhpOffice\PhpSpreadsheet\Shared\StringHelper;
 use PhpOffice\PhpSpreadsheet\Style\Style;
 use PhpOffice\PhpSpreadsheet\Worksheet\Iterator;
 use PhpOffice\PhpSpreadsheet\Worksheet\Table;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
 
 class Spreadsheet implements JsonSerializable
 {
@@ -118,12 +115,16 @@ class Spreadsheet implements JsonSerializable
     /**
      * ribbonBinObjects : null if workbook is'nt Excel 2007 or not contain embedded objects (picture(s)) for Ribbon Elements
      * ignored if $ribbonXMLData is null.
+     *
+     * @var null|mixed[]
      */
     private ?array $ribbonBinObjects = null;
 
     /**
      * List of unparsed loaded data for export to same format with better compatibility.
      * It has to be minimized when the library start to support currently unparsed data.
+     *
+     * @var array<array<array<array<string>|string>>>
      */
     private array $unparsedLoadedData = [];
 
@@ -201,10 +202,8 @@ class Spreadsheet implements JsonSerializable
 
     /**
      * Set the macros code.
-     *
-     * @param string $macroCode string|null
      */
-    public function setMacrosCode(string $macroCode): void
+    public function setMacrosCode(?string $macroCode): void
     {
         $this->macrosCode = $macroCode;
         $this->setHasMacros($macroCode !== null);
@@ -268,6 +267,8 @@ class Spreadsheet implements JsonSerializable
 
     /**
      * retrieve ribbon XML Data.
+     *
+     * @return mixed[]
      */
     public function getRibbonXMLData(string $what = 'all'): null|array|string //we need some constants here...
     {
@@ -307,6 +308,8 @@ class Spreadsheet implements JsonSerializable
      * It has to be minimized when the library start to support currently unparsed data.
      *
      * @internal
+     *
+     * @return mixed[]
      */
     public function getUnparsedLoadedData(): array
     {
@@ -318,6 +321,8 @@ class Spreadsheet implements JsonSerializable
      * It has to be minimized when the library start to support currently unparsed data.
      *
      * @internal
+     *
+     * @param array<array<array<array<string>|string>>> $unparsedLoadedData
      */
     public function setUnparsedLoadedData(array $unparsedLoadedData): void
     {
@@ -326,6 +331,8 @@ class Spreadsheet implements JsonSerializable
 
     /**
      * retrieve Binaries Ribbon Objects.
+     *
+     * @return mixed[]
      */
     public function getRibbonBinObjects(string $what = 'all'): ?array
     {
@@ -336,7 +343,7 @@ class Spreadsheet implements JsonSerializable
                 return $this->ribbonBinObjects;
             case 'names':
             case 'data':
-                if (is_array($this->ribbonBinObjects) && isset($this->ribbonBinObjects[$what])) {
+                if (is_array($this->ribbonBinObjects) && is_array($this->ribbonBinObjects[$what] ?? null)) {
                     $ReturnData = $this->ribbonBinObjects[$what];
                 }
 
@@ -1063,24 +1070,91 @@ class Spreadsheet implements JsonSerializable
      */
     public function copy(): self
     {
-        $filename = File::temporaryFilename();
-        $writer = new XlsxWriter($this);
-        $writer->setIncludeCharts(true);
-        $writer->save($filename);
-
-        $reader = new XlsxReader();
-        $reader->setIncludeCharts(true);
-        $reloadedSpreadsheet = $reader->load($filename);
-        unlink($filename);
-
-        return $reloadedSpreadsheet;
+        return unserialize(serialize($this)); //* @phpstan-ignore-line
     }
 
+    /**
+     * Implement PHP __clone to create a deep clone, not just a shallow copy.
+     */
     public function __clone()
     {
-        throw new Exception(
-            'Do not use clone on spreadsheet. Use spreadsheet->copy() instead.'
-        );
+        $this->uniqueID = uniqid('', true);
+
+        $usedKeys = [];
+        // I don't now why new Style rather than clone.
+        $this->cellXfSupervisor = new Style(true);
+        //$this->cellXfSupervisor = clone $this->cellXfSupervisor;
+        $this->cellXfSupervisor->bindParent($this);
+        $usedKeys['cellXfSupervisor'] = true;
+
+        $oldCalc = $this->calculationEngine;
+        $this->calculationEngine = new Calculation($this);
+        if ($oldCalc !== null) {
+            $this->calculationEngine
+                ->setSuppressFormulaErrors(
+                    $oldCalc->getSuppressFormulaErrors()
+                )
+                ->setCalculationCacheEnabled(
+                    $oldCalc->getCalculationCacheEnabled()
+                )
+                ->setBranchPruningEnabled(
+                    $oldCalc->getBranchPruningEnabled()
+                )
+                ->setInstanceArrayReturnType(
+                    $oldCalc->getInstanceArrayReturnType()
+                );
+        }
+        $usedKeys['calculationEngine'] = true;
+
+        $currentCollection = $this->cellStyleXfCollection;
+        $this->cellStyleXfCollection = [];
+        foreach ($currentCollection as $item) {
+            $clone = $item->exportArray();
+            $style = (new Style())->applyFromArray($clone);
+            $this->addCellStyleXf($style);
+        }
+        $usedKeys['cellStyleXfCollection'] = true;
+
+        $currentCollection = $this->cellXfCollection;
+        $this->cellXfCollection = [];
+        foreach ($currentCollection as $item) {
+            $clone = $item->exportArray();
+            $style = (new Style())->applyFromArray($clone);
+            $this->addCellXf($style);
+        }
+        $usedKeys['cellXfCollection'] = true;
+
+        $currentCollection = $this->workSheetCollection;
+        $this->workSheetCollection = [];
+        foreach ($currentCollection as $item) {
+            $clone = clone $item;
+            $clone->setParent($this);
+            $this->workSheetCollection[] = $clone;
+        }
+        $usedKeys['workSheetCollection'] = true;
+
+        foreach (get_object_vars($this) as $key => $val) {
+            if (isset($usedKeys[$key])) {
+                continue;
+            }
+            switch ($key) {
+                // arrays of objects not covered above
+                case 'definedNames':
+                    /** @var DefinedName[] */
+                    $currentCollection = $val;
+                    $this->$key = [];
+                    foreach ($currentCollection as $item) {
+                        $clone = clone $item;
+                        $this->{$key}[] = $clone;
+                    }
+
+                    break;
+                default:
+                    if (is_object($val)) {
+                        $this->$key = clone $val;
+                    }
+            }
+        }
     }
 
     /**
@@ -1545,14 +1619,6 @@ class Spreadsheet implements JsonSerializable
     /**
      * @throws Exception
      */
-    public function __serialize(): array
-    {
-        throw new Exception('Spreadsheet objects cannot be serialized');
-    }
-
-    /**
-     * @throws Exception
-     */
     public function jsonSerialize(): mixed
     {
         throw new Exception('Spreadsheet objects cannot be json encoded');
@@ -1622,7 +1688,10 @@ class Spreadsheet implements JsonSerializable
 
     public function getLegacyDrawing(Worksheet $worksheet): ?string
     {
-        return $this->unparsedLoadedData['sheets'][$worksheet->getCodeName()]['legacyDrawing'] ?? null;
+        /** @var ?string */
+        $temp = $this->unparsedLoadedData['sheets'][$worksheet->getCodeName()]['legacyDrawing'] ?? null;
+
+        return $temp;
     }
 
     public function getValueBinder(): ?IValueBinder
@@ -1635,5 +1704,53 @@ class Spreadsheet implements JsonSerializable
         $this->valueBinder = $valueBinder;
 
         return $this;
+    }
+
+    /**
+     * All the PDF writers treat charts as if they occupy a single cell.
+     * This will be better most of the time.
+     * It is not needed for any other output type.
+     * It changes the contents of the spreadsheet, so you might
+     * be better off cloning the spreadsheet and then using
+     * this method on, and then writing, the clone.
+     */
+    public function mergeChartCellsForPdf(): void
+    {
+        foreach ($this->workSheetCollection as $worksheet) {
+            foreach ($worksheet->getChartCollection() as $chart) {
+                $br = $chart->getBottomRightCell();
+                $tl = $chart->getTopLeftCell();
+                if ($br !== '' && $br !== $tl) {
+                    if (!$worksheet->cellExists($br)) {
+                        $worksheet->getCell($br)->setValue(' ');
+                    }
+                    $worksheet->mergeCells("$tl:$br");
+                }
+            }
+        }
+    }
+
+    /**
+     * All the PDF writers do better with drawings than charts.
+     * This will be better some of the time.
+     * It is not needed for any other output type.
+     * It changes the contents of the spreadsheet, so you might
+     * be better off cloning the spreadsheet and then using
+     * this method on, and then writing, the clone.
+     */
+    public function mergeDrawingCellsForPdf(): void
+    {
+        foreach ($this->workSheetCollection as $worksheet) {
+            foreach ($worksheet->getDrawingCollection() as $drawing) {
+                $br = $drawing->getCoordinates2();
+                $tl = $drawing->getCoordinates();
+                if ($br !== '' && $br !== $tl) {
+                    if (!$worksheet->cellExists($br)) {
+                        $worksheet->getCell($br)->setValue(' ');
+                    }
+                    $worksheet->mergeCells("$tl:$br");
+                }
+            }
+        }
     }
 }

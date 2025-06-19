@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['M:Keuangan', 'M:Superadmin'], '/payroll_absensi_v2/login.php');
+authorize(['M:SDM']);
 
 require_once __DIR__ . '/../koneksi.php';
 if (ob_get_length()) ob_end_clean();

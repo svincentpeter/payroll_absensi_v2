@@ -9,7 +9,7 @@ $pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
-authorize(['M:SDM', 'M:Superadmin']);
+authorize(['M:SDM']);
 
 require_once __DIR__ . '/../koneksi.php';
 
@@ -508,19 +508,19 @@ function DeletePayhead($conn)
                 <div class="container-fluid">
 <h1 class="page-title">
         <i class="fas fa-money-check-alt me-2"></i>
-       Manajemen Payheads
+       Manajemen Komponen Gaji
     </h1>
                     <!-- Card Filter -->
                     <div class="card mb-4">
                         <div class="card-header">
-                            <strong><i class="fas fa-filter me-2"></i>Filter Payheads</strong>
+                            <strong><i class="fas fa-filter me-2"></i>Filter Komponen Gaji</strong>
                         </div>
                         <div class="card-body">
                             <form id="filterForm" class="row align-items-center">
                                 <!-- Filter Jenis Payhead -->
                                 <div class="col-md-3 mb-2">
                                     <label for="filterJenisPayhead" class="form-label">
-                                        <i class="fas fa-layer-group me-1"></i>Jenis Payhead
+                                        <i class="fas fa-layer-group me-1"></i>Jenis Komponen Gaji
                                     </label>
                                     <select class="form-select" id="filterJenisPayhead" name="jenis_payhead">
                                         <option value="">Semua Jenis</option>
@@ -548,7 +548,7 @@ function DeletePayhead($conn)
                     <div class="card shadow mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
     <h6 class="m-0 fw-bold text-white">
-        <i class="fas fa-clipboard-list me-1"></i> Daftar Payheads
+        <i class="fas fa-clipboard-list me-1"></i> Daftar Komponen Gaji
     </h6>
     <div>
         <!-- Tombol Manage Groups baru -->
@@ -560,7 +560,7 @@ function DeletePayhead($conn)
         </a>
         <!-- Tombol Tambah Payhead yang sudah ada -->
         <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addPayheadModal">
-            <i class="fas fa-plus"></i> Tambah Payhead
+            <i class="fas fa-plus"></i> Tambah Komponen Gaji
         </button>
     </div>
 </div>
@@ -570,7 +570,7 @@ function DeletePayhead($conn)
                                     <thead>
                                         <tr>
                                             <th>No</th>
-                                            <th>Nama Payhead</th>
+                                            <th>Nama Komponen Gaji</th>
                                             <th>Jenis</th>
                                             <th>Deskripsi</th>
                                             <th>Nominal Tetap</th>
@@ -605,7 +605,7 @@ function DeletePayhead($conn)
                 <form id="add-payhead-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="addPayheadModalLabel">
-                            <i class="fas fa-plus-circle me-2"></i>Tambah Payhead
+                            <i class="fas fa-plus-circle me-2"></i>Tambah Komponen Gaji
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
@@ -614,10 +614,10 @@ function DeletePayhead($conn)
                         <!-- Nama Payhead -->
                         <div class="mb-3">
                             <label for="nama_payhead" class="form-label">
-                                <i class="fas fa-tag me-1"></i>Nama Payhead <span class="text-danger">*</span>
+                                <i class="fas fa-tag me-1"></i>Nama Komponen Gaji <span class="text-danger">*</span>
                             </label>
                             <input type="text" class="form-control" id="nama_payhead" name="nama_payhead" placeholder="Contoh: Tunjangan Kesehatan" required>
-                            <div class="invalid-feedback">Nama payhead belum diisi.</div>
+                            <div class="invalid-feedback">Nama komponen gaji belum diisi.</div>
                             <div class="form-text">Contoh: <em>Tunjangan Kesehatan</em>.</div>
                         </div>
                         <!-- Jenis Payhead -->
@@ -630,7 +630,7 @@ function DeletePayhead($conn)
                                 <option value="earnings">Earnings (Pendapatan)</option>
                                 <option value="deductions">Deductions (Potongan)</option>
                             </select>
-                            <div class="invalid-feedback">Pilih jenis payhead.</div>
+                            <div class="invalid-feedback">Pilih jenis Komponen Gaji.</div>
                             <div class="form-text">Misalnya <em>Earnings</em> untuk pendapatan.</div>
                         </div>
                         <!-- Deskripsi -->
@@ -639,7 +639,7 @@ function DeletePayhead($conn)
                                 <i class="fas fa-info-circle me-1"></i>Deskripsi <span class="text-danger">*</span>
                             </label>
                             <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3" placeholder="Contoh: Tunjangan kesehatan bulanan untuk karyawan" required></textarea>
-                            <div class="invalid-feedback">Masukkan deskripsi payhead.</div>
+                            <div class="invalid-feedback">Masukkan deskripsi komponen gaji.</div>
                         </div>
                         <!-- Nominal -->
                         <div class="mb-3">
@@ -647,7 +647,7 @@ function DeletePayhead($conn)
                                 <i class="fas fa-money-bill-wave me-1"></i>Nominal Tetap <span class="text-danger">*</span>
                             </label>
                             <input type="text" step="0.01" class="form-control" id="nominal" name="nominal" placeholder="Contoh: 1500000">
-                            <div class="invalid-feedback">Masukkan nominal payhead.</div>
+                            <div class="invalid-feedback">Masukkan nominal komponen gaji.</div>
                             <div class="form-text">Contoh: <em>1500000</em> (tanpa titik/koma).</div>
                         </div>
                     </div>
@@ -672,7 +672,7 @@ function DeletePayhead($conn)
                 <form id="edit-payhead-form" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h5 class="modal-title" id="editPayheadModalLabel">
-                            <i class="fas fa-edit me-2"></i>Edit Payhead
+                            <i class="fas fa-edit me-2"></i>Edit Komponen Gaji
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
@@ -682,10 +682,10 @@ function DeletePayhead($conn)
                         <!-- Nama Payhead -->
                         <div class="mb-3">
                             <label for="edit_nama_payhead" class="form-label">
-                                <i class="fas fa-tag me-1"></i>Nama Payhead <span class="text-danger">*</span>
+                                <i class="fas fa-tag me-1"></i>Nama Komponen Gaji <span class="text-danger">*</span>
                             </label>
                             <input type="text" class="form-control" id="edit_nama_payhead" name="edit_nama_payhead" required>
-                            <div class="invalid-feedback">Nama payhead belum diisi.</div>
+                            <div class="invalid-feedback">Nama komponen gaji belum diisi.</div>
                         </div>
                         <!-- Jenis Payhead -->
                         <div class="mb-3">
@@ -697,7 +697,7 @@ function DeletePayhead($conn)
                                 <option value="earnings">Earnings (Pendapatan)</option>
                                 <option value="deductions">Deductions (Potongan)</option>
                             </select>
-                            <div class="invalid-feedback">Pilih jenis payhead.</div>
+                            <div class="invalid-feedback">Pilih jenis komponen gaji.</div>
                         </div>
                         <!-- Deskripsi -->
                         <div class="mb-3">
@@ -705,7 +705,7 @@ function DeletePayhead($conn)
                                 <i class="fas fa-info-circle me-1"></i>Deskripsi <span class="text-danger">*</span>
                             </label>
                             <textarea class="form-control" id="edit_deskripsi" name="edit_deskripsi" rows="3" required></textarea>
-                            <div class="invalid-feedback">Masukkan deskripsi payhead.</div>
+                            <div class="invalid-feedback">Masukkan deskripsi komponen gaji.</div>
                         </div>
                         <!-- Nominal -->
                         <div class="mb-3">
@@ -713,7 +713,7 @@ function DeletePayhead($conn)
                                 <i class="fas fa-money-bill-wave me-1"></i>Nominal Tetap <span class="text-danger">*</span>
                             </label>
                             <input type="text" step="0.01" class="form-control" id="edit_nominal" name="nominal" required>
-                            <div class="invalid-feedback">Masukkan nominal payhead.</div>
+                            <div class="invalid-feedback">Masukkan nominal komponen gaji.</div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -737,7 +737,7 @@ function DeletePayhead($conn)
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <i class="fas fa-trash-alt me-2"></i>Hapus Payhead
+                            <i class="fas fa-trash-alt me-2"></i>Hapus Komponen Gaji
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>

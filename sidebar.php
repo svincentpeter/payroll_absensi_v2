@@ -227,45 +227,58 @@ function renderCollapseMenu(string $id, string $iconClass, string $title, array 
             }
         } else {
             // Role M (Manajerial)
-            if (strpos($normalizedJobTitle,'superadmin')!==false) {
-                // Superadmin
-                ?>
-                <li class="nav-item <?= isActive('/superadmin/dashboard_superadmin.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl(); ?>/superadmin/dashboard_superadmin.php">
-                        <i class="fas fa-tachometer-alt"></i><span>Dashboard Superadmin</span>
-                    </a>
-                </li>
-                <?php
-                // Kelola Sistem
-                $kelolaSistemItems = [
-                    'Backup Database' => '/superadmin/backup_database.php',
-                    'Audit Logs'      => '/superadmin/logs.php',
-                    'Error Logs'      => '/superadmin/error_log.php',
-                ];
-                renderCollapseMenu('collapseKelolaSistem','fas fa-user-shield','Kelola Sistem',$kelolaSistemItems);
-                // Submenu SDM
-                $sdmItems = [
-                    'Dashboard SDM'        => '/sdm/dashboard_sdm.php',
-                    'Koreksi Absensi'      => '/sdm/koreksi_absensi.php',
-                    'Kelola Guru/Karyawan' => '/sdm/manage_guru_karyawan.php',
-                    'Payroll Anggota'      => '/sdm/employees.php',
-                    'Komponen Gaji'        => '/sdm/payheads.php',
-                    'Laporan Surat Ijin'   => '/sdm/laporan_pengajuan_ijin.php',
-                    'Laporan Jadwal Piket' => '/sdm/laporan_jadwal_piket.php',
-                    'Pembuatan Surat'      => '/sdm/pembuatan_surat.php',
-                    'Audit Logs SDM'       => '/sdm/audit_logs_sdm.php',
-                ];
-                renderCollapseMenu('collapseSDM','fas fa-users-cog','Role SDM',$sdmItems);
-                // Submenu Keuangan
-                $keuItems = [
-                    'Dashboard Keuangan'  => '/keuangan/dashboard_keuangan.php',
-                    'List Payroll'        => '/keuangan/list_payroll.php',
-                    'History Payroll'     => '/keuangan/payroll_history.php',
-                    'Rekap Payroll'       => '/keuangan/rekap_payroll.php',
-                    'Audit Logs Keuangan' => '/keuangan/audit_logs_keuangan.php',
-                ];
-                renderCollapseMenu('collapseKeuangan','fas fa-wallet','Role Keuangan',$keuItems);
-            }
+            if ($role === 'M' && strpos($normalizedJobTitle,'superadmin') !== false) {
+    // === SUPERADMIN ===
+
+    // 1) Dashboard Superadmin
+    ?>
+    <li class="nav-item <?= isActive('/superadmin/dashboard_superadmin.php'); ?>">
+        <a class="nav-link" href="<?= getBaseUrl(); ?>/superadmin/dashboard_superadmin.php">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard Superadmin</span>
+        </a>
+    </li>
+    <?php
+
+    // 2) Profil Superadmin
+    ?>
+    <li class="nav-item <?= isActive('/superadmin/manage_manajerial.php'); ?>">
+        <a class="nav-link" href="<?= getBaseUrl(); ?>/superadmin/manage_manajerial.php">
+            <i class="fas fa-user-circle"></i>
+            <span>Manage Manajerial</span>
+        </a>
+    </li>
+    <?php
+
+    // 3) Kelola Sistem (fitur khusus Superadmin)
+    $kelolaSistemItems = [
+        'Backup Database' => '/superadmin/backup_database.php',
+        'Audit Logs'      => '/superadmin/logs.php',
+        'Error Logs'      => '/superadmin/error_log.php',
+    ];
+    renderCollapseMenu(
+        'collapseKelolaSistem',
+        'fas fa-cogs',
+        'Kelola Sistem',
+        $kelolaSistemItems
+    );
+
+    // 4) Sekedar lihat dashboard SDM & Keuangan (tanpa akses fitur lain)
+    ?>
+    <li class="nav-item <?= isActive('/sdm/dashboard_sdm.php'); ?>">
+        <a class="nav-link" href="<?= getBaseUrl(); ?>/sdm/dashboard_sdm.php">
+            <i class="fas fa-users-cog"></i>
+            <span>Dashboard SDM</span>
+        </a>
+    </li>
+    <li class="nav-item <?= isActive('/keuangan/dashboard_keuangan.php'); ?>">
+        <a class="nav-link" href="<?= getBaseUrl(); ?>/keuangan/dashboard_keuangan.php">
+            <i class="fas fa-wallet"></i>
+            <span>Dashboard Keuangan</span>
+        </a>
+    </li>
+    <?php
+}
             elseif (strpos($normalizedJobTitle,'keuangan')!==false) {
                 // Keuangan saja
                 ?>
@@ -321,7 +334,7 @@ function renderCollapseMenu(string $id, string $iconClass, string $title, array 
                 </li>
                 <li class="nav-item <?= isActive('/sdm/payheads.php'); ?>">
                     <a class="nav-link" href="<?= getBaseUrl(); ?>/sdm/payheads.php">
-                        <i class="fas fa-layer-group"></i><span>Payheads</span>
+                        <i class="fas fa-layer-group"></i><span>Komponen Gaji</span>
                     </a>
                 </li>
                 <li class="nav-item <?= isActive('/sdm/laporan_pengajuan_ijin.php'); ?>">

@@ -6,8 +6,10 @@ start_session_safe();
 init_error_handling();
 
 // Batasi akses hanya untuk Pendidik (P) dan Tenaga Kependidikan (TK)
-authorize(['P', 'TK']);
-
+if (!($_SESSION['non_admin_mode'] ?? false)) {
+    // Jika tidak dalam mode non-admin, otorisasi hanya untuk role Pendidik dan Tenaga Kependidikan.
+    authorize(['P', 'TK']);
+}
 // Koneksi Database
 require_once __DIR__ . '/../koneksi.php';
 if (!$conn) {

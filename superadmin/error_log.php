@@ -6,7 +6,7 @@ require_once __DIR__ . '/../helpers.php';
 generate_csrf_token();
 
 // Pastikan hanya superadmin yang dapat mengakses halaman ini
-authorize('M:superadmin', '/payroll_absensi_v2/login.php');
+authorize(['M:Superadmin']);
 
 // Koneksi ke database
 require_once __DIR__ . '/../koneksi.php';
@@ -35,25 +35,28 @@ if (ob_get_length()) {
             max-width: 1200px;
             /* Max-width ditingkatkan */
         }
-/* ===== Page Title Styling ===== */
-.page-title {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    font-size: 2.5rem;
-    color: #0d47a1;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 3px solid #1976d2;
-    padding-bottom: 0.3rem;
-    margin-bottom: 1.5rem;
-    animation: fadeInSlide 0.5s ease-in-out both;
-}
-.page-title i {
-    color: #1976d2;
-    font-size: 2.8rem;
-}
+
+        /* ===== Page Title Styling ===== */
+        .page-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 2.5rem;
+            color: #0d47a1;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 3px solid #1976d2;
+            padding-bottom: 0.3rem;
+            margin-bottom: 1.5rem;
+            animation: fadeInSlide 0.5s ease-in-out both;
+        }
+
+        .page-title i {
+            color: #1976d2;
+            font-size: 2.8rem;
+        }
+
         pre {
             background-color: #f8f9fc;
             padding: 20px;
@@ -84,9 +87,9 @@ if (ob_get_length()) {
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <!-- Page Heading -->
-<h1 class="page-title">
-        <i class="fas fa-exclamation-triangle"></i> Error Log Viewer
-    </h1>
+                    <h1 class="page-title">
+                        <i class="fas fa-exclamation-triangle"></i> Error Log Viewer
+                    </h1>
                     <!-- Card untuk menampilkan error.log -->
                     <div class="card shadow mb-4">
                         <div class="card-header bg-primary text-white">
