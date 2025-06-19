@@ -83,260 +83,270 @@
     }
     ?>
     <!DOCTYPE html>
-    <html lang="en">
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Superadmin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap & SB Admin 2 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom Style -->
+    <style>
+        body { background: #f8fafc; }
+        .page-title {
+            font-family: 'Poppins',sans-serif;
+            font-weight: 700;
+            font-size: 2.5rem;
+            color: #0d47a1;
+            text-shadow: 1px 1px 3px rgba(33,150,243,0.08);
+            display: flex; align-items: center; gap: 1rem;
+            border-bottom: 4px solid #1976d2;
+            padding-bottom: 0.3rem;
+            margin-bottom: 1.8rem;
+            letter-spacing: -1px;
+        }
+        .icon-lg-main {
+            background: linear-gradient(45deg,#1976d2,#1cc88a);
+            color: #fff;
+            width: 74px;height: 74px;
+            border-radius: 18px;
+            display: flex;align-items: center;justify-content: center;
+            font-size: 2.8rem;
+            box-shadow: 0 2px 8px 0 rgba(33,150,243,0.12);
+        }
+        /* Stat Cards */
+        .stats-card {
+            background: #fff;
+            border: none;
+            box-shadow: 0 3px 14px 0 rgba(33,150,243,.08);
+            border-radius: 16px;
+            transition: transform 0.13s;
+            padding: 18px 22px;
+            margin-bottom: 18px;
+        }
+        .stats-card:hover { transform: scale(1.03); box-shadow: 0 8px 32px 0 rgba(33,150,243,0.10);}
+        .stats-title { font-size: 1.02rem; color: #1976d2; font-weight: 500; margin-bottom: 2px;}
+        .stats-value { font-size: 2.1rem; font-weight: 700; color: #1b2653; }
+        .stats-icon {
+            width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.45rem; border-radius: 50%;
+            margin-bottom: 8px;
+        }
+        .stats-primary { background: #e3f0fd; color: #1976d2; }
+        .stats-success { background: #e9f8f2; color: #1cc88a; }
+        .stats-warning { background: #fff8e1; color: #f6c23e; }
+        .stats-danger  { background: #fbe9e7; color: #e74a3b; }
+        /* Timeline Styles: (ambil dari punyamu, cuma diperhalus) */
+        .vertical-timeline { position: relative; padding: 20px 0; margin: 0;}
+        .vertical-timeline::before { content: ""; position: absolute; top: 0; bottom: 0; left: 30px; width: 4px; background: #1976d2; border-radius: 2px;}
+        .vertical-timeline-item { position: relative; margin-bottom: 24px; padding-left: 70px;}
+        .vertical-timeline-item:last-child { margin-bottom: 0;}
+        .vertical-timeline-icon {
+            position: absolute; left: 12px; top: 0;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #fff; border: 2px solid #1976d2; text-align: center;
+            line-height: 32px; font-size: 18px; box-shadow:0 2px 12px 0 rgba(33,150,243,0.10);
+        }
+        .vertical-timeline-content {
+            background: #fff; padding: 15px 18px;
+            border-radius: 8px; border-left: 5px solid #1976d2;
+            position: relative; margin-bottom: 8px;
+            box-shadow: 0 1px 8px 0 rgba(33,150,243,0.06);
+        }
+        .vertical-timeline-content h5 { margin:0 0 3px 0; font-size: 1.05rem; font-weight: bold; color: #2e59d9;}
+        .vertical-timeline-content p { margin: 0; font-size: 0.93rem; color: #616e8e;}
+        .timeline-meta { font-size: 0.84rem; color: #6e707e; margin-top: 3px;}
+        /* Menu Cards */
+        .menu-card {
+            background: linear-gradient(45deg, #42a5f5 40%, #1cc88a 100%);
+            color: #fff; border: none; border-radius: 16px;
+            box-shadow: 0 3px 20px 0 rgba(33,150,243,0.10);
+            padding: 1.5rem 1.2rem; transition: transform 0.13s;
+        }
+        .menu-card:hover { transform: scale(1.04); box-shadow: 0 8px 38px 0 rgba(33,150,243,0.13);}
+        .menu-card .card-title { color:#fff; font-size:1.15rem;font-weight:600;}
+        .menu-card .btn { background:rgba(255,255,255,0.12); border:none; color:#fff;}
+        .menu-card .btn:hover { background:rgba(255,255,255,0.32);}
+        @media (max-width: 768px) {
+            .icon-lg-main { width:48px;height:48px; font-size:1.3rem;}
+            .vertical-timeline { padding-left: 8px;}
+            .vertical-timeline-item { padding-left: 60px;}
+            .vertical-timeline-icon { left: 5px;}
+            .stats-value { font-size:1.3rem;}
+        }
+    </style>
+</head>
+<body id="page-top">
+<div id="wrapper">
+    <?php include __DIR__ . '/../sidebar.php'; ?>
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+            <?php include __DIR__ . '/../navbar.php'; ?>
+            <?php include __DIR__ . '/../breadcrumb.php'; ?>
 
-    <head>
-        <meta charset="UTF-8">
-        <title>Dashboard Superadmin</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <!-- Bootstrap 5.3.3 CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-        <!-- SB Admin 2 CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
-        <!-- Font Awesome & Bootstrap Icons -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-        <!-- Custom CSS untuk Timeline Audit Logs -->
-        <style>
-            .card-header {
-                background: linear-gradient(45deg, #0d47a1, #42a5f5);
-                color: white;
-            }
+            <div class="container-fluid">
+                <!-- Judul besar + icon -->
+                <div class="d-flex align-items-center mb-4">
+                    <div class="icon-lg-main me-3"><i class="fas fa-user-shield"></i></div>
+                    <h1 class="page-title mb-0">Dashboard Superadmin</h1>
+                </div>
 
-            /* ===== Page Title Styling ===== */
-            .page-title {
-                font-family: 'Poppins', sans-serif;
-                font-weight: 600;
-                font-size: 2.5rem;
-                color: #0d47a1;
-                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                border-bottom: 3px solid #1976d2;
-                padding-bottom: 0.3rem;
-                margin-bottom: 1.5rem;
-                animation: fadeInSlide 0.5s ease-in-out both;
-            }
+                <?php if (isset($_SESSION['notif_success'])): ?>
+                <div class="alert alert-success"><?= htmlspecialchars($_SESSION['notif_success']); ?></div>
+                <?php unset($_SESSION['notif_success']); endif; ?>
 
-            .page-title i {
-                color: #1976d2;
-                font-size: 2.8rem;
-            }
-
-            /* Timeline Styles */
-            .vertical-timeline {
-                position: relative;
-                padding: 20px 0;
-                margin: 0;
-            }
-
-            .vertical-timeline::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                bottom: 0;
-                left: 30px;
-                width: 4px;
-                background: #4e73df;
-                border-radius: 2px;
-            }
-
-            .vertical-timeline-item {
-                position: relative;
-                margin-bottom: 20px;
-                padding-left: 70px;
-            }
-
-            .vertical-timeline-item:last-child {
-                margin-bottom: 0;
-            }
-
-            .vertical-timeline-icon {
-                position: absolute;
-                left: 12px;
-                top: 0;
-                width: 36px;
-                height: 36px;
-                border-radius: 50%;
-                background: #fff;
-                border: 2px solid #4e73df;
-                text-align: center;
-                line-height: 32px;
-                font-size: 18px;
-            }
-
-            .vertical-timeline-content {
-                background: #ffffff;
-                padding: 15px;
-                border-radius: 6px;
-                border-left: 4px solid #4e73df;
-                position: relative;
-                margin-bottom: 10px;
-            }
-
-            .vertical-timeline-content h5 {
-                margin-top: 0;
-                margin-bottom: 5px;
-                font-size: 1rem;
-                font-weight: bold;
-                color: #2e59d9;
-            }
-
-            .vertical-timeline-content p {
-                margin: 0;
-                font-size: 0.9rem;
-                color: #858796;
-            }
-
-            .timeline-meta {
-                font-size: 0.8rem;
-                color: #6e707e;
-                margin-top: 5px;
-            }
-
-            @media (max-width: 768px) {
-                .vertical-timeline {
-                    padding-left: 10px;
-                }
-
-                .vertical-timeline-item {
-                    padding-left: 60px;
-                }
-
-                .vertical-timeline-icon {
-                    left: 5px;
-                }
-            }
-        </style>
-    </head>
-
-    <body id="page-top">
-        <!-- Page Wrapper -->
-        <div id="wrapper">
-            <!-- Sidebar -->
-            <?php include __DIR__ . '/../sidebar.php'; ?>
-            <!-- End of Sidebar -->
-
-            <!-- Content Wrapper -->
-            <div id="content-wrapper" class="d-flex flex-column">
-                <!-- Main Content -->
-                <div id="content">
-                    <!-- Topbar -->
-                    <?php include __DIR__ . '/../navbar.php'; ?>
-                    <!-- End of Topbar -->
-
-                    <!-- Breadcrumb -->
-                    <?php include __DIR__ . '/../breadcrumb.php'; ?>
-
-                    <!-- Begin Page Content -->
-                    <div class="container-fluid">
-                        <!-- Page Heading -->
-                        <h1 class="page-title">
-                            <i class="fas fa-users me-2"></i>
-                            Dashboard Superadmin
-                        </h1>
-                        <!-- Notifikasi jika ada -->
-                        <?php if (isset($_SESSION['notif_success'])): ?>
-                            <div class="alert alert-success">
-                                <?= htmlspecialchars($_SESSION['notif_success']); ?>
+                <!-- Stat cards: -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-icon stats-primary mb-1"><i class="fas fa-users"></i></div>
+                            <div class="stats-title">Total Anggota</div>
+                            <div class="stats-value">
+                                <?php
+                                // Query total anggota (role!=NULL)
+                                $qTotal = $conn->query("SELECT COUNT(*) as jml FROM anggota_sekolah WHERE role IS NOT NULL");
+                                echo $qTotal ? number_format($qTotal->fetch_assoc()['jml']) : '-';
+                                ?>
                             </div>
-                            <?php unset($_SESSION['notif_success']); ?>
-                        <?php endif; ?>
-
-                        <!-- Card Menu Utama -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card border-start-primary mb-4">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Dashboard Keuangan</h5>
-                                        <p class="card-text">Lihat rekap gaji final, pemotongan manual, dsb.</p>
-                                        <a href="/payroll_absensi_v2/payroll/keuangan/dashboard_keuangan.php" class="btn btn-primary">
-                                            Akses Dashboard Keuangan
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card border-start-success mb-4">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Dashboard SDM</h5>
-                                        <p class="card-text">Kelola absensi, upload excel, dsb.</p>
-                                        <a href="/payroll_absensi_v2/sdm/dashboard_sdm.php" class="btn btn-success">
-                                            Akses Dashboard SDM
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Preview Audit Logs (5 data terbaru) -->
-                        <div class="card mb-4">
-                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                                <h6 class="m-0 fw-bold text-white">
-                                    <i class="fas fa-clock"></i> Recent Audit Logs
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="vertical-timeline">
-                                    <?php
-                                    if ($resultLogs->num_rows == 0) {
-                                        echo "<p class='text-center'>No audit logs available.</p>";
-                                    }
-                                    while ($row = $resultLogs->fetch_assoc()):
-                                        $actionText  = htmlspecialchars($row['action'], ENT_QUOTES, 'UTF-8');
-                                        $detailsText = htmlspecialchars($row['details'], ENT_QUOTES, 'UTF-8');
-                                        $username    = htmlspecialchars($row['username'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
-                                        $roleText    = htmlspecialchars($row['role'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
-                                        $dateStr     = date("d M Y, H:i", strtotime($row['created_at']));
-                                        $color       = getActivityColor($actionText);
-                                    ?>
-                                        <div class="vertical-timeline-item">
-                                            <div class="vertical-timeline-icon" style="border-color: <?php echo $color; ?>; color: <?php echo $color; ?>;">
-                                                <?php echo getActivityIcon($actionText); ?>
-                                            </div>
-                                            <div class="vertical-timeline-content" style="border-left-color: <?php echo $color; ?>;">
-                                                <h5><?php echo $actionText; ?></h5>
-                                                <p><?php echo $detailsText; ?></p>
-                                                <p class="timeline-meta">
-                                                    <?php echo getRoleIcon($roleText) . ' <strong>' . $username . '</strong> (' . ucfirst($roleText) . ')'; ?>
-                                                    <span class="float-end"><?php echo $dateStr; ?></span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    <?php endwhile; ?>
-                                </div>
-                                <div class="text-end">
-                                    <a href="logs.php" class="btn btn-secondary mt-3">
-                                        <i class="fas fa-list-alt"></i> View All Logs
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div> <!-- end container-fluid -->
-                </div> <!-- end content -->
-
-                <!-- Footer -->
-                <footer class="sticky-footer bg-white">
-                    <div class="container my-auto">
-                        <div class="copyright text-center my-auto">
-                            <span>&copy; <?php echo date("Y"); ?> Payroll Management System</span>
                         </div>
                     </div>
-                </footer>
-            </div> <!-- end content-wrapper -->
-        </div> <!-- end wrapper -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-icon stats-success mb-1"><i class="fas fa-user-tie"></i></div>
+                            <div class="stats-title">Total Manajerial</div>
+                            <div class="stats-value">
+                                <?php
+                                $qM = $conn->query("SELECT COUNT(*) as jml FROM anggota_sekolah WHERE role='M'");
+                                echo $qM ? number_format($qM->fetch_assoc()['jml']) : '-';
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-icon stats-warning mb-1"><i class="fas fa-users-cog"></i></div>
+                            <div class="stats-title">Total SDM</div>
+                            <div class="stats-value">
+                                <?php
+                                $qSDM = $conn->query("SELECT COUNT(*) as jml FROM anggota_sekolah WHERE LOWER(job_title) LIKE '%sdm%'");
+                                echo $qSDM ? number_format($qSDM->fetch_assoc()['jml']) : '-';
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-icon stats-danger mb-1"><i class="fas fa-wallet"></i></div>
+                            <div class="stats-title">Total Keuangan</div>
+                            <div class="stats-value">
+                                <?php
+                                $qKeu = $conn->query("SELECT COUNT(*) as jml FROM anggota_sekolah WHERE LOWER(job_title) LIKE '%keuangan%'");
+                                echo $qKeu ? number_format($qKeu->fetch_assoc()['jml']) : '-';
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- JS Dependencies -->
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
-    </body>
+                <!-- Menu cards: akses cepat -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card menu-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="me-2"><i class="fas fa-wallet fa-2x"></i></div>
+                    <div>
+                        <div class="card-title">Dashboard Keuangan</div>
+                        <div class="card-text mb-2">Lihat rekap gaji final, pemotongan manual, dsb.</div>
+                    </div>
+                </div>
+                <a href="<?= getUrl('keuangan/dashboard_keuangan.php') ?>" class="btn btn-light">
+                    <i class="fas fa-arrow-right"></i> Akses Dashboard Keuangan
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card menu-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="me-2"><i class="fas fa-users-cog fa-2x"></i></div>
+                    <div>
+                        <div class="card-title">Dashboard SDM</div>
+                        <div class="card-text mb-2">Kelola absensi, upload excel, dsb.</div>
+                    </div>
+                </div>
+                <a href="<?= getUrl('sdm/dashboard_sdm.php') ?>" class="btn btn-success">
+                    <i class="fas fa-arrow-right"></i> Akses Dasboard SDM
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
-    </html>
-    <?php
-    // Tutup koneksi database menggunakan fungsi dari helpers.php
-    close_db_connection();
-    ?>
+
+                <!-- Audit Logs Timeline -->
+                <div class="card mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background:linear-gradient(45deg,#1976d2,#36b9cc);">
+                        <h6 class="m-0 fw-bold text-white">
+                            <i class="fas fa-clock"></i> Recent Audit Logs
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="vertical-timeline">
+                            <?php
+                            if ($resultLogs->num_rows == 0) {
+                                echo "<p class='text-center'>No audit logs available.</p>";
+                            }
+                            while ($row = $resultLogs->fetch_assoc()):
+                                $actionText  = htmlspecialchars($row['action'], ENT_QUOTES, 'UTF-8');
+                                $detailsText = htmlspecialchars($row['details'], ENT_QUOTES, 'UTF-8');
+                                $username    = htmlspecialchars($row['username'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
+                                $roleText    = htmlspecialchars($row['role'] ?? 'Unknown', ENT_QUOTES, 'UTF-8');
+                                $dateStr     = date("d M Y, H:i", strtotime($row['created_at']));
+                                $color       = getActivityColor($actionText);
+                            ?>
+                            <div class="vertical-timeline-item">
+                                <div class="vertical-timeline-icon" style="border-color: <?php echo $color; ?>; color: <?php echo $color; ?>;">
+                                    <?php echo getActivityIcon($actionText); ?>
+                                </div>
+                                <div class="vertical-timeline-content" style="border-left-color: <?php echo $color; ?>;">
+                                    <h5><?php echo $actionText; ?></h5>
+                                    <p><?php echo $detailsText; ?></p>
+                                    <p class="timeline-meta">
+                                        <?php echo getRoleIcon($roleText) . ' <strong>' . $username . '</strong> (' . ucfirst($roleText) . ')'; ?>
+                                        <span class="float-end"><?php echo $dateStr; ?></span>
+                                    </p>
+                                </div>
+                            </div>
+                            <?php endwhile; ?>
+                        </div>
+                        <div class="text-end">
+                            <a href="logs.php" class="btn btn-secondary mt-3">
+                                <i class="fas fa-list-alt"></i> View All Logs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- end container-fluid -->
+        </div><!-- end content -->
+        <!-- Footer -->
+        <footer class="sticky-footer bg-white">
+            <div class="container my-auto">
+                <div class="copyright text-center my-auto">
+                    <span>&copy; <?php echo date("Y"); ?> Payroll Management System</span>
+                </div>
+            </div>
+        </footer>
+    </div><!-- end content-wrapper -->
+</div><!-- end wrapper -->
+<!-- JS Dependencies -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery.easing@1.4.1/jquery.easing.min.js"></script>
+</body>
+</html>
+<?php close_db_connection(); ?>

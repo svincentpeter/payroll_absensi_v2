@@ -19,7 +19,7 @@ if (!$conn) {
 // Ambil NIP dari session
 $nip = $_SESSION['nip'] ?? '';
 if (empty($nip)) {
-    header("Location: " . getBaseUrl() . "/login.php");
+    header("Location: " . getBaseUrl() . "/index.php");
     exit();
 }
 
@@ -31,7 +31,7 @@ $userData = fetchSingleRow(
     [$nip]
 );
 if (!$userData) {
-    header("Location: " . getBaseUrl() . "/login.php");
+    header("Location: " . getBaseUrl() . "/index.php");
     exit();
 }
 

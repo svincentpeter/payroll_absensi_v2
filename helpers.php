@@ -447,7 +447,7 @@ function getBadgeJenjang(string $kode, mysqli $conn): string {
 
         if (!$allowed) {
             if ($redirectUrl === null) {
-                $redirectUrl = getBaseUrl() . '/login.php';
+                $redirectUrl = getBaseUrl() . '/index.php';
             }
             header("Location: " . $redirectUrl);
             exit();
@@ -472,6 +472,14 @@ function getBadgeJenjang(string $kode, mysqli $conn): string {
         return $protocol . $host . $subfolder;
     }
 }
+
+if (!function_exists('getUrl')) {
+    function getUrl($path = '') {
+        $base = getBaseUrl();
+        return rtrim($base, '/') . '/' . ltrim($path, '/');
+    }
+}
+
 
 
     /**

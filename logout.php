@@ -39,5 +39,5 @@ session_unset();
 session_destroy();
 
 // Redirect ke halaman login menggunakan getBaseUrl()
-header("Location: " . getBaseUrl() . "/login.php");
+header("Location: " . getBaseUrl() . "/index.php");
 exit();

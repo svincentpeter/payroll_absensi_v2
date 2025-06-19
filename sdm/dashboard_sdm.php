@@ -10,7 +10,7 @@ init_error_handling();
 require_once __DIR__ . '/../koneksi.php';
 
 // Otorisasi pengguna (hanya role sdm & superadmin)
-authorize(['M:SDM']);
+authorize(['M:SDM', 'M:superadmin']);
 
 // Pastikan CSRF token telah di-generate
 generate_csrf_token();
