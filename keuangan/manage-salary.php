@@ -594,21 +594,21 @@ add_audit_log($conn, $user_nip, 'ViewPayroll', $detailsLog);
 $timestamp    = strtotime($tglPayrollParam);
 $tanggalCetak = date('d', $timestamp) . ' ' . getIndonesianMonthName((int)date('n', $timestamp)) . ' ' . date('Y', $timestamp);
 $periode      = getIndonesianMonthName($bulan) . ' ' . $tahun;
+$periodeDate   = date('Y-m-d', $timestamp);
 
 $stmtKG = $conn->prepare("
     SELECT nama_kenaikan, jumlah, tanggal_mulai, tanggal_berakhir
-    FROM kenaikan_gaji_tahunan
-    WHERE id_anggota = ?
-      AND status = 'aktif'
-      AND ? BETWEEN tanggal_mulai AND tanggal_berakhir
-    ORDER BY tanggal_mulai DESC
-    LIMIT 1
+      FROM kenaikan_gaji_tahunan
+     WHERE id_anggota = ?
+       AND status     = 'aktif'
+       AND ? BETWEEN tanggal_mulai AND tanggal_berakhir
+     ORDER BY tanggal_mulai DESC
+     LIMIT 1
 ");
-$periodePayroll = "$tahun-$bulan-01"; // ex: 2026-05-01
-$stmtKG->bind_param("is", $id_anggota, $periodePayroll);
+$stmtKG->bind_param("is", $id_anggota, $periodeDate);
 $stmtKG->execute();
 $resultKG = $stmtKG->get_result();
-$kgData = $resultKG->fetch_assoc();
+$kgData    = $resultKG->fetch_assoc();
 $stmtKG->close();
 
 ?>

@@ -103,7 +103,7 @@ if (
     }
 
     /* ---------- N-6  anggota belum dibayar ---------- */
-    if (in_array($role,['M:keuangan','M:superadmin'],true)) {
+    if (in_array($role,['M:keuangan'],true)) {
         $n = qCount($conn,
            "SELECT COUNT(*) cnt
               FROM anggota_sekolah a
@@ -116,7 +116,7 @@ if (
     }
 
     /* ---------- N-7  selisih hitung payroll >1000 ---------- */
-    if (in_array($role,['M:keuangan','M:superadmin'],true)) {
+    if (in_array($role,['M:keuangan'],true)) {
         $n = qCount($conn,
            "SELECT COUNT(*) cnt FROM payroll
              WHERE ABS(
