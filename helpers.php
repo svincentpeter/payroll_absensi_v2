@@ -2,29 +2,29 @@
     // File: helpers.php
     require_once __DIR__ . '/sdm/includes/mgk_salary_handler.php';
     require_once __DIR__ . '/sdm/includes/mgk_date_utils.php';
-// Warna untuk semua badge, terpusat di satu tempat:
-$GLOBALS['BADGE_COLORS'] = [
-    'status_kerja' => [
-        'tetap'   => ['bg' => '#43a047', 'fg'=>'#ffffff'], // Green
-        'kontrak' => ['bg' => '#ffe082', 'fg'=>'#212529'], // Soft Yellow
-    ],
-    'role' => [
-        'P'  => ['bg' => '#90caf9', 'fg'=>'#212529'], // Light Blue
-        'TK' => ['bg' => '#ffb74d', 'fg'=>'#212529'], // Soft Orange
-        'M'  => ['bg' => '#e57373', 'fg'=>'#212529'], // Soft Red
-    ],
-    'jenjang' => [
-        // Semua warna pastel/terang, tetap readable untuk font hitam tebal
-        'tk'       => ['bg'=>'#f8bbd0', 'fg'=>'#212529'], // Pastel Pink
-        'sd'       => ['bg'=>'#fff59d', 'fg'=>'#212529'], // Lemon Yellow
-        'smp'      => ['bg'=>'#80deea', 'fg'=>'#212529'], // Pastel Cyan
-        'sma'      => ['bg'=>'#aed581', 'fg'=>'#212529'], // Pastel Green
-        'smk1'     => ['bg'=>'#ffd180', 'fg'=>'#212529'], // Light Peach/Orange
-        'smk2'     => ['bg'=>'#ce93d8', 'fg'=>'#212529'], // Soft Purple
-        'stifera'  => ['bg'=>'#b3e5fc', 'fg'=>'#212529'], // Soft Sky Blue
-        'umum' => ['bg'=>'#cfd8dc', 'fg'=>'#212529'], // Soft grey-blue
-    ],
-];
+    // Warna untuk semua badge, terpusat di satu tempat:
+    $GLOBALS['BADGE_COLORS'] = [
+        'status_kerja' => [
+            'tetap'   => ['bg' => '#43a047', 'fg' => '#ffffff'], // Green
+            'kontrak' => ['bg' => '#ffe082', 'fg' => '#212529'], // Soft Yellow
+        ],
+        'role' => [
+            'P'  => ['bg' => '#90caf9', 'fg' => '#212529'], // Light Blue
+            'TK' => ['bg' => '#ffb74d', 'fg' => '#212529'], // Soft Orange
+            'M'  => ['bg' => '#e57373', 'fg' => '#212529'], // Soft Red
+        ],
+        'jenjang' => [
+            // Semua warna pastel/terang, tetap readable untuk font hitam tebal
+            'tk'       => ['bg' => '#f8bbd0', 'fg' => '#212529'], // Pastel Pink
+            'sd'       => ['bg' => '#fff59d', 'fg' => '#212529'], // Lemon Yellow
+            'smp'      => ['bg' => '#80deea', 'fg' => '#212529'], // Pastel Cyan
+            'sma'      => ['bg' => '#aed581', 'fg' => '#212529'], // Pastel Green
+            'smk1'     => ['bg' => '#ffd180', 'fg' => '#212529'], // Light Peach/Orange
+            'smk2'     => ['bg' => '#ce93d8', 'fg' => '#212529'], // Soft Purple
+            'stifera'  => ['bg' => '#b3e5fc', 'fg' => '#212529'], // Soft Sky Blue
+            'umum' => ['bg' => '#cfd8dc', 'fg' => '#212529'], // Soft grey-blue
+        ],
+    ];
 
 
     /************************************
@@ -50,12 +50,12 @@ $GLOBALS['BADGE_COLORS'] = [
      * @return string Data yang telah disanitasi.
      */
     function sanitize_input($data)
-{
-    if ($data === null) {        // ← tambahkan
-        return '';               //   kembalikan string kosong
+    {
+        if ($data === null) {        // ← tambahkan
+            return '';               //   kembalikan string kosong
+        }
+        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
     }
-    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
-}
 
     // Alias untuk fungsi sanitize_input()
     if (!function_exists('bersihkan_input')) {
@@ -203,7 +203,8 @@ $GLOBALS['BADGE_COLORS'] = [
      * @param int $monthNumber Nomor bulan.
      * @return string Nama bulan atau 'Tidak Diketahui' jika tidak valid.
      */
-    function getIndonesianMonthName(int $month): string {
+    function getIndonesianMonthName(int $month): string
+    {
         $months = [
             1 => 'Januari',
             2 => 'Februari',
@@ -333,40 +334,41 @@ $GLOBALS['BADGE_COLORS'] = [
      * @return string HTML badge.
      */
     function getBadgeRole(string $role): string
-{
-    $c = $GLOBALS['BADGE_COLORS']['role'][$role] 
-       ?? ['bg'=>'#6c757d','fg'=>'#ffffff'];
-    $labels = ['P'=>'Pendidik','TK'=>'Tenaga Kependidikan','M'=>'Manajerial'];
-    $label = $labels[$role] ?? htmlspecialchars($role);
-    return "<span class=\"badge\" "
-        . "style=\"background-color:{$c['bg']};color:{$c['fg']};\">"
-        . "{$label}</span>";
-}
+    {
+        $c = $GLOBALS['BADGE_COLORS']['role'][$role]
+            ?? ['bg' => '#6c757d', 'fg' => '#ffffff'];
+        $labels = ['P' => 'Pendidik', 'TK' => 'Tenaga Kependidikan', 'M' => 'Manajerial'];
+        $label = $labels[$role] ?? htmlspecialchars($role);
+        return "<span class=\"badge\" "
+            . "style=\"background-color:{$c['bg']};color:{$c['fg']};\">"
+            . "{$label}</span>";
+    }
 
     /**
- * Menghasilkan badge HTML untuk jenjang (TK/SD/SMP/SMA/SMK 1/SMK 2/Univ Stivera).
- *
- * @param string $jenjang e.g. "SMK 1", "SMK 2", "Universitas Stivera"
- * @return string <span class="badge" style="…">…</span>
- */
-function getBadgeJenjang(string $kode, mysqli $conn): string {
-    $kode = strtoupper(trim($kode));             // normalisasi
-    $stmt = $conn->prepare(
-        "SELECT nama_jenjang,color_bg,color_fg
+     * Menghasilkan badge HTML untuk jenjang (TK/SD/SMP/SMA/SMK 1/SMK 2/Univ Stivera).
+     *
+     * @param string $jenjang e.g. "SMK 1", "SMK 2", "Universitas Stivera"
+     * @return string <span class="badge" style="…">…</span>
+     */
+    function getBadgeJenjang(string $kode, mysqli $conn): string
+    {
+        $kode = strtoupper(trim($kode));             // normalisasi
+        $stmt = $conn->prepare(
+            "SELECT nama_jenjang,color_bg,color_fg
            FROM jenjang_sekolah
           WHERE UPPER(kode_jenjang)=? LIMIT 1"
-    );
-    $stmt->bind_param("s", $kode);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
+        );
+        $stmt->bind_param("s", $kode);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
 
-    if ($row) {
-        return "<span class='badge' style='background:{$row['color_bg']};color:{$row['color_fg']};'><strong>{$row['nama_jenjang']}</strong></span>";
+        if ($row) {
+            return "<span class='badge' style='background:{$row['color_bg']};color:{$row['color_fg']};'><strong>{$row['nama_jenjang']}</strong></span>";
+        }
+        // fallback
+        return "<span class='badge bg-secondary'><strong>{$kode}</strong></span>";
     }
-    // fallback
-    return "<span class='badge bg-secondary'><strong>{$kode}</strong></span>";
-}
 
     /**
      * Menghasilkan badge HTML untuk status kerja karyawan.
@@ -375,15 +377,15 @@ function getBadgeJenjang(string $kode, mysqli $conn): string {
      * @return string HTML badge.
      */
     function getBadgeStatusKerja(string $status): string
-{
-    $key = strtolower($status);
-    $c   = $GLOBALS['BADGE_COLORS']['status_kerja'][$key] 
-         ?? ['bg'=>'#6c757d','fg'=>'#ffffff'];
-    $label = ucfirst($key);
-    return "<span class=\"badge\" "
-        . "style=\"background-color:{$c['bg']};color:{$c['fg']};\">"
-        . "{$label}</span>";
-}
+    {
+        $key = strtolower($status);
+        $c   = $GLOBALS['BADGE_COLORS']['status_kerja'][$key]
+            ?? ['bg' => '#6c757d', 'fg' => '#ffffff'];
+        $label = ucfirst($key);
+        return "<span class=\"badge\" "
+            . "style=\"background-color:{$c['bg']};color:{$c['fg']};\">"
+            . "{$label}</span>";
+    }
 
     /************************************
      * 5. OTORISASI & AKSES
@@ -413,7 +415,7 @@ function getBadgeJenjang(string $kode, mysqli $conn): string {
         if (!is_array($allowedRoles)) {
             $allowedRoles = [$allowedRoles];
         }
-        
+
         $allowed = false;
         foreach ($allowedRoles as $allowedRole) {
             // Jika parameter authorize adalah 'kepala sekolah', periksa job title
@@ -462,23 +464,24 @@ function getBadgeJenjang(string $kode, mysqli $conn): string {
      * @return string URL dasar aplikasi.
      */
     if (!function_exists('getBaseUrl')) {
-    function getBaseUrl()
-    {
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
-            || $_SERVER['SERVER_PORT'] == 443)
-            ? "https://" : "http://";
-        $host = $_SERVER['HTTP_HOST'];
-        $subfolder = '/payroll_absensi_v2'; // ← GANTI INI jika di hosting/subfolder beda
-        return $protocol . $host . $subfolder;
+        function getBaseUrl()
+        {
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'
+                || $_SERVER['SERVER_PORT'] == 443)
+                ? "https://" : "http://";
+            $host = $_SERVER['HTTP_HOST'];
+            $subfolder = '/payroll_absensi_v2'; // ← GANTI INI jika di hosting/subfolder beda
+            return $protocol . $host . $subfolder;
+        }
     }
-}
 
-if (!function_exists('getUrl')) {
-    function getUrl($path = '') {
-        $base = getBaseUrl();
-        return rtrim($base, '/') . '/' . ltrim($path, '/');
+    if (!function_exists('getUrl')) {
+        function getUrl($path = '')
+        {
+            $base = getBaseUrl();
+            return rtrim($base, '/') . '/' . ltrim($path, '/');
+        }
     }
-}
 
 
 
@@ -529,7 +532,7 @@ if (!function_exists('getUrl')) {
      */
     function getProfilePhotoUrl(string $pathDb): string
     {
-        $base = getBaseUrl(); 
+        $base = getBaseUrl();
 
         // 1) Jika default atau kosong: pakai placeholder
         if (empty($pathDb) || $pathDb === 'default.jpg') {
@@ -559,83 +562,83 @@ if (!function_exists('getUrl')) {
      * @return bool True jika update berhasil, false jika gagal.
      */
     if (!function_exists('updateSalaryIndexForUser')) {
-    function updateSalaryIndexForUser($conn, $userId)
-    {
-        // Inisialisasi variabel
-        $role = '';
-        $join_start = '';
-        $pendidikan = '';
-        $jenjang = '';
+        function updateSalaryIndexForUser($conn, $userId)
+        {
+            // Inisialisasi variabel
+            $role = '';
+            $join_start = '';
+            $pendidikan = '';
+            $jenjang = '';
 
-        // Ambil data user dari tabel anggota_sekolah
-        $stmt = $conn->prepare("SELECT role, join_start, pendidikan, jenjang FROM anggota_sekolah WHERE id = ?");
-        if (!$stmt) {
-            error_log("Prepare error (masa kerja): " . $conn->error);
-            return false;
-        }
-        $stmt->bind_param("i", $userId);
-        $stmt->execute();
-        $stmt->bind_result($role, $join_start, $pendidikan, $jenjang);
-        if (!$stmt->fetch()) {
-            $stmt->close();
-            return false;
-        }
-        $stmt->close();
-
-        // Hitung lama kerja dalam tahun menggunakan DateTime
-        $years = 0;
-        if (!empty($join_start) && $join_start != '0000-00-00') {
-            try {
-                $startDate = new DateTime($join_start);
-                $now       = new DateTime();
-                $diff = $now->diff($startDate);
-                $years = $diff->y;
-            } catch (Exception $e) {
-                $years = 0;
+            // Ambil data user dari tabel anggota_sekolah
+            $stmt = $conn->prepare("SELECT role, join_start, pendidikan, jenjang FROM anggota_sekolah WHERE id = ?");
+            if (!$stmt) {
+                error_log("Prepare error (masa kerja): " . $conn->error);
+                return false;
             }
-        }
+            $stmt->bind_param("i", $userId);
+            $stmt->execute();
+            $stmt->bind_result($role, $join_start, $pendidikan, $jenjang);
+            if (!$stmt->fetch()) {
+                $stmt->close();
+                return false;
+            }
+            $stmt->close();
 
-        // Ambil salary index sesuai masa kerja
-        $salaryIndexId = 0;
-        $baseSalary = 0.0;
-        $level = '';
-        $stmt3 = $conn->prepare("SELECT id, base_salary, level FROM salary_indices WHERE min_years <= ? AND (max_years IS NULL OR ? <= max_years) ORDER BY min_years DESC LIMIT 1");
-        if (!$stmt3) {
-            error_log("Prepare error (salary_indices): " . $conn->error);
-            return false;
-        }
-        $stmt3->bind_param("ii", $years, $years);
-        $stmt3->execute();
-        $stmt3->bind_result($salaryIndexId, $baseSalary, $level);
-        if (!$stmt3->fetch()) {
+            // Hitung lama kerja dalam tahun menggunakan DateTime
+            $years = 0;
+            if (!empty($join_start) && $join_start != '0000-00-00') {
+                try {
+                    $startDate = new DateTime($join_start);
+                    $now       = new DateTime();
+                    $diff = $now->diff($startDate);
+                    $years = $diff->y;
+                } catch (Exception $e) {
+                    $years = 0;
+                }
+            }
+
+            // Ambil salary index sesuai masa kerja
+            $salaryIndexId = 0;
+            $baseSalary = 0.0;
+            $level = '';
+            $stmt3 = $conn->prepare("SELECT id, base_salary, level FROM salary_indices WHERE min_years <= ? AND (max_years IS NULL OR ? <= max_years) ORDER BY min_years DESC LIMIT 1");
+            if (!$stmt3) {
+                error_log("Prepare error (salary_indices): " . $conn->error);
+                return false;
+            }
+            $stmt3->bind_param("ii", $years, $years);
+            $stmt3->execute();
+            $stmt3->bind_result($salaryIndexId, $baseSalary, $level);
+            if (!$stmt3->fetch()) {
+                $stmt3->close();
+                error_log("Tidak ada salary index yang cocok untuk tahun = $years");
+                return false;
+            }
             $stmt3->close();
-            error_log("Tidak ada salary index yang cocok untuk tahun = $years");
-            return false;
-        }
-        $stmt3->close();
 
-        // ==== LOGIC FIX: Panggil fungsi hitungGajiPokok agar pencocokan konsisten ====
-        if (!function_exists('hitungGajiPokok')) {
-            require_once __DIR__ . '/mgk_salary_handler.php'; // pastikan ada
-        }
-        $gaji_pokok = hitungGajiPokok($conn, $role, $pendidikan, $jenjang);
+            // ==== LOGIC FIX: Panggil fungsi hitungGajiPokok agar pencocokan konsisten ====
+            if (!function_exists('hitungGajiPokok')) {
+                require_once __DIR__ . '/mgk_salary_handler.php'; // pastikan ada
+            }
+            $gaji_pokok = hitungGajiPokok($conn, $role, $pendidikan, $jenjang);
 
-        // Update data user
-        $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, salary_index_level = ?, gaji_pokok = ?, masa_kerja_efektif = ? WHERE id = ?");
-        if (!$stmtUpdate) {
-            error_log("Prepare error (update anggota): " . $conn->error);
-            return false;
+            // Update data user
+            $stmtUpdate = $conn->prepare("UPDATE anggota_sekolah SET salary_index_id = ?, salary_index_level = ?, gaji_pokok = ?, masa_kerja_efektif = ? WHERE id = ?");
+            if (!$stmtUpdate) {
+                error_log("Prepare error (update anggota): " . $conn->error);
+                return false;
+            }
+            $masaKerjaEfektif = $years;
+            $stmtUpdate->bind_param("isidi", $salaryIndexId, $level, $gaji_pokok, $masaKerjaEfektif, $userId);
+            $result = $stmtUpdate->execute();
+            if (!$result) {
+                error_log("Execute error (update anggota): " . $stmtUpdate->error);
+            }
+            $stmtUpdate->close();
+            return $result;
         }
-        $masaKerjaEfektif = $years;
-        $stmtUpdate->bind_param("isidi", $salaryIndexId, $level, $gaji_pokok, $masaKerjaEfektif, $userId);
-        $result = $stmtUpdate->execute();
-        if (!$result) {
-            error_log("Execute error (update anggota): " . $stmtUpdate->error);
-        }
-        $stmtUpdate->close();
-        return $result;
     }
-}
 
 
     /**
@@ -690,47 +693,47 @@ if (!function_exists('getUrl')) {
      * @return array Array dengan salary_index_id dan penjelasan.
      */
     function getRecommendedSalaryIndex($conn, $joinStart)
-{
-    if (empty($joinStart) || $joinStart == '0000-00-00') {
-        return [
-            'salary_index_id' => 0,
-            'explanation' => 'Tanggal bergabung belum diisi / tidak valid'
-        ];
-    }
+    {
+        if (empty($joinStart) || $joinStart == '0000-00-00') {
+            return [
+                'salary_index_id' => 0,
+                'explanation' => 'Tanggal bergabung belum diisi / tidak valid'
+            ];
+        }
 
-    // Ambil masa kerja efektif (tahun desimal)
-    list($thn, $bln, $efektif) = calcMasaKerja($joinStart);
-    $masaKerjaEfektif = floatval($efektif);
+        // Ambil masa kerja efektif (tahun desimal)
+        list($thn, $bln, $efektif) = calcMasaKerja($joinStart);
+        $masaKerjaEfektif = floatval($efektif);
 
-    $sql = "SELECT id, level
+        $sql = "SELECT id, level
             FROM salary_indices
             WHERE min_years <= ?
             AND (max_years IS NULL OR ? <= max_years)
             ORDER BY min_years DESC
             LIMIT 1";
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        return [
-            'salary_index_id' => 0,
-            'explanation' => 'Query error: ' . $conn->error
-        ];
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            return [
+                'salary_index_id' => 0,
+                'explanation' => 'Query error: ' . $conn->error
+            ];
+        }
+        $stmt->bind_param("dd", $masaKerjaEfektif, $masaKerjaEfektif);
+        $stmt->execute();
+        $res2 = $stmt->get_result();
+        if ($res2 && $res2->num_rows > 0) {
+            $row = $res2->fetch_assoc();
+            return [
+                'salary_index_id' => (int)$row['id'],
+                'explanation' => 'Cocok dengan level: ' . $row['level']
+            ];
+        } else {
+            return [
+                'salary_index_id' => 0,
+                'explanation' => 'Tidak ada level salary_indices yang cocok'
+            ];
+        }
     }
-    $stmt->bind_param("dd", $masaKerjaEfektif, $masaKerjaEfektif);
-    $stmt->execute();
-    $res2 = $stmt->get_result();
-    if ($res2 && $res2->num_rows > 0) {
-        $row = $res2->fetch_assoc();
-        return [
-            'salary_index_id' => (int)$row['id'],
-            'explanation' => 'Cocok dengan level: ' . $row['level']
-        ];
-    } else {
-        return [
-            'salary_index_id' => 0,
-            'explanation' => 'Tidak ada level salary_indices yang cocok'
-        ];
-    }
-}
 
 
     /************************************
@@ -738,25 +741,25 @@ if (!function_exists('getUrl')) {
      ************************************/
 
     // helpers.php
-/**
- * Mengambil daftar jenjang dari database, terurut sesuai urutan id.
- * Return: array asosiatif kode_jenjang => nama_jenjang
- * @param mysqli $conn Koneksi database
- * @param bool $aktifOnly Hanya yang aktif
- * @return array
- */
-function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
-{
-    $list = [];
-    $sql = "SELECT kode_jenjang, nama_jenjang FROM jenjang_sekolah"
-         . ($aktifOnly ? " WHERE is_aktif = 1" : "")
-         . " ORDER BY id ASC";
-    $res = mysqli_query($conn, $sql);
-    while ($row = mysqli_fetch_assoc($res)) {
-        $list[$row['kode_jenjang']] = $row['nama_jenjang'];
+    /**
+     * Mengambil daftar jenjang dari database, terurut sesuai urutan id.
+     * Return: array asosiatif kode_jenjang => nama_jenjang
+     * @param mysqli $conn Koneksi database
+     * @param bool $aktifOnly Hanya yang aktif
+     * @return array
+     */
+    function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
+    {
+        $list = [];
+        $sql = "SELECT kode_jenjang, nama_jenjang FROM jenjang_sekolah"
+            . ($aktifOnly ? " WHERE is_aktif = 1" : "")
+            . " ORDER BY id ASC";
+        $res = mysqli_query($conn, $sql);
+        while ($row = mysqli_fetch_assoc($res)) {
+            $list[$row['kode_jenjang']] = $row['nama_jenjang'];
+        }
+        return $list;
     }
-    return $list;
-}
 
 
     /**
@@ -779,7 +782,8 @@ function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
 
     // Tambahkan fungsi formatNominal jika belum ada di helpers.php
     if (!function_exists('formatNominal')) {
-        function formatNominal($angka) {
+        function formatNominal($angka)
+        {
             return 'Rp ' . number_format($angka, 0, ',', '.');
         }
     }
@@ -793,7 +797,8 @@ function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
      *
      * @return string Full role user.
      */
-    function getFullRole() {
+    function getFullRole()
+    {
         $userRole     = $_SESSION['role'] ?? '';
         $userJobTitle = $_SESSION['job_title'] ?? '';
 
@@ -802,12 +807,12 @@ function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
             return $userRole;
         }
         $normalized = strtolower(trim($userJobTitle));
-        
+
         // Jika job title mengandung "kepala sekolah", maka return TK
         if (strpos($normalized, 'kepala sekolah') !== false) {
             return 'P';
         }
-        
+
         // Pertahankan pengecekan untuk role M lainnya
         if (strpos($normalized, 'superadmin') !== false) {
             return 'M:superadmin';
@@ -818,7 +823,7 @@ function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
         if (strpos($normalized, 'keuangan') !== false) {
             return 'M:keuangan';
         }
-        
+
         return 'M';
     }
 
@@ -848,8 +853,13 @@ function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
         function qCount(mysqli $conn, string $sql, string $types = '', array $params = []): int
         {
             $stmt = $conn->prepare($sql);
-            if (!$stmt) { error_log($conn->error); return 0; }
-            if ($types) { $stmt->bind_param($types, ...$params); }
+            if (!$stmt) {
+                error_log($conn->error);
+                return 0;
+            }
+            if ($types) {
+                $stmt->bind_param($types, ...$params);
+            }
             $stmt->execute();
             $res = $stmt->get_result();
             $row = $res->fetch_assoc();
@@ -865,7 +875,8 @@ function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
      * @return string|null        (Y-m-d) atau NULL bila input tidak valid
      */
     // Tempatkan fungsi formatPhoneNumber() di luar fungsi hitungTanggalSelesaiKontrak()
-    function formatPhoneNumber($phone) {
+    function formatPhoneNumber($phone)
+    {
         $phone = trim($phone);
         // Jika nomor dimulai dengan '0', ubah menjadi '62'
         if (substr($phone, 0, 1) === '0') {
@@ -874,7 +885,8 @@ function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
         return $phone;
     }
 
-    function hitungTanggalSelesaiKontrak(string $joinStart, int $lamaKontrak): ?string {
+    function hitungTanggalSelesaiKontrak(string $joinStart, int $lamaKontrak): ?string
+    {
         if ($lamaKontrak <= 0 || $joinStart === '0000-00-00' || empty($joinStart)) {
             return null;
         }
@@ -892,124 +904,127 @@ function getOrderedJenjang(mysqli $conn, bool $aktifOnly = true): array
     * ========================================================= */
 
     /** kirim JSON & henti eksekusi */
-    function send_json(int $code, string $msg, array $data = []): void {
+    function send_json(int $code, string $msg, array $data = []): void
+    {
         header('Content-Type:application/json; charset=utf-8');
-        echo json_encode(['code'=>$code,'message'=>$msg]+$data);
+        echo json_encode(['code' => $code, 'message' => $msg] + $data);
         exit;
     }
 
     /************************************
- * 10. GENERIC DB WRAPPERS & SCHEDULE HELPERS
- ************************************/
+     * 10. GENERIC DB WRAPPERS & SCHEDULE HELPERS
+     ************************************/
 
-/**
- * Fetch satu baris hasil query.
- *
- * @param mysqli $conn   Koneksi database.
- * @param string $sql    Query dengan placeholder (?).
- * @param string $types  String tipe untuk bind_param (misal "si").
- * @param array  $params Array parameter untuk bind_param.
- * @return array|null    Baris pertama hasil fetch_assoc(), atau null jika tidak ada.
- */
-if (!function_exists('fetchSingleRow')) {
-    function fetchSingleRow(mysqli $conn, string $sql, string $types = '', array $params = [])
-    {
-        $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            log_error("fetchSingleRow prepare error: " . $conn->error);
-            return null;
+    /**
+     * Fetch satu baris hasil query.
+     *
+     * @param mysqli $conn   Koneksi database.
+     * @param string $sql    Query dengan placeholder (?).
+     * @param string $types  String tipe untuk bind_param (misal "si").
+     * @param array  $params Array parameter untuk bind_param.
+     * @return array|null    Baris pertama hasil fetch_assoc(), atau null jika tidak ada.
+     */
+    if (!function_exists('fetchSingleRow')) {
+        function fetchSingleRow(mysqli $conn, string $sql, string $types = '', array $params = [])
+        {
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                log_error("fetchSingleRow prepare error: " . $conn->error);
+                return null;
+            }
+            if ($types !== '') {
+                $stmt->bind_param($types, ...$params);
+            }
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $row = $res->fetch_assoc() ?: null;
+            $stmt->close();
+            return $row;
         }
-        if ($types !== '') {
-            $stmt->bind_param($types, ...$params);
-        }
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $row = $res->fetch_assoc() ?: null;
-        $stmt->close();
-        return $row;
     }
-}
 
-/**
- * Fetch semua baris hasil query.
- *
- * @param mysqli $conn   Koneksi database.
- * @param string $sql    Query dengan placeholder (?).
- * @param string $types  String tipe untuk bind_param.
- * @param array  $params Array parameter untuk bind_param.
- * @return array         Array of associative arrays.
- */
-if (!function_exists('fetchAllRows')) {
-    function fetchAllRows(mysqli $conn, string $sql, string $types = '', array $params = []): array
-    {
-        $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            log_error("fetchAllRows prepare error: " . $conn->error);
-            return [];
+    /**
+     * Fetch semua baris hasil query.
+     *
+     * @param mysqli $conn   Koneksi database.
+     * @param string $sql    Query dengan placeholder (?).
+     * @param string $types  String tipe untuk bind_param.
+     * @param array  $params Array parameter untuk bind_param.
+     * @return array         Array of associative arrays.
+     */
+    if (!function_exists('fetchAllRows')) {
+        function fetchAllRows(mysqli $conn, string $sql, string $types = '', array $params = []): array
+        {
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                log_error("fetchAllRows prepare error: " . $conn->error);
+                return [];
+            }
+            if ($types !== '') {
+                $stmt->bind_param($types, ...$params);
+            }
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $rows = [];
+            while ($r = $res->fetch_assoc()) {
+                $rows[] = $r;
+            }
+            $stmt->close();
+            return $rows;
         }
-        if ($types !== '') {
-            $stmt->bind_param($types, ...$params);
+    }
+
+    /**
+     * Dapatkan nama anggota berdasarkan NIP.
+     *
+     * @param mysqli $conn Koneksi database.
+     * @param string $nip  NIP anggota.
+     * @return string      Nama anggota, atau string kosong jika tidak ditemukan.
+     */
+    if (!function_exists('getNameByNip')) {
+        function getNameByNip(mysqli $conn, string $nip): string
+        {
+            $row = fetchSingleRow(
+                $conn,
+                "SELECT nama FROM anggota_sekolah WHERE nip = ? LIMIT 1",
+                "s",
+                [$nip]
+            );
+            return $row['nama'] ?? '';
         }
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $rows = [];
-        while ($r = $res->fetch_assoc()) {
-            $rows[] = $r;
+    }
+
+    /**
+     * Dapatkan seluruh jadwal piket untuk satu anggota.
+     *
+     * @param mysqli $conn Koneksi database.
+     * @param string $nip  NIP anggota.
+     * @return array       Array jadwal_piket.
+     */
+    if (!function_exists('getScheduleByUser')) {
+        function getScheduleByUser(mysqli $conn, string $nip): array
+        {
+            return fetchAllRows(
+                $conn,
+                "SELECT * FROM jadwal_piket WHERE nip = ? ORDER BY tanggal ASC",
+                "s",
+                [$nip]
+            );
         }
-        $stmt->close();
-        return $rows;
     }
-}
 
-/**
- * Dapatkan nama anggota berdasarkan NIP.
- *
- * @param mysqli $conn Koneksi database.
- * @param string $nip  NIP anggota.
- * @return string      Nama anggota, atau string kosong jika tidak ditemukan.
- */
-if (!function_exists('getNameByNip')) {
-    function getNameByNip(mysqli $conn, string $nip): string
-    {
-        $row = fetchSingleRow($conn,
-            "SELECT nama FROM anggota_sekolah WHERE nip = ? LIMIT 1",
-            "s",
-            [$nip]
-        );
-        return $row['nama'] ?? '';
-    }
-}
-
-/**
- * Dapatkan seluruh jadwal piket untuk satu anggota.
- *
- * @param mysqli $conn Koneksi database.
- * @param string $nip  NIP anggota.
- * @return array       Array jadwal_piket.
- */
-if (!function_exists('getScheduleByUser')) {
-    function getScheduleByUser(mysqli $conn, string $nip): array
-    {
-        return fetchAllRows($conn,
-            "SELECT * FROM jadwal_piket WHERE nip = ? ORDER BY tanggal ASC",
-            "s",
-            [$nip]
-        );
-    }
-}
-
-/**
- * Dapatkan seluruh permintaan tukar jadwal untuk satu anggota (sebagai pengaju atau tujuan).
- *
- * @param mysqli $conn Koneksi database.
- * @param string $nip  NIP anggota.
- * @return array       Array permintaan_tukar_jadwal dengan join data jadwal_pengaju.
- */
-if (!function_exists('getSwapRequestsForUser')) {
-    function getSwapRequestsForUser(mysqli $conn, string $nip): array
-    {
-        // Gabungkan semua request di mana user adalah pengaju atau tujuan dan masih 'Pending'
-        $sql = "
+    /**
+     * Dapatkan seluruh permintaan tukar jadwal untuk satu anggota (sebagai pengaju atau tujuan).
+     *
+     * @param mysqli $conn Koneksi database.
+     * @param string $nip  NIP anggota.
+     * @return array       Array permintaan_tukar_jadwal dengan join data jadwal_pengaju.
+     */
+    if (!function_exists('getSwapRequestsForUser')) {
+        function getSwapRequestsForUser(mysqli $conn, string $nip): array
+        {
+            // Gabungkan semua request di mana user adalah pengaju atau tujuan dan masih 'Pending'
+            $sql = "
             SELECT ptj.*, 
                    jp_pengaju.nama_guru AS nama_guru_pengaju, 
                    jp_pengaju.tanggal AS tanggal_piket_pengaju, 
@@ -1020,135 +1035,149 @@ if (!function_exists('getSwapRequestsForUser')) {
                AND ptj.status = 'Pending'
              ORDER BY ptj.tanggal_permintaan DESC
         ";
-        return fetchAllRows($conn, $sql, "ss", [$nip, $nip]);
+            return fetchAllRows($conn, $sql, "ss", [$nip, $nip]);
+        }
     }
-}
 
-/**
- * Ambil satu baris hasil query sebagai associative array.
- *
- * @param mysqli $conn   Koneksi database
- * @param string $sql    SQL dengan placeholder (?)
- * @param string $types  String tipe untuk bind_param (misal "is")
- * @param array  $params Array nilai untuk bind_param
- * @return array|null    Baris pertama hasil query, atau null jika tidak ada
- */
-function single_row(mysqli $conn, string $sql, string $types = "", array $params = [])
-{
-    $stmt = $conn->prepare($sql);
-    if ($types !== "") {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res->fetch_assoc();
-    $stmt->close();
-    return $row ?: null;
-}
-
-/**
- * Ambil semua baris hasil query sebagai array of associative array.
- *
- * @param mysqli $conn   Koneksi database
- * @param string $sql    SQL dengan placeholder (?)
- * @param string $types  String tipe untuk bind_param
- * @param array  $params Array nilai untuk bind_param
- * @return array         Semua baris hasil query
- */
-function all_rows(mysqli $conn, string $sql, string $types = "", array $params = []): array
-{
-    $stmt = $conn->prepare($sql);
-    if ($types !== "") {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $rows = $res->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
-    return $rows;
-}
-
-/**
- * Cari nama guru/karyawan berdasarkan NIP.
- *
- * @param mysqli $conn Koneksi database
- * @param string $nip  NIP yang dicari
- * @return string      Nama, atau string kosong jika tidak ditemukan
- */
-function get_name_by_nip(mysqli $conn, string $nip): string
-{
-    $r = single_row($conn,
-        "SELECT nama FROM anggota_sekolah WHERE nip = ? LIMIT 1",
-        "s",
-        [$nip]
-    );
-    return $r['nama'] ?? '';
-}
-
-/**
- * Validasi apakah tanggal masuk ke periode piket (Juni, Juli, Desember, Januari).
- *
- * @param string $tanggal Tanggal dalam format 'Y-m-d'
- * @return bool           True jika bulan 6,7,12 atau 1, false otherwise
- */
-function isValidPiketDate(string $tanggal): bool
-{
-    $ts = strtotime($tanggal);
-    if (!$ts) {
-        return false;
-    }
-    $month = (int) date('n', $ts);
-    return in_array($month, [6, 7, 12, 1], true);
-}
-
-
-/* ---------- Bulan & Hari (versi ringkas, ENG ➜ IND) ---------- */
-if (!function_exists('indo_month')) {
-    function indo_month(string $eng): string
+    /**
+     * Ambil satu baris hasil query sebagai associative array.
+     *
+     * @param mysqli $conn   Koneksi database
+     * @param string $sql    SQL dengan placeholder (?)
+     * @param string $types  String tipe untuk bind_param (misal "is")
+     * @param array  $params Array nilai untuk bind_param
+     * @return array|null    Baris pertama hasil query, atau null jika tidak ada
+     */
+    function single_row(mysqli $conn, string $sql, string $types = "", array $params = [])
     {
-        static $m = [
-            'January'=>'Januari','February'=>'Februari','March'=>'Maret','April'=>'April',
-            'May'=>'Mei','June'=>'Juni','July'=>'Juli','August'=>'Agustus',
-            'September'=>'September','October'=>'Oktober','November'=>'November','December'=>'Desember'
-        ];
-        return $m[$eng] ?? $eng;
+        $stmt = $conn->prepare($sql);
+        if ($types !== "") {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
     }
-}
-if (!function_exists('indo_day')) {
-    function indo_day(string $shortEng): string
-    {
-        static $d = [
-            'Mon'=>'Senin','Tue'=>'Selasa','Wed'=>'Rabu','Thu'=>'Kamis',
-            'Fri'=>'Jumat','Sat'=>'Sabtu','Sun'=>'Minggu'
-        ];
-        return $d[$shortEng] ?? $shortEng;
-    }
-}
 
-/**
- * Ambil semua tanggal pending milik satu guru.
- * Hasil: array ['2025-06-01', '2025-06-08', …]
- *
- * @param  mysqli $conn
- * @param  string $nip
- * @return array
- */
-if (!function_exists('getExistingScheduleByNip')) {
-    function getExistingScheduleByNip(mysqli $conn, string $nip): array
+    /**
+     * Ambil semua baris hasil query sebagai array of associative array.
+     *
+     * @param mysqli $conn   Koneksi database
+     * @param string $sql    SQL dengan placeholder (?)
+     * @param string $types  String tipe untuk bind_param
+     * @param array  $params Array nilai untuk bind_param
+     * @return array         Semua baris hasil query
+     */
+    function all_rows(mysqli $conn, string $sql, string $types = "", array $params = []): array
     {
-        $rows = fetchAllRows(
+        $stmt = $conn->prepare($sql);
+        if ($types !== "") {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $rows = $res->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $rows;
+    }
+
+    /**
+     * Cari nama guru/karyawan berdasarkan NIP.
+     *
+     * @param mysqli $conn Koneksi database
+     * @param string $nip  NIP yang dicari
+     * @return string      Nama, atau string kosong jika tidak ditemukan
+     */
+    function get_name_by_nip(mysqli $conn, string $nip): string
+    {
+        $r = single_row(
             $conn,
-            "SELECT tanggal FROM jadwal_piket
-              WHERE nip = ? AND status = 'pending'",
+            "SELECT nama FROM anggota_sekolah WHERE nip = ? LIMIT 1",
             "s",
             [$nip]
         );
-        return array_column($rows, 'tanggal');
+        return $r['nama'] ?? '';
     }
-}
 
-// Agar skrip migrasi DB tahu nama index standar
-if (!defined('JADWAL_DUP_IDX')) {
-    define('JADWAL_DUP_IDX', 'idx_piket_nip_tanggal');
-}
+    /**
+     * Validasi apakah tanggal masuk ke periode piket (Juni, Juli, Desember, Januari).
+     *
+     * @param string $tanggal Tanggal dalam format 'Y-m-d'
+     * @return bool           True jika bulan 6,7,12 atau 1, false otherwise
+     */
+    function isValidPiketDate(string $tanggal): bool
+    {
+        $ts = strtotime($tanggal);
+        if (!$ts) {
+            return false;
+        }
+        $month = (int) date('n', $ts);
+        return in_array($month, [6, 7, 12, 1], true);
+    }
 
+
+    /* ---------- Bulan & Hari (versi ringkas, ENG ➜ IND) ---------- */
+    if (!function_exists('indo_month')) {
+        function indo_month(string $eng): string
+        {
+            static $m = [
+                'January' => 'Januari',
+                'February' => 'Februari',
+                'March' => 'Maret',
+                'April' => 'April',
+                'May' => 'Mei',
+                'June' => 'Juni',
+                'July' => 'Juli',
+                'August' => 'Agustus',
+                'September' => 'September',
+                'October' => 'Oktober',
+                'November' => 'November',
+                'December' => 'Desember'
+            ];
+            return $m[$eng] ?? $eng;
+        }
+    }
+    if (!function_exists('indo_day')) {
+        function indo_day(string $shortEng): string
+        {
+            static $d = [
+                'Mon' => 'Senin',
+                'Tue' => 'Selasa',
+                'Wed' => 'Rabu',
+                'Thu' => 'Kamis',
+                'Fri' => 'Jumat',
+                'Sat' => 'Sabtu',
+                'Sun' => 'Minggu'
+            ];
+            return $d[$shortEng] ?? $shortEng;
+        }
+    }
+
+    /**
+     * Ambil semua tanggal pending milik satu guru.
+     * Hasil: array ['2025-06-01', '2025-06-08', …]
+     *
+     * @param  mysqli $conn
+     * @param  string $nip
+     * @return array
+     */
+    if (!function_exists('getExistingScheduleByNip')) {
+        function getExistingScheduleByNip(mysqli $conn, string $nip): array
+        {
+            $rows = fetchAllRows(
+                $conn,
+                "SELECT tanggal FROM jadwal_piket
+              WHERE nip = ? AND status = 'pending'",
+                "s",
+                [$nip]
+            );
+            return array_column($rows, 'tanggal');
+        }
+    }
+
+    // Agar skrip migrasi DB tahu nama index standar
+    if (!defined('JADWAL_DUP_IDX')) {
+        define('JADWAL_DUP_IDX', 'idx_piket_nip_tanggal');
+    }

@@ -86,6 +86,14 @@ $nominal_kenaikan = str_replace('.', '', $nominal_kenaikan);
 $nominal_kenaikan = str_replace(',', '.', $nominal_kenaikan);
 $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
 
+// 6. Ambil daftar ranking aktif untuk dropdown
+$daftarRanking = [];
+$qRank = $conn->query("SELECT id, nama_ranking, jumlah, deskripsi FROM ranking_kenaikan WHERE is_aktif=1 ORDER BY jumlah DESC");
+while ($r = $qRank->fetch_assoc()) $daftarRanking[] = $r;
+$judulKenaikanAuto = "Kenaikan Gaji Tahun $selectedYear/" . ($selectedYear+1);
+$isAktif = isset($kgData['status']) && $kgData['status'] === 'aktif';
+$judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
+
 ?>
 
 <!DOCTYPE html>
@@ -235,6 +243,7 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
         const payheadDraft = <?= json_encode($payheadDraft); ?>;
         const kgData = <?= json_encode($kgData); ?>;
         const anggota = <?= json_encode($anggota); ?>;
+        const daftarRanking = <?= json_encode($daftarRanking); ?>;
     </script>
 
 </head>
@@ -353,36 +362,49 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
                                     </div>
                                     <div class="card-body py-2 px-2" style="background-color: #fff8f8;">
                                         <div class="form-check mb-2">
-                                           <input class="form-check-input" type="checkbox" id="chkKenaikanGajiTahunan" name="chkKenaikanGajiTahunan" value="1"
-    <?= isset($kgData['status']) && $kgData['status'] === 'aktif' ? 'checked disabled' : '' ?>>
-<label class="form-check-label fw-bold ms-1" for="chkKenaikanGajiTahunan" style="font-size:13px;">
-    Aktifkan Kenaikan Gaji Tahunan
-</label>
-<?php if (isset($kgData['status']) && $kgData['status'] === 'aktif'): ?>
-    <!-- Hidden field untuk memastikan nilai ikut terkirim meski checkbox disable -->
-    <input type="hidden" name="chkKenaikanGajiTahunan" value="1">
-    <input type="hidden" name="nama_kenaikan" value="<?= htmlspecialchars($kgData['nama_kenaikan'] ?? '') ?>">
-    <input type="hidden" name="nominal_kenaikan" value="<?= $kgData['jumlah'] ?? 0 ?>">
-<?php endif; ?>
+                                            <input class="form-check-input" type="checkbox" id="chkKenaikanGajiTahunan" name="chkKenaikanGajiTahunan" value="1"
+                                                <?= isset($kgData['status']) && $kgData['status'] === 'aktif' ? 'checked disabled' : '' ?>>
+                                            <label class="form-check-label fw-bold ms-1" for="chkKenaikanGajiTahunan" style="font-size:13px;">
+                                                Aktifkan Kenaikan Gaji Tahunan
+                                            </label>
+                                            <?php if (isset($kgData['status']) && $kgData['status'] === 'aktif'): ?>
+                                                <!-- Hidden field untuk memastikan nilai ikut terkirim meski checkbox disable -->
+                                                <input type="hidden" name="chkKenaikanGajiTahunan" value="1">
+                                                <input type="hidden" name="nama_kenaikan" value="<?= htmlspecialchars($kgData['nama_kenaikan'] ?? '') ?>">
+                                                <input type="hidden" name="nominal_kenaikan" value="<?= $kgData['jumlah'] ?? 0 ?>">
+                                            <?php endif; ?>
 
                                         </div>
                                         <div id="kenaikanGajiTahunanFields" style="display:<?= (isset($kgData['status']) && $kgData['status'] === 'aktif') ? 'block' : 'none' ?>;">
                                             <div class="row g-1">
-                                                <div class="col-md-6 mb-2">
-                                                    <label class="mb-0" style="font-size:13px;">Nama Kenaikan (misal 2024/2025)</label>
+                                                <div class="col-md-5 mb-2">
+                                                    <label class="mb-0" style="font-size:13px;">Judul Kenaikan</label>
                                                     <input type="text" class="form-control form-control-sm"
-                                                        id="inputNamaKenaikan" name="nama_kenaikan"
-                                                        value="<?= htmlspecialchars($kgData['nama_kenaikan'] ?? '') ?>"
-                                                        placeholder="Kenaikan Gaji 2024/2025"
-                                                        <?= (isset($kgData['status']) && $kgData['status'] === 'aktif') ? 'readonly' : '' ?>>
+    id="inputNamaKenaikan" name="nama_kenaikan"
+    value="<?= htmlspecialchars($judulPrefill) ?>"
+    <?= $isAktif ? 'readonly' : '' ?>>
                                                 </div>
-                                                <div class="col-md-6 mb-2">
+                                                <div class="col-md-4 mb-2">
+                                                    <label class="mb-0" style="font-size:13px;">Pilih Ranking</label>
+                                                    <select class="form-select form-select-sm" id="selectRanking" name="ranking_id"
+                                                        <?= (isset($kgData['status']) && $kgData['status'] === 'aktif') ? 'disabled' : '' ?>>
+                                                        <option value="">-- pilih ranking --</option>
+                                                        <?php foreach ($daftarRanking as $r): ?>
+                                                            <option value="<?= $r['id'] ?>"
+                                                                <?= (isset($kgData['ranking_id']) && $kgData['ranking_id'] == $r['id']) ? 'selected' : '' ?>
+                                                                data-jumlah="<?= $r['jumlah'] ?>">
+                                                                <?= htmlspecialchars($r['nama_ranking']) ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3 mb-2">
                                                     <label class="mb-0" style="font-size:13px;">Nominal Kenaikan</label>
                                                     <input type="text" class="form-control form-control-sm currency-input"
                                                         id="inputNominalKenaikan" name="nominal_kenaikan"
                                                         value="<?= number_format($kgData['jumlah'] ?? 0, 0, ',', '.') ?>"
                                                         placeholder="0"
-                                                        <?= (isset($kgData['status']) && $kgData['status'] === 'aktif') ? 'readonly' : '' ?>>
+                                                        readonly>
                                                 </div>
                                             </div>
                                             <?php if (isset($kgData['tanggal_mulai'])): ?>
@@ -391,6 +413,7 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
                                                 </div>
                                             <?php endif; ?>
                                         </div>
+
                                     </div>
                                 </div>
                                 <!-- End Card Kenaikan Gaji Tahunan -->
@@ -521,6 +544,25 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
         console.log("payheadDraft:", payheadDraft);
         console.log("kgData:", kgData);
         console.groupEnd();
+
+        function findRankingById(id) {
+            return (daftarRanking || []).find(r => r.id == id);
+        }
+
+        function updateNominalFromRanking() {
+            const rid = $('#selectRanking').val();
+            if (!rid) {
+                $('#inputNominalKenaikan').val('');
+                return;
+            }
+            const ranking = findRankingById(rid);
+            if (ranking) {
+                $('#inputNominalKenaikan').val(parseInt(ranking.jumlah).toLocaleString('id-ID'));
+            }
+        }
+        $('#selectRanking').on('change', updateNominalFromRanking);
+        // Prefill jika ada ranking aktif
+        if ($('#selectRanking').val()) updateNominalFromRanking();
 
         // Prefill payrollDraft
         if (payrollDraft && typeof payrollDraft === 'object') {

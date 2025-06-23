@@ -21,9 +21,6 @@
 # Perbolehkan folder kepala sekolah dan isinya
 !kepalasekolah/
 !kepalasekolah/**
-# Perbolehkan folder uploads dan isinya
-!uploads/
-!uploads/**
 # Perbolehkan file lain yang kamu butuhkan
 !cron_job/
 !cron_job/**
@@ -53,3 +50,4 @@
 !fonnte_helper.php
 !pustaka_feed.php
 !pusat_info.php
+!index.php

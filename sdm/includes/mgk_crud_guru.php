@@ -196,11 +196,15 @@ function CreateGuru(mysqli $conn)
     $status_kerja = bersihkan_input($_POST['status_kerja'] ?? 'Tetap');
     $join_start   = bersihkan_input($_POST['join_start']   ?? '');
     $lama_kontrak = ($status_kerja === 'Kontrak') ? intval($_POST['lama_kontrak'] ?? 12) : null;
-    $tgl_kontrak  = ($status_kerja === 'Kontrak' && $join_start)
-        ? hitungTanggalSelesaiKontrak($join_start, $lama_kontrak)
-        : null;
-
     [$masa_tahun, $masa_bulan, $masa_eff] = calcMasaKerja($join_start);
+    $tgl_kontrak  = ($status_kerja === 'Kontrak' && $join_start)
+    ? hitungTanggalSelesaiKontrak($join_start, $lama_kontrak)
+    : null;
+
+// Tambahan patch agar tidak error jika hanya tahun
+if ($tgl_kontrak && preg_match('/^\d{4}$/', $tgl_kontrak)) {
+    $tgl_kontrak = $tgl_kontrak . '-12-31';
+}
 
     $pendidikan  = bersihkan_input($_POST['pendidikan'] ?? '');
     $gaji_pokok  = hitungGajiPokok($conn, $role, $pendidikan, $jenjang);
@@ -241,7 +245,8 @@ function CreateGuru(mysqli $conn)
     $salary_index_id = null;
     $sudah_kontrak = 0; // default (harus isi, INT!)
 
-    $sql = "INSERT INTO anggota_sekolah (
+    // 43 kolom
+$sql = "INSERT INTO anggota_sekolah (
     uid, nip, password, nama, jenjang, unit_penempatan, strata, job_title, status_kerja,
     join_start, lama_kontrak, tgl_kontrak_selesai, sudah_kontrak,
     masa_kerja_tahun, masa_kerja_bulan, masa_kerja_efektif,
@@ -250,65 +255,41 @@ function CreateGuru(mysqli $conn)
     status_perkawinan, email, nama_pasangan, jumlah_anak,
     nama_anak_1, nama_anak_2, nama_anak_3,  
     salary_index_id, gaji_pokok, foto_profil, foto_ktp, role, kategori,
-    'faskes_bpjs', 'faskes_inhealth', 'faskes_ket'
-    ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-    )";
+    faskes_bpjs, faskes_inhealth, faskes_ket
+) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+)";
 
-    // types: s=string, i=integer, d=double (decimal)
-    $types = 'sssssssssisiiidsssis' . 'sssssssssisss' . 'idsss' . 'iis'; // total 41
+// types urut: s=string, i=integer, d=double
+$types =
+    'ssssssssss'   // 10×string
+  . 'isiii'        //  5×: lama_kontrak(int), tgl_kontrak_selesai(string), sudah_kontrak(int), masa_kerja_tahun(int), masa_kerja_bulan(int)
+  . 'd'         // 1: masa_kerja_efektif(double)
+  . 'sssssis'     // 7: remark, jenis_kelamin, tanggal_lahir, usia(int), agama, alamat_domisili, alamat_ktp
+  . 'ssssss'      // 6: no_rekening, no_hp, pendidikan, status_perkawinan, email, nama_pasangan
+  . 'i'           // 1: jumlah_anak(int)
+  . 'sss'         // 3: nama_anak_1, nama_anak_2, nama_anak_3
+  . 'idsssssii'   // 9: salary_index_id(int), gaji_pokok(double), foto_profil, foto_ktp, role, kategori, faskes_bpjs(int), faskes_inhealth(int), faskes_ket
+;
 
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        send_response(1, 'Query error: ' . $conn->error);
-    }
-    $stmt->bind_param(
-        $types,
-        $uid,
-        $nip,
-        $defaultPass,
-        $nama,
-        $jenjang,
-        $unit_penempatan,
-        $strata,
-        $job_title,
-        $status_kerja,
-        $join_start,
-        $lama_kontrak,
-        $tgl_kontrak,
-        $sudah_kontrak,
-        $masa_tahun,
-        $masa_bulan,
-        $masa_eff,
-        $remark,
-        $jk,
-        $tgl_lahir,
-        $usia,
-        $religion,
-        $alamat_domisili,
-        $alamat_ktp,
-        $no_rekening,
-        $no_hp,
-        $pendidikan,
-        $status_perkawinan,
-        $email,
-        $nama_pasangan,
-        $jumlah_anak,
-        $nama_anak_1,
-        $nama_anak_2,
-        $nama_anak_3,
-        $salary_index_id,
-        $gaji_pokok,
-        $foto_profil_url,
-        $foto_ktp_url,
-        $role,
-        $kategori,
-        $faskes_bpjs,
-        $faskes_inhealth,
-        $faskes_ket
-    );
+// Jumlahnya harus 43
+
+$stmt = $conn->prepare($sql);
+if (!$stmt) {
+    send_response(1, 'Query error: ' . $conn->error);
+}
+$stmt->bind_param(
+    $types,
+    $uid, $nip, $defaultPass, $nama, $jenjang, $unit_penempatan, $strata, $job_title, $status_kerja, $join_start,
+    $lama_kontrak, $tgl_kontrak, $sudah_kontrak, $masa_tahun, $masa_bulan, $masa_eff,
+    $remark, $jk, $tgl_lahir, $usia, $religion,
+    $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan,
+    $status_perkawinan, $email, $nama_pasangan, $jumlah_anak,
+    $nama_anak_1, $nama_anak_2, $nama_anak_3,
+    $salary_index_id, $gaji_pokok, $foto_profil_url, $foto_ktp_url, $role, $kategori,
+    $faskes_bpjs, $faskes_inhealth, $faskes_ket
+);
+
 
     if (!$stmt->execute()) {
         $err = $stmt->error;

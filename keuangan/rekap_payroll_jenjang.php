@@ -18,12 +18,13 @@ $tahun   = intval($_GET['tahun'] ?? date('Y'));
 
 // Mapping warna & icon sesuai jenjang
 $jenjangMeta = [
-  'TK'  => ['icon' => 'fas fa-child',              'color' => '#e74c3c'],
-  'SD'  => ['icon' => 'fas fa-book-open',          'color' => '#3498db'],
-  'SMP' => ['icon' => 'fas fa-user-graduate',      'color' => '#2ecc71'],
-  'SMA' => ['icon' => 'fas fa-chalkboard-teacher', 'color' => '#f1c40f'],
-  'SMK' => ['icon' => 'fas fa-tools',              'color' => '#9b59b6'],
+  'TK'    => ['icon' => 'fas fa-child',              'color' => '#e74c3c'],
+  'SD'    => ['icon' => 'fas fa-book-open',          'color' => '#3498db'],
+  'SMP'   => ['icon' => 'fas fa-user-graduate',      'color' => '#2ecc71'],
+  'SMA'   => ['icon' => 'fas fa-chalkboard-teacher', 'color' => '#f1c40f'],
+  'SMK'   => ['icon' => 'fas fa-tools',              'color' => '#9b59b6'],
   'SEMUA' => ['icon' => 'fas fa-layer-group',        'color' => '#273c75'],
+  'MANAJER' => ['icon' => 'fas fa-user-tie',         'color' => '#b44ef9'],
 ];
 $meta = $jenjangMeta[$jenjang] ?? ['icon' => 'fas fa-school', 'color' => '#34495e'];
 
@@ -99,12 +100,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     case 'karyawan':
       loadDetail($conn, $jenjang, $bulan, $tahun, $category);
       break;
+    case 'manajer':
+      loadDetailManajer($conn, $jenjang, $bulan, $tahun);
+      break;
     default:
       send_response(400, 'Kategori tidak valid');
   }
   exit;
 }
 
+// Fungsi aslinya untuk guru/karyawan
 function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
 {
   global $earningPayheads, $deductionPayheads, $PAYHEAD_GROUPS, $PAYHEADS;
@@ -117,14 +122,15 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
 
   // Build WHERE & params
   if (strtolower($jenjang) === 'semua') {
-    $sqlWhere = "WHERE a.kategori=? AND pf.bulan=? AND pf.tahun=?";
-    $params   = [$kategori, $bulan, $tahun];
-    $types    = "sii";
-  } else {
-    $sqlWhere = "WHERE a.jenjang=? AND a.kategori=? AND pf.bulan=? AND pf.tahun=?";
-    $params   = [$jenjang, $kategori, $bulan, $tahun];
-    $types    = "ssii";
-  }
+  $sqlWhere = "WHERE a.kategori=? AND a.role <> 'M' AND pf.bulan=? AND pf.tahun=?";
+  $params   = [$kategori, $bulan, $tahun];
+  $types    = "sii";
+} else {
+  $sqlWhere = "WHERE a.jenjang=? AND a.kategori=? AND a.role <> 'M' AND pf.bulan=? AND pf.tahun=?";
+  $params   = [$jenjang, $kategori, $bulan, $tahun];
+  $types    = "ssii";
+}
+
 
   if ($search !== '') {
     $sqlWhere .= " AND (a.nama LIKE ? OR a.nip LIKE ?)";
@@ -133,7 +139,6 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
     $types    .= "ss";
   }
 
-  // Count total records
   $stmt = $conn->prepare("
     SELECT COUNT(*) AS cnt
       FROM payroll_final pf
@@ -146,7 +151,7 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
   $stmt->close();
   $recordsTotal = intval($cnt);
 
-  // Sub‐select untuk payhead lama
+  // Sub-select payhead & grouped payhead (sama seperti kode lama Anda)
   $subCasesPH  = [];
   $outerColsPH = [];
   foreach ($PAYHEADS as $ph) {
@@ -155,7 +160,6 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
     $subCasesPH[]  = "SUM(CASE WHEN d.nama_payhead='$esc' THEN d.amount ELSE 0 END) AS `$alias`";
     $outerColsPH[] = ", agg.`$alias`";
   }
-  // grouped payhead
   $subCasesGR  = [];
   $outerColsGR = [];
   foreach ($PAYHEAD_GROUPS as $grp) {
@@ -174,7 +178,6 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
   $subSelect   = implode(",\n    ", array_merge($subCasesPH, $subCasesGR));
   $outerSelect = implode(" ", array_merge($outerColsPH, $outerColsGR));
 
-  // Ambil data detail
   $sqlData = "
     SELECT
       a.nip,
@@ -205,49 +208,34 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
   $stmt->execute();
   $res = $stmt->get_result();
 
-  // bangun array untuk JSON
   $data = [];
   while ($r = $res->fetch_assoc()) {
-    // dasar komponen
     $gajiPokok   = (float)$r['gaji_pokok'];
     $idxAmount   = (float)$r['idx_amount'];
     $potKoperasi = (float)$r['pot_koperasi'];
 
-    // total earnings payheads
     $sumEarningsPH = 0;
     foreach ($earningPayheads as $ph) {
       $alias = 'ph_' . substr(md5($ph), 0, 8);
       $sumEarningsPH += (float)$r[$alias];
     }
-    // total grouped payheads
     $sumGroupPH = 0;
     foreach ($PAYHEAD_GROUPS as $grp) {
       $alias = 'gr_' . substr(md5($grp), 0, 8);
       $sumGroupPH += (float)$r[$alias];
     }
 
-    // jumlah pendapatan
     $totalPendapatan = $gajiPokok + $idxAmount + $sumEarningsPH + $sumGroupPH;
-
-    // max pot kop = 65% x pendapatan
     $maxPotKop = $totalPendapatan * 0.65;
-
-    // total deduction payheads
     $sumDeductionPH = 0;
     foreach ($deductionPayheads as $ph) {
       $alias = 'ph_' . substr(md5($ph), 0, 8);
       $sumDeductionPH += (float)$r[$alias];
     }
-    // total potongan
     $totalPotongan = $potKoperasi + $sumDeductionPH;
-
-    // net received
     $netReceived = $totalPendapatan - $totalPotongan;
-
-    // pembulatan ke ratus terdekat
     $rounded = round($netReceived / 100) * 100;
 
-    // siapkan row
     $row = [
       'nip'               => htmlspecialchars($r['nip']),
       'nama'              => htmlspecialchars($r['nama']),
@@ -255,39 +243,29 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
       'gaji_pokok'        => formatNominal($gajiPokok),
       'idx_amount'        => formatNominal($idxAmount),
     ];
-    // isi earning payheads
     foreach ($earningPayheads as $ph) {
       $alias = 'ph_' . substr(md5($ph), 0, 8);
       $row[$alias] = formatNominal($r[$alias] ?? 0);
     }
-    // isi grouped payheads
     foreach ($PAYHEAD_GROUPS as $grp) {
       $alias = 'gr_' . substr(md5($grp), 0, 8);
       $row[$alias] = formatNominal($r[$alias] ?? 0);
     }
-    // isi deduction payheads
     foreach ($deductionPayheads as $ph) {
       $alias = 'ph_' . substr(md5($ph), 0, 8);
       $row[$alias] = formatNominal($r[$alias] ?? 0);
     }
-    // pot koperasi
     $row['pot_koperasi']     = formatNominal($potKoperasi);
-    // pembulatan
     $row['pembulatan']       = formatNominal($rounded);
-    // jumlah pendapatan
     $row['total_pendapatan'] = formatNominal($totalPendapatan);
-    // max pot koperasi
     $row['max_pot_kop']      = formatNominal($maxPotKop);
-    // jumlah potongan
     $row['total_potongan']   = formatNominal($totalPotongan);
-    // net received
     $row['net_received']     = formatNominal($netReceived);
 
     $data[] = $row;
   }
   $stmt->close();
 
-  // output JSON
   echo json_encode([
     'draw'            => $draw,
     'recordsTotal'    => $recordsTotal,
@@ -296,7 +274,169 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
   ], JSON_UNESCAPED_UNICODE);
 }
 
+// ===== FUNGSI BARU UNTUK MANAJER =====
+function loadDetailManajer($conn, $jenjang, $bulan, $tahun)
+{
+  global $earningPayheads, $deductionPayheads, $PAYHEAD_GROUPS, $PAYHEADS;
+
+  $draw   = intval($_POST['draw']   ?? 0);
+  $start  = intval($_POST['start']  ?? 0);
+  $length = intval($_POST['length'] ?? 10);
+  $search = sanitize_input($_POST['search']['value'] ?? '');
+
+  // Filter: role M saja
+  if (strtolower($jenjang) === 'semua') {
+    $sqlWhere = "WHERE a.role='M' AND pf.bulan=? AND pf.tahun=?";
+    $params   = [$bulan, $tahun];
+    $types    = "ii";
+  } else {
+    $sqlWhere = "WHERE a.jenjang=? AND a.role='M' AND pf.bulan=? AND pf.tahun=?";
+    $params   = [$jenjang, $bulan, $tahun];
+    $types    = "sii";
+  }
+  if ($search !== '') {
+    $sqlWhere .= " AND (a.nama LIKE ? OR a.nip LIKE ?)";
+    $params[]  = "%$search%";
+    $params[]  = "%$search%";
+    $types    .= "ss";
+  }
+
+  $stmt = $conn->prepare("
+    SELECT COUNT(*) AS cnt
+      FROM payroll_final pf
+      JOIN anggota_sekolah a ON pf.id_anggota=a.id
+    $sqlWhere
+  ");
+  $stmt->bind_param($types, ...$params);
+  $stmt->execute();
+  $cnt = $stmt->get_result()->fetch_assoc()['cnt'] ?? 0;
+  $stmt->close();
+  $recordsTotal = intval($cnt);
+
+  // Sub-select payhead & grouped payhead
+  $subCasesPH  = [];
+  $outerColsPH = [];
+  foreach ($PAYHEADS as $ph) {
+    $esc   = $conn->real_escape_string($ph);
+    $alias = 'ph_' . substr(md5($ph), 0, 8);
+    $subCasesPH[]  = "SUM(CASE WHEN d.nama_payhead='$esc' THEN d.amount ELSE 0 END) AS `$alias`";
+    $outerColsPH[] = ", agg.`$alias`";
+  }
+  $subCasesGR  = [];
+  $outerColsGR = [];
+  foreach ($PAYHEAD_GROUPS as $grp) {
+    $esc  = $conn->real_escape_string($grp);
+    $mrs = $conn->query("SELECT payhead_name FROM payhead_groups WHERE group_name='$esc'");
+    $members = [];
+    while ($m = $mrs->fetch_assoc()) {
+      $members[] = $conn->real_escape_string($m['payhead_name']);
+    }
+    $mrs->free();
+    $in = $members ? "'" . implode("','", $members) . "'" : "''";
+    $alias = 'gr_' . substr(md5($grp), 0, 8);
+    $subCasesGR[]  = "SUM(CASE WHEN d.nama_payhead IN($in) THEN d.amount ELSE 0 END) AS `$alias`";
+    $outerColsGR[] = ", agg.`$alias`";
+  }
+  $subSelect   = implode(",\n    ", array_merge($subCasesPH, $subCasesGR));
+  $outerSelect = implode(" ", array_merge($outerColsPH, $outerColsGR));
+
+  $sqlData = "
+    SELECT
+      a.nip,
+      a.nama,
+      a.job_title     AS keterangan,
+      pf.gaji_pokok,
+      pf.salary_index_amount AS idx_amount,
+      pf.potongan_koperasi    AS pot_koperasi
+      $outerSelect,
+      pf.gaji_bersih
+    FROM payroll_final pf
+    JOIN anggota_sekolah a ON pf.id_anggota=a.id
+    LEFT JOIN (
+      SELECT id_payroll_final,
+             $subSelect
+        FROM payroll_detail_final d
+       GROUP BY id_payroll_final
+    ) agg ON pf.id=agg.id_payroll_final
+    $sqlWhere
+    GROUP BY pf.id
+    LIMIT ?, ?
+  ";
+  $typesData   = $types . "ii";
+  $paramsData  = array_merge($params, [$start, $length]);
+
+  $stmt = $conn->prepare($sqlData);
+  $stmt->bind_param($typesData, ...$paramsData);
+  $stmt->execute();
+  $res = $stmt->get_result();
+
+  $data = [];
+  while ($r = $res->fetch_assoc()) {
+    $gajiPokok   = (float)$r['gaji_pokok'];
+    $idxAmount   = (float)$r['idx_amount'];
+    $potKoperasi = (float)$r['pot_koperasi'];
+
+    $sumEarningsPH = 0;
+    foreach ($earningPayheads as $ph) {
+      $alias = 'ph_' . substr(md5($ph), 0, 8);
+      $sumEarningsPH += (float)$r[$alias];
+    }
+    $sumGroupPH = 0;
+    foreach ($PAYHEAD_GROUPS as $grp) {
+      $alias = 'gr_' . substr(md5($grp), 0, 8);
+      $sumGroupPH += (float)$r[$alias];
+    }
+
+    $totalPendapatan = $gajiPokok + $idxAmount + $sumEarningsPH + $sumGroupPH;
+    $maxPotKop = $totalPendapatan * 0.65;
+    $sumDeductionPH = 0;
+    foreach ($deductionPayheads as $ph) {
+      $alias = 'ph_' . substr(md5($ph), 0, 8);
+      $sumDeductionPH += (float)$r[$alias];
+    }
+    $totalPotongan = $potKoperasi + $sumDeductionPH;
+    $netReceived = $totalPendapatan - $totalPotongan;
+    $rounded = round($netReceived / 100) * 100;
+
+    $row = [
+      'nip'               => htmlspecialchars($r['nip']),
+      'nama'              => htmlspecialchars($r['nama']),
+      'keterangan'        => htmlspecialchars($r['keterangan']),
+      'gaji_pokok'        => formatNominal($gajiPokok),
+      'idx_amount'        => formatNominal($idxAmount),
+    ];
+    foreach ($earningPayheads as $ph) {
+      $alias = 'ph_' . substr(md5($ph), 0, 8);
+      $row[$alias] = formatNominal($r[$alias] ?? 0);
+    }
+    foreach ($PAYHEAD_GROUPS as $grp) {
+      $alias = 'gr_' . substr(md5($grp), 0, 8);
+      $row[$alias] = formatNominal($r[$alias] ?? 0);
+    }
+    foreach ($deductionPayheads as $ph) {
+      $alias = 'ph_' . substr(md5($ph), 0, 8);
+      $row[$alias] = formatNominal($r[$alias] ?? 0);
+    }
+    $row['pot_koperasi']     = formatNominal($potKoperasi);
+    $row['pembulatan']       = formatNominal($rounded);
+    $row['total_pendapatan'] = formatNominal($totalPendapatan);
+    $row['max_pot_kop']      = formatNominal($maxPotKop);
+    $row['total_potongan']   = formatNominal($totalPotongan);
+    $row['net_received']     = formatNominal($netReceived);
+
+    $data[] = $row;
+  }
+  $stmt->close();
+
+  echo json_encode([
+    'draw'            => $draw,
+    'recordsTotal'    => $recordsTotal,
+    'recordsFiltered' => $recordsTotal,
+    'data'            => $data
+  ], JSON_UNESCAPED_UNICODE);
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 
@@ -318,8 +458,6 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
       margin-bottom: 1.5rem;
       box-shadow: 0 .2rem .4rem rgba(0, 0, 0, .1);
     }
-
-    /* ===== Page Title Styling ===== */
     .page-title {
       font-family: 'Poppins', sans-serif;
       font-weight: 600;
@@ -334,52 +472,48 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
       margin-bottom: 1.5rem;
       animation: fadeInSlide 0.5s ease-in-out both;
     }
-
     .page-title i {
       color: #1976d2;
       font-size: 2.8rem;
     }
-
     .page-header h3 {
       margin: 0;
       font-weight: 600;
       color: #333;
     }
-
     .back-btn {
       color: #fff;
       background: <?= $meta['color'] ?>;
       border: none;
     }
-
     .back-btn:hover {
       filter: brightness(90%);
     }
-
     table.dataTable,
     table.dataTable th,
     table.dataTable td {
       font-size: 0.85rem;
     }
-
     .card-header {
       background: #0d47a1;
       color: #fff;
     }
-
     table.dataTable thead th {
       background: #343a40;
       color: #fff;
       text-align: center;
     }
-
     table.dataTable td,
     table.dataTable th {
       vertical-align: middle;
     }
-
     tfoot th {
       font-weight: bold;
+    }
+    /* Tambahan khusus manajer */
+    .manajer-header {
+      background: #b44ef9 !important;
+      color: #fff !important;
     }
   </style>
 </head>
@@ -397,8 +531,6 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
         Rekap <?= strtoupper($jenjang) == 'SEMUA' ? 'Semua Jenjang' : htmlspecialchars($jenjang) ?> – <?= getIndonesianMonthName($bulan) . ' ' . $tahun ?>
       </h1>
     </div>
-
-
   </div>
 
   <?php
@@ -417,107 +549,156 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
   ?>
 
   <!-- Rekap Guru -->
-<div class="card mb-4 shadow">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span><i class="fas fa-chalkboard-teacher"></i> Rekap Guru</span>
-    <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=guru"
-      class="btn btn-success btn-sm d-flex align-items-center"
-      target="_blank" title="Export Excel">
-      <i class="fas fa-file-excel me-2"></i> Export Excel
-    </a>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table id="tblGuru" class="table table-sm table-bordered table-striped w-100">
-        <thead>
-          <tr>
-            <th>NIP</th>
-            <th>Nama</th>
-            <th>Keterangan</th>
-            <th>Gaji Pokok</th>
-            <th>Indeks</th>
-            <?php renderColsHeader($earningPayheads); ?>
-            <?php renderColsHeader($PAYHEAD_GROUPS); ?>
-            <?php renderColsHeader($deductionPayheads); ?>
-            <th>Pembulatan</th>
-            <th>Jumlah Pendapatan</th>
-            <th>Max Pot. Kop</th>
-            <th>Pot. Koperasi</th>
-            <th>Jumlah Potongan</th>
-            <th>Jumlah Yang Diterima</th>
-          </tr>
-        </thead>
-        <tfoot>
-          <tr>
-            <th colspan="5" class="text-end">Jumlah:</th>
-            <?php renderColsFooter($earningPayheads); ?>
-            <?php renderColsFooter($PAYHEAD_GROUPS); ?>
-            <?php renderColsFooter($deductionPayheads); ?>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-          </tr>
-        </tfoot>
-        <tbody></tbody>
-      </table>
+  <div class="card mb-4 shadow">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-chalkboard-teacher"></i> Rekap Guru</span>
+      <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=guru"
+        class="btn btn-success btn-sm d-flex align-items-center"
+        target="_blank" title="Export Excel">
+        <i class="fas fa-file-excel me-2"></i> Export Excel
+      </a>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="tblGuru" class="table table-sm table-bordered table-striped w-100">
+          <thead>
+            <tr>
+              <th>NIP</th>
+              <th>Nama</th>
+              <th>Keterangan</th>
+              <th>Gaji Pokok</th>
+              <th>Indeks</th>
+              <?php renderColsHeader($earningPayheads); ?>
+              <?php renderColsHeader($PAYHEAD_GROUPS); ?>
+              <?php renderColsHeader($deductionPayheads); ?>
+              <th>Pembulatan</th>
+              <th>Jumlah Pendapatan</th>
+              <th>Max Pot. Kop</th>
+              <th>Pot. Koperasi</th>
+              <th>Jumlah Potongan</th>
+              <th>Jumlah Yang Diterima</th>
+            </tr>
+          </thead>
+          <tfoot>
+            <tr>
+              <th colspan="5" class="text-end">Jumlah:</th>
+              <?php renderColsFooter($earningPayheads); ?>
+              <?php renderColsFooter($PAYHEAD_GROUPS); ?>
+              <?php renderColsFooter($deductionPayheads); ?>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </tfoot>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Rekap Karyawan -->
-<div class="card mb-4 shadow">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span><i class="fas fa-users"></i> Rekap Karyawan</span>
-    <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=karyawan"
-      class="btn btn-success btn-sm d-flex align-items-center"
-      target="_blank" title="Export Excel">
-      <i class="fas fa-file-excel me-2"></i> Export Excel
-    </a>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table id="tblKaryawan" class="table table-sm table-bordered table-striped w-100">
-        <thead>
-          <tr>
-            <th>NIP</th>
-            <th>Nama</th>
-            <th>Keterangan</th>
-            <th>Gaji Pokok</th>
-            <th>Indeks</th>
-            <?php renderColsHeader($earningPayheads); ?>
-            <?php renderColsHeader($PAYHEAD_GROUPS); ?>
-            <?php renderColsHeader($deductionPayheads); ?>
-            <th>Pembulatan</th>
-            <th>Jumlah Pendapatan</th>
-            <th>Max Pot. Kop</th>
-            <th>Pot. Koperasi</th>
-            <th>Jumlah Potongan</th>
-            <th>Jumlah Yang Diterima</th>
-          </tr>
-        </thead>
-        <tfoot>
-          <tr>
-            <th colspan="5" class="text-end">Jumlah:</th>
-            <?php renderColsFooter($earningPayheads); ?>
-            <?php renderColsFooter($PAYHEAD_GROUPS); ?>
-            <?php renderColsFooter($deductionPayheads); ?>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-          </tr>
-        </tfoot>
-        <tbody></tbody>
-      </table>
+  <!-- Rekap Karyawan -->
+  <div class="card mb-4 shadow">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-users"></i> Rekap Karyawan</span>
+      <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=karyawan"
+        class="btn btn-success btn-sm d-flex align-items-center"
+        target="_blank" title="Export Excel">
+        <i class="fas fa-file-excel me-2"></i> Export Excel
+      </a>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="tblKaryawan" class="table table-sm table-bordered table-striped w-100">
+          <thead>
+            <tr>
+              <th>NIP</th>
+              <th>Nama</th>
+              <th>Keterangan</th>
+              <th>Gaji Pokok</th>
+              <th>Indeks</th>
+              <?php renderColsHeader($earningPayheads); ?>
+              <?php renderColsHeader($PAYHEAD_GROUPS); ?>
+              <?php renderColsHeader($deductionPayheads); ?>
+              <th>Pembulatan</th>
+              <th>Jumlah Pendapatan</th>
+              <th>Max Pot. Kop</th>
+              <th>Pot. Koperasi</th>
+              <th>Jumlah Potongan</th>
+              <th>Jumlah Yang Diterima</th>
+            </tr>
+          </thead>
+          <tfoot>
+            <tr>
+              <th colspan="5" class="text-end">Jumlah:</th>
+              <?php renderColsFooter($earningPayheads); ?>
+              <?php renderColsFooter($PAYHEAD_GROUPS); ?>
+              <?php renderColsFooter($deductionPayheads); ?>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </tfoot>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </div>
-</div>
 
+  <!-- Rekap Manajer -->
+  <div class="card mb-4 shadow">
+    <div class="card-header manajer-header d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-user-tie"></i> Rekap Manajer</span>
+      <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=manajer"
+        class="btn btn-success btn-sm d-flex align-items-center"
+        target="_blank" title="Export Excel">
+        <i class="fas fa-file-excel me-2"></i> Export Excel
+      </a>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="tblManajer" class="table table-sm table-bordered table-striped w-100">
+          <thead>
+            <tr>
+              <th>NIP</th>
+              <th>Nama</th>
+              <th>Keterangan</th>
+              <th>Gaji Pokok</th>
+              <th>Indeks</th>
+              <?php renderColsHeader($earningPayheads); ?>
+              <?php renderColsHeader($PAYHEAD_GROUPS); ?>
+              <?php renderColsHeader($deductionPayheads); ?>
+              <th>Pembulatan</th>
+              <th>Jumlah Pendapatan</th>
+              <th>Max Pot. Kop</th>
+              <th>Pot. Koperasi</th>
+              <th>Jumlah Potongan</th>
+              <th>Jumlah Yang Diterima</th>
+            </tr>
+          </thead>
+          <tfoot>
+            <tr>
+              <th colspan="5" class="text-end">Jumlah:</th>
+              <?php renderColsFooter($earningPayheads); ?>
+              <?php renderColsFooter($PAYHEAD_GROUPS); ?>
+              <?php renderColsFooter($deductionPayheads); ?>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </tfoot>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- JS -->
@@ -634,8 +815,8 @@ function loadDetail($conn, $jenjang, $bulan, $tahun, $kategori)
     $(document).ready(function() {
       initTable('#tblGuru', 'guru');
       initTable('#tblKaryawan', 'karyawan');
+      initTable('#tblManajer', 'manajer'); // << Tambahkan ini
     });
   </script>
 </body>
-
 </html>

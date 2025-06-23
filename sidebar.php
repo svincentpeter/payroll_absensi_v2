@@ -302,6 +302,11 @@ function renderCollapseMenu(string $id, string $iconClass, string $title, array 
                         <i class="fas fa-file-invoice-dollar"></i><span>Rekap Payroll</span>
                     </a>
                 </li>
+                <li class="nav-item <?= isActive('/keuangan/manage_ranking_kenaikan.php'); ?>">
+                    <a class="nav-link" href="<?= getBaseUrl(); ?>/keuangan/manage_ranking_kenaikan.php">
+                        <i class="fas fa-file-invoice-dollar"></i><span>Ranking Kenaikan Gaji</span>
+                    </a>
+                </li>
                 <li class="nav-item <?= isActive('/keuangan/audit_logs_keuangan.php'); ?>">
                     <a class="nav-link" href="<?= getBaseUrl(); ?>/keuangan/audit_logs_keuangan.php">
                         <i class="fas fa-history"></i><span>Audit Logs Keuangan</span>
