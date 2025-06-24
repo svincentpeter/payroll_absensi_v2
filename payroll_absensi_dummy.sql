@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Waktu pembuatan: 23 Jun 2025 pada 08.34
--- Versi server: 8.0.30
--- Versi PHP: 8.2.12
+-- Generation Time: Jun 24, 2025 at 08:22 AM
+-- Server version: 8.0.30
+-- PHP Version: 8.2.26
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -21,73 +21,10 @@ SET time_zone = "+00:00";
 -- Database: `payroll_absensi_dummy`
 --
 
-DELIMITER $$
---
--- Prosedur
---
-CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateRekapAbsensi` (IN `p_id_anggota` INT, IN `p_bulan` INT, IN `p_tahun` INT)   BEGIN
-    INSERT INTO rekap_absensi 
-        (id_anggota, bulan, tahun, total_hadir, total_izin, total_cuti, total_tanpa_keterangan, total_sakit)
-    SELECT 
-        id_anggota,
-        MONTH(tanggal),
-        YEAR(tanggal),
-        SUM(status_kehadiran = 'hadir'),
-        SUM(status_kehadiran = 'izin'),
-        SUM(status_kehadiran = 'cuti'),
-        SUM(status_kehadiran = 'tanpa_keterangan'),
-        SUM(status_kehadiran = 'sakit')
-    FROM absensi
-    WHERE 
-        id_anggota = p_id_anggota AND
-        MONTH(tanggal) = p_bulan AND
-        YEAR(tanggal) = p_tahun
-    ON DUPLICATE KEY UPDATE
-        total_hadir = VALUES(total_hadir),
-        total_izin = VALUES(total_izin),
-        total_cuti = VALUES(total_cuti),
-        total_tanpa_keterangan = VALUES(total_tanpa_keterangan),
-        total_sakit = VALUES(total_sakit);
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateRekapMingguan` (IN `p_min_date` DATE, IN `p_max_date` DATE)   BEGIN
-    /*
-      Contoh logika:
-      - Menghapus data rekap mingguan untuk periode yang terpengaruh,
-      - Menghitung ulang rekap mingguan berdasarkan data absensi antara p_min_date dan p_max_date,
-      - Mengelompokkan berdasarkan id_anggota, minggu ke berapa, dan tahun.
-    */
-
-    -- Hapus rekap mingguan lama (sesuaikan logika ini jika perlu)
-    DELETE FROM rekap_mingguan 
-    WHERE id_anggota IN (
-        SELECT DISTINCT id_anggota 
-        FROM absensi 
-        WHERE tanggal BETWEEN p_min_date AND p_max_date
-    );
-
-    -- Masukkan data rekap baru
-    INSERT INTO rekap_mingguan (id_anggota, minggu_ke, tahun, total_hadir, total_terlambat)
-    SELECT 
-        a.id_anggota,
-        WEEK(a.tanggal, 1) AS minggu_ke, -- Menggunakan ISO week (opsional: sesuaikan jika perlu)
-        YEAR(a.tanggal) AS tahun,
-        SUM(a.status_kehadiran = 'hadir') AS total_hadir,
-        SUM(a.terlambat) AS total_terlambat
-    FROM absensi a
-    WHERE a.tanggal BETWEEN p_min_date AND p_max_date
-    GROUP BY a.id_anggota, WEEK(a.tanggal, 1), YEAR(a.tanggal)
-    ON DUPLICATE KEY UPDATE 
-        total_hadir = VALUES(total_hadir),
-        total_terlambat = VALUES(total_terlambat);
-END$$
-
-DELIMITER ;
-
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `absensi`
+-- Table structure for table `absensi`
 --
 
 CREATE TABLE `absensi` (
@@ -114,7 +51,7 @@ CREATE TABLE `absensi` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `absensi`
+-- Dumping data for table `absensi`
 --
 
 INSERT INTO `absensi` (`id`, `tanggal`, `jadwal`, `jam_kerja`, `valid`, `pin`, `nip`, `nama`, `departemen`, `lembur`, `jam_masuk`, `scan_masuk`, `terlambat`, `scan_istirahat_1`, `scan_istirahat_2`, `jam_pulang`, `scan_pulang`, `jenis_absensi`, `status_kehadiran`, `id_anggota`) VALUES
@@ -129,7 +66,7 @@ INSERT INTO `absensi` (`id`, `tanggal`, `jadwal`, `jam_kerja`, `valid`, `pin`, `
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `anggota_sekolah`
+-- Table structure for table `anggota_sekolah`
 --
 
 CREATE TABLE `anggota_sekolah` (
@@ -182,7 +119,7 @@ CREATE TABLE `anggota_sekolah` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `anggota_sekolah`
+-- Dumping data for table `anggota_sekolah`
 --
 
 INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `unit_penempatan`, `strata`, `job_title`, `status_kerja`, `join_start`, `lama_kontrak`, `tgl_kontrak_selesai`, `sudah_kontrak`, `masa_kerja_tahun`, `masa_kerja_bulan`, `masa_kerja_efektif`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_pasangan`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `salary_index_level`, `gaji_pokok`, `foto_profil`, `foto_ktp`, `role`, `is_delete`, `deleted_at`, `kategori`, `faskes_bpjs`, `faskes_inhealth`, `faskes_ket`) VALUES
@@ -215,7 +152,7 @@ INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `audit_logs`
+-- Table structure for table `audit_logs`
 --
 
 CREATE TABLE `audit_logs` (
@@ -228,206 +165,10 @@ CREATE TABLE `audit_logs` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data untuk tabel `audit_logs`
---
-
-INSERT INTO `audit_logs` (`id`, `nip`, `action`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
-(422, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login dengan role \'M\' dan job_title \'Superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:24:04'),
-(423, '300004', 'ViewManageManajerial', 'Superadmin melihat halaman manage manajerial', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:24:34'),
-(424, '300003', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login dengan role \'M\' dan job_title \'SDM\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:24:49'),
-(425, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:24:52'),
-(426, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:24:52'),
-(427, '300003', 'LoadingEmployees', 'start=20, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:25:01'),
-(428, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:25:02'),
-(429, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 12 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:25:04'),
-(430, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:25:04'),
-(431, '300003', 'ViewRekapAbsensi', 'id_anggota=12, bulan=4, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:25:04'),
-(432, '300003', 'AssignPayheadsToEmployee', 'AssignPayheadsToEmployee: empcode=12, total payheads=4', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:27:41'),
-(433, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:27:43'),
-(434, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:27:43'),
-(435, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:27:45'),
-(436, '300003', 'CheckPayrollCompletion', 'Memeriksa completion payroll bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:27:54'),
-(437, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:27:56'),
-(438, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:27:56'),
-(439, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:27:58'),
-(440, '300003', 'ViewRekapAbsensi', 'id_anggota=12, bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:00'),
-(441, '300003', 'CheckPayrollCompletion', 'Memeriksa completion payroll bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:07'),
-(442, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:08'),
-(443, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:08'),
-(444, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:10'),
-(445, '300003', 'ViewRekapAbsensi', 'id_anggota=12, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:10'),
-(446, '300003', 'EditRekapAbsensi', 'EditRekapAbsensi for ID=12, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:26'),
-(447, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:27'),
-(448, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 12 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:27'),
-(449, '300003', 'ViewRekapAbsensi', 'id_anggota=12, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:27'),
-(450, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:58'),
-(451, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:28:58'),
-(452, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:00'),
-(453, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:01'),
-(454, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 12 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:01'),
-(455, '300003', 'ViewRekapAbsensi', 'id_anggota=12, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:01'),
-(456, '300003', 'AssignPayheadsToEmployee', 'AssignPayheadsToEmployee: empcode=12, total payheads=4', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:29'),
-(457, '300003', 'ProcessPayroll', 'SDM memproses payroll => draft, anggota ID = 12, oleh 300003. (payroll_id=45)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:29'),
-(458, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:30'),
-(459, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:30'),
-(460, '300004', 'Login', 'Pengguna dengan NIP \'300004\' berhasil login dengan role \'M\' dan job_title \'Superadmin\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:29:42'),
-(461, '300002', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login dengan role \'M\' dan job_title \'Keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:30:42'),
-(462, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:30:44'),
-(463, '300002', 'SelectPayrollMonth', 'User dengan NIP 300002 memilih bulan payroll: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:30:48'),
-(464, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:30:48'),
-(465, '300002', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 12 pada bulan 5 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:30:50'),
-(466, '300002', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 12 pada bulan 5 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:44:22'),
-(467, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:44:38'),
-(468, '300002', 'SelectPayrollMonth', 'User dengan NIP 300002 memilih bulan payroll: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:44:42'),
-(469, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:44:42'),
-(470, '300002', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 12 pada bulan 5 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:44:44'),
-(471, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:03'),
-(472, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:08'),
-(473, '300003', 'LoadingEmployees', 'start=20, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:33'),
-(474, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:35'),
-(475, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:38'),
-(476, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 13 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:40'),
-(477, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:40'),
-(478, '300003', 'ViewRekapAbsensi', 'id_anggota=13, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:40'),
-(479, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:42'),
-(480, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:42'),
-(481, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:45'),
-(482, '300003', 'ViewRekapAbsensi', 'id_anggota=13, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:45:50'),
-(483, '300003', 'EditRekapAbsensi', 'EditRekapAbsensi for ID=13, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:00'),
-(484, '300003', 'ViewRekapAbsensi', 'id_anggota=13, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:01'),
-(485, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 13 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:04'),
-(486, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:04'),
-(487, '300003', 'ViewRekapAbsensi', 'id_anggota=13, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:04'),
-(488, '300003', 'AssignPayheadsToEmployee', 'AssignPayheadsToEmployee: empcode=13, total payheads=4', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:39'),
-(489, '300003', 'ProcessPayroll', 'SDM memproses payroll => draft, anggota ID = 13, oleh 300003. (payroll_id=46)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:39'),
-(490, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:40'),
-(491, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:40'),
-(492, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:43'),
-(493, '300002', 'SelectPayrollMonth', 'User dengan NIP 300002 memilih bulan payroll: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:45'),
-(494, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:45'),
-(495, '300002', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 13 pada bulan 5 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:46:47'),
-(496, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 14:47:11'),
-(497, '300003', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login dengan role \'M\' dan job_title \'SDM\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:47:39'),
-(498, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:48:00'),
-(499, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:48:00'),
-(500, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:48:41'),
-(501, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:48:41'),
-(502, '300002', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login dengan role \'M\' dan job_title \'Keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:48:52'),
-(503, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:49:39'),
-(504, '300002', 'SelectPayrollMonth', 'User dengan NIP 300002 memilih bulan payroll: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:49:44'),
-(505, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-22 23:49:44'),
-(506, '300003', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login dengan role \'M\' dan job_title \'SDM\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:08:24'),
-(507, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:15:52'),
-(508, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:15:52'),
-(509, '300003', 'CheckPayrollCompletion', 'Memeriksa completion payroll bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:15:56'),
-(510, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:15:58'),
-(511, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:15:58'),
-(512, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:16:35'),
-(513, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:16:35'),
-(514, '300003', 'LoadingEmployees', 'start=10, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:16:39'),
-(515, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 13 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:16:43'),
-(516, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 14 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:16:46'),
-(517, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 13 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:16:48'),
-(518, '300003', 'UpdateGuru', 'Update ID=13, NIP=300003', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:17:56'),
-(519, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:19:46'),
-(520, '300002', 'SelectPayrollMonth', 'User dengan NIP 300002 memilih bulan payroll: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:19:59'),
-(521, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:19:59'),
-(522, '300002', 'ViewPayrollOverview', 'User dengan NIP 300002 melihat overview payroll untuk periode: 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:20:04'),
-(523, '300002', 'ViewPayroll', 'Mengakses Review Payroll untuk Anggota ID 13 pada bulan 5 tahun 2025.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:20:07'),
-(524, '300002', 'InsertPayroll', 'Finalisasi Payroll untuk Anggota 13 periode 5-2025. Pendapatan: Rp 350.000, Potongan: Rp 300.000, Pot. Koperasi: Rp 50.000, Gaji Bersih: Rp 10.400.000', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:22:28'),
-(525, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:24:03'),
-(526, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:24:07'),
-(527, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:25:02'),
-(528, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:25:32'),
-(529, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:25:44'),
-(530, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:25:46'),
-(531, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:27:08'),
-(532, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:27:16'),
-(533, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:27:45'),
-(534, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:29:08'),
-(535, '300002', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login dengan role \'M\' dan job_title \'Keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:29:26'),
-(536, '300002', 'AccessDashboard', 'Mengakses dashboard Guru.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:29:26'),
-(537, '300003', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login dengan role \'M\' dan job_title \'SDM\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:29:56'),
-(538, '300003', 'AccessDashboard', 'Mengakses dashboard Guru.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:29:56'),
-(539, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:32:11'),
-(540, '300003', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login dengan role \'M\' dan job_title \'SDM\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:33:32'),
-(541, '300003', 'UpdateRekapMingguan', 'Update rekap dari 2025-03-01 hingga 2025-03-01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:36:17'),
-(542, '300003', 'Sinkron Gaji Pokok', 'Update massal semua gaji pokok via tombol Sinkron', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:39:45'),
-(543, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:50:04'),
-(544, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:50:04'),
-(545, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 25 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:51:13'),
-(546, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:51:13'),
-(547, '300003', 'ViewRekapAbsensi', 'id_anggota=25, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:51:13'),
-(548, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:51:36'),
-(549, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:51:36'),
-(550, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:51:55'),
-(551, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:51:55'),
-(552, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:54:06'),
-(553, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:54:06'),
-(554, '300003', 'ViewRekapAbsensi', 'id_anggota=25, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:54:08'),
-(555, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:59:20'),
-(556, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:59:20'),
-(557, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 25 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:59:23'),
-(558, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:59:23'),
-(559, '300003', 'ViewRekapAbsensi', 'id_anggota=25, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 01:59:23'),
-(560, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:01:30'),
-(561, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:01:31'),
-(562, '300003', 'ViewSalaryIndexDetail', 'Melihat detail Indeks Gaji ID 5: Level=\'Level 4\', Min Tahun=\'15\', Max Tahun=\'NULL\', Gaji Pokok=\'7000000.00\', Keterangan=\'Gaji untuk di atas 15 tahun masa kerja\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:04:36'),
-(563, '300003', 'ViewSalaryIndexDetail', 'Melihat detail Indeks Gaji ID 5: Level=\'Level 4\', Min Tahun=\'15\', Max Tahun=\'NULL\', Gaji Pokok=\'7000000.00\', Keterangan=\'Gaji untuk di atas 15 tahun masa kerja\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:04:48'),
-(564, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:06:48'),
-(565, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:06:48'),
-(566, '300003', 'ViewRekapAbsensi', 'id_anggota=25, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:06:56'),
-(567, '300003', 'CheckPayrollCompletion', 'Memeriksa completion payroll bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:07:14'),
-(568, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:07:17'),
-(569, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:07:17'),
-(570, '300003', 'ViewRekapAbsensi', 'id_anggota=25, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:07:20'),
-(571, '300003', 'EditRekapAbsensi', 'EditRekapAbsensi for ID=25, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:07:27'),
-(572, '300003', 'ViewRekapAbsensi', 'id_anggota=25, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:10:42'),
-(573, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 25 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:10:56'),
-(574, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:10:56'),
-(575, '300003', 'ViewRekapAbsensi', 'id_anggota=25, bulan=5, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:10:56'),
-(576, '300003', 'AssignPayheadsToEmployee', 'AssignPayheadsToEmployee: empcode=25, total payheads=4', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:13:02'),
-(577, '300003', 'ProcessPayroll', 'SDM memproses payroll => draft, anggota ID = 25, oleh 300003. (payroll_id=48)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:13:02'),
-(578, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:13:04'),
-(579, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:13:04'),
-(580, '300003', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login dengan role \'M\' dan job_title \'SDM\'.', '::1', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1', '2025-06-23 02:27:28'),
-(581, '300003', 'CreateGuru', 'Menambah Guru/Karyawan baru ID=32, NIP=700008, Nama=Aaron', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 02:48:24'),
-(582, '300002', 'Login', 'Pengguna dengan NIP \'300002\' berhasil login dengan role \'M\' dan job_title \'Keuangan\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:14:41'),
-(583, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:14:54'),
-(584, '300003', 'Login', 'Pengguna dengan NIP \'300003\' berhasil login dengan role \'M\' dan job_title \'SDM\'.', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:31:28'),
-(585, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:31:34'),
-(586, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:31:34'),
-(587, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:31:37'),
-(588, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 32 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:31:37'),
-(589, '300003', 'ViewRekapAbsensi', 'id_anggota=32, bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:31:37'),
-(590, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 32 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:35:10'),
-(591, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:35:10'),
-(592, '300003', 'ViewRekapAbsensi', 'id_anggota=32, bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:35:10'),
-(593, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:38:05'),
-(594, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:38:05'),
-(595, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:38:08'),
-(596, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 32 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:38:08'),
-(597, '300003', 'ViewRekapAbsensi', 'id_anggota=32, bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:38:08'),
-(598, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:45:19'),
-(599, '300003', 'LoadingEmployees', 'start=0, length=10, filter jenjang=, role=, search=', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:45:19'),
-(600, '300003', 'ViewRekapAbsensi', 'id_anggota=32, bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:45:23'),
-(601, '300003', 'ViewRekapAbsensi', 'id_anggota=32, bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:45:31'),
-(602, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 32 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:46:07'),
-(603, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:46:07'),
-(604, '300003', 'ViewRekapAbsensi', 'id_anggota=32, bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:46:07'),
-(605, '300003', 'ViewEmployeeDetail', 'Melihat detail anggota ID 32 (oleh 300003).', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:51:07'),
-(606, '300003', 'GetAllPayheads', 'Mengambil semua payheads', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:51:07'),
-(607, '300003', 'ViewRekapAbsensi', 'id_anggota=32, bulan=6, tahun=2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:51:07'),
-(608, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:58:28'),
-(609, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 6/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:58:31'),
-(610, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 03:58:35'),
-(611, '300002', 'ViewRekapPayroll', 'Akses rekap payroll periode 5/2025', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36', '2025-06-23 04:13:34');
-
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `backup_dismiss`
+-- Table structure for table `backup_dismiss`
 --
 
 CREATE TABLE `backup_dismiss` (
@@ -438,7 +179,7 @@ CREATE TABLE `backup_dismiss` (
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `employee_payheads`
+-- Table structure for table `employee_payheads`
 --
 
 CREATE TABLE `employee_payheads` (
@@ -455,7 +196,7 @@ CREATE TABLE `employee_payheads` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `employee_payheads`
+-- Dumping data for table `employee_payheads`
 --
 
 INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`, `remarks`, `support_doc_path`, `upload_file_blob`, `is_rapel`) VALUES
@@ -471,12 +212,19 @@ INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amo
 (11, 25, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
 (12, 25, 7, 'earnings', 50000.00, 'draft', '', '', NULL, 0),
 (13, 25, 8, 'earnings', 75000.00, 'draft', '', '', NULL, 0),
-(14, 25, 11, 'earnings', 100000.00, 'draft', '', '', NULL, 0);
+(14, 25, 11, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
+(15, 24, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
+(16, 24, 7, 'earnings', 50000.00, 'draft', '', '', NULL, 0),
+(17, 14, 7, 'earnings', 50000.00, 'revisi', '', '', NULL, 0),
+(18, 14, 8, 'earnings', 75000.00, 'revisi', '', '', NULL, 0),
+(19, 14, 11, 'earnings', 100000.00, 'revisi', '', '', NULL, 0),
+(21, 14, 12, 'deductions', 250000.00, 'revisi', '', '', NULL, 0),
+(22, 32, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0);
 
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `gaji_pokok_roles`
+-- Table structure for table `gaji_pokok_roles`
 --
 
 CREATE TABLE `gaji_pokok_roles` (
@@ -486,7 +234,7 @@ CREATE TABLE `gaji_pokok_roles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `gaji_pokok_roles`
+-- Dumping data for table `gaji_pokok_roles`
 --
 
 INSERT INTO `gaji_pokok_roles` (`role`, `gaji_pokok`, `pendidikan`) VALUES
@@ -496,7 +244,7 @@ INSERT INTO `gaji_pokok_roles` (`role`, `gaji_pokok`, `pendidikan`) VALUES
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `gaji_pokok_strata_guru`
+-- Table structure for table `gaji_pokok_strata_guru`
 --
 
 CREATE TABLE `gaji_pokok_strata_guru` (
@@ -506,7 +254,7 @@ CREATE TABLE `gaji_pokok_strata_guru` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Dumping data untuk tabel `gaji_pokok_strata_guru`
+-- Dumping data for table `gaji_pokok_strata_guru`
 --
 
 INSERT INTO `gaji_pokok_strata_guru` (`jenjang`, `strata`, `gaji_pokok`) VALUES
@@ -546,7 +294,7 @@ INSERT INTO `gaji_pokok_strata_guru` (`jenjang`, `strata`, `gaji_pokok`) VALUES
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `gaji_pokok_strata_karyawan`
+-- Table structure for table `gaji_pokok_strata_karyawan`
 --
 
 CREATE TABLE `gaji_pokok_strata_karyawan` (
@@ -556,7 +304,7 @@ CREATE TABLE `gaji_pokok_strata_karyawan` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Dumping data untuk tabel `gaji_pokok_strata_karyawan`
+-- Dumping data for table `gaji_pokok_strata_karyawan`
 --
 
 INSERT INTO `gaji_pokok_strata_karyawan` (`jenjang`, `strata`, `gaji_pokok`) VALUES
@@ -596,7 +344,7 @@ INSERT INTO `gaji_pokok_strata_karyawan` (`jenjang`, `strata`, `gaji_pokok`) VAL
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `holidays`
+-- Table structure for table `holidays`
 --
 
 CREATE TABLE `holidays` (
@@ -610,7 +358,7 @@ CREATE TABLE `holidays` (
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `jadwal_piket`
+-- Table structure for table `jadwal_piket`
 --
 
 CREATE TABLE `jadwal_piket` (
@@ -628,7 +376,7 @@ CREATE TABLE `jadwal_piket` (
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `jenjang_sekolah`
+-- Table structure for table `jenjang_sekolah`
 --
 
 CREATE TABLE `jenjang_sekolah` (
@@ -642,7 +390,7 @@ CREATE TABLE `jenjang_sekolah` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Dumping data untuk tabel `jenjang_sekolah`
+-- Dumping data for table `jenjang_sekolah`
 --
 
 INSERT INTO `jenjang_sekolah` (`id`, `kode_jenjang`, `nama_jenjang`, `deskripsi`, `is_aktif`, `color_bg`, `color_fg`) VALUES
@@ -659,7 +407,7 @@ INSERT INTO `jenjang_sekolah` (`id`, `kode_jenjang`, `nama_jenjang`, `deskripsi`
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `kenaikan_gaji_tahunan`
+-- Table structure for table `kenaikan_gaji_tahunan`
 --
 
 CREATE TABLE `kenaikan_gaji_tahunan` (
@@ -676,7 +424,7 @@ CREATE TABLE `kenaikan_gaji_tahunan` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Dumping data untuk tabel `kenaikan_gaji_tahunan`
+-- Dumping data for table `kenaikan_gaji_tahunan`
 --
 
 INSERT INTO `kenaikan_gaji_tahunan` (`id`, `id_anggota`, `nama_kenaikan`, `jumlah`, `tanggal_mulai`, `tanggal_berakhir`, `status`, `ranking_id`, `dibuat_pada`, `pindah_ke_lain_lain`) VALUES
@@ -692,7 +440,7 @@ INSERT INTO `kenaikan_gaji_tahunan` (`id`, `id_anggota`, `nama_kenaikan`, `jumla
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `laporan_surat`
+-- Table structure for table `laporan_surat`
 --
 
 CREATE TABLE `laporan_surat` (
@@ -710,7 +458,7 @@ CREATE TABLE `laporan_surat` (
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `msg_read`
+-- Table structure for table `msg_read`
 --
 
 CREATE TABLE `msg_read` (
@@ -721,7 +469,7 @@ CREATE TABLE `msg_read` (
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `notifications`
+-- Table structure for table `notifications`
 --
 
 CREATE TABLE `notifications` (
@@ -743,7 +491,7 @@ CREATE TABLE `notifications` (
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `payheads`
+-- Table structure for table `payheads`
 --
 
 CREATE TABLE `payheads` (
@@ -755,7 +503,7 @@ CREATE TABLE `payheads` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `payheads`
+-- Dumping data for table `payheads`
 --
 
 INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`, `nominal`) VALUES
@@ -777,7 +525,7 @@ INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`, `nominal`) V
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `payhead_groups`
+-- Table structure for table `payhead_groups`
 --
 
 CREATE TABLE `payhead_groups` (
@@ -790,7 +538,7 @@ CREATE TABLE `payhead_groups` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `payhead_groups`
+-- Dumping data for table `payhead_groups`
 --
 
 INSERT INTO `payhead_groups` (`id`, `group_name`, `payhead_name`, `jenis`, `role`, `sort_order`) VALUES
@@ -802,7 +550,7 @@ INSERT INTO `payhead_groups` (`id`, `group_name`, `payhead_name`, `jenis`, `role
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `payroll`
+-- Table structure for table `payroll`
 --
 
 CREATE TABLE `payroll` (
@@ -816,6 +564,7 @@ CREATE TABLE `payroll` (
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
   `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `potongan_absensi` decimal(15,2) NOT NULL DEFAULT '0.00',
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `tgl_payroll` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -825,19 +574,25 @@ CREATE TABLE `payroll` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `payroll`
+-- Dumping data for table `payroll`
 --
 
-INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
-(45, 12, NULL, 5, 2025, 7000000.00, 7000000.00, 200000.00, 300000.00, 0.00, 13900000.00, '2025-06-22 14:29:29', '2025-06-22 21:29:29', '112233', '', 'draft'),
-(46, 13, NULL, 5, 2025, 6000000.00, 6000000.00, 350000.00, 300000.00, 0.00, 12050000.00, '2025-06-22 14:46:39', '2025-06-22 21:46:39', '445577', '', 'draft'),
-(47, 13, 43, 5, 2025, 4400000.00, 6000000.00, 350000.00, 300000.00, 50000.00, 10400000.00, '2025-06-23 01:22:27', '2025-06-23 08:20:00', '445577', '', 'final'),
-(48, 25, NULL, 5, 2025, 9000000.00, 7000000.00, 225000.00, 250000.00, 0.00, 15975000.00, '2025-06-23 02:13:02', '2025-06-23 09:13:02', '1357924680', '', 'draft');
+INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `potongan_absensi`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
+(45, 12, NULL, 5, 2025, 7000000.00, 7000000.00, 200000.00, 300000.00, 0.00, 0.00, 13900000.00, '2025-06-22 14:29:29', '2025-06-22 21:29:29', '112233', '', 'draft'),
+(46, 13, NULL, 5, 2025, 6000000.00, 6000000.00, 350000.00, 300000.00, 0.00, 0.00, 12050000.00, '2025-06-22 14:46:39', '2025-06-22 21:46:39', '445577', '', 'draft'),
+(47, 13, 43, 5, 2025, 4400000.00, 6000000.00, 350000.00, 300000.00, 50000.00, 0.00, 10400000.00, '2025-06-23 01:22:27', '2025-06-23 08:20:00', '445577', '', 'final'),
+(48, 25, NULL, 5, 2025, 9000000.00, 7000000.00, 225000.00, 250000.00, 0.00, 0.00, 15975000.00, '2025-06-23 02:13:02', '2025-06-23 09:13:02', '1357924680', '', 'draft'),
+(49, 24, NULL, 5, 2025, 6000000.00, 5000000.00, 50000.00, 250000.00, 0.00, 0.00, 10800000.00, '2025-06-24 05:20:28', '2025-06-24 12:20:28', '1234098765', '', 'draft'),
+(50, 14, NULL, 5, 2025, 7000000.00, 7000000.00, 225000.00, 250000.00, 0.00, 0.00, 13975000.00, '2025-06-24 05:46:09', '2025-06-24 12:46:09', '', '', 'revisi'),
+(52, 32, NULL, 4, 2025, 4500000.00, 3000000.00, 0.00, 0.00, 0.00, 150000.00, 7500000.00, '2025-06-24 07:34:53', '2025-06-24 14:34:53', '', '', 'draft'),
+(53, 32, NULL, 5, 2025, 4500000.00, 3000000.00, 0.00, 250000.00, 0.00, 0.00, 7250000.00, '2025-06-24 07:36:39', '2025-06-24 14:36:39', '', '', 'draft'),
+(54, 19, NULL, 5, 2025, 5500000.00, 3000000.00, 0.00, 75000.00, 0.00, 75000.00, 8425000.00, '2025-06-24 07:53:34', '2025-06-24 14:53:34', '512443563', '', 'draft'),
+(55, 19, 50, 5, 2025, 5500000.00, 3000000.00, 0.00, 0.00, 0.00, 75000.00, 8500000.00, '2025-06-24 08:07:17', '2025-06-24 15:07:00', '512443563', '', 'final');
 
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `payroll_detail`
+-- Table structure for table `payroll_detail`
 --
 
 CREATE TABLE `payroll_detail` (
@@ -851,7 +606,7 @@ CREATE TABLE `payroll_detail` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `payroll_detail`
+-- Dumping data for table `payroll_detail`
 --
 
 INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`) VALUES
@@ -872,12 +627,19 @@ INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_anggota`, `id_payhead`, `j
 (260, 48, 25, 12, 'deductions', 250000.00, 'draft'),
 (261, 48, 25, 7, 'earnings', 50000.00, 'draft'),
 (262, 48, 25, 8, 'earnings', 75000.00, 'draft'),
-(263, 48, 25, 11, 'earnings', 100000.00, 'draft');
+(263, 48, 25, 11, 'earnings', 100000.00, 'draft'),
+(264, 49, 24, 12, 'deductions', 250000.00, 'draft'),
+(265, 49, 24, 7, 'earnings', 50000.00, 'draft'),
+(266, 50, 14, 7, 'earnings', 50000.00, 'draft'),
+(267, 50, 14, 8, 'earnings', 75000.00, 'draft'),
+(268, 50, 14, 11, 'earnings', 100000.00, 'draft'),
+(269, 50, 14, 12, 'deductions', 250000.00, 'draft'),
+(270, 53, 32, 12, 'deductions', 250000.00, 'draft');
 
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `payroll_detail_final`
+-- Table structure for table `payroll_detail_final`
 --
 
 CREATE TABLE `payroll_detail_final` (
@@ -891,7 +653,7 @@ CREATE TABLE `payroll_detail_final` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `payroll_detail_final`
+-- Dumping data for table `payroll_detail_final`
 --
 
 INSERT INTO `payroll_detail_final` (`id`, `id_payroll_final`, `id_payhead`, `nama_payhead`, `jenis`, `amount`, `is_rapel`) VALUES
@@ -904,7 +666,7 @@ INSERT INTO `payroll_detail_final` (`id`, `id_payroll_final`, `id_payhead`, `nam
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `payroll_final`
+-- Table structure for table `payroll_final`
 --
 
 CREATE TABLE `payroll_final` (
@@ -918,6 +680,7 @@ CREATE TABLE `payroll_final` (
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
   `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `potongan_absensi` decimal(15,2) NOT NULL DEFAULT '0.00',
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
   `tgl_payroll` datetime NOT NULL,
   `no_rekening` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
@@ -927,16 +690,17 @@ CREATE TABLE `payroll_final` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `payroll_final`
+-- Dumping data for table `payroll_final`
 --
 
-INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
-(15, 13, 43, 5, 2025, 4400000.00, 6000000.00, 350000.00, 300000.00, 50000.00, 10400000.00, '2025-06-23 08:20:00', '445577', '', '2025-06-23 01:22:28', 47);
+INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `potongan_absensi`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
+(15, 13, 43, 5, 2025, 4400000.00, 6000000.00, 350000.00, 300000.00, 50000.00, 0.00, 10400000.00, '2025-06-23 08:20:00', '445577', '', '2025-06-23 01:22:28', 47),
+(16, 19, 50, 5, 2025, 5500000.00, 3000000.00, 0.00, 0.00, 0.00, 75000.00, 8500000.00, '2025-06-24 15:07:00', '512443563', '0', '2025-06-24 08:07:17', 55);
 
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `pengajuan_ijin`
+-- Table structure for table `pengajuan_ijin`
 --
 
 CREATE TABLE `pengajuan_ijin` (
@@ -955,7 +719,7 @@ CREATE TABLE `pengajuan_ijin` (
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `permintaan_tukar_jadwal`
+-- Table structure for table `permintaan_tukar_jadwal`
 --
 
 CREATE TABLE `permintaan_tukar_jadwal` (
@@ -973,7 +737,31 @@ CREATE TABLE `permintaan_tukar_jadwal` (
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `ranking_kenaikan`
+-- Table structure for table `potongan_ketidakhadiran`
+--
+
+CREATE TABLE `potongan_ketidakhadiran` (
+  `id` int NOT NULL,
+  `tahun` int NOT NULL,
+  `role` enum('P','TK','M') NOT NULL,
+  `biaya_per_hari` decimal(15,2) NOT NULL,
+  `max_hari` int DEFAULT NULL,
+  `keterangan` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `potongan_ketidakhadiran`
+--
+
+INSERT INTO `potongan_ketidakhadiran` (`id`, `tahun`, `role`, `biaya_per_hari`, `max_hari`, `keterangan`) VALUES
+(1, 2025, 'P', 75000.00, 2, 'Potongan tidak hadir Guru/Karyawan'),
+(2, 2025, 'TK', 75000.00, 2, 'Potongan tidak hadir Tenaga Kependidikan'),
+(3, 2025, 'M', 50000.00, NULL, 'Potongan tidak hadir Manajerial');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ranking_kenaikan`
 --
 
 CREATE TABLE `ranking_kenaikan` (
@@ -985,7 +773,7 @@ CREATE TABLE `ranking_kenaikan` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Dumping data untuk tabel `ranking_kenaikan`
+-- Dumping data for table `ranking_kenaikan`
 --
 
 INSERT INTO `ranking_kenaikan` (`id`, `nama_ranking`, `jumlah`, `deskripsi`, `is_aktif`) VALUES
@@ -998,7 +786,7 @@ INSERT INTO `ranking_kenaikan` (`id`, `nama_ranking`, `jumlah`, `deskripsi`, `is
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `rekap_absensi`
+-- Table structure for table `rekap_absensi`
 --
 
 CREATE TABLE `rekap_absensi` (
@@ -1014,19 +802,24 @@ CREATE TABLE `rekap_absensi` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `rekap_absensi`
+-- Dumping data for table `rekap_absensi`
 --
 
 INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`, `total_izin`, `total_cuti`, `total_tanpa_keterangan`, `total_sakit`) VALUES
 (42, 12, 5, 2025, 28, 1, 1, 1, 0),
 (43, 13, 5, 2025, 28, 1, 1, 1, 0),
 (44, 5, 3, 2025, 7, 0, 0, 0, 0),
-(45, 25, 5, 2025, 28, 1, 1, 1, 0);
+(45, 25, 5, 2025, 28, 1, 1, 1, 0),
+(46, 24, 5, 2025, 28, 2, 1, 1, 0),
+(47, 32, 5, 2025, 28, 2, 0, 0, 0),
+(48, 14, 5, 2025, 28, 1, 1, 1, 0),
+(49, 32, 4, 2025, 28, 2, 1, 0, 0),
+(50, 19, 5, 2025, 28, 1, 0, 0, 0);
 
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `rekap_mingguan`
+-- Table structure for table `rekap_mingguan`
 --
 
 CREATE TABLE `rekap_mingguan` (
@@ -1039,7 +832,7 @@ CREATE TABLE `rekap_mingguan` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Dumping data untuk tabel `rekap_mingguan`
+-- Dumping data for table `rekap_mingguan`
 --
 
 INSERT INTO `rekap_mingguan` (`id`, `id_anggota`, `minggu_ke`, `tahun`, `total_hadir`, `total_terlambat`) VALUES
@@ -1048,7 +841,7 @@ INSERT INTO `rekap_mingguan` (`id`, `id_anggota`, `minggu_ke`, `tahun`, `total_h
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `salary_indices`
+-- Table structure for table `salary_indices`
 --
 
 CREATE TABLE `salary_indices` (
@@ -1061,7 +854,7 @@ CREATE TABLE `salary_indices` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `salary_indices`
+-- Dumping data for table `salary_indices`
 --
 
 INSERT INTO `salary_indices` (`id`, `level`, `min_years`, `max_years`, `base_salary`, `description`) VALUES
@@ -1074,7 +867,7 @@ INSERT INTO `salary_indices` (`id`, `level`, `min_years`, `max_years`, `base_sal
 -- --------------------------------------------------------
 
 --
--- Struktur dari tabel `template_surat`
+-- Table structure for table `template_surat`
 --
 
 CREATE TABLE `template_surat` (
@@ -1090,7 +883,7 @@ CREATE TABLE `template_surat` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data untuk tabel `template_surat`
+-- Dumping data for table `template_surat`
 --
 
 INSERT INTO `template_surat` (`id`, `jenis_surat`, `judul`, `isi`, `default_penerima`, `created_by`, `created_at`, `updated_at`, `default_penerima_id`) VALUES
@@ -1101,7 +894,7 @@ INSERT INTO `template_surat` (`id`, `jenis_surat`, `judul`, `isi`, `default_pene
 --
 
 --
--- Indeks untuk tabel `absensi`
+-- Indexes for table `absensi`
 --
 ALTER TABLE `absensi`
   ADD PRIMARY KEY (`id`),
@@ -1109,7 +902,7 @@ ALTER TABLE `absensi`
   ADD KEY `idx_absensi_nip_tgl_late` (`nip`,`tanggal`,`terlambat`);
 
 --
--- Indeks untuk tabel `anggota_sekolah`
+-- Indexes for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
   ADD PRIMARY KEY (`id`),
@@ -1120,7 +913,7 @@ ALTER TABLE `anggota_sekolah`
   ADD KEY `idx_unit_penempatan` (`unit_penempatan`);
 
 --
--- Indeks untuk tabel `audit_logs`
+-- Indexes for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
   ADD PRIMARY KEY (`id`),
@@ -1128,13 +921,13 @@ ALTER TABLE `audit_logs`
   ADD KEY `idx_audit_created_action` (`created_at`,`action`);
 
 --
--- Indeks untuk tabel `backup_dismiss`
+-- Indexes for table `backup_dismiss`
 --
 ALTER TABLE `backup_dismiss`
   ADD PRIMARY KEY (`user_id`,`yyyymm`);
 
 --
--- Indeks untuk tabel `employee_payheads`
+-- Indexes for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
   ADD PRIMARY KEY (`id`),
@@ -1142,31 +935,31 @@ ALTER TABLE `employee_payheads`
   ADD KEY `employee_payheads_ibfk_2` (`id_payhead`);
 
 --
--- Indeks untuk tabel `gaji_pokok_roles`
+-- Indexes for table `gaji_pokok_roles`
 --
 ALTER TABLE `gaji_pokok_roles`
   ADD PRIMARY KEY (`role`);
 
 --
--- Indeks untuk tabel `gaji_pokok_strata_guru`
+-- Indexes for table `gaji_pokok_strata_guru`
 --
 ALTER TABLE `gaji_pokok_strata_guru`
   ADD PRIMARY KEY (`jenjang`,`strata`);
 
 --
--- Indeks untuk tabel `gaji_pokok_strata_karyawan`
+-- Indexes for table `gaji_pokok_strata_karyawan`
 --
 ALTER TABLE `gaji_pokok_strata_karyawan`
   ADD PRIMARY KEY (`jenjang`,`strata`);
 
 --
--- Indeks untuk tabel `holidays`
+-- Indexes for table `holidays`
 --
 ALTER TABLE `holidays`
   ADD PRIMARY KEY (`holiday_id`);
 
 --
--- Indeks untuk tabel `jadwal_piket`
+-- Indexes for table `jadwal_piket`
 --
 ALTER TABLE `jadwal_piket`
   ADD PRIMARY KEY (`id_jadwal`),
@@ -1175,34 +968,34 @@ ALTER TABLE `jadwal_piket`
   ADD KEY `idx_jenjang_tanggal` (`jenjang`,`tanggal`);
 
 --
--- Indeks untuk tabel `jenjang_sekolah`
+-- Indexes for table `jenjang_sekolah`
 --
 ALTER TABLE `jenjang_sekolah`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `kode_jenjang` (`kode_jenjang`);
 
 --
--- Indeks untuk tabel `kenaikan_gaji_tahunan`
+-- Indexes for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
   ADD PRIMARY KEY (`id`),
   ADD KEY `ranking_id` (`ranking_id`);
 
 --
--- Indeks untuk tabel `laporan_surat`
+-- Indexes for table `laporan_surat`
 --
 ALTER TABLE `laporan_surat`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_laporan_read` (`id_penerima`,`is_read_receiver`);
 
 --
--- Indeks untuk tabel `msg_read`
+-- Indexes for table `msg_read`
 --
 ALTER TABLE `msg_read`
   ADD PRIMARY KEY (`user_id`,`msg_id`);
 
 --
--- Indeks untuk tabel `notifications`
+-- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
   ADD PRIMARY KEY (`id`),
@@ -1211,20 +1004,20 @@ ALTER TABLE `notifications`
   ADD KEY `idx_user_read` (`user_id`,`is_read`);
 
 --
--- Indeks untuk tabel `payheads`
+-- Indexes for table `payheads`
 --
 ALTER TABLE `payheads`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeks untuk tabel `payhead_groups`
+-- Indexes for table `payhead_groups`
 --
 ALTER TABLE `payhead_groups`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uk_group_payhead` (`group_name`,`payhead_name`);
 
 --
--- Indeks untuk tabel `payroll`
+-- Indexes for table `payroll`
 --
 ALTER TABLE `payroll`
   ADD PRIMARY KEY (`id`),
@@ -1233,7 +1026,7 @@ ALTER TABLE `payroll`
   ADD KEY `idx_payroll_bulantahun_stat` (`bulan`,`tahun`,`status`);
 
 --
--- Indeks untuk tabel `payroll_detail`
+-- Indexes for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
   ADD PRIMARY KEY (`id`),
@@ -1241,7 +1034,7 @@ ALTER TABLE `payroll_detail`
   ADD KEY `idx_payhead` (`id_payhead`);
 
 --
--- Indeks untuk tabel `payroll_detail_final`
+-- Indexes for table `payroll_detail_final`
 --
 ALTER TABLE `payroll_detail_final`
   ADD PRIMARY KEY (`id`),
@@ -1250,7 +1043,7 @@ ALTER TABLE `payroll_detail_final`
   ADD KEY `idx_payhead` (`id_payhead`);
 
 --
--- Indeks untuk tabel `payroll_final`
+-- Indexes for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
   ADD PRIMARY KEY (`id`),
@@ -1261,7 +1054,7 @@ ALTER TABLE `payroll_final`
   ADD KEY `idx_pf_anggota_blnthn` (`id_anggota`,`bulan`,`tahun`);
 
 --
--- Indeks untuk tabel `pengajuan_ijin`
+-- Indexes for table `pengajuan_ijin`
 --
 ALTER TABLE `pengajuan_ijin`
   ADD PRIMARY KEY (`id`),
@@ -1269,7 +1062,7 @@ ALTER TABLE `pengajuan_ijin`
   ADD KEY `idx_ijin_nip_stat` (`nip`,`status`);
 
 --
--- Indeks untuk tabel `permintaan_tukar_jadwal`
+-- Indexes for table `permintaan_tukar_jadwal`
 --
 ALTER TABLE `permintaan_tukar_jadwal`
   ADD PRIMARY KEY (`id`),
@@ -1277,211 +1070,223 @@ ALTER TABLE `permintaan_tukar_jadwal`
   ADD KEY `id_jadwal_tujuan` (`id_jadwal_tujuan`);
 
 --
--- Indeks untuk tabel `ranking_kenaikan`
+-- Indexes for table `potongan_ketidakhadiran`
+--
+ALTER TABLE `potongan_ketidakhadiran`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `ranking_kenaikan`
 --
 ALTER TABLE `ranking_kenaikan`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeks untuk tabel `rekap_absensi`
+-- Indexes for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uniq_rekap` (`id_anggota`,`bulan`,`tahun`);
 
 --
--- Indeks untuk tabel `rekap_mingguan`
+-- Indexes for table `rekap_mingguan`
 --
 ALTER TABLE `rekap_mingguan`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_mingguan` (`id_anggota`,`minggu_ke`,`tahun`);
 
 --
--- Indeks untuk tabel `salary_indices`
+-- Indexes for table `salary_indices`
 --
 ALTER TABLE `salary_indices`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `level` (`level`);
 
 --
--- Indeks untuk tabel `template_surat`
+-- Indexes for table `template_surat`
 --
 ALTER TABLE `template_surat`
   ADD PRIMARY KEY (`id`);
 
 --
--- AUTO_INCREMENT untuk tabel yang dibuang
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT untuk tabel `absensi`
+-- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
--- AUTO_INCREMENT untuk tabel `anggota_sekolah`
+-- AUTO_INCREMENT for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
--- AUTO_INCREMENT untuk tabel `audit_logs`
+-- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=612;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT untuk tabel `employee_payheads`
+-- AUTO_INCREMENT for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
--- AUTO_INCREMENT untuk tabel `holidays`
+-- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
   MODIFY `holiday_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
--- AUTO_INCREMENT untuk tabel `jadwal_piket`
+-- AUTO_INCREMENT for table `jadwal_piket`
 --
 ALTER TABLE `jadwal_piket`
   MODIFY `id_jadwal` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=518;
 
 --
--- AUTO_INCREMENT untuk tabel `jenjang_sekolah`
+-- AUTO_INCREMENT for table `jenjang_sekolah`
 --
 ALTER TABLE `jenjang_sekolah`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
--- AUTO_INCREMENT untuk tabel `kenaikan_gaji_tahunan`
+-- AUTO_INCREMENT for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
--- AUTO_INCREMENT untuk tabel `laporan_surat`
+-- AUTO_INCREMENT for table `laporan_surat`
 --
 ALTER TABLE `laporan_surat`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT untuk tabel `notifications`
+-- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT untuk tabel `payheads`
+-- AUTO_INCREMENT for table `payheads`
 --
 ALTER TABLE `payheads`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
--- AUTO_INCREMENT untuk tabel `payhead_groups`
+-- AUTO_INCREMENT for table `payhead_groups`
 --
 ALTER TABLE `payhead_groups`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
--- AUTO_INCREMENT untuk tabel `payroll`
+-- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
--- AUTO_INCREMENT untuk tabel `payroll_detail`
+-- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=264;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=271;
 
 --
--- AUTO_INCREMENT untuk tabel `payroll_detail_final`
+-- AUTO_INCREMENT for table `payroll_detail_final`
 --
 ALTER TABLE `payroll_detail_final`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
 
 --
--- AUTO_INCREMENT untuk tabel `payroll_final`
+-- AUTO_INCREMENT for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
--- AUTO_INCREMENT untuk tabel `pengajuan_ijin`
+-- AUTO_INCREMENT for table `pengajuan_ijin`
 --
 ALTER TABLE `pengajuan_ijin`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
--- AUTO_INCREMENT untuk tabel `permintaan_tukar_jadwal`
+-- AUTO_INCREMENT for table `permintaan_tukar_jadwal`
 --
 ALTER TABLE `permintaan_tukar_jadwal`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT untuk tabel `ranking_kenaikan`
+-- AUTO_INCREMENT for table `potongan_ketidakhadiran`
+--
+ALTER TABLE `potongan_ketidakhadiran`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `ranking_kenaikan`
 --
 ALTER TABLE `ranking_kenaikan`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT untuk tabel `rekap_absensi`
+-- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
--- AUTO_INCREMENT untuk tabel `rekap_mingguan`
+-- AUTO_INCREMENT for table `rekap_mingguan`
 --
 ALTER TABLE `rekap_mingguan`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT untuk tabel `template_surat`
+-- AUTO_INCREMENT for table `template_surat`
 --
 ALTER TABLE `template_surat`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
+-- Constraints for dumped tables
 --
 
 --
--- Ketidakleluasaan untuk tabel `anggota_sekolah`
+-- Constraints for table `anggota_sekolah`
 --
 ALTER TABLE `anggota_sekolah`
   ADD CONSTRAINT `fk_anggota_salary_indices` FOREIGN KEY (`salary_index_id`) REFERENCES `salary_indices` (`id`);
 
 --
--- Ketidakleluasaan untuk tabel `employee_payheads`
+-- Constraints for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
   ADD CONSTRAINT `fk_employee_payheads_payheads` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`);
 
 --
--- Ketidakleluasaan untuk tabel `jadwal_piket`
+-- Constraints for table `jadwal_piket`
 --
 ALTER TABLE `jadwal_piket`
   ADD CONSTRAINT `fk_jadwal_piket_anggota` FOREIGN KEY (`nip`) REFERENCES `anggota_sekolah` (`nip`) ON DELETE CASCADE;
 
 --
--- Ketidakleluasaan untuk tabel `kenaikan_gaji_tahunan`
+-- Constraints for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
   ADD CONSTRAINT `kenaikan_gaji_tahunan_ibfk_1` FOREIGN KEY (`ranking_id`) REFERENCES `ranking_kenaikan` (`id`);
 
 --
--- Ketidakleluasaan untuk tabel `payroll_detail`
+-- Constraints for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
   ADD CONSTRAINT `fk_payroll_detail_payheads` FOREIGN KEY (`id_payhead`) REFERENCES `payheads` (`id`),
   ADD CONSTRAINT `fk_payroll_detail_payroll` FOREIGN KEY (`id_payroll`) REFERENCES `payroll` (`id`);
 
 --
--- Ketidakleluasaan untuk tabel `permintaan_tukar_jadwal`
+-- Constraints for table `permintaan_tukar_jadwal`
 --
 ALTER TABLE `permintaan_tukar_jadwal`
   ADD CONSTRAINT `fk_ptj_jadwal_pengaju` FOREIGN KEY (`id_jadwal_pengaju`) REFERENCES `jadwal_piket` (`id_jadwal`) ON DELETE CASCADE,

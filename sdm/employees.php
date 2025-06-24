@@ -68,6 +68,52 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 RemovePayrollFile($conn);
                 break;
 
+            case 'GetPotonganKetidakhadiranTarif':
+    // ambil & normalize role
+    $role = strtoupper(trim($_POST['role'] ?? ''));
+    // validasi dulu
+    if (!in_array($role, ['P','TK','M'], true)) {
+        // kalau role nggak valid, langsung exit
+        echo json_encode([
+            'code'   => 1,
+            'result' => 'Role tidak valid atau tidak ditemukan.'
+        ]);
+        exit;
+    }
+    $tahun = intval($_POST['tahun'] ?? date('Y'));
+
+    // prepare & bind
+    $sql = "SELECT biaya_per_hari, max_hari 
+            FROM potongan_ketidakhadiran 
+            WHERE tahun = ? 
+              AND role = ?";
+    if ($stmt = $conn->prepare($sql)) {
+        $stmt->bind_param("is", $tahun, $role);
+        $stmt->execute();
+        $stmt->bind_result($biaya_per_hari, $max_hari);
+        if ($stmt->fetch()) {
+            echo json_encode([
+                'code'           => 0,
+                'biaya_per_hari' => $biaya_per_hari,
+                'max_hari'       => $max_hari
+            ]);
+        } else {
+            echo json_encode([
+                'code'   => 1,
+                'result' => 'Tarif potongan tidak ditemukan'
+            ]);
+        }
+        $stmt->close();
+    } else {
+        // kalau prepare gagal
+        echo json_encode([
+            'code'   => 1,
+            'result' => 'Gagal menyiapkan query potongan.'
+        ]);
+    }
+    exit;
+
+
             default:
                 send_response(1, 'Kasus tidak valid.');
         }

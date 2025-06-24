@@ -272,9 +272,20 @@ function LoadPayrollOverview($conn)
    BAGIAN HALAMAN UTAMA (TETAP DIPERTAHANKAN)
    ----------------------------------------------------------------*/
 
-// Ambil filter dari GET (default: bulan & tahun sekarang)
-$filterMonth   = isset($_GET['filterMonth']) ? intval($_GET['filterMonth']) : date("n");
-$filterYear    = isset($_GET['filterYear'])  ? intval($_GET['filterYear'])  : date("Y");
+
+// Ambil filter bulan/tahun payroll dari GET, jika tidak ada ambil dari session, jika tidak ada juga pakai bulan ini
+if (isset($_GET['filterMonth']) && isset($_GET['filterYear'])) {
+    $filterMonth = intval($_GET['filterMonth']);
+    $filterYear = intval($_GET['filterYear']);
+    // Simpan ke session supaya selalu ingat pilihan user terakhir
+    $_SESSION['payroll_filter_month'] = $filterMonth;
+    $_SESSION['payroll_filter_year']  = $filterYear;
+} else {
+    // Jika tidak ada di GET, cek session
+    $filterMonth = isset($_SESSION['payroll_filter_month']) ? intval($_SESSION['payroll_filter_month']) : date("n");
+    $filterYear  = isset($_SESSION['payroll_filter_year'])  ? intval($_SESSION['payroll_filter_year'])  : date("Y");
+}
+
 $filterJenjang = isset($_GET['filterJenjang']) ? sanitize_input($_GET['filterJenjang']) : '';
 $filterRole    = isset($_GET['filterRole'])    ? sanitize_input($_GET['filterRole'])    : '';
 
@@ -367,13 +378,13 @@ if ($stmtRole) {
             box-shadow: var(--card-shadow);
         }
 
-.form-select {
-    min-height: 45px !important;
-    padding-right: 2.5rem !important;
-    font-size: 1rem !important;
-    line-height: 1.5 !important;
-    background-position: right 1rem center !important;
-}
+        .form-select {
+            min-height: 45px !important;
+            padding-right: 2.5rem !important;
+            font-size: 1rem !important;
+            line-height: 1.5 !important;
+            background-position: right 1rem center !important;
+        }
 
         .card-header {
             background: var(--secondary-gradient);
@@ -582,13 +593,13 @@ if ($stmtRole) {
                                     <select class="form-select" id="filterJenjang" name="jenjang">
                                         <option value="">Semua Jenjang</option>
                                         <?php
-$jenjangList = getOrderedJenjang($conn); // array: ['TK'=>'Taman Kanak-Kanak', ...]
-foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
-    echo '<option value="' . htmlspecialchars($kode_jenjang) . '"'
-        . ($filterJenjang === $kode_jenjang ? ' selected' : '')
-        . '>' . htmlspecialchars($nama_jenjang) . '</option>';
-}
-?>
+                                        $jenjangList = getOrderedJenjang($conn); // array: ['TK'=>'Taman Kanak-Kanak', ...]
+                                        foreach ($jenjangList as $kode_jenjang => $nama_jenjang) {
+                                            echo '<option value="' . htmlspecialchars($kode_jenjang) . '"'
+                                                . ($filterJenjang === $kode_jenjang ? ' selected' : '')
+                                                . '>' . htmlspecialchars($nama_jenjang) . '</option>';
+                                        }
+                                        ?>
 
                                     </select>
                                 </div>

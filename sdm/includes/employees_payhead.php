@@ -4,31 +4,31 @@
 // Semua fungsi terkait payhead karyawan
 if (!function_exists('GetAllPayheads')) {
     function GetAllPayheads($conn)
-{
-    verify_csrf_token($_POST['csrf_token'] ?? '');
-    $sql = "SELECT id, nama_payhead, jenis, nominal
+    {
+        verify_csrf_token($_POST['csrf_token'] ?? '');
+        $sql = "SELECT id, nama_payhead, jenis, nominal
             FROM payheads
             ORDER BY nama_payhead ASC";
-    $res = $conn->query($sql);
-    if (!$res) {
-        send_response(1, 'Query gagal GetAllPayheads.');
-    }
-    $payheads = [];
-    while ($row = $res->fetch_assoc()) {
-        $payheads[] = [
-            'id'                => $row['id'],
-            'nama_payhead'      => $row['nama_payhead'],
-            'jenis_payhead'     => $row['jenis'],
-            'jenis_payhead_idn' => translateJenis($row['jenis']),
-            'nominal'           => $row['nominal']
-        ];
-    }
-    // [Audit log baru]
-    $user_nip = $_SESSION['nip'] ?? '';
-    add_audit_log($conn, $user_nip, 'GetAllPayheads', "Mengambil semua payheads");
+        $res = $conn->query($sql);
+        if (!$res) {
+            send_response(1, 'Query gagal GetAllPayheads.');
+        }
+        $payheads = [];
+        while ($row = $res->fetch_assoc()) {
+            $payheads[] = [
+                'id'                => $row['id'],
+                'nama_payhead'      => $row['nama_payhead'],
+                'jenis_payhead'     => $row['jenis'],
+                'jenis_payhead_idn' => translateJenis($row['jenis']),
+                'nominal'           => $row['nominal']
+            ];
+        }
+        // [Audit log baru]
+        $user_nip = $_SESSION['nip'] ?? '';
+        add_audit_log($conn, $user_nip, 'GetAllPayheads', "Mengambil semua payheads");
 
-    send_response(0, $payheads);
-}
+        send_response(0, $payheads);
+    }
 }
 if (!function_exists('AssignPayheadsToEmployee')) {
     function AssignPayheadsToEmployee($conn)
@@ -44,6 +44,7 @@ if (!function_exists('AssignPayheadsToEmployee')) {
         add_audit_log($conn, $user_nip, 'AssignPayheadsToEmployee', $detailsLog);
         $selectedMonth = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : date('n');
         $selectedYear = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : date('Y');
+        $potonganAbsensi = isset($_POST['potongan_absensi']) ? intval($_POST['potongan_absensi']) : 0; // <<=== TAMBAHKAN INI
 
         if ($empcode <= 0) {
             send_response(1, 'ID anggota tidak valid.');
@@ -163,9 +164,11 @@ if (!function_exists('AssignPayheadsToEmployee')) {
                         $mimeType = finfo_file($finfo, $tmpName);
                         finfo_close($finfo);
                         $allowedMimes = [
-                            'application/pdf', 'application/msword',
+                            'application/pdf',
+                            'application/msword',
                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                            'image/jpeg', 'image/png'
+                            'image/jpeg',
+                            'image/png'
                         ];
                         if (!in_array($mimeType, $allowedMimes)) {
                             throw new Exception("File payhead $pidInt: MIME $mimeType tidak valid.");
@@ -190,6 +193,16 @@ if (!function_exists('AssignPayheadsToEmployee')) {
                         $fileBlob = null;
                     }
                 }
+
+
+                // --- Update payroll draft dengan potongan absensi (TAMBAHKAN BAGIAN INI sebelum commit) ---
+                $sqlUpdatePayroll = "UPDATE payroll 
+                SET potongan_absensi = ? 
+                WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND status = 'draft'";
+                $stmtUpdatePayroll = $conn->prepare($sqlUpdatePayroll);
+                $stmtUpdatePayroll->bind_param("iiii", $potonganAbsensi, $empcode, $selectedMonth, $selectedYear);
+                $stmtUpdatePayroll->execute();
+                $stmtUpdatePayroll->close();
 
                 // --- Insert / Update DB
                 if ($alreadyExists) {
@@ -222,33 +235,32 @@ if (!function_exists('AssignPayheadsToEmployee')) {
 
 if (!function_exists('GetPayheadById')) {
     function GetPayheadById($conn)
-{
-    verify_csrf_token($_POST['csrf_token'] ?? '');
-    $id = intval($_POST['id'] ?? 0);
-    if ($id <= 0) {
-        send_response(1, 'ID payhead tidak valid.');
-    }
-    $stmt = $conn->prepare("SELECT id, nama_payhead, jenis AS jenis_payhead
+    {
+        verify_csrf_token($_POST['csrf_token'] ?? '');
+        $id = intval($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            send_response(1, 'ID payhead tidak valid.');
+        }
+        $stmt = $conn->prepare("SELECT id, nama_payhead, jenis AS jenis_payhead
                             FROM payheads
                             WHERE id = ? LIMIT 1");
-    if (!$stmt) {
-        send_response(1, 'Prepare failed GetPayheadById: ' . $conn->error);
-    }
-    $stmt->bind_param("i", $id);
-    if (!$stmt->execute()) {
-        send_response(1, 'Execute failed GetPayheadById: ' . $stmt->error);
-    }
-    $res = $stmt->get_result();
-    if ($res->num_rows > 0) {
-        $payhead = $res->fetch_assoc();
-        $payhead['jenis_payhead_idn'] = translateJenis($payhead['jenis_payhead']);
-        // [Audit log baru]
-        $user_nip = $_SESSION['nip'] ?? '';
-        add_audit_log($conn, $user_nip, 'GetPayheadById', "Payhead ID=$id");
-        send_response(0, $payhead);
-    } else {
-        send_response(1, 'Payhead tidak ditemukan.');
+        if (!$stmt) {
+            send_response(1, 'Prepare failed GetPayheadById: ' . $conn->error);
+        }
+        $stmt->bind_param("i", $id);
+        if (!$stmt->execute()) {
+            send_response(1, 'Execute failed GetPayheadById: ' . $stmt->error);
+        }
+        $res = $stmt->get_result();
+        if ($res->num_rows > 0) {
+            $payhead = $res->fetch_assoc();
+            $payhead['jenis_payhead_idn'] = translateJenis($payhead['jenis_payhead']);
+            // [Audit log baru]
+            $user_nip = $_SESSION['nip'] ?? '';
+            add_audit_log($conn, $user_nip, 'GetPayheadById', "Payhead ID=$id");
+            send_response(0, $payhead);
+        } else {
+            send_response(1, 'Payhead tidak ditemukan.');
+        }
     }
 }
-}
-?>

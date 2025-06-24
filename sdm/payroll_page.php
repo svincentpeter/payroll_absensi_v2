@@ -90,7 +90,7 @@ $nominal_kenaikan = floatval($nominal_kenaikan); // sekarang benar: 125000
 $daftarRanking = [];
 $qRank = $conn->query("SELECT id, nama_ranking, jumlah, deskripsi FROM ranking_kenaikan WHERE is_aktif=1 ORDER BY jumlah DESC");
 while ($r = $qRank->fetch_assoc()) $daftarRanking[] = $r;
-$judulKenaikanAuto = "Kenaikan Gaji Tahun $selectedYear/" . ($selectedYear+1);
+$judulKenaikanAuto = "Kenaikan Gaji Tahun $selectedYear/" . ($selectedYear + 1);
 $isAktif = isset($kgData['status']) && $kgData['status'] === 'aktif';
 $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
 
@@ -342,7 +342,7 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="text-danger">Potongan Tidak Hadir</label>
-                                                    <input type="text" class="form-control" id="inputPotonganAbsensi" value="<?= number_format($payroll['potongan_koperasi'] ?? 0, 0, ',', '.') ?>" readonly>
+                                                    <input type="text" class="form-control" id="inputPotonganAbsensi" value="<?= number_format($payrollDraft['potongan_absensi'] ?? 0, 0, ',', '.') ?>" readonly>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label>Estimasi Gaji Bersih</label>
@@ -380,9 +380,9 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
                                                 <div class="col-md-5 mb-2">
                                                     <label class="mb-0" style="font-size:13px;">Judul Kenaikan</label>
                                                     <input type="text" class="form-control form-control-sm"
-    id="inputNamaKenaikan" name="nama_kenaikan"
-    value="<?= htmlspecialchars($judulPrefill) ?>"
-    <?= $isAktif ? 'readonly' : '' ?>>
+                                                        id="inputNamaKenaikan" name="nama_kenaikan"
+                                                        value="<?= htmlspecialchars($judulPrefill) ?>"
+                                                        <?= $isAktif ? 'readonly' : '' ?>>
                                                 </div>
                                                 <div class="col-md-4 mb-2">
                                                     <label class="mb-0" style="font-size:13px;">Pilih Ranking</label>
@@ -499,6 +499,7 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
                             <input type="hidden" name="selectedMonth" id="selectedMonth" value="<?= $selectedMonth; ?>">
                             <input type="hidden" name="selectedYear" id="selectedYear" value="<?= $selectedYear; ?>">
+                            <input type="hidden" name="potongan_absensi" id="potongan_absensi" value="<?= intval($payrollDraft['potongan_absensi'] ?? 0) ?>">
                         </form>
                     </div>
                     <!-- Footer Form -->
@@ -519,13 +520,6 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
                 </div>
             </div><!-- /.container-fluid -->
         </div><!-- /#content -->
-        <footer class="sticky-footer bg-white">
-            <div class="container my-auto">
-                <div class="copyright text-center my-auto">
-                    <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
-                </div>
-            </div>
-        </footer>
     </div><!-- /#content-wrapper -->
 </body>
 
@@ -544,6 +538,18 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
         console.log("payheadDraft:", payheadDraft);
         console.log("kgData:", kgData);
         console.groupEnd();
+
+        if (payrollDraft && payrollDraft.potongan_absensi) {
+            window.potonganAbsensiGlobal = parseInt(payrollDraft.potongan_absensi) || 0;
+            $("#potongan_absensi").val(window.potonganAbsensiGlobal);
+            $("#inputPotonganAbsensi").val("Rp " + (window.potonganAbsensiGlobal).toLocaleString('id-ID'));
+            console.log('[DEBUG] Load Draft: potongan_absensi =', window.potonganAbsensiGlobal);
+        } else {
+            window.potonganAbsensiGlobal = 0;
+            $("#potongan_absensi").val(0);
+            $("#inputPotonganAbsensi").val("Rp 0");
+            console.log('[DEBUG] Load Draft: potongan_absensi default 0');
+        }
 
         function findRankingById(id) {
             return (daftarRanking || []).find(r => r.id == id);
@@ -734,35 +740,71 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
                         $("#rekap_total_cuti").text(data.total_cuti);
                         $("#rekap_total_tanpa_keterangan").text(data.total_tanpa_keterangan);
                         $("#rekap_total_sakit").text(data.total_sakit);
-                        let potonganAbsensi = calcPotonganAbsensi(role, data.total_izin, data.total_cuti, data.total_tanpa_keterangan, data.total_sakit);
-                        window.potonganAbsensiGlobal = potonganAbsensi;
-                        recalcPayheadsTotals();
+
+                        // --- AMBIL POTONGAN DARI DB ---
+                        calcPotonganAbsensiFromDB(
+                            role.toUpperCase(),
+                            data.total_izin,
+                            data.total_cuti,
+                            data.total_tanpa_keterangan,
+                            data.total_sakit,
+                            sYear,
+                            function(potonganAbsensi) {
+                                window.potonganAbsensiGlobal = potonganAbsensi;
+                                $("#potongan_absensi").val(potonganAbsensi);
+                                $("#inputPotonganAbsensi").val("Rp " + (potonganAbsensi).toLocaleString('id-ID'));
+                                recalcPayheadsTotals();
+                            }
+                        );
+
+
                     } else {
                         $("#rekap_total_hadir,#rekap_total_izin,#rekap_total_cuti,#rekap_total_tanpa_keterangan,#rekap_total_sakit").text("0");
                         window.potonganAbsensiGlobal = 0;
+                        $("#potongan_absensi").val(0);
                         recalcPayheadsTotals();
                     }
                 },
                 error: function() {
                     $("#rekap_total_hadir,#rekap_total_izin,#rekap_total_cuti,#rekap_total_tanpa_keterangan,#rekap_total_sakit").text("0");
                     window.potonganAbsensiGlobal = 0;
+                    $("#potongan_absensi").val(0);
                     recalcPayheadsTotals();
                 }
             });
         }
 
+
         // Fungsi perhitungan potongan absensi
-        function calcPotonganAbsensi(role, totalIzin, totalCuti, totalTK, totalSakit) {
+        function calcPotonganAbsensiFromDB(role, totalIzin, totalCuti, totalTK, totalSakit, tahun, callback) {
             let totalTidakHadir = totalIzin + totalCuti + totalTK + totalSakit;
-            let potongan = 0;
-            if (role === 'P' || role === 'TK') {
-                const biayaPerHari = 75000;
-                potongan = Math.min(totalTidakHadir, 2) * biayaPerHari;
-            } else if (role === 'M') {
-                const biayaPerHariManajerial = 50000;
-                potongan = totalTidakHadir * biayaPerHariManajerial;
-            }
-            return potongan;
+            $.ajax({
+                url: 'employees.php?ajax=1',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    case: 'GetPotonganKetidakhadiranTarif',
+                    role: role,
+                    tahun: tahun,
+                    csrf_token: CSRF_TOKEN
+                },
+                success: function(resp) {
+                    let potongan = 0;
+                    if (resp.code === 0) {
+                        let biayaPerHari = parseInt(resp.biaya_per_hari);
+                        let maxHari = resp.max_hari !== null ? parseInt(resp.max_hari) : null;
+                        if (maxHari !== null) {
+                            potongan = Math.min(totalTidakHadir, maxHari) * biayaPerHari;
+                        } else {
+                            potongan = totalTidakHadir * biayaPerHari;
+                        }
+                    }
+                    callback(potongan);
+                },
+                error: function() {
+                    callback(0); // fallback jika gagal
+                }
+            });
         }
 
         // Fungsi render semua payheads yang tersedia
@@ -771,6 +813,8 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
             container.empty();
             // Render daftar available berdasarkan data yang sudah difilter (jika sudah assign, tidak muncul)
             allPayheads.forEach(function(ph) {
+                let rawNominal = parseFloat(ph.nominal) || 0;
+                let scaledNominal = rawNominal * 1000;
                 // gunakan data-nama untuk menyimpan nama asli
                 let namaAsli = ph.nama_payhead;
                 let labelText = namaAsli + ' (' + ph.jenis_payhead_idn + ')';
@@ -1104,8 +1148,10 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
             let indexNominal = parseCurrency($("#inputIndexNominal").val());
             let potonganAbsensi = window.potonganAbsensiGlobal || 0;
             $("#inputPotonganAbsensi").val("Rp " + formatNumber(potonganAbsensi));
+            $("#potongan_absensi").val(potonganAbsensi); // <-- pastikan hidden field diupdate!
             let netSalary = gajiPokok + indexNominal + totalEarnings - totalDeductions - potonganAbsensi;
             $("#inputNetSalary").val("Rp " + formatNumber(netSalary));
+            console.log('[DEBUG] RE-CALC: Potongan Absensi:', potonganAbsensi, '| Net Salary:', netSalary);
         }
 
         $("#selected_payamount_table").on("input", "input.currency-input", function() {
@@ -1232,6 +1278,8 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
                         $('#inputNetSalary').val('Rp ' + parseFloat(e.gaji_pokok_val).toLocaleString('id-ID', {
                             minimumFractionDigits: 0
                         }));
+
+                        // --- AMBIL REKAP ABSENSI & POTONGAN DB SEKALIGUS ---
                         $.ajax({
                             url: 'employees.php?ajax=1',
                             type: 'POST',
@@ -1251,17 +1299,40 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
                                     $("#rekap_total_cuti").text(data.total_cuti);
                                     $("#rekap_total_tanpa_keterangan").text(data.total_tanpa_keterangan);
                                     $("#rekap_total_sakit").text(data.total_sakit);
-                                    let potonganAbsensi = calcPotonganAbsensi(e.role, data.total_izin, data.total_cuti, data.total_tanpa_keterangan, data.total_sakit);
-                                    window.potonganAbsensiGlobal = potonganAbsensi;
+
+                                    // --- AMBIL POTONGAN DB ---
+                                    calcPotonganAbsensiFromDB(
+                                        role.toUpperCase(),
+                                        data.total_izin,
+                                        data.total_cuti,
+                                        data.total_tanpa_keterangan,
+                                        data.total_sakit,
+                                        sYear,
+                                        function(potonganAbsensi) {
+                                            window.potonganAbsensiGlobal = potonganAbsensi;
+                                            $("#potongan_absensi").val(potonganAbsensi);
+                                            $("#inputPotonganAbsensi").val("Rp " + (potonganAbsensi).toLocaleString('id-ID'));
+                                            console.log('[DEBUG] Potongan Absensi Loaded:', potonganAbsensi);
+                                            recalcPayheadsTotals();
+                                        }
+                                    );
+
+
                                 } else {
                                     $("#rekap_total_hadir, #rekap_total_izin, #rekap_total_cuti, #rekap_total_tanpa_keterangan, #rekap_total_sakit").text("0");
                                     window.potonganAbsensiGlobal = 0;
+                                    $("#potongan_absensi").val(0);
+                                    $("#inputPotonganAbsensi").val("Rp 0");
+                                    console.log('[DEBUG] Potongan Absensi Fallback 0');
+                                    recalcPayheadsTotals();
                                 }
-                                recalcPayheadsTotals();
                             },
                             error: function() {
                                 $("#rekap_total_hadir, #rekap_total_izin, #rekap_total_cuti, #rekap_total_tanpa_keterangan, #rekap_total_sakit").text("0");
                                 window.potonganAbsensiGlobal = 0;
+                                $("#potongan_absensi").val(0);
+                                $("#inputPotonganAbsensi").val("Rp 0");
+                                console.log('[DEBUG] Potongan Absensi Fallback 0');
                                 recalcPayheadsTotals();
                             }
                         });
@@ -1323,6 +1394,7 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
         // --- Submit Assignment Payheads ---
         $('#assign-payhead-form').on('submit', function(e) {
             e.preventDefault();
+            $('#potongan_absensi').val(window.potonganAbsensiGlobal || 0);
             const form = $(this);
             const payHeads = [];
             $("#selected_payamount_table tbody tr").each(function() {
@@ -1470,6 +1542,7 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
                     id_anggota: empcode,
                     selectedMonth: selectedMonth,
                     selectedYear: selectedYear,
+                     potongan_absensi: window.potonganAbsensiGlobal,
                     csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                 },
                 success: function(resp) {
@@ -1529,6 +1602,7 @@ $judulPrefill = $kgData['nama_kenaikan'] ?? $judulKenaikanAuto;
 
         // Proses payroll: Trigger insert payroll_detail (exclude payheads rapel)
         $('#btnProcessPayroll').on('click', function() {
+            $('#potongan_absensi').val(window.potonganAbsensiGlobal || 0);
             var selectedMonth = localStorage.getItem('selectedMonthNumber') || 0;
             var selectedYear = localStorage.getItem('selectedYearPayroll') || 0;
             var empcode = $('#empcode').val();

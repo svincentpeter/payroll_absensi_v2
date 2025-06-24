@@ -530,6 +530,14 @@ function loadDetailManajer($conn, $jenjang, $bulan, $tahun)
         <i class="<?= $meta['icon'] ?> me-2"></i>
         Rekap <?= strtoupper($jenjang) == 'SEMUA' ? 'Semua Jenjang' : htmlspecialchars($jenjang) ?> – <?= getIndonesianMonthName($bulan) . ' ' . $tahun ?>
       </h1>
+      <!-- Tombol Export Excel Gabungan -->
+  <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>"
+    class="btn btn-success ms-auto d-flex align-items-center"
+    style="height:42px"
+    target="_blank"
+    title="Export Excel Rekap Gabungan">
+    <i class="fas fa-file-excel me-2"></i> Export Excel
+  </a>
     </div>
   </div>
 
@@ -552,11 +560,6 @@ function loadDetailManajer($conn, $jenjang, $bulan, $tahun)
   <div class="card mb-4 shadow">
     <div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="fas fa-chalkboard-teacher"></i> Rekap Guru</span>
-      <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=guru"
-        class="btn btn-success btn-sm d-flex align-items-center"
-        target="_blank" title="Export Excel">
-        <i class="fas fa-file-excel me-2"></i> Export Excel
-      </a>
     </div>
     <div class="card-body">
       <div class="table-responsive">
@@ -603,11 +606,6 @@ function loadDetailManajer($conn, $jenjang, $bulan, $tahun)
   <div class="card mb-4 shadow">
     <div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="fas fa-users"></i> Rekap Karyawan</span>
-      <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=karyawan"
-        class="btn btn-success btn-sm d-flex align-items-center"
-        target="_blank" title="Export Excel">
-        <i class="fas fa-file-excel me-2"></i> Export Excel
-      </a>
     </div>
     <div class="card-body">
       <div class="table-responsive">
@@ -654,11 +652,6 @@ function loadDetailManajer($conn, $jenjang, $bulan, $tahun)
   <div class="card mb-4 shadow">
     <div class="card-header manajer-header d-flex justify-content-between align-items-center">
       <span><i class="fas fa-user-tie"></i> Rekap Manajer</span>
-      <a href="export_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&kategori=manajer"
-        class="btn btn-success btn-sm d-flex align-items-center"
-        target="_blank" title="Export Excel">
-        <i class="fas fa-file-excel me-2"></i> Export Excel
-      </a>
     </div>
     <div class="card-body">
       <div class="table-responsive">
