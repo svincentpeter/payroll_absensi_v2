@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jun 24, 2025 at 08:22 AM
+-- Generation Time: Jun 28, 2025 at 04:03 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.26
 
@@ -49,21 +49,6 @@ CREATE TABLE `absensi` (
   `status_kehadiran` enum('hadir','sakit','izin','cuti','tanpa_keterangan','libur') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'hadir',
   `id_anggota` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `absensi`
---
-
-INSERT INTO `absensi` (`id`, `tanggal`, `jadwal`, `jam_kerja`, `valid`, `pin`, `nip`, `nama`, `departemen`, `lembur`, `jam_masuk`, `scan_masuk`, `terlambat`, `scan_istirahat_1`, `scan_istirahat_2`, `jam_pulang`, `scan_pulang`, `jenis_absensi`, `status_kehadiran`, `id_anggota`) VALUES
-(1, '2025-03-01', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-01 06:32:20', 0, '2025-03-01 00:00:00', '2025-03-01 00:00:00', '14:45:00', '2025-03-01 15:24:42', '-', 'hadir', 5),
-(2, '2025-03-02', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-02 06:19:18', 0, '2025-03-02 00:00:00', '2025-03-02 00:00:00', '14:45:00', '2025-03-02 13:19:41', '-', 'hadir', 5),
-(3, '2025-03-03', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-03 06:07:54', 0, '2025-03-03 00:00:00', '2025-03-03 00:00:00', '14:45:00', '2025-03-03 15:16:17', '-', 'hadir', 5),
-(4, '2025-03-04', 'Guru', 'Senin - Kamis Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-04 06:26:41', 0, '2025-03-04 00:00:00', '2025-03-04 00:00:00', '14:45:00', '2025-03-04 15:41:13', '-', 'hadir', 5),
-(5, '2025-03-05', 'Guru', 'Jum\'at - Guru', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '06:30:00', '2025-03-05 06:23:05', 0, '2025-03-05 00:00:00', '2025-03-05 00:00:00', '13:30:00', '2025-03-05 16:24:13', '-', 'hadir', 5),
-(6, '2025-03-06', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2025-03-06 00:00:00', 0, '2025-03-06 00:00:00', '2025-03-06 00:00:00', '00:00:00', '2025-03-06 00:00:00', '-', 'hadir', 5),
-(7, '2025-03-07', 'Guru', 'Libur Rutin', 0, '010195', '01011995', 'Roosalin Chintia Dewi,SE', 'TK', 0, '00:00:00', '2025-03-07 00:00:00', 0, '2025-03-07 00:00:00', '2025-03-07 00:00:00', '00:00:00', '2025-03-07 00:00:00', '-', 'hadir', 5);
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `anggota_sekolah`
@@ -123,31 +108,147 @@ CREATE TABLE `anggota_sekolah` (
 --
 
 INSERT INTO `anggota_sekolah` (`id`, `uid`, `nip`, `password`, `nama`, `jenjang`, `unit_penempatan`, `strata`, `job_title`, `status_kerja`, `join_start`, `lama_kontrak`, `tgl_kontrak_selesai`, `sudah_kontrak`, `masa_kerja_tahun`, `masa_kerja_bulan`, `masa_kerja_efektif`, `remark`, `jenis_kelamin`, `tanggal_lahir`, `usia`, `agama`, `alamat_domisili`, `alamat_ktp`, `no_rekening`, `no_hp`, `pendidikan`, `status_perkawinan`, `email`, `nama_pasangan`, `jumlah_anak`, `nama_anak_1`, `nama_anak_2`, `nama_anak_3`, `salary_index_id`, `salary_index_level`, `gaji_pokok`, `foto_profil`, `foto_ktp`, `role`, `is_delete`, `deleted_at`, `kategori`, `faskes_bpjs`, `faskes_inhealth`, `faskes_ket`) VALUES
-(1, 'G-001', '100001', 'e10adc3949ba59abbe56e057f20f883e', 'Ahmad Fauzi', 'SD', NULL, 'S1', 'Guru Matematika', 'Tetap', '2023-01-27', NULL, NULL, 0, 2, 3, 2.00, 'Berpengalaman mengajar matematika', 'L', '1980-01-15', 45, 'Islam', '2A Jl. Empu Sendok Raya', 'Jl. Melati No. 1', '1234567890', '6282227863969', 'S1 Ilmu Komputer', 'Belum Menikah', 'ahmad.fauzi@example.com', '-', 0, '-', '-', '-', 1, 'Level 0', 4500000.00, '0', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(2, 'G-002', '100002', 'e10adc3949ba59abbe56e057f20f883e', 'Siti Rahma', 'SMP', NULL, 'S1', 'Guru Fisika', 'Tetap', '2015-07-01', NULL, NULL, 0, 9, 10, 9.00, 'Menyukai eksperimen fisika', 'P', '1985-05-10', 40, 'Islam', 'Jl. Kenanga No. 2', 'Jl. Kenanga No. 2', '098765', '082182314967', 'S1 Pendidikan', 'Menikah', 'default.jpg', 'Andi Rahma', 1, 'Ayu', '', '', 3, 'Level 2', 5000000.00, '', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(3, 'G-003', '100003', 'e10adc3949ba59abbe56e057f20f883e', 'Budi Santoso', 'SMA', NULL, 'S2', 'Guru Sejarah', 'Tetap', '2010-01-10', NULL, NULL, 0, 15, 4, 15.00, 'Ahli sejarah Indonesia', 'L', '1975-12-25', 50, 'Kristen', 'Jl. Mawar No. 3', 'Jl. Mawar No. 3', '112233', '081345678901', 'S2 Pendidikan', 'Menikah', 'budi.santoso@example.com', '', 3, 'Tono', 'Rina', 'Dewi', 5, 'Level 4', 6000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(4, 'G-004', '100004', 'e10adc3949ba59abbe56e057f20f883e', 'Rina Sari', 'SMK', NULL, 'S1', 'Guru Bahasa', 'Tetap', '2012-03-15', NULL, NULL, 0, 13, 2, 13.00, 'Mengajar dengan metode kreatif', 'P', '1982-07-20', 43, 'Islam', 'Jl. Melati No. 5', 'Jl. Melati No. 5', '445566', '081234000111', 'S1 Sastra', 'Menikah', 'rina.sari@example.com', 'Agus Sari', 1, 'Dewi', '', '', 4, 'Level 3', 5000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(5, 'G-005', '01011995', 'e10adc3949ba59abbe56e057f20f883e', 'Roosalin Chintia Dewi', 'TK', NULL, 'S1', 'Wali Kelas TK', 'Tetap', '2016-08-01', NULL, NULL, 0, 8, 9, 8.00, 'Wali kelas yang disiplin', 'L', '1983-11-30', 41, 'Islam', 'Jl. Pelita No. 3', 'Jl. Pelita No. 3', '667788', '081234112233', 'S1 Pendidikan', 'Menikah', 'dedi.prasetyo@example.com', '', 3, 'Sari', 'Agus', '', 3, 'Level 2', 4000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(6, 'G-006', '100006', 'e10adc3949ba59abbe56e057f20f883e', 'Maya Putri', 'SMP', NULL, 'S1', 'Wali Kelas 2A', 'Tetap', '2018-01-15', NULL, NULL, 0, 7, 4, 7.00, 'Wali kelas kreatif', 'P', '1990-04-10', 35, 'Islam', 'Jl. Merdeka No. 4', 'Jl. Merdeka No. 4', '223344', '081234223344', 'S1 Pendidikan', 'Menikah', 'maya.putri@example.com', 'Budi Putri', 1, 'Dewi', '', '', 3, 'Level 2', 5000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(7, 'G-007', '100007', 'e10adc3949ba59abbe56e057f20f883e', 'Fitriani', 'SMA', NULL, 'S1', 'Wali Kelas 4 SMP Kelas 1', 'Tetap', '2014-05-01', NULL, NULL, 0, 11, 0, 11.00, 'Wali kelas yang teliti', 'P', '1987-09-15', 38, 'Islam', 'Jl. Sejahtera No. 7', 'Jl. Sejahtera No. 7', '334455', '081234334455', 'S1 Pendidikan', 'Menikah', 'fitriani@example.com', '', 2, 'Agus', 'Siti', '', 4, 'Level 3', 5500000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(8, 'K-001', '200001', 'e10adc3949ba59abbe56e057f20f883e', 'Dewi Lestari', 'SMA', NULL, 'S1', 'Tenaga Kependidikan Administrasi', 'Kontrak', '2025-01-01', NULL, '2025-06-10', 0, 0, 4, 0.00, 'Staff administrasi yang efisien', 'P', '1993-08-15', 32, 'Islam', 'Jl. Pertiwi No. 4', 'Jl. Pertiwi No. 4', '556677', '081234556677', 'S1 Administrasi', 'Belum Menikah', 'dewi.lestari@example.com', '', 0, '', '', '', 1, 'Level 0', 4400000.00, 'default.jpg', 'default_ktp.jpg', 'TK', 0, NULL, 'karyawan', 0, 0, NULL),
-(9, 'K-002', '200002', 'e10adc3949ba59abbe56e057f20f883e', 'Slamet Wijaya', 'SMK', NULL, 'S1', 'Tenaga Kependidikan Operasional', 'Tetap', '2018-06-15', NULL, NULL, 0, 6, 11, 7.00, 'Bertugas di operasional', 'L', '1988-03-05', 37, 'Islam', 'Jl. Industri No. 7', 'Jl. Industri No. 7', '778899', '081298778899', 'S1 Manajemen', 'Menikah', 'slamet.wijaya@example.com', 'Siti Wijaya', 1, 'Dewi', '', '', 3, 'Level 2', 4000000.00, 'default.jpg', 'default_ktp.jpg', 'TK', 0, NULL, 'karyawan', 0, 0, NULL),
-(10, 'K-003', '200003', 'e10adc3949ba59abbe56e057f20f883e', 'Rizki Pratama', 'SMP', NULL, NULL, 'Tenaga Kependidikan Umum', 'Kontrak', '2022-01-01', NULL, '2023-01-01', 0, 3, 4, 3.00, 'Staff pendukung operasional', 'L', '1998-11-12', 27, 'Islam', 'Jl. Sudirman No. 8', 'Jl. Sudirman No. 8', '889900', '081237889900', '', 'Belum Menikah', 'rizki.pratama@example.com', '', 0, '', '', '', 2, 'Level 1', 4000000.00, 'default.jpg', 'default_ktp.jpg', 'TK', 0, NULL, 'karyawan', 0, 0, NULL),
-(11, 'M-001', '300001', 'e10adc3949ba59abbe56e057f20f883e', 'Andini Permata', 'SMA', NULL, 'S2', 'Kepala Sekolah SMA', 'Tetap', '2014-01-27', NULL, NULL, 0, 11, 3, 11.00, 'Memimpin sekolah dengan visi', 'P', '1978-04-22', 47, 'Islam', 'Jl. Merdeka No. 10', 'Jl. Merdeka No. 10', '990011', '081290990011', 'S2 Kesenian', 'Menikah', 'andini.permata@example.com', 'Budi Permata', 2, 'Tina', 'Rina', '', 4, 'Level 3', 6000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(12, 'M-002', '300002', 'e10adc3949ba59abbe56e057f20f883e', 'Sie, Vincent Peter S.', 'SMA', NULL, 'S2', 'Keuangan', 'Tetap', '2008-07-01', NULL, NULL, 0, 16, 10, 16.83, 'Mengelola keuangan dengan transparansi', 'L', '1965-06-21', 60, 'Islam', 'Jl. Pendidikan No. 9', 'Jl. Pendidikan No. 9', '112233', '081298112233', 'S2 Teknologi Informasi', 'Menikah', 'joko.widodo@example.com', 'Iriana Widodo', 3, 'Gibran', 'Khalifah', 'Puan', 5, 'Level 4', 7000000.00, 'default.jpg', 'default_ktp.jpg', 'M', 0, NULL, 'karyawan', 0, 0, NULL),
-(13, 'M-003', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Sari Utami', 'SMA', '', 'S1', 'SDM', 'Tetap', '2012-11-11', NULL, NULL, 0, 12, 7, 12.00, 'Mengelola SDM dengan profesionalisme', 'P', '1982-02-28', 43, 'Kristen', 'Jl. Simpang Lima No. 5', 'Jl. Simpang Lima No. 56', '445577', '6281298445577', 'S1 Akuntansi', 'Belum Menikah', 'sari.utami@example.com', '-', 0, '-', '-', '-', 4, 'Level 3', 4400000.00, 'http://localhost/payroll_absensi_v2/uploads/profile_pics/sari_utami_sma_m_13.jpg', 'http://localhost/payroll_absensi_v2/uploads/ktp_pics/sari_utami_sma_m_13_ktp.jpg', 'M', 0, NULL, 'guru', 0, 0, ''),
-(14, 'M-004', '300004', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hartono', 'SMA', NULL, 'D3', 'Superadmin', 'Tetap', '2010-01-01', NULL, NULL, 0, 15, 4, 15.33, 'Administrator sistem IT sekolah', 'L', '1970-12-12', 54, 'Islam', '2A Jl. Empu Sendok Raya', '', '', '', 'D3 Akuntansi', 'Menikah', 'rudi.hartono@example.com', '', 0, '', '', '', 5, 'Level 4', 7000000.00, 'http://localhost/payroll_absensi_v2/uploads/profile_pics/rudi_hartono_sma_m_14.jpg', 'default_ktp.jpg', 'M', 0, NULL, 'karyawan', 0, 0, NULL),
-(16, 'AF292EA2', '100010', 'e10adc3949ba59abbe56e057f20f883e', 'Hizkia Fareza', 'TK', NULL, 'D3', 'Guru Membaca', 'Tetap', '2025-03-24', NULL, NULL, 0, 0, 1, 0.00, 'Mengajar membaca anak TK', 'L', '2025-03-24', 23, 'Katolik', '2A Jl. Empu Sendok Raya', '2A Jl. Empu Sendok Raya', '144345343', '082227863969', 'D3 Akuntansi', 'Belum Menikah', 'hizkia@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 2500000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(17, 'CC95288B', '100011', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Kurniawan', 'TK', NULL, 'D3', 'Guru Balok', 'Tetap', '2025-03-24', NULL, NULL, 0, 0, 1, 0.00, 'Mengajar kreativitas anak', 'L', '2001-05-06', 23, 'Katolik', 'Jalan Tuah', 'Jalan Tuah', '143453453', '082226544333', 'D3 Teknologi Informasi', 'Belum Menikah', 'hendra@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 2500000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(18, 'ABB41A60', '200010', 'e10adc3949ba59abbe56e057f20f883e', 'Apin Upin', 'SD', NULL, NULL, 'Teknisi Kontrol Sistem', 'Tetap', '2025-03-24', NULL, NULL, 0, 0, 1, 0.00, 'Mengatasi Error Sistem', 'L', '1990-01-24', 30, 'Hindu', 'Jalan Kedung', 'Jalan Kedung', '1454654564', '081234567890', '', 'Belum Menikah', '', '-', 0, '-', '-', '-', 1, 'Level 0', 4000000.00, 'default.jpg', 'default_ktp.jpg', 'TK', 1, '2025-03-25 21:44:45', 'karyawan', 0, 0, NULL),
-(19, '339AAE5F', '100012', 'e10adc3949ba59abbe56e057f20f883e', 'Catherine Wong S', 'SMA', NULL, 'S1', 'Guru Sejarah', 'Tetap', '2025-03-25', NULL, NULL, 0, 0, 1, 0.00, 'Mengajar Sejarah Indonesia', NULL, NULL, 19, '', 'Klipang Raya', 'Klipang Raya', '512443563', '08182344848', 'S1 Sejarah', 'Belum Menikah', 'cathiew@gmail.com', '-', 0, '-', '-', '-', 1, 'Level 0', 5500000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(20, 'M-005', '300005', 'e10adc3949ba59abbe56e057f20f883e', 'Diana Puspitasari', 'TK', NULL, 'S2', 'Kepala Sekolah TK', 'Tetap', '2015-03-01', NULL, NULL, 0, 10, 2, 10.00, 'Spesialis pendidikan anak usia dini', NULL, NULL, 46, '', 'Jl. Anggrek No. 12', 'Jl. Anggrek No. 12', '112233445', '081112223344', 'S2 Pendidikan Anak', 'Menikah', 'diana.puspita@example.com', 'Bambang Puspito', 2, 'Rara', 'Dimas', '', 3, 'Level 2', 4500000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(21, 'M-006', '300006', 'e10adc3949ba59abbe56e057f20f883e', 'Hendra Kurniawan', 'SD', NULL, 'S2', 'Kepala Sekolah SD', 'Tetap', '2010-06-15', NULL, NULL, 0, 14, 11, 15.00, 'Penggagas program literasi sekolah', 'L', '1975-11-05', 49, 'Kristen', 'Jl. Pendidikan No. 45', 'Jl. Pendidikan No. 45', '5544332211', '081334445566', 'S2 Manajemen Pendidikan', 'Menikah', 'hendra.kurnia@example.com', 'Linda Wijaya', 3, 'Kevin', 'Salsa', 'Rafi', 5, 'Level 4', 5000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(22, 'M-007', '300007', 'e10adc3949ba59abbe56e057f20f883e', 'Sri Wahyuni', 'SMP', NULL, 'S2', 'Kepala Sekolah SMP', 'Tetap', '2013-02-20', NULL, NULL, 0, 12, 3, 12.00, 'Penerapan kurikulum merdeka', 'P', '1980-04-30', 44, 'Islam', 'Jl. Cendrawasih No. 8', 'Jl. Cendrawasih No. 8', '6677889900', '081556677889', 'S2 Pendidikan Matematika', 'Menikah', 'sri.wahyuni@example.com', 'Ahmad Fauzi', 1, 'Budi', '', '', 4, 'Level 3', 5500000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(23, 'M-008', '300008', 'e10adc3949ba59abbe56e057f20f883e', 'Rudi Hermawan', 'SMK Nusput 1', NULL, 'S3', 'Kepala Sekolah SMK 1', 'Tetap', '2009-09-01', NULL, NULL, 0, 15, 8, 15.00, 'Fokus pada link and match industri', 'L', '1972-12-12', 52, 'Katolik', 'Jl. Industri No. 22', 'Jl. Industri No. 22', '9988776655', '081778889900', 'S3 Teknik Mesin', 'Menikah', 'rudi.hermawan@example.com', 'Dewi Anggraeni', 2, 'Dika', 'Nina', '', 5, 'Level 4', 7000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(24, 'M-009', '300009', 'e10adc3949ba59abbe56e057f20f883e', 'Lina Marlina', 'SMK Nusput 2', NULL, 'S2', 'Kepala Sekolah SMK 2', 'Tetap', '2017-04-10', NULL, NULL, 0, 8, 1, 8.00, 'Pengembang teaching factory', 'P', '1985-03-25', 40, 'Islam', 'Jl. Teknologi No. 15', 'Jl. Teknologi No. 15', '1234098765', '6281990001122', 'S2 Elektro', 'Menikah', 'lina.marlina@example.com', 'Eko Prasetyo', 1, 'Luna', '', '', 3, 'Level 2', 6000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(25, 'M-010', '300010', 'e10adc3949ba59abbe56e057f20f883e', 'Prof. Dr. Bambang Sutejo, M.Sc.', 'STIFERA', NULL, 'S3', 'Kepala Sekolah Universitas Stivera', 'Tetap', '2005-01-01', NULL, NULL, 0, 20, 4, 20.00, 'Rektor berprestasi tingkat nasional', 'L', '1968-07-17', 56, 'Buddha', 'Jl. Kampus No. 1', 'Jl. Kampus No. 1', '1357924680', '082182314967', 'S3 Manajemen Pendidikan', 'Menikah', 'bambang.sutejo@stivera.ac.id', 'Diana Sutejo', 2, 'Adi', 'Rini', '', 5, 'Level 4', 9000000.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, 'guru', 0, 0, NULL),
-(32, '01', '700008', '$2y$10$rRrk/3U888Zw1xtBaoBm5uNYouj7g78ERnvtm8/knNzxx0vf1OoJa', 'Aaron', 'TK', '', 'S2', 'Guru Teknologi Informasi', 'Kontrak', '2025-06-23', 12, '2026-06-22', 0, 0, 0, 0.00, '', 'L', '1998-06-19', 27, 'Kristen', '0', '', '', '', 'S2 Teknologi Informasi', 'Belum Menikah', '', '-', 0, '-', '-', '-', 1, 'Level 0', 4500000.00, '', '', 'P', 0, NULL, 'guru', 1, 0, '0');
+(1, '09', '900001', 'e10adc3949ba59abbe56e057f20f883e', 'A. Ratna Wulandari, SE, M.Si', 'MANAJER', NULL, NULL, 'SDM', 'Tetap', '2010-10-01', NULL, NULL, 0, 14, 8, 14.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'M', 0, NULL, NULL, 0, 0, NULL),
+(2, '09', '900002', 'e10adc3949ba59abbe56e057f20f883e', 'Yolanda Dipa, SE', 'MANAJER', NULL, NULL, 'Keuangan', 'Tetap', '2009-08-01', NULL, NULL, 0, 15, 10, 15.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'M', 0, NULL, NULL, 0, 0, NULL),
+(3, '09', '900003', 'e10adc3949ba59abbe56e057f20f883e', 'Kabut Hadi Saputra, ST', 'MANAJER', NULL, NULL, 'Superadmin', 'Tetap', '2014-04-04', NULL, NULL, 0, 11, 2, 11.17, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'M', 0, NULL, NULL, 0, 0, NULL),
+(4, '09', '900004', 'e10adc3949ba59abbe56e057f20f883e', 'Linda Susilawati Kawidjaja,S.Pd.,N', 'MANAJER', NULL, NULL, 'SDM', 'Tetap', '1989-07-01', NULL, NULL, 0, 35, 11, 35.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'M', 0, NULL, NULL, 0, 0, NULL),
+(5, '01', '100001', 'e10adc3949ba59abbe56e057f20f883e', 'Retno Nur Astuti SPd', 'TK', NULL, NULL, 'Guru', 'Tetap', '2014-03-11', NULL, NULL, 0, 11, 3, 11.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(6, '01', '100002', 'e10adc3949ba59abbe56e057f20f883e', 'Jauw gabriell fabiola pratikno', 'TK', NULL, NULL, 'Guru', 'Tetap', '2023-08-11', NULL, NULL, 0, 1, 10, 1.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(7, '01', '100003', 'e10adc3949ba59abbe56e057f20f883e', 'Lauti Retnaning Wulan, S.S', 'TK', NULL, NULL, 'Guru', 'Tetap', '2024-07-15', NULL, NULL, 0, 0, 11, 0.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(8, '01', '100004', 'e10adc3949ba59abbe56e057f20f883e', 'Tjendana Maha Hendrawati Anggraini SE', 'TK', NULL, NULL, 'Guru', 'Tetap', '2024-07-15', NULL, NULL, 0, 0, 11, 0.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(9, '01', '100005', 'e10adc3949ba59abbe56e057f20f883e', 'Florentina Wira Hastari,S.Pd', 'TK', NULL, NULL, 'Guru', 'Tetap', '2012-07-02', NULL, NULL, 0, 12, 11, 12.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(10, '01', '100006', 'e10adc3949ba59abbe56e057f20f883e', 'Roosalin Chintia Dewi S.E', 'TK', NULL, NULL, 'Guru', 'Tetap', '2024-07-16', NULL, NULL, 0, 0, 11, 0.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(11, '01', '100007', 'e10adc3949ba59abbe56e057f20f883e', 'Koo, Josephine Irma Koerniawan,B.Ed', 'TK', NULL, NULL, 'Guru', 'Tetap', '2021-07-11', NULL, NULL, 0, 3, 11, 3.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(12, '01', '100008', 'e10adc3949ba59abbe56e057f20f883e', 'Yuliana Poniyati,S.Pd', 'TK', NULL, NULL, 'Guru', 'Tetap', '2018-06-20', NULL, NULL, 0, 6, 11, 6.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(13, '02', '200001', 'e10adc3949ba59abbe56e057f20f883e', 'FRIDA DWI SISWARI,S.PD.', 'SD', NULL, NULL, 'Guru', 'Tetap', '2003-07-01', NULL, NULL, 0, 21, 11, 21.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(14, '02', '200002', 'e10adc3949ba59abbe56e057f20f883e', 'Hasan Basri, S.Pd', 'SD', NULL, NULL, 'Guru', 'Tetap', '2020-01-07', NULL, NULL, 0, 5, 5, 5.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(15, '02', '200003', 'e10adc3949ba59abbe56e057f20f883e', 'Puji Rahayu, S.Th.', 'SD', NULL, NULL, 'Guru', 'Tetap', '2012-07-03', NULL, NULL, 0, 12, 11, 12.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(16, '02', '200004', 'e10adc3949ba59abbe56e057f20f883e', 'Jiem, Sabrina Oktaviani Gunawan, B.ed', 'SD', NULL, NULL, 'Guru', 'Tetap', '2024-07-15', NULL, NULL, 0, 0, 11, 0.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(17, '02', '200005', 'e10adc3949ba59abbe56e057f20f883e', 'Antonius Suraji, S.Pd.', 'SD', NULL, NULL, 'Guru', 'Tetap', '2005-03-15', NULL, NULL, 0, 20, 3, 20.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(18, '02', '200006', 'e10adc3949ba59abbe56e057f20f883e', 'Auring Heranu Permatasari, S.Pd', 'SD', NULL, NULL, 'Guru', 'Tetap', '2023-07-17', NULL, NULL, 0, 1, 10, 1.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(19, '02', '200007', 'e10adc3949ba59abbe56e057f20f883e', 'Tutut Idharwati, S.Pd.', 'SD', NULL, NULL, 'Guru', 'Tetap', '2024-08-13', NULL, NULL, 0, 0, 10, 0.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(20, '02', '200008', 'e10adc3949ba59abbe56e057f20f883e', 'Prima Widyatmoko, S.Pd. M.P.d', 'SD', NULL, NULL, 'Guru', 'Tetap', '2018-08-01', NULL, NULL, 0, 6, 10, 6.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(21, '02', '200009', 'e10adc3949ba59abbe56e057f20f883e', 'HAN NING RUM, S.Pd.', 'SD', NULL, NULL, 'Guru', 'Tetap', '2006-07-12', NULL, NULL, 0, 18, 11, 18.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(22, '02', '200010', 'e10adc3949ba59abbe56e057f20f883e', 'David Prima Ardyan, S. Kom', 'SD', NULL, NULL, 'Guru', 'Tetap', '2024-07-19', NULL, NULL, 0, 0, 10, 0.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(23, '02', '200011', 'e10adc3949ba59abbe56e057f20f883e', 'Florentia Ivony Wokabelolo,S.Pd.', 'SD', NULL, NULL, 'Guru', 'Tetap', '2024-02-26', NULL, NULL, 0, 1, 3, 1.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(24, '02', '200012', 'e10adc3949ba59abbe56e057f20f883e', 'Dewi Rizqi Maharani, S.Pd', 'SD', NULL, NULL, 'Guru', 'Tetap', '2011-07-01', NULL, NULL, 0, 13, 11, 13.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(25, '02', '200013', 'e10adc3949ba59abbe56e057f20f883e', 'Henny Ayu Pramesti, S. Si.', 'SD', NULL, NULL, 'Guru', 'Tetap', '2024-07-11', NULL, NULL, 0, 0, 11, 0.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(26, '02', '200014', 'e10adc3949ba59abbe56e057f20f883e', 'Galih Mahendra S.Kom', 'SD', NULL, NULL, 'Guru', 'Tetap', '2013-02-25', NULL, NULL, 0, 12, 3, 12.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(27, '02', '200015', 'e10adc3949ba59abbe56e057f20f883e', 'Wisnu Wijaya,S.Akt', 'SD', NULL, NULL, 'Guru', 'Tetap', '2016-09-01', NULL, NULL, 0, 8, 9, 8.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(28, '02', '200016', 'e10adc3949ba59abbe56e057f20f883e', 'Elisabeth Anastasia G.C.B.,B.Ed', 'SD', NULL, NULL, 'Guru', 'Tetap', '2023-03-13', NULL, NULL, 0, 2, 3, 2.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(29, '02', '200017', 'e10adc3949ba59abbe56e057f20f883e', 'Nathania Yolanda Setiawan,B.Ed', 'SD', NULL, NULL, 'Guru', 'Tetap', '2024-07-15', NULL, NULL, 0, 0, 11, 0.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(30, '03', '300001', 'e10adc3949ba59abbe56e057f20f883e', 'Tentrem Al Trima,S.Pd', 'SMP', NULL, NULL, 'Guru', 'Tetap', '1997-04-01', NULL, NULL, 0, 28, 2, 28.17, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(31, '03', '300002', 'e10adc3949ba59abbe56e057f20f883e', 'Yoga Huda Nada, S.Pd', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2020-07-01', NULL, NULL, 0, 4, 11, 4.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(32, '03', '300003', 'e10adc3949ba59abbe56e057f20f883e', 'Florentina Suganda, S.M.', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2023-03-08', NULL, NULL, 0, 2, 3, 2.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(33, '03', '300004', 'e10adc3949ba59abbe56e057f20f883e', 'Umi Kasiyati, S. Pd.', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2006-02-01', NULL, NULL, 0, 19, 4, 19.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(34, '03', '300005', 'e10adc3949ba59abbe56e057f20f883e', 'Hananeel Tesalonika Supriyadi, S.Psi', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2024-09-02', NULL, NULL, 0, 0, 9, 0.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(35, '03', '300006', 'e10adc3949ba59abbe56e057f20f883e', 'Dwi Yunianto, S.Pd.', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2014-12-15', NULL, NULL, 0, 10, 6, 10.50, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(36, '03', '300007', 'e10adc3949ba59abbe56e057f20f883e', 'Fathurohim', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2012-09-01', NULL, NULL, 0, 12, 9, 12.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(37, '03', '300008', 'e10adc3949ba59abbe56e057f20f883e', 'Karina, S.Pd.', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2024-01-25', NULL, NULL, 0, 1, 4, 1.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(38, '03', '300009', 'e10adc3949ba59abbe56e057f20f883e', 'Partiwi, S. Pd.', 'SMP', NULL, NULL, 'Guru', 'Tetap', '1994-07-01', NULL, NULL, 0, 30, 11, 30.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(39, '03', '300010', 'e10adc3949ba59abbe56e057f20f883e', 'Eko Budi Hendiko, S.Si.', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2005-01-15', NULL, NULL, 0, 20, 5, 20.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(40, '03', '300011', 'e10adc3949ba59abbe56e057f20f883e', 'Theofilus Riyanto, S.Th', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2019-09-03', NULL, NULL, 0, 5, 9, 5.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(41, '03', '300012', 'e10adc3949ba59abbe56e057f20f883e', 'Koo, Enrico Satya Koerniawan,B.Ed', 'SMP', NULL, NULL, 'Guru', 'Tetap', '2023-07-17', NULL, NULL, 0, 1, 10, 1.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(42, '04', '400001', 'e10adc3949ba59abbe56e057f20f883e', 'Zaldy Chandra, S.Si', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2007-10-31', NULL, NULL, 0, 17, 7, 17.58, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(43, '04', '400002', 'e10adc3949ba59abbe56e057f20f883e', 'Bambang Setiawan, S.Pd., M.Pd', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2022-01-25', NULL, NULL, 0, 3, 4, 3.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(44, '04', '400003', 'e10adc3949ba59abbe56e057f20f883e', 'Cynthia Christiana, B.Ed', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2021-07-11', NULL, NULL, 0, 3, 11, 3.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(45, '04', '400004', 'e10adc3949ba59abbe56e057f20f883e', 'Fransiskus Xaverius Aris Wahyu Prasetyo, M.Ed', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2022-05-19', NULL, NULL, 0, 3, 0, 3.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(46, '04', '400005', 'e10adc3949ba59abbe56e057f20f883e', 'Rico Yuliar Wicaksono, S.Pd', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2016-02-19', NULL, NULL, 0, 9, 3, 9.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(47, '04', '400006', 'e10adc3949ba59abbe56e057f20f883e', 'Gloria Putri Ixora, S.Pd.', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2024-09-09', NULL, NULL, 0, 0, 9, 0.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(48, '04', '400007', 'e10adc3949ba59abbe56e057f20f883e', 'Edi Santoso, S.Pd', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2024-09-02', NULL, NULL, 0, 0, 9, 0.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(49, '04', '400008', 'e10adc3949ba59abbe56e057f20f883e', 'Mely Isnaeni, S.Pd.', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2024-07-18', NULL, NULL, 0, 0, 10, 0.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(50, '04', '400009', 'e10adc3949ba59abbe56e057f20f883e', 'Frisca Kristya Dewi, S.Psi', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2024-09-02', NULL, NULL, 0, 0, 9, 0.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(51, '04', '400010', 'e10adc3949ba59abbe56e057f20f883e', 'Levi Yunitasari, S.Pd Gr.', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2016-01-06', NULL, NULL, 0, 9, 5, 9.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(52, '04', '400011', 'e10adc3949ba59abbe56e057f20f883e', 'Yuliana Widjanjingtias', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2003-04-03', NULL, NULL, 0, 22, 2, 22.17, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(53, '04', '400012', 'e10adc3949ba59abbe56e057f20f883e', 'Yuniarti, S.S., M.Pd.', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2006-06-10', NULL, NULL, 0, 19, 0, 19.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(54, '04', '400013', 'e10adc3949ba59abbe56e057f20f883e', 'Dinar Setiawan, S.Kom', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2013-07-17', NULL, NULL, 0, 11, 10, 11.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(55, '04', '400014', 'e10adc3949ba59abbe56e057f20f883e', 'Emanuel Suryajaya, S.Kom', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2022-09-02', NULL, NULL, 0, 2, 9, 2.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(56, '04', '400015', 'e10adc3949ba59abbe56e057f20f883e', 'Mega Asterina', 'SMA', NULL, NULL, 'Guru', 'Tetap', '2021-01-04', NULL, NULL, 0, 4, 5, 4.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(57, '05', '500001', 'e10adc3949ba59abbe56e057f20f883e', 'Joko Riyanto S. Kom. MM. Gr. Gp.', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2008-07-21', NULL, NULL, 0, 16, 10, 16.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(58, '05', '500002', 'e10adc3949ba59abbe56e057f20f883e', 'Ester TryLestari Silalahi, S.Pd.', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2023-06-27', NULL, NULL, 0, 1, 11, 1.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(59, '05', '500003', 'e10adc3949ba59abbe56e057f20f883e', 'Tripitoyo, S.Pd', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2020-07-15', NULL, NULL, 0, 4, 11, 4.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(60, '05', '500004', 'e10adc3949ba59abbe56e057f20f883e', 'Priskila Narulitasari', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2024-02-27', NULL, NULL, 0, 1, 3, 1.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(61, '05', '500005', 'e10adc3949ba59abbe56e057f20f883e', 'Chr​isma Purwa Mahendra, S.Ds.', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2023-10-02', NULL, NULL, 0, 1, 8, 1.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(62, '05', '500006', 'e10adc3949ba59abbe56e057f20f883e', 'Melinda Safitri, S.Kom', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2022-07-18', NULL, NULL, 0, 2, 10, 2.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(63, '05', '500007', 'e10adc3949ba59abbe56e057f20f883e', 'Syaiful Anas', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2019-07-01', NULL, NULL, 0, 5, 11, 5.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(64, '05', '500008', 'e10adc3949ba59abbe56e057f20f883e', 'Timmy Gondo Atmodjo, ST., M.Kom.', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2010-07-01', NULL, NULL, 0, 14, 11, 14.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(65, '05', '500009', 'e10adc3949ba59abbe56e057f20f883e', 'Drs. Ariawan Sudagijono, M.Kom.', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2006-01-02', NULL, NULL, 0, 19, 5, 19.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(66, '05', '500010', 'e10adc3949ba59abbe56e057f20f883e', 'Nining Tri Palupi, SPd, MPd', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '1995-08-01', NULL, NULL, 0, 29, 10, 29.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(67, '05', '500011', 'e10adc3949ba59abbe56e057f20f883e', 'Amanda Geraldine M., B.Ed', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2023-07-17', NULL, NULL, 0, 1, 10, 1.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(68, '05', '500012', 'e10adc3949ba59abbe56e057f20f883e', 'Vincentius Sam Yolando Rekso Samudro', 'SMK1', NULL, NULL, 'Guru', 'Tetap', '2022-11-17', NULL, NULL, 0, 2, 6, 2.50, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(69, '06', '600001', 'e10adc3949ba59abbe56e057f20f883e', 'Bayu Candra Wijaya, S.Pd', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2021-09-06', NULL, NULL, 0, 3, 9, 3.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(70, '06', '600002', 'e10adc3949ba59abbe56e057f20f883e', 'DRS. HERNO AGUS PURWANTO, APT.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '1996-10-01', NULL, NULL, 0, 28, 8, 28.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(71, '06', '600003', 'e10adc3949ba59abbe56e057f20f883e', 'Drs. Fery Norhendy, Apt.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2000-07-01', NULL, NULL, 0, 24, 11, 24.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(72, '06', '600004', 'e10adc3949ba59abbe56e057f20f883e', 'Margareta Nini Moeljati, S.KM., M. Par., M. Si.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2019-07-15', NULL, NULL, 0, 5, 11, 5.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(73, '06', '600005', 'e10adc3949ba59abbe56e057f20f883e', 'Rita Andayani', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '1992-10-12', NULL, NULL, 0, 32, 8, 32.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(74, '06', '600006', 'e10adc3949ba59abbe56e057f20f883e', 'Rini Roslianti, AMd Farm, S.Sos', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2024-01-02', NULL, NULL, 0, 1, 5, 1.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(75, '06', '600007', 'e10adc3949ba59abbe56e057f20f883e', 'Peni Indaryanti, ST', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '1994-07-01', NULL, NULL, 0, 30, 11, 30.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(76, '06', '600008', 'e10adc3949ba59abbe56e057f20f883e', 'Ika Lestarinningsih, A.Md.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2006-06-21', NULL, NULL, 0, 18, 11, 18.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(77, '06', '600009', 'e10adc3949ba59abbe56e057f20f883e', 'Apt. Maya Ary Wardhani, S. Farm', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2012-07-13', NULL, NULL, 0, 12, 11, 12.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(78, '06', '600010', 'e10adc3949ba59abbe56e057f20f883e', 'Achmad Faozan', 'SMK2', NULL, NULL, 'Guru', 'Tetap', NULL, NULL, NULL, 0, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(79, '06', '600011', 'e10adc3949ba59abbe56e057f20f883e', 'Wamelinda Dwi W., S.Farm', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2023-07-13', NULL, NULL, 0, 1, 11, 1.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(80, '06', '600012', 'e10adc3949ba59abbe56e057f20f883e', 'Novi Istiani', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2013-09-02', NULL, NULL, 0, 11, 9, 11.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(81, '06', '600013', 'e10adc3949ba59abbe56e057f20f883e', 'NINUNG WAHYU HANA PERTIWI, S.Tr.Par.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2011-08-01', NULL, NULL, 0, 13, 10, 13.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(82, '06', '600014', 'e10adc3949ba59abbe56e057f20f883e', 'Dian Listriana Y., S.Si., Apt.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2007-07-17', NULL, NULL, 0, 17, 10, 17.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(83, '06', '600015', 'e10adc3949ba59abbe56e057f20f883e', 'A kasiman', 'SMK2', NULL, NULL, 'Guru', 'Tetap', NULL, NULL, NULL, 0, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(84, '06', '600016', 'e10adc3949ba59abbe56e057f20f883e', 'Vica Anggraeni Puspitasari, S.Pd.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2024-07-01', NULL, NULL, 0, 0, 11, 0.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(85, '06', '600017', 'e10adc3949ba59abbe56e057f20f883e', 'Muhamad Syafiq Naim, S.Pd.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2022-02-15', NULL, NULL, 0, 3, 4, 3.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(86, '06', '600018', 'e10adc3949ba59abbe56e057f20f883e', 'Riyanti', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2013-01-09', NULL, NULL, 0, 12, 5, 12.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(87, '06', '600019', 'e10adc3949ba59abbe56e057f20f883e', 'Dicky Adi Kurniawan, S.Pd', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2022-07-06', NULL, NULL, 0, 2, 11, 2.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(88, '06', '600020', 'e10adc3949ba59abbe56e057f20f883e', 'Asinik Soedjono, SE, MM', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2007-10-10', NULL, NULL, 0, 17, 8, 17.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(89, '06', '600021', 'e10adc3949ba59abbe56e057f20f883e', 'SOPHIA SARASWATI HABSARI SUMARTO, S. Farm., Apt.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2012-07-01', NULL, NULL, 0, 12, 11, 12.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(90, '06', '600022', 'e10adc3949ba59abbe56e057f20f883e', 'Oei Poe Jen, AMD Farm', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2010-01-20', NULL, NULL, 0, 15, 4, 15.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(91, '06', '600023', 'e10adc3949ba59abbe56e057f20f883e', 'Kamila Kurnia Sari, S.Pd.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2025-02-18', NULL, NULL, 0, 0, 3, 0.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(92, '06', '600024', 'e10adc3949ba59abbe56e057f20f883e', 'Selvanika Fergi Purba Mardista, S.Pd., Kons.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2022-02-04', NULL, NULL, 0, 3, 4, 3.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(93, '06', '600025', 'e10adc3949ba59abbe56e057f20f883e', 'Imamatulatifah, S.Si., Apt', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2003-10-01', NULL, NULL, 0, 21, 8, 21.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(94, '06', '600026', 'e10adc3949ba59abbe56e057f20f883e', 'Cucu Tri Eka Yuliana, S.Kom.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2014-09-01', NULL, NULL, 0, 10, 9, 10.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(95, '06', '600027', 'e10adc3949ba59abbe56e057f20f883e', 'Bilozer Ngastivio Hastunar, S.Si', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2024-07-01', NULL, NULL, 0, 0, 11, 0.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(96, '06', '600028', 'e10adc3949ba59abbe56e057f20f883e', 'Naada Zakiyah, S.Tr.Par.', 'SMK2', NULL, NULL, 'Guru', 'Tetap', '2024-09-04', NULL, NULL, 0, 0, 9, 0.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(97, '07', '700001', 'e10adc3949ba59abbe56e057f20f883e', 'apt. Rizky Ardian Hartanto Sawal, M.Farm.', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2017-11-06', NULL, NULL, 0, 7, 7, 7.58, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(98, '07', '700002', 'e10adc3949ba59abbe56e057f20f883e', 'apt. Eleonora Maryeta Toyo, M. Farm', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2019-05-23', NULL, NULL, 0, 6, 0, 6.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(99, '07', '700003', 'e10adc3949ba59abbe56e057f20f883e', 'apt. Sri Suwarni, M. Sc.', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2007-07-16', NULL, NULL, 0, 17, 11, 17.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(100, '07', '700004', 'e10adc3949ba59abbe56e057f20f883e', 'Poppy Diah Palupi, M.Sc., Apt', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2007-07-16', NULL, NULL, 0, 17, 11, 17.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(101, '07', '700005', 'e10adc3949ba59abbe56e057f20f883e', 'apt. Wahyu Setiyaningsih, M.Farm.', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2020-03-09', NULL, NULL, 0, 5, 3, 5.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(102, '07', '700006', 'e10adc3949ba59abbe56e057f20f883e', 'Rima Oktaliani', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2013-12-23', NULL, NULL, 0, 11, 5, 11.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(103, '07', '700007', 'e10adc3949ba59abbe56e057f20f883e', 'apt. Sandi Mahesa Yudhantra, M.Farm', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2019-04-04', NULL, NULL, 0, 6, 2, 6.17, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(104, '07', '700008', 'e10adc3949ba59abbe56e057f20f883e', 'Deddy Christsetyadi, S.E.', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2021-06-22', NULL, NULL, 0, 3, 11, 3.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(105, '07', '700009', 'e10adc3949ba59abbe56e057f20f883e', 'apt. Ferika Indra Sari, S.Farm., MH', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2015-07-06', NULL, NULL, 0, 9, 11, 9.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(106, '07', '700010', 'e10adc3949ba59abbe56e057f20f883e', 'Margareta Retno Priamsari', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2016-01-08', NULL, NULL, 0, 9, 5, 9.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(107, '07', '700011', 'e10adc3949ba59abbe56e057f20f883e', 'Ayu Ina Solichah, M.Pharm.Sci.', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2012-12-04', NULL, NULL, 0, 12, 6, 12.50, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(108, '07', '700012', 'e10adc3949ba59abbe56e057f20f883e', 'apt. Odilia Dea Christina, M.Farm', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2020-09-23', NULL, NULL, 0, 4, 8, 4.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(109, '07', '700013', 'e10adc3949ba59abbe56e057f20f883e', 'Ayu Novita Dewi, S.E', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2021-12-14', NULL, NULL, 0, 3, 6, 3.50, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(110, '07', '700014', 'e10adc3949ba59abbe56e057f20f883e', 'Tiara Sekar Putri Hardiningrum A.Md.S.I', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2022-10-17', NULL, NULL, 0, 2, 7, 2.58, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(111, '07', '700015', 'e10adc3949ba59abbe56e057f20f883e', 'apt. Agustina Putri Pitarisa Sudarsono, M.Pharm.Sci.', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2012-07-01', NULL, NULL, 0, 12, 11, 12.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(112, '07', '700016', 'e10adc3949ba59abbe56e057f20f883e', 'Dr. Buanasari, S.T., M.T', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2010-11-01', NULL, NULL, 0, 14, 7, 14.58, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(113, '07', '700017', 'e10adc3949ba59abbe56e057f20f883e', 'Yithro Serang, M.Farm., Apt', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2015-03-05', NULL, NULL, 0, 10, 3, 10.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(114, '07', '700018', 'e10adc3949ba59abbe56e057f20f883e', 'Metrikana Novembrina, M.Sc, Apt', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2015-11-23', NULL, NULL, 0, 9, 6, 9.50, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(115, '07', '700019', 'e10adc3949ba59abbe56e057f20f883e', 'Khairullah Mahdi Murdiansyah, S.Kom.', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2019-01-07', NULL, NULL, 0, 6, 5, 6.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(116, '07', '700020', 'e10adc3949ba59abbe56e057f20f883e', 'Atalia Tamo Ina Bulu, M.Farm., Apt', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2019-07-22', NULL, NULL, 0, 5, 10, 5.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(117, '07', '700021', 'e10adc3949ba59abbe56e057f20f883e', 'Vonny Febriani', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2019-10-04', NULL, NULL, 0, 5, 8, 5.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(118, '07', '700022', 'e10adc3949ba59abbe56e057f20f883e', 'Margareta Retno Priamsari, S.Si., M.Sc., Apt', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2020-09-01', NULL, NULL, 0, 4, 9, 4.75, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(119, '07', '700023', 'e10adc3949ba59abbe56e057f20f883e', 'Karol Giovani Battista Leki, M.Farm., Apt', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2020-09-23', NULL, NULL, 0, 4, 8, 4.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(120, '07', '700024', 'e10adc3949ba59abbe56e057f20f883e', 'Nanda Dwi Akbar, S.Farm., M.Pharm., Sci', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2022-06-21', NULL, NULL, 0, 2, 11, 2.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(121, '07', '700025', 'e10adc3949ba59abbe56e057f20f883e', 'Modestus Ratu, S.Farm', 'STIFERA', NULL, NULL, 'Guru', 'Tetap', '2024-11-18', NULL, NULL, 0, 0, 6, 0.50, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(122, '08', '800001', 'e10adc3949ba59abbe56e057f20f883e', 'Andi Darmawan, A.Md.Kom', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2010-06-01', NULL, NULL, 0, 15, 0, 15.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(123, '08', '800002', 'e10adc3949ba59abbe56e057f20f883e', 'Anggoro Kristiawan', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2008-06-25', NULL, NULL, 0, 16, 11, 16.92, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(124, '08', '800003', 'e10adc3949ba59abbe56e057f20f883e', 'Atik Mulyaningtyas, SE', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2010-02-08', NULL, NULL, 0, 15, 4, 15.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(125, '08', '800004', 'e10adc3949ba59abbe56e057f20f883e', 'Beni Kristanto', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2004-01-12', NULL, NULL, 0, 21, 5, 21.42, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(126, '08', '800005', 'e10adc3949ba59abbe56e057f20f883e', 'Sri Haryanti', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '1994-10-01', NULL, NULL, 0, 30, 8, 30.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(127, '08', '800006', 'e10adc3949ba59abbe56e057f20f883e', 'Sukiran', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '1996-09-19', NULL, NULL, 0, 28, 8, 28.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(128, '08', '800007', 'e10adc3949ba59abbe56e057f20f883e', 'Sumaryono', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2002-02-01', NULL, NULL, 0, 23, 4, 23.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(129, '08', '800008', 'e10adc3949ba59abbe56e057f20f883e', 'Suratman', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2006-04-11', NULL, NULL, 0, 19, 2, 19.17, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(130, '08', '800009', 'e10adc3949ba59abbe56e057f20f883e', 'Yustina Retno Tirakati, A.Md', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2012-11-06', NULL, NULL, 0, 12, 7, 12.58, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(131, '08', '800010', 'e10adc3949ba59abbe56e057f20f883e', 'Wahyu Saputro', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2011-10-01', NULL, NULL, 0, 13, 8, 13.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(132, '08', '800011', 'e10adc3949ba59abbe56e057f20f883e', 'Sutrisno', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2015-02-16', NULL, NULL, 0, 10, 4, 10.33, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(133, '08', '800012', 'e10adc3949ba59abbe56e057f20f883e', 'Fuji Fitriani, SE., MM', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2017-05-02', NULL, NULL, 0, 8, 1, 8.08, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(134, '08', '800013', 'e10adc3949ba59abbe56e057f20f883e', 'Quintus Dawampi Bajo', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', NULL, NULL, NULL, 0, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(135, '08', '800014', 'e10adc3949ba59abbe56e057f20f883e', 'Kristian Ika Setiawan, S.Kom', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2004-05-01', NULL, NULL, 0, 21, 1, 21.08, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(136, '08', '800015', 'e10adc3949ba59abbe56e057f20f883e', 'Pradipta Avin, S.Kom', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2020-03-02', NULL, NULL, 0, 5, 3, 5.25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(137, '08', '800016', 'e10adc3949ba59abbe56e057f20f883e', 'Suryo Supeno', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2019-10-16', NULL, NULL, 0, 5, 8, 5.67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(138, '08', '800017', 'e10adc3949ba59abbe56e057f20f883e', 'Taufiqrohman Mandra A., A.Md', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2017-03-20', NULL, NULL, 0, 8, 2, 8.17, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(139, '08', '800018', 'e10adc3949ba59abbe56e057f20f883e', 'Jelita Septa Anggraeni', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2023-06-09', NULL, NULL, 0, 2, 0, 2.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(140, '08', '800019', 'e10adc3949ba59abbe56e057f20f883e', 'Michael Ignatius Soebahagia Dharma Oetama', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2023-11-13', NULL, NULL, 0, 1, 7, 1.58, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL),
+(141, '08', '800020', 'e10adc3949ba59abbe56e057f20f883e', 'Ignatius Harris C., S.Pd', 'UMUM', 'TK', NULL, 'Guru', 'Tetap', '2023-08-10', NULL, NULL, 0, 1, 10, 1.83, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, '', '', '', NULL, NULL, 0.00, 'default.jpg', 'default_ktp.jpg', 'P', 0, NULL, NULL, 0, 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -195,33 +296,6 @@ CREATE TABLE `employee_payheads` (
   `is_rapel` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `employee_payheads`
---
-
-INSERT INTO `employee_payheads` (`id`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`, `remarks`, `support_doc_path`, `upload_file_blob`, `is_rapel`) VALUES
-(2, 12, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
-(3, 12, 13, 'deductions', 50000.00, 'draft', 'Seminar SDM', '/payroll_absensi_v2/uploads/payroll_docs/12/2025_4/payhead13_300002_20254_1750602461.png', NULL, 0),
-(4, 12, 11, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
-(5, 12, 6, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
-(6, 13, 100, 'earnings', 150000.00, 'draft', 'Kenaikan Gaji 2025/2026', '', '', 0),
-(7, 13, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
-(8, 13, 13, 'deductions', 50000.00, 'draft', 'Seminar SDM', '/payroll_absensi_v2/uploads/payroll_docs/13/2025_5/payhead13_300003_20255_1750603599.png', NULL, 0),
-(9, 13, 11, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
-(10, 13, 6, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
-(11, 25, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
-(12, 25, 7, 'earnings', 50000.00, 'draft', '', '', NULL, 0),
-(13, 25, 8, 'earnings', 75000.00, 'draft', '', '', NULL, 0),
-(14, 25, 11, 'earnings', 100000.00, 'draft', '', '', NULL, 0),
-(15, 24, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0),
-(16, 24, 7, 'earnings', 50000.00, 'draft', '', '', NULL, 0),
-(17, 14, 7, 'earnings', 50000.00, 'revisi', '', '', NULL, 0),
-(18, 14, 8, 'earnings', 75000.00, 'revisi', '', '', NULL, 0),
-(19, 14, 11, 'earnings', 100000.00, 'revisi', '', '', NULL, 0),
-(21, 14, 12, 'deductions', 250000.00, 'revisi', '', '', NULL, 0),
-(22, 32, 12, 'deductions', 250000.00, 'draft', '', '', NULL, 0);
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `gaji_pokok_roles`
@@ -407,6 +481,23 @@ INSERT INTO `jenjang_sekolah` (`id`, `kode_jenjang`, `nama_jenjang`, `deskripsi`
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `kelebihan_jam_mengajar`
+--
+
+CREATE TABLE `kelebihan_jam_mengajar` (
+  `id` int NOT NULL,
+  `id_anggota` int NOT NULL COMMENT 'FK ke anggota_sekolah.id',
+  `bulan` tinyint NOT NULL COMMENT '1-12',
+  `tahun` smallint NOT NULL COMMENT 'Misal 2025',
+  `minggu_ke` tinyint NOT NULL COMMENT 'Pilihan: 4 atau 5 minggu',
+  `jam_extra` decimal(8,2) NOT NULL COMMENT 'Total jam ekstra',
+  `total_honor` decimal(10,2) DEFAULT '0.00',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Waktu terakhir edit',
+  `is_final` tinyint(1) DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+--
 -- Table structure for table `kenaikan_gaji_tahunan`
 --
 
@@ -423,21 +514,6 @@ CREATE TABLE `kenaikan_gaji_tahunan` (
   `pindah_ke_lain_lain` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Dumping data for table `kenaikan_gaji_tahunan`
---
-
-INSERT INTO `kenaikan_gaji_tahunan` (`id`, `id_anggota`, `nama_kenaikan`, `jumlah`, `tanggal_mulai`, `tanggal_berakhir`, `status`, `ranking_id`, `dibuat_pada`, `pindah_ke_lain_lain`) VALUES
-(18, 12, 'Kenaikan Gaji 2025/2026', 125000.00, '2025-06-01', '2026-05-31', 'aktif', NULL, '2025-06-22 21:27:41', 0),
-(19, 12, 'Kenaikan Gaji 2025/2026', 125000.00, '2025-06-01', '2026-05-31', 'aktif', NULL, '2025-06-22 21:29:29', 0),
-(20, 13, 'Kenaikan Gaji 2025/2026', 150000.00, '2025-06-01', '2026-05-31', 'aktif', NULL, '2025-06-22 21:46:39', 0),
-(21, 1, 'Kenaikan Gaji Tahun 2025–2026', 1000000.00, '2025-06-01', '2026-05-31', 'aktif', 1, '2025-06-23 10:07:12', 0),
-(22, 2, 'Kenaikan Gaji Tahun 2025–2026', 750000.00, '2025-06-01', '2026-05-31', 'aktif', 2, '2025-06-23 10:07:12', 0),
-(23, 3, 'Kenaikan Gaji Tahun 2025–2026', 500000.00, '2025-06-01', '2026-05-31', 'aktif', 3, '2025-06-23 10:07:12', 0),
-(24, 4, 'Kenaikan Gaji Tahun 2025–2026', 250000.00, '2025-06-01', '2026-05-31', 'aktif', 4, '2025-06-23 10:07:12', 0),
-(25, 5, 'Kenaikan Gaji Tahun 2025–2026', 100000.00, '2025-06-01', '2026-05-31', 'aktif', 5, '2025-06-23 10:07:12', 0);
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `laporan_surat`
@@ -512,14 +588,13 @@ INSERT INTO `payheads` (`id`, `nama_payhead`, `jenis`, `deskripsi`, `nominal`) V
 (3, 'Tunjangan Strata', 'earnings', 'Tunjangan berdasarkan strata pendidikan', 250000.00),
 (4, 'Tunjangan Profesi', 'earnings', 'Tunjangan profesi guru sesuai sertifikasi', 300000.00),
 (5, 'Tunjangan Pindah Jenjang', 'earnings', 'Tunjangan untuk perpindahan jenjang pendidikan', 150000.00),
-(6, 'Reward', 'earnings', 'Bonus reward kinerja atau capaian khusus', 100000.00),
-(7, 'Honor Kelebihan Jam Mengajar', 'earnings', 'Honor tambahan atas jam mengajar ekstra', 50000.00),
-(8, 'Honor Pelajaran Tambahan', 'earnings', 'Honor untuk pelajaran tambahan di luar kurikulum', 75000.00),
-(9, 'Resiko', 'earnings', 'Tunjangan resiko (misal laboratorium, lapangan)', 300000.00),
-(10, 'Uang Makan', 'earnings', 'Tunjangan uang makan per bulan', 364000.00),
-(11, 'Lembur', 'earnings', 'Honor lembur per jam kerja lembur', 100000.00),
-(12, 'BPJS Ketenagakerjaan', 'deductions', 'Potongan iuran BPJS Ketenagakerjaan', 250000.00),
-(13, 'Potongan Lain-lain', 'deductions', 'Potongan lain-lain sesuai kebijakan', 0.00),
+(6, 'Reward', 'earnings', 'Bonus reward kinerja atau capaian khusus', 150000.00),
+(7, 'Honor Pelajaran Tambahan', 'earnings', 'Honor untuk pelajaran tambahan di luar kurikulum', 75000.00),
+(8, 'Resiko', 'earnings', 'Tunjangan resiko (misal laboratorium, lapangan)', 300000.00),
+(9, 'Uang Makan', 'earnings', 'Tunjangan uang makan per bulan', 364000.00),
+(10, 'Lembur', 'earnings', 'Honor lembur per jam kerja lembur', 100000.00),
+(11, 'BPJS Ketenagakerjaan', 'deductions', 'Potongan iuran BPJS Ketenagakerjaan', 250000.00),
+(12, 'Potongan Lain-lain', 'deductions', 'Potongan lain-lain sesuai kebijakan', 0.00),
 (100, 'Kenaikan Gaji Tahunan', 'earnings', 'Kenaikan gaji berdasarkan evaluasi tahunan', 0.00);
 
 -- --------------------------------------------------------
@@ -565,6 +640,7 @@ CREATE TABLE `payroll` (
   `total_potongan` decimal(15,2) DEFAULT NULL,
   `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
   `potongan_absensi` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `honor_jam_lebih` decimal(15,2) NOT NULL DEFAULT '0.00',
   `gaji_bersih` decimal(15,2) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `tgl_payroll` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -573,23 +649,6 @@ CREATE TABLE `payroll` (
   `status` enum('draft','revisi','final') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `payroll`
---
-
-INSERT INTO `payroll` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `potongan_absensi`, `gaji_bersih`, `created_at`, `tgl_payroll`, `no_rekening`, `catatan`, `status`) VALUES
-(45, 12, NULL, 5, 2025, 7000000.00, 7000000.00, 200000.00, 300000.00, 0.00, 0.00, 13900000.00, '2025-06-22 14:29:29', '2025-06-22 21:29:29', '112233', '', 'draft'),
-(46, 13, NULL, 5, 2025, 6000000.00, 6000000.00, 350000.00, 300000.00, 0.00, 0.00, 12050000.00, '2025-06-22 14:46:39', '2025-06-22 21:46:39', '445577', '', 'draft'),
-(47, 13, 43, 5, 2025, 4400000.00, 6000000.00, 350000.00, 300000.00, 50000.00, 0.00, 10400000.00, '2025-06-23 01:22:27', '2025-06-23 08:20:00', '445577', '', 'final'),
-(48, 25, NULL, 5, 2025, 9000000.00, 7000000.00, 225000.00, 250000.00, 0.00, 0.00, 15975000.00, '2025-06-23 02:13:02', '2025-06-23 09:13:02', '1357924680', '', 'draft'),
-(49, 24, NULL, 5, 2025, 6000000.00, 5000000.00, 50000.00, 250000.00, 0.00, 0.00, 10800000.00, '2025-06-24 05:20:28', '2025-06-24 12:20:28', '1234098765', '', 'draft'),
-(50, 14, NULL, 5, 2025, 7000000.00, 7000000.00, 225000.00, 250000.00, 0.00, 0.00, 13975000.00, '2025-06-24 05:46:09', '2025-06-24 12:46:09', '', '', 'revisi'),
-(52, 32, NULL, 4, 2025, 4500000.00, 3000000.00, 0.00, 0.00, 0.00, 150000.00, 7500000.00, '2025-06-24 07:34:53', '2025-06-24 14:34:53', '', '', 'draft'),
-(53, 32, NULL, 5, 2025, 4500000.00, 3000000.00, 0.00, 250000.00, 0.00, 0.00, 7250000.00, '2025-06-24 07:36:39', '2025-06-24 14:36:39', '', '', 'draft'),
-(54, 19, NULL, 5, 2025, 5500000.00, 3000000.00, 0.00, 75000.00, 0.00, 75000.00, 8425000.00, '2025-06-24 07:53:34', '2025-06-24 14:53:34', '512443563', '', 'draft'),
-(55, 19, 50, 5, 2025, 5500000.00, 3000000.00, 0.00, 0.00, 0.00, 75000.00, 8500000.00, '2025-06-24 08:07:17', '2025-06-24 15:07:00', '512443563', '', 'final');
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `payroll_detail`
@@ -605,38 +664,6 @@ CREATE TABLE `payroll_detail` (
   `status` enum('draft','revisi','final') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'draft'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `payroll_detail`
---
-
-INSERT INTO `payroll_detail` (`id`, `id_payroll`, `id_anggota`, `id_payhead`, `jenis`, `amount`, `status`) VALUES
-(246, 45, 12, 12, 'deductions', 250000.00, 'draft'),
-(247, 45, 12, 13, 'deductions', 50000.00, 'draft'),
-(248, 45, 12, 11, 'earnings', 100000.00, 'draft'),
-(249, 45, 12, 6, 'earnings', 100000.00, 'draft'),
-(250, 46, 13, 100, 'earnings', 150000.00, 'draft'),
-(251, 46, 13, 12, 'deductions', 250000.00, 'draft'),
-(252, 46, 13, 13, 'deductions', 50000.00, 'draft'),
-(253, 46, 13, 11, 'earnings', 100000.00, 'draft'),
-(254, 46, 13, 6, 'earnings', 100000.00, 'draft'),
-(255, 47, 13, 100, 'earnings', 150000.00, 'final'),
-(256, 47, 13, 12, 'deductions', 250000.00, 'final'),
-(257, 47, 13, 13, 'deductions', 50000.00, 'final'),
-(258, 47, 13, 11, 'earnings', 100000.00, 'final'),
-(259, 47, 13, 6, 'earnings', 100000.00, 'final'),
-(260, 48, 25, 12, 'deductions', 250000.00, 'draft'),
-(261, 48, 25, 7, 'earnings', 50000.00, 'draft'),
-(262, 48, 25, 8, 'earnings', 75000.00, 'draft'),
-(263, 48, 25, 11, 'earnings', 100000.00, 'draft'),
-(264, 49, 24, 12, 'deductions', 250000.00, 'draft'),
-(265, 49, 24, 7, 'earnings', 50000.00, 'draft'),
-(266, 50, 14, 7, 'earnings', 50000.00, 'draft'),
-(267, 50, 14, 8, 'earnings', 75000.00, 'draft'),
-(268, 50, 14, 11, 'earnings', 100000.00, 'draft'),
-(269, 50, 14, 12, 'deductions', 250000.00, 'draft'),
-(270, 53, 32, 12, 'deductions', 250000.00, 'draft');
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `payroll_detail_final`
@@ -653,19 +680,6 @@ CREATE TABLE `payroll_detail_final` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `payroll_detail_final`
---
-
-INSERT INTO `payroll_detail_final` (`id`, `id_payroll_final`, `id_payhead`, `nama_payhead`, `jenis`, `amount`, `is_rapel`) VALUES
-(93, 15, 100, 'Kenaikan Gaji Tahunan', 'earnings', 150000.00, 0),
-(94, 15, 12, 'BPJS Ketenagakerjaan', 'deductions', 250000.00, 0),
-(95, 15, 13, 'Potongan Lain-lain', 'deductions', 50000.00, 0),
-(96, 15, 11, 'Lembur', 'earnings', 100000.00, 0),
-(97, 15, 6, 'Reward', 'earnings', 100000.00, 0);
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `payroll_final`
 --
 
@@ -677,6 +691,7 @@ CREATE TABLE `payroll_final` (
   `tahun` int NOT NULL,
   `gaji_pokok` decimal(15,2) DEFAULT NULL,
   `salary_index_amount` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `honor_jam_lebih` double DEFAULT '0',
   `total_pendapatan` decimal(15,2) DEFAULT NULL,
   `total_potongan` decimal(15,2) DEFAULT NULL,
   `potongan_koperasi` decimal(15,2) NOT NULL DEFAULT '0.00',
@@ -688,16 +703,6 @@ CREATE TABLE `payroll_final` (
   `finalized_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `id_payroll_asal` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `payroll_final`
---
-
-INSERT INTO `payroll_final` (`id`, `id_anggota`, `id_rekap_absensi`, `bulan`, `tahun`, `gaji_pokok`, `salary_index_amount`, `total_pendapatan`, `total_potongan`, `potongan_koperasi`, `potongan_absensi`, `gaji_bersih`, `tgl_payroll`, `no_rekening`, `catatan`, `finalized_at`, `id_payroll_asal`) VALUES
-(15, 13, 43, 5, 2025, 4400000.00, 6000000.00, 350000.00, 300000.00, 50000.00, 0.00, 10400000.00, '2025-06-23 08:20:00', '445577', '', '2025-06-23 01:22:28', 47),
-(16, 19, 50, 5, 2025, 5500000.00, 3000000.00, 0.00, 0.00, 0.00, 75000.00, 8500000.00, '2025-06-24 15:07:00', '512443563', '0', '2025-06-24 08:07:17', 55);
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `pengajuan_ijin`
@@ -801,21 +806,6 @@ CREATE TABLE `rekap_absensi` (
   `total_sakit` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `rekap_absensi`
---
-
-INSERT INTO `rekap_absensi` (`id`, `id_anggota`, `bulan`, `tahun`, `total_hadir`, `total_izin`, `total_cuti`, `total_tanpa_keterangan`, `total_sakit`) VALUES
-(42, 12, 5, 2025, 28, 1, 1, 1, 0),
-(43, 13, 5, 2025, 28, 1, 1, 1, 0),
-(44, 5, 3, 2025, 7, 0, 0, 0, 0),
-(45, 25, 5, 2025, 28, 1, 1, 1, 0),
-(46, 24, 5, 2025, 28, 2, 1, 1, 0),
-(47, 32, 5, 2025, 28, 2, 0, 0, 0),
-(48, 14, 5, 2025, 28, 1, 1, 1, 0),
-(49, 32, 4, 2025, 28, 2, 1, 0, 0),
-(50, 19, 5, 2025, 28, 1, 0, 0, 0);
-
 -- --------------------------------------------------------
 
 --
@@ -830,13 +820,6 @@ CREATE TABLE `rekap_mingguan` (
   `total_hadir` int DEFAULT '0',
   `total_terlambat` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `rekap_mingguan`
---
-
-INSERT INTO `rekap_mingguan` (`id`, `id_anggota`, `minggu_ke`, `tahun`, `total_hadir`, `total_terlambat`) VALUES
-(4, 5, 9, 2025, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -863,6 +846,25 @@ INSERT INTO `salary_indices` (`id`, `level`, `min_years`, `max_years`, `base_sal
 (3, 'Level 2', 6, 10, 5000000.00, 'Gaji untuk 6-10 tahun masa kerja'),
 (4, 'Level 3', 11, 14, 6000000.00, 'Gaji untuk di atas 10 tahun masa kerja'),
 (5, 'Level 4', 15, NULL, 7000000.00, 'Gaji untuk di atas 15 tahun masa kerja');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tarif_honor_jam_lebih`
+--
+
+CREATE TABLE `tarif_honor_jam_lebih` (
+  `id` int NOT NULL,
+  `nominal` decimal(12,2) NOT NULL COMMENT 'Tarif per jam ekstra (Rp)',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Waktu terakhir diupdate'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `tarif_honor_jam_lebih`
+--
+
+INSERT INTO `tarif_honor_jam_lebih` (`id`, `nominal`, `updated_at`) VALUES
+(1, 12500.00, '2025-06-25 14:13:52');
 
 -- --------------------------------------------------------
 
@@ -898,6 +900,7 @@ INSERT INTO `template_surat` (`id`, `jenis_surat`, `judul`, `isi`, `default_pene
 --
 ALTER TABLE `absensi`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_nip_tanggal` (`nip`,`tanggal`),
   ADD KEY `fk_absensi_anggota` (`id_anggota`),
   ADD KEY `idx_absensi_nip_tgl_late` (`nip`,`tanggal`,`terlambat`);
 
@@ -975,6 +978,13 @@ ALTER TABLE `jenjang_sekolah`
   ADD UNIQUE KEY `kode_jenjang` (`kode_jenjang`);
 
 --
+-- Indexes for table `kelebihan_jam_mengajar`
+--
+ALTER TABLE `kelebihan_jam_mengajar`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_period` (`id_anggota`,`bulan`,`tahun`);
+
+--
 -- Indexes for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
@@ -1023,7 +1033,8 @@ ALTER TABLE `payroll`
   ADD PRIMARY KEY (`id`),
   ADD KEY `id_anggota` (`id_anggota`),
   ADD KEY `id_rekap_absensi` (`id_rekap_absensi`),
-  ADD KEY `idx_payroll_bulantahun_stat` (`bulan`,`tahun`,`status`);
+  ADD KEY `idx_payroll_bulantahun_stat` (`bulan`,`tahun`,`status`),
+  ADD KEY `idx_payroll_honor` (`bulan`,`tahun`,`honor_jam_lebih`);
 
 --
 -- Indexes for table `payroll_detail`
@@ -1103,6 +1114,12 @@ ALTER TABLE `salary_indices`
   ADD UNIQUE KEY `level` (`level`);
 
 --
+-- Indexes for table `tarif_honor_jam_lebih`
+--
+ALTER TABLE `tarif_honor_jam_lebih`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `template_surat`
 --
 ALTER TABLE `template_surat`
@@ -1116,7 +1133,7 @@ ALTER TABLE `template_surat`
 -- AUTO_INCREMENT for table `absensi`
 --
 ALTER TABLE `absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `anggota_sekolah`
@@ -1134,7 +1151,7 @@ ALTER TABLE `audit_logs`
 -- AUTO_INCREMENT for table `employee_payheads`
 --
 ALTER TABLE `employee_payheads`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -1155,10 +1172,16 @@ ALTER TABLE `jenjang_sekolah`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
+-- AUTO_INCREMENT for table `kelebihan_jam_mengajar`
+--
+ALTER TABLE `kelebihan_jam_mengajar`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=232;
+
+--
 -- AUTO_INCREMENT for table `kenaikan_gaji_tahunan`
 --
 ALTER TABLE `kenaikan_gaji_tahunan`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `laporan_surat`
@@ -1188,25 +1211,25 @@ ALTER TABLE `payhead_groups`
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=256;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail`
 --
 ALTER TABLE `payroll_detail`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=271;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=273;
 
 --
 -- AUTO_INCREMENT for table `payroll_detail_final`
 --
 ALTER TABLE `payroll_detail_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
 
 --
 -- AUTO_INCREMENT for table `payroll_final`
 --
 ALTER TABLE `payroll_final`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `pengajuan_ijin`
@@ -1236,7 +1259,7 @@ ALTER TABLE `ranking_kenaikan`
 -- AUTO_INCREMENT for table `rekap_absensi`
 --
 ALTER TABLE `rekap_absensi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `rekap_mingguan`

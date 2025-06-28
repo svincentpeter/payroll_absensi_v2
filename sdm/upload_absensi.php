@@ -4,18 +4,21 @@
 session_start();
 require_once __DIR__ . '/../vendor/autoload.php'; // Sesuaikan path jika perlu
 require_once __DIR__ . '/../koneksi.php';         // Koneksi database
+require_once __DIR__ . '/../helpers.php';         // Tambah agar fungsi dropdown bisa dipakai!
 
 authorize(['M:SDM']);
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
+
+// === PATCH BEGIN: CSRF Token ===
+generate_csrf_token();
+// === PATCH END
 
 /**
  * Fungsi untuk mengonversi string tanggal Excel "dd-mm-yyyy" ke format MySQL "yyyy-mm-dd".
  */
 function convertStringTglToMysqlDate($str)
 {
-    // Misal di Excel tulis "09-12-2024" → "2024-12-09"
-    // Jika formatnya berbeda, sesuaikan DateTime::createFromFormat()
     $date = DateTime::createFromFormat('d-m-Y', $str);
     if ($date) {
         return $date->format('Y-m-d');
@@ -25,7 +28,6 @@ function convertStringTglToMysqlDate($str)
 
 /**
  * Fungsi untuk parse jam ke format TIME "HH:ii:ss".
- * Mencoba beberapa pola umum (e.g. "6:28:18", "6:28 AM", "13:05:22" dll.)
  */
 function parseTimeString($timeStr)
 {
@@ -33,7 +35,6 @@ function parseTimeString($timeStr)
     if ($timeStr === '') {
         return '00:00:00';
     }
-    // Coba beberapa format
     $formats = ['H:i:s', 'H:i', 'g:i A', 'g:i a', 'h:i A', 'h:i a'];
     foreach ($formats as $f) {
         $obj = DateTime::createFromFormat($f, $timeStr);
@@ -41,7 +42,6 @@ function parseTimeString($timeStr)
             return $obj->format('H:i:s');
         }
     }
-    // Jika gagal parse, jadikan 00:00:00
     return '00:00:00';
 }
 
@@ -50,27 +50,60 @@ function parseTimeString($timeStr)
  */
 function parseDateTimeString($mysqlDate, $timeStr)
 {
-    // $mysqlDate contohnya "2024-12-09"
-    // $timeStr contohnya "6:28 AM"
-    $timeFormatted = parseTimeString($timeStr); // ex: "06:28:00"
+    $timeFormatted = parseTimeString($timeStr);
     if (!$mysqlDate) {
-        // Kalau tanggal invalid, fallback
         return '0000-00-00 00:00:00';
     }
-    return $mysqlDate . ' ' . $timeFormatted; // "2024-12-09 06:28:00"
+    return $mysqlDate . ' ' . $timeFormatted;
 }
+
 /**
  * Fungsi untuk mengimpor data absensi dari file Excel.
- * Departemen diisi dari form, bukan dari Excel.
  */
 function impor_absensi($conn, $file, $departemen)
 {
-    // Validasi departemen yang dipilih dari form (dinamis)
-    $allowed_departemen = [];
-    $res = mysqli_query($conn, "SELECT kode_jenjang FROM jenjang_sekolah WHERE is_aktif=1");
-    while ($r = mysqli_fetch_assoc($res)) {
-        $allowed_departemen[] = strtoupper($r['kode_jenjang']);
+    // PATCH: Validasi file (ekstensi & MIME & size)
+    $filePath = $file['tmp_name'] ?? '';
+    $fileSize = $file['size'] ?? 0;
+    $allowedMime = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel' // .xls
+    ];
+
+    if (!file_exists($filePath) || $fileSize < 10) {
+        return [
+            'status' => 'error',
+            'message' => "File tidak ditemukan atau gagal di-upload.",
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
     }
+    $mime = mime_content_type($filePath);
+    if (!in_array($mime, $allowedMime)) {
+        return [
+            'status' => 'error',
+            'message' => "File yang di-upload bukan file Excel yang valid.",
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+    if ($fileSize > 2 * 1024 * 1024) { // max 2MB
+        return [
+            'status' => 'error',
+            'message' => "Ukuran file terlalu besar, maksimal 2 MB.",
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+
+    // PATCH: Validasi departemen via helpers (getOrderedJenjang)
+    $allowed_departemen = array_map('strtoupper', array_keys(getOrderedJenjang($conn, true)));
     $departemen_val_upper = strtoupper($departemen);
     if (!in_array($departemen_val_upper, $allowed_departemen)) {
         return [
@@ -84,27 +117,12 @@ function impor_absensi($conn, $file, $departemen)
     }
 
     $tabel_absensi = "absensi";
-
-    // Periksa apakah tabel absensi ada
     $qcheck = "SHOW TABLES LIKE '$tabel_absensi'";
     $rcheck = mysqli_query($conn, $qcheck);
     if (mysqli_num_rows($rcheck) == 0) {
         return [
             'status' => 'error',
             'message' => "Tabel absensi tidak ditemukan.",
-            'total_rows' => 0,
-            'success_count' => 0,
-            'fail_count' => 0,
-            'details' => []
-        ];
-    }
-
-    // Periksa file
-    $filePath = $file['tmp_name'] ?? '';
-    if (!file_exists($filePath)) {
-        return [
-            'status' => 'error',
-            'message' => "File tidak ditemukan atau gagal di-upload.",
             'total_rows' => 0,
             'success_count' => 0,
             'fail_count' => 0,
@@ -130,9 +148,7 @@ function impor_absensi($conn, $file, $departemen)
     $sheet = $spreadsheet->getActiveSheet();
     $data = $sheet->toArray();
 
-    // Periksa apakah ada data
     if (empty($data) || count($data) <= 2) {
-        // Minimal 3 baris (Row 1: info, Row 2: header, Row 3+: data)
         return [
             'status' => 'error',
             'message' => "File Excel kosong atau format tidak sesuai.",
@@ -143,94 +159,27 @@ function impor_absensi($conn, $file, $departemen)
         ];
     }
 
-    // Hapus baris pertama (Row 1, misal berisi info)
+    // Hapus baris info & header
     array_shift($data);
-
-    // Hapus header (Row 2)
     $header = array_shift($data);
 
-    // Normalisasi nama header
-    $normalized_header = array_map(function ($col_name) {
-        return strtolower(trim($col_name));
-    }, $header);
-
-    // Definisikan alias kolom untuk setiap field
-    $field_aliases = [
-        'tanggal'           => ['tanggal'],
-        'jadwal'            => ['jadwal'],
-        'jam kerja'         => ['jam kerja'],
-        'valid'             => ['valid'],
-        'pin'               => ['pin'],
-        'nip'               => ['nip'],
-        'nama'              => ['nama'],
-        'lembur'            => ['lembur'],
-        'jam masuk'         => ['jam masuk'],
-        'scan masuk'        => ['scan masuk'],
-        'terlambat'         => ['terlambat'],
-        'scan istirahat_1'  => ['scan istirahat 1'],
-        'scan istirahat_2'  => ['scan istirahat 2'],
-        'jam pulang'        => ['jam pulang'],
-        'scan pulang'       => ['scan pulang']
-    ];
-
-    // Kumpulkan indeks kolom
-    $possibleIndexes = [];
-    foreach ($normalized_header as $index => $col_name) {
-        foreach ($field_aliases as $field => $possible_names) {
-            $possible_names_lower = array_map('strtolower', $possible_names);
-            if (in_array($col_name, $possible_names_lower)) {
-                $possibleIndexes[$field][] = $index;
-            }
-        }
-    }
-
-    // Fungsi untuk memilih satu kolom paling sesuai (jika duplikat)
-    function _chooseBestColumn(array $columnIndexes, array $dataRows)
-    {
-        if (count($columnIndexes) === 0) {
-            return null;
-        }
-        if (count($columnIndexes) === 1) {
-            return $columnIndexes[0];
-        }
-        // Pilih kolom dengan sel non-kosong terbanyak
-        $bestIndex = null;
-        $bestNonEmptyCount = -1;
-        foreach ($columnIndexes as $col) {
-            $nonEmptyCount = 0;
-            foreach ($dataRows as $row) {
-                $val = isset($row[$col]) ? trim($row[$col]) : '';
-                if ($val !== '') {
-                    $nonEmptyCount++;
-                }
-            }
-            if ($nonEmptyCount > $bestNonEmptyCount) {
-                $bestNonEmptyCount = $nonEmptyCount;
-                $bestIndex = $col;
-            }
-        }
-        return $bestIndex;
-    }
-
-    // Tentukan final $expected_headers
-    $expected_headers = array_fill_keys(array_keys($field_aliases), null);
-    foreach ($expected_headers as $field => $nullVal) {
-        $colCandidates = $possibleIndexes[$field] ?? [];
-        $chosenIndex   = _chooseBestColumn($colCandidates, $data);
-        $expected_headers[$field] = $chosenIndex;
-    }
-
-    // Cek apakah ada field penting yang tidak berhasil ditemukan
-    $missing_headers = [];
-    foreach ($expected_headers as $field => $pos) {
-        if ($pos === null) {
-            $missing_headers[] = ucfirst($field);
-        }
-    }
-    if (!empty($missing_headers)) {
+    // ======== PATCH: Mapping Header dinamis pakai JSON ========
+    $mappingFile = __DIR__ . '/includes/mapping_template.json';
+    if (!file_exists($mappingFile)) {
         return [
             'status' => 'error',
-            'message' => "Header kolom Excel tidak sesuai. Kolom yang hilang: " . implode(', ', $missing_headers),
+            'message' => "File mapping_template.json tidak ditemukan di folder includes.",
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+    $mapping = json_decode(file_get_contents($mappingFile), true);
+    if (!$mapping || !is_array($mapping)) {
+        return [
+            'status' => 'error',
+            'message' => "Format file mapping_template.json tidak valid.",
             'total_rows' => 0,
             'success_count' => 0,
             'fail_count' => 0,
@@ -238,9 +187,40 @@ function impor_absensi($conn, $file, $departemen)
         ];
     }
 
-    // ================== MODIFIKASI QUERY: TAMBAH status_kehadiran ==================
+    // Buat mapping: kolom excel => nama field DB
+    $colMap = [];
+    foreach ($header as $idx => $colName) {
+        $colNameNorm = trim($colName);
+        if (isset($mapping[$colNameNorm])) {
+            $colMap[$mapping[$colNameNorm]] = $idx;
+        }
+    }
+
+    // Field wajib
+    $wajib = ['tanggal', 'nip', 'nama', 'scan_masuk', 'scan_pulang'];
+    $missing = [];
+    foreach ($wajib as $w) {
+        if (!isset($colMap[$w])) $missing[] = $w;
+    }
+    if (!empty($missing)) {
+        return [
+            'status' => 'error',
+            'message' => "Header Excel kurang kolom wajib: " . implode(', ', $missing),
+            'total_rows' => 0,
+            'success_count' => 0,
+            'fail_count' => 0,
+            'details' => []
+        ];
+    }
+    // ======== END PATCH ========
+
+    // PATCH: BEGIN Transaction
+    $conn->begin_transaction();
+
+    $type_string = 'sssissssissssssssi';
+
     $sql_insert = "
-        INSERT INTO $tabel_absensi
+        INSERT INTO `absensi`
         (tanggal, jadwal, jam_kerja, valid, pin, nip, nama, departemen,
          lembur, jam_masuk, scan_masuk, terlambat, scan_istirahat_1,
          scan_istirahat_2, jam_pulang, scan_pulang, status_kehadiran, id_anggota)
@@ -248,6 +228,7 @@ function impor_absensi($conn, $file, $departemen)
     ";
     $stmt = mysqli_prepare($conn, $sql_insert);
     if (!$stmt) {
+        $conn->rollback();
         return [
             'status' => 'error',
             'message' => "Gagal menyiapkan statement SQL: " . mysqli_error($conn),
@@ -258,10 +239,10 @@ function impor_absensi($conn, $file, $departemen)
         ];
     }
 
-    // Statement untuk cek dan mengambil id_anggota dari anggota_sekolah
     $sql_get_id = "SELECT id FROM anggota_sekolah WHERE nip = ?";
     $stmt_get_id = mysqli_prepare($conn, $sql_get_id);
     if (!$stmt_get_id) {
+        $conn->rollback();
         return [
             'status' => 'error',
             'message' => "Gagal menyiapkan statement pengambilan ID anggota: " . mysqli_error($conn),
@@ -272,37 +253,32 @@ function impor_absensi($conn, $file, $departemen)
         ];
     }
 
-    // ================== TAMBAH 's' di type_string ==================
-    $type_string = 'sssissssississsssi'; // 18 kolom, status_kehadiran = 's'
-
     $totalRows    = count($data);
     $successCount = 0;
     $failCount    = 0;
     $details      = [];
-    $rowNumber    = 3; // baris data mulai dari row ke-3
+    $rowNumber    = 3;
 
     $affected_periods = [];
 
     foreach ($data as $row) {
-        // Ekstrak data dari masing-masing kolom berdasarkan $expected_headers
-        $tanggal_str    = isset($row[$expected_headers['tanggal']]) ? $row[$expected_headers['tanggal']] : '';
-        $jadwal         = isset($row[$expected_headers['jadwal']]) ? $row[$expected_headers['jadwal']] : '';
-        $jam_kerja      = isset($row[$expected_headers['jam kerja']]) ? $row[$expected_headers['jam kerja']] : '';
-        $valid          = isset($row[$expected_headers['valid']]) ? $row[$expected_headers['valid']] : '';
-        $pin            = isset($row[$expected_headers['pin']]) ? $row[$expected_headers['pin']] : '';
-        $nip            = isset($row[$expected_headers['nip']]) ? trim($row[$expected_headers['nip']]) : '';
-        $nama           = isset($row[$expected_headers['nama']]) ? $row[$expected_headers['nama']] : '';
-        // departemen → dari form, sudah diubah ke uppercase sebelumnya
-        $lembur         = isset($row[$expected_headers['lembur']]) ? $row[$expected_headers['lembur']] : '';
-        $jam_masuk_raw  = isset($row[$expected_headers['jam masuk']]) ? $row[$expected_headers['jam masuk']] : '';
-        $scan_masuk_raw = isset($row[$expected_headers['scan masuk']]) ? $row[$expected_headers['scan masuk']] : '';
-        $terlambat      = isset($row[$expected_headers['terlambat']]) ? $row[$expected_headers['terlambat']] : '';
-        $scan_i1_raw    = isset($row[$expected_headers['scan istirahat_1']]) ? $row[$expected_headers['scan istirahat_1']] : '';
-        $scan_i2_raw    = isset($row[$expected_headers['scan istirahat_2']]) ? $row[$expected_headers['scan istirahat_2']] : '';
-        $jam_pulang_raw = isset($row[$expected_headers['jam pulang']]) ? $row[$expected_headers['jam pulang']] : '';
-        $scan_pulang_raw = isset($row[$expected_headers['scan pulang']]) ? $row[$expected_headers['scan pulang']] : '';
+        // --- PATCH: Ambil data dengan mapping ---
+        $tanggal_str    = isset($colMap['tanggal']) ? $row[$colMap['tanggal']] : '';
+        $jadwal         = isset($colMap['jadwal']) ? $row[$colMap['jadwal']] : '';
+        $jam_kerja      = isset($colMap['jam_kerja']) ? $row[$colMap['jam_kerja']] : '';
+        $valid          = isset($colMap['valid']) ? $row[$colMap['valid']] : '';
+        $pin            = isset($colMap['pin']) ? $row[$colMap['pin']] : '';
+        $nip            = isset($colMap['nip']) ? trim($row[$colMap['nip']]) : '';
+        $nama           = isset($colMap['nama']) ? $row[$colMap['nama']] : '';
+        $lembur         = isset($colMap['lembur']) ? $row[$colMap['lembur']] : '';
+        $jam_masuk_raw  = isset($colMap['jam_masuk']) ? $row[$colMap['jam_masuk']] : '';
+        $scan_masuk_raw = isset($colMap['scan_masuk']) ? $row[$colMap['scan_masuk']] : '';
+        $terlambat      = isset($colMap['terlambat']) ? $row[$colMap['terlambat']] : '';
+        $scan_i1_raw    = isset($colMap['scan_istirahat_1']) ? $row[$colMap['scan_istirahat_1']] : '';
+        $scan_i2_raw    = isset($colMap['scan_istirahat_2']) ? $row[$colMap['scan_istirahat_2']] : '';
+        $jam_pulang_raw = isset($colMap['jam_pulang']) ? $row[$colMap['jam_pulang']] : '';
+        $scan_pulang_raw = isset($colMap['scan_pulang']) ? $row[$colMap['scan_pulang']] : '';
 
-        // (1) Konversi tanggal
         $tanggal = convertStringTglToMysqlDate($tanggal_str);
         if (!$tanggal) {
             $failCount++;
@@ -315,27 +291,19 @@ function impor_absensi($conn, $file, $departemen)
             continue;
         }
 
-        // (2) Konversi jam/time
         $jam_masuk  = parseTimeString($jam_masuk_raw);
         $jam_pulang = parseTimeString($jam_pulang_raw);
-
-        // (3) Konversi scan/datetime (gabungkan tanggal + jam)
         $scan_masuk       = parseDateTimeString($tanggal, $scan_masuk_raw);
         $scan_istirahat_1 = parseDateTimeString($tanggal, $scan_i1_raw);
         $scan_istirahat_2 = parseDateTimeString($tanggal, $scan_i2_raw);
         $scan_pulang      = parseDateTimeString($tanggal, $scan_pulang_raw);
 
-        // (4) Konversi valid, lembur, terlambat ke integer
         $valid     = intval($valid) ?: 0;
         $lembur    = intval($lembur) ?: 0;
         $terlambat = intval($terlambat) ?: 0;
         $valid     = ($valid === 1) ? 1 : 0;
-
-        // (5) Tentukan status kehadiran otomatis (default: hadir)
         $status_kehadiran = 'hadir';
-        $status_kehadiran = ($terlambat > 0) ? 'hadir' : 'hadir'; // atau 'terlambat' jika ingin
 
-        // (6) Cek dan ambil id_anggota dari anggota_sekolah berdasarkan nip
         mysqli_stmt_bind_param($stmt_get_id, 's', $nip);
         mysqli_stmt_execute($stmt_get_id);
         $result_id = mysqli_stmt_get_result($stmt_get_id);
@@ -352,10 +320,9 @@ function impor_absensi($conn, $file, $departemen)
             $rowNumber++;
             continue;
         }
-
         $id_anggota = intval($row_id['id']);
 
-        // ---------- CEK DUPLIKASI DATA ABSENSI ----------
+        // PATCH: Cek duplikasi (pastikan ada UNIQUE INDEX di DB)
         $sql_cek = "SELECT id FROM absensi WHERE tanggal = ? AND nip = ?";
         $stmt_cek = $conn->prepare($sql_cek);
         $stmt_cek->bind_param("ss", $tanggal, $nip);
@@ -374,31 +341,13 @@ function impor_absensi($conn, $file, $departemen)
         }
         $stmt_cek->close();
 
-        // Binding parameter untuk statement INSERT (18 kolom termasuk status_kehadiran)
         mysqli_stmt_bind_param(
             $stmt,
             $type_string,
-            $tanggal,             // DATE
-            $jadwal,              // VARCHAR
-            $jam_kerja,           // VARCHAR
-            $valid,               // TINYINT
-            $pin,                 // VARCHAR
-            $nip,                 // VARCHAR
-            $nama,                // VARCHAR
-            $departemen_val_upper, // VARCHAR (diisi dari form)
-            $lembur,              // TINYINT
-            $jam_masuk,           // TIME
-            $scan_masuk,          // DATETIME
-            $terlambat,           // TINYINT
-            $scan_istirahat_1,    // DATETIME
-            $scan_istirahat_2,    // DATETIME
-            $jam_pulang,          // TIME
-            $scan_pulang,         // DATETIME
-            $status_kehadiran,    // VARCHAR (hadir)
-            $id_anggota           // INT (foreign key)
+            $tanggal, $jadwal, $jam_kerja, $valid, $pin, $nip, $nama, $departemen_val_upper,
+            $lembur, $jam_masuk, $scan_masuk, $terlambat, $scan_istirahat_1, $scan_istirahat_2, $jam_pulang, $scan_pulang,
+            $status_kehadiran, $id_anggota
         );
-
-        // Eksekusi statement INSERT
         if (mysqli_stmt_execute($stmt)) {
             $successCount++;
             $details[] = [
@@ -406,8 +355,6 @@ function impor_absensi($conn, $file, $departemen)
                 'status' => 'success',
                 'reason' => ''
             ];
-
-            // Catat periode yang terpengaruh
             $bulan = date('n', strtotime($tanggal));
             $tahun = date('Y', strtotime($tanggal));
             $key = "{$id_anggota}-{$bulan}-{$tahun}";
@@ -433,7 +380,9 @@ function impor_absensi($conn, $file, $departemen)
     mysqli_stmt_close($stmt);
     mysqli_stmt_close($stmt_get_id);
 
-    // Update rekap absensi untuk setiap periode yang terpengaruh
+    // PATCH: Commit transaksi
+    $conn->commit();
+
     foreach ($affected_periods as $period) {
         $stmt_rekap = $conn->prepare("CALL UpdateRekapAbsensi(?, ?, ?)");
         $stmt_rekap->bind_param(
@@ -446,23 +395,18 @@ function impor_absensi($conn, $file, $departemen)
         $stmt_rekap->close();
     }
 
-    // [1] Kumpulkan semua tanggal yang berhasil diimpor
     $dates = [];
     foreach ($affected_periods as $period) {
         $dates[] = date('Y-m-d', strtotime($period['tahun'] . '-' . $period['bulan'] . '-01'));
     }
-
-    // [2] Cari rentang tanggal terbaru
     if (!empty($dates)) {
         $min_date = min($dates);
         $max_date = max($dates);
 
-        // [3] Panggil UpdateRekapMingguan
         $stmt_rekap = $conn->prepare("CALL UpdateRekapMingguan(?, ?)");
         $stmt_rekap->bind_param("ss", $min_date, $max_date);
         $stmt_rekap->execute();
 
-        // Tambahkan log audit untuk tracking (pastikan fungsi add_audit_log() sudah ada)
         add_audit_log(
             $conn,
             $_SESSION['nip'] ?? 'system',
@@ -482,14 +426,17 @@ function impor_absensi($conn, $file, $departemen)
     ];
 }
 
+
 // ===========================
 // Handle form submission
 // ===========================
-
 $message = '';
 $logDetails = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // === PATCH: CSRF VALIDATION ===
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    // === PATCH END
     $departemen = $_POST['departemen'] ?? '';
     $file = $_FILES['file_absensi'] ?? null;
 
@@ -514,7 +461,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Departemen atau file tidak valid!';
     }
 }
+
+// --- Baca mapping_template.json untuk template preview (sekali render) ---
+$mappingFile = __DIR__ . '/includes/mapping_template.json';
+$templateHeaders = [];
+if (file_exists($mappingFile)) {
+    $mapping = json_decode(file_get_contents($mappingFile), true);
+    if ($mapping && is_array($mapping)) {
+        $templateHeaders = array_keys($mapping);
+    }
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 
@@ -583,6 +541,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .spinner-border {
             vertical-align: middle;
         }
+
+            .template-table th, .template-table td {
+        padding: 6px 8px !important;
+        font-size: 0.96rem;
+        white-space: nowrap;
+    }
+    .template-table th {
+        background: #e3f0ff;
+        font-weight: 600;
+        border-top: 2px solid #9dc1f6;
+    }
+    @media (min-width: 1200px) {
+        .modal-xl {
+            --bs-modal-width: 95vw; /* Lebih lebar di layar besar */
+        }
+    }
     </style>
 </head>
 
@@ -636,17 +610,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="mb-3">
                         <label for="departemen" class="form-label">Pilih Departemen</label>
                         <select name="departemen" id="departemen" class="form-select" required>
-                            <option value="">--Pilih--</option>
-                            <?php
-                            // Query semua jenjang aktif
-                            $qjenjang = mysqli_query($conn, "SELECT kode_jenjang, nama_jenjang FROM jenjang_sekolah WHERE is_aktif=1 ORDER BY id ASC");
-                            while ($jenjang = mysqli_fetch_assoc($qjenjang)):
-                            ?>
-                                <option value="<?= htmlspecialchars($jenjang['kode_jenjang']) ?>">
-                                    <?= htmlspecialchars($jenjang['nama_jenjang']) ?>
-                                </option>
-                            <?php endwhile; ?>
-                        </select>
+    <option value="">--Pilih--</option>
+    <?php
+    // PATCH: gunakan getOrderedJenjang() dari helpers
+    $jenjangList = getOrderedJenjang($conn, true);
+    foreach ($jenjangList as $kode => $nama):
+    ?>
+        <option value="<?= htmlspecialchars($kode) ?>">
+            <?= htmlspecialchars($nama) ?>
+        </option>
+    <?php endforeach; ?>
+</select>
+<input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
                     </div>
                     <div class="mb-3">
@@ -657,6 +632,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-upload"></i> Upload & Import
                         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                     </button>
+                    <button type="button" class="btn btn-outline-info" id="btnShowTemplate">
+        <i class="fas fa-table"></i> Lihat Template
+    </button>
                 </form>
             </div>
         </div>
@@ -669,7 +647,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="logTable" width="100%" cellspacing="0">
+                        <table class="table table-bordered align-middle text-center mb-0 template-table">
                             <thead class="table-light">
                                 <tr>
                                     <th>Baris (tanpa header)</th>
@@ -704,7 +682,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         <?php endif; ?>
-
+<!-- Modal Bootstrap untuk preview template -->
+<div class="modal fade" id="templateModal" tabindex="-1" aria-labelledby="templateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered"> <!-- ubah dari modal-lg ke modal-xl -->
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="templateModalLabel"><i class="fas fa-table"></i> Struktur Template Excel Absensi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info mb-3">
+          <i class="fas fa-info-circle"></i> <b>Gunakan urutan dan nama kolom berikut di baris pertama Excel Anda:</b>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle text-center mb-0 template-table">
+            <thead class="table-primary">
+              <tr>
+                <?php foreach ($templateHeaders as $col): ?>
+                  <th><?= htmlspecialchars($col) ?></th>
+                <?php endforeach; ?>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <?php foreach ($templateHeaders as $col): ?>
+                  <td><em>(isi data)</em></td>
+                <?php endforeach; ?>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <small class="text-muted">
+          Kolom <b>wajib:</b> <?= htmlspecialchars(implode(', ', ['tanggal', 'nip', 'nama', 'scan_masuk', 'scan_pulang'])) ?>
+        </small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
     </div>
     <!-- End Container Utama -->
 
@@ -748,6 +765,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 });
             });
 
+            // Show modal saat tombol diklik
+    $('#btnShowTemplate').on('click', function() {
+        $('#templateModal').modal('show');
+    });
             // Inisialisasi DataTables untuk #logTable (jika tabel import detail ingin interaktif)
             $('#logTable').DataTable({
                 "language": {

@@ -48,8 +48,13 @@ try {
     $payrollFinal = $resFinal->fetch_assoc();
     $stmtFinal->close();
 
-    // **Baru**: ambil potongan_absensi
+    $nama_karyawan  = $payrollFinal['nama_karyawan'] ?? '-';
+$email_karyawan = $payrollFinal['email'] ?? '-';
+$role_karyawan  = $payrollFinal['role'] ?? '-';
+
+    // Ambil honor kelebihan jam & potongan absensi
     $potongan_absensi = floatval($payrollFinal['potongan_absensi'] ?? 0);
+    $honor_jam_lebih = floatval($payrollFinal['honor_jam_lebih'] ?? 0);
 
     // 3. Ambil detail payhead final (skip rapel)
     $stmtDetailF = $conn->prepare("
@@ -86,7 +91,7 @@ try {
     $salary_index_amount = (float)$payrollFinal['salary_index_amount'];
     $salary_index_level  = $payrollFinal['salary_index_level'];
 
-    // 6. Hitung ulang dari detail
+    // 6. Hitung ulang earnings & deductions dari detail
     $calcEarnings   = 0;
     $calcDeductions = 0;
     foreach ($details as $det) {
@@ -97,19 +102,23 @@ try {
         }
     }
 
+    // PATCH: Rumus transparan untuk slip
     $gaji_pokok_base   = $gaji_pokok_db > 0 ? $gaji_pokok_db : $gaji_pokok_employee;
     $salary_index_amt  = $salary_index_amount;
     $subtotal_gaji     = $gaji_pokok_base + $salary_index_amt;
-    $total_pendapatan  = $total_pendapatan_db > 0 ? $total_pendapatan_db : $calcEarnings;
+
+    $total_pendapatan_payheads = $total_pendapatan_db > 0 ? $total_pendapatan_db : $calcEarnings;
+    $total_pendapatan_slip = $total_pendapatan_payheads + $honor_jam_lebih;
     $total_potongan    = $total_potongan_db   > 0 ? $total_potongan_db   : $calcDeductions;
 
-    // **Ubah**: sertakan potongan_absensi
+    // PATCH: Honor kelebihan jam ditampilkan eksplisit, tidak pernah double
     $gaji_bersih_calculated = $gaji_pokok_base
-                           + $salary_index_amt
-                           + $total_pendapatan
-                           - $total_potongan
-                           - $potongan_koperasi
-                           - $potongan_absensi;
+        + $salary_index_amt
+        + $total_pendapatan_payheads
+        + $honor_jam_lebih
+        - $total_potongan
+        - $potongan_koperasi
+        - $potongan_absensi;
 
     // 7. Masa kerja
     $masa_kerja_tahun = (int)$payrollFinal['masa_kerja_tahun'];
@@ -130,6 +139,18 @@ try {
     $log_details = "Mengakses Slip Gaji Final ID $id_payroll_final "
                  . "(Anggota {$payrollFinal['id_anggota']}, Periode: $bulan-$tahun).";
     add_audit_log($conn, $user_id, 'ViewPayrollDetailsFinal', $log_details);
+
+    // PATCH: Cek honor kelebihan jam sudah di detail payhead?
+    $adaHonorJamLebih = false;
+    foreach ($details as $det) {
+        if (
+            stripos($det['nama_payhead'], 'kelebihan jam') !== false
+            || stripos($det['nama_payhead'], 'honor lebih') !== false
+        ) {
+            $adaHonorJamLebih = true;
+            break;
+        }
+    }
 
 } catch (Exception $e) {
     echo "Terjadi kesalahan: " . htmlspecialchars($e->getMessage());
@@ -290,16 +311,6 @@ $conn->close();
         </td>
       </tr>
       <tr class="item">
-        <td>Total Pendapatan (Payheads)</td>
-        <td style="text-align:right;">Rp <?= number_format($total_pendapatan, 0, ',', '.') ?></td>
-      </tr>
-      <tr class="item">
-        <td>Total Potongan (Payheads)</td>
-        <td class="text-danger" style="text-align:right;">
-          Rp <?= number_format($total_potongan, 0, ',', '.') ?>
-        </td>
-      </tr>
-      <tr class="item">
         <td>Potongan Absensi</td>
         <td class="text-danger" style="text-align:right;">
           Rp <?= number_format($potongan_absensi, 0, ',', '.') ?>
@@ -309,6 +320,20 @@ $conn->close();
         <td>Potongan Koperasi</td>
         <td class="text-danger" style="text-align:right;">
           Rp <?= number_format($potongan_koperasi, 0, ',', '.') ?>
+        </td>
+      </tr>
+      <tr class="details">
+        <td>Honor Kelebihan Jam Mengajar</td>
+        <td style="text-align:right;">Rp <?= number_format($honor_jam_lebih, 0, ',', '.') ?></td>
+      </tr>
+      <tr class="item">
+        <td>Total Pendapatan (Payheads)</td>
+        <td style="text-align:right;">Rp <?= number_format($total_pendapatan_payheads, 0, ',', '.') ?></td>
+      </tr>
+      <tr class="item">
+        <td>Total Potongan (Payheads)</td>
+        <td class="text-danger" style="text-align:right;">
+          Rp <?= number_format($total_potongan, 0, ',', '.') ?>
         </td>
       </tr>
       <tr class="item last">
@@ -350,6 +375,15 @@ $conn->close();
           </tr>
           <?php $no++; ?>
         <?php endforeach; ?>
+        <?php if ($honor_jam_lebih > 0 && !$adaHonorJamLebih): ?>
+          <tr>
+            <td><?= $no ?></td>
+            <td class="left-align">Honor Kelebihan Jam Mengajar</td>
+            <td>Pendapatan</td>
+            <td>Rp <?= number_format($honor_jam_lebih, 0, ',', '.') ?></td>
+            <td>-</td>
+          </tr>
+        <?php endif; ?>
       <?php endif; ?>
     </table>
 

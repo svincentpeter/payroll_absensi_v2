@@ -6,9 +6,7 @@ if (!function_exists('GetAllPayheads')) {
     function GetAllPayheads($conn)
     {
         verify_csrf_token($_POST['csrf_token'] ?? '');
-        $sql = "SELECT id, nama_payhead, jenis, nominal
-            FROM payheads
-            ORDER BY nama_payhead ASC";
+        $sql = "SELECT id, nama_payhead, jenis, nominal FROM payheads ORDER BY nama_payhead ASC";
         $res = $conn->query($sql);
         if (!$res) {
             send_response(1, 'Query gagal GetAllPayheads.');

@@ -226,19 +226,19 @@ body {
       <div class="jenjang-label">SEMUA</div>
     </a>
   </div>
-  <?php foreach($jenjangList as $jenjang):
-    $meta = $jenjangMeta[$jenjang] ?? $defaultMeta;
-  ?>
-    <div class="col-6 col-md-4 col-lg-3">
-      <a href="rekap_payroll_jenjang.php?jenjang=<?= urlencode($jenjang) ?>&bulan=<?= $filterMonth ?>&tahun=<?= $filterYear ?>"
-         class="jenjang-card text-center"
-         style="background: <?= $meta['rgba'] ?>; border-left: 5px solid <?= $meta['color'] ?>;">
-        <i class="<?= $meta['icon'] ?> jenjang-icon" style="color: <?= $meta['color'] ?>;"></i>
-        <div class="jenjang-label"><?= htmlspecialchars($jenjang) ?></div>
-      </a>
-    </div>
-  <?php endforeach; ?>
-</div>
+  <?php foreach($jenjangList as $kode => $nama):
+  $meta = $jenjangMeta[$kode] ?? $defaultMeta;
+?>
+  <div class="col-6 col-md-4 col-lg-3">
+    <a href="rekap_payroll_jenjang.php?jenjang=<?= urlencode($kode) ?>&bulan=<?= $filterMonth ?>&tahun=<?= $filterYear ?>"
+       class="jenjang-card text-center"
+       style="background: <?= $meta['rgba'] ?>; border-left: 5px solid <?= $meta['color'] ?>;">
+      <i class="<?= $meta['icon'] ?> jenjang-icon" style="color: <?= $meta['color'] ?>;"></i>
+      <div class="jenjang-label"><?= htmlspecialchars($nama) ?></div>
+    </a>
+  </div>
+<?php endforeach; ?>
+
 
         </div>
       </div>

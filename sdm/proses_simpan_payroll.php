@@ -35,7 +35,6 @@ if (!empty($_POST['tgl_payroll']) && trim($_POST['tgl_payroll']) !== '') {
 // Tambahan: parsing potongan_absensi dari POST
 $potongan_absensi = 0;
 if (isset($_POST['potongan_absensi'])) {
-    // Hilangkan titik ribuan jika ada
     $potongan_absensi = intval(str_replace('.', '', $_POST['potongan_absensi']));
 }
 
@@ -170,5 +169,34 @@ if (isset($_POST['chkKenaikanGajiTahunan'])) {
     $stmtCek->close();
 }
 
-// 5. Return success
+// 5. Update honor_jam_lebih dari tabel kelebihan_jam_mengajar (DRAFT payroll)
+// --------------- MODIFIKASI DIMULAI DI SINI ---------------
+$honorJamLebih = 0;
+$stmtHon = $conn->prepare("
+    SELECT SUM(total_honor) AS honor_jam_lebih
+    FROM kelebihan_jam_mengajar
+    WHERE id_anggota = ?
+      AND bulan = ?
+      AND tahun = ?
+      AND is_final = 1
+");
+$stmtHon->bind_param("iii", $id_anggota, $bulan, $tahun);
+$stmtHon->execute();
+$resHon = $stmtHon->get_result();
+if ($rowHon = $resHon->fetch_assoc()) {
+    $honorJamLebih = floatval($rowHon['honor_jam_lebih']);
+}
+$stmtHon->close();
+
+$stmtUpd = $conn->prepare("
+    UPDATE payroll
+       SET honor_jam_lebih = ?
+     WHERE id = ?
+");
+$stmtUpd->bind_param('di', $honorJamLebih, $id_payroll);
+$stmtUpd->execute();
+$stmtUpd->close();
+// --------------- MODIFIKASI SELESAI DI SINI ---------------
+
+// 6. Return success
 echo json_encode(['code' => 0, 'result' => 'Payroll draft berhasil disimpan!']);

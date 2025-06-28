@@ -1,0 +1,22 @@
+{
+  "Tgl Absen": "tanggal",
+  "Tanggal": "tanggal",
+  "PIN": "nip",
+  "ID": "nip",
+  "NIP": "nip",
+  "Nama Karyawan": "nama",
+  "Nama": "nama",
+  "Jam Masuk": "scan_masuk",
+  "Jam In": "scan_masuk",
+  "Check In": "scan_masuk",
+  "Jam Pulang": "scan_pulang",
+  "Jam Out": "scan_pulang",
+  "Check Out": "scan_pulang",
+  "Jadwal": "jadwal",
+  "Jam Kerja": "jam_kerja",
+  "Valid": "valid",
+  "Lembur": "lembur",
+  "Terlambat": "terlambat",
+  "Scan Istirahat 1": "scan_istirahat_1",
+  "Scan Istirahat 2": "scan_istirahat_2"
+}

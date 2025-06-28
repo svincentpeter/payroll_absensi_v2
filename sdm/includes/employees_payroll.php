@@ -14,24 +14,20 @@ if (!function_exists('ProcessPayroll')) {
             send_response(1, 'Parameter tidak valid untuk proses payroll.');
         }
 
-        // 1) Hitung total earnings & deductions (status draft/revisi), kecuali rapel
-        $sqlSum = "
+        // 1) Hitung total earnings & deductions
+        $stmtSum = $conn->prepare("
             SELECT jenis, SUM(amount) AS total
               FROM employee_payheads
              WHERE id_anggota = ?
                AND status IN ('draft','revisi')
-               AND IFNULL(is_rapel, 0) = 0
+               AND IFNULL(is_rapel,0) = 0
+               AND id_payhead <> 7
              GROUP BY jenis
-        ";
-        $stmtSum = $conn->prepare($sqlSum);
+        ");
         $stmtSum->bind_param("i", $id_anggota);
-        if (!$stmtSum->execute()) {
-            $stmtSum->close();
-            send_response(1, 'Gagal menghitung total payheads (draft/revisi).');
-        }
+        $stmtSum->execute();
         $resSum = $stmtSum->get_result();
-        $totalEarnings   = 0;
-        $totalDeductions = 0;
+        $totalEarnings = $totalDeductions = 0;
         while ($row = $resSum->fetch_assoc()) {
             if ($row['jenis'] === 'earnings') {
                 $totalEarnings = floatval($row['total']);
@@ -41,207 +37,193 @@ if (!function_exists('ProcessPayroll')) {
         }
         $stmtSum->close();
 
-        // 2) Ambil potongan_absensi dari POST jika ada, atau fallback ke DB
+        // 2) Ambil honor_jam_lebih
+        $stmtHon = $conn->prepare("
+            SELECT SUM(total_honor) AS honor_jam_lebih
+              FROM kelebihan_jam_mengajar
+             WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND is_final = 1
+        ");
+        $stmtHon->bind_param("iii", $id_anggota, $bulan, $tahun);
+        $stmtHon->execute();
+        $rowHon = $stmtHon->get_result()->fetch_assoc();
+        $honorJamLebih = floatval($rowHon['honor_jam_lebih'] ?? 0);
+        $stmtHon->close();
+
+        $totalEarnings += $honorJamLebih;
+
+        // 3) Potongan absensi
         if (isset($_POST['potongan_absensi'])) {
             $potonganAbsensi = floatval($_POST['potongan_absensi']);
         } else {
-            $potonganAbsensi = 0;
             $stmtPot = $conn->prepare("
                 SELECT potongan_absensi
                   FROM payroll
-                 WHERE id_anggota = ?
-                   AND bulan       = ?
-                   AND tahun       = ?
-                   AND status      = 'draft'
+                 WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND status = 'draft'
                  LIMIT 1
             ");
             $stmtPot->bind_param("iii", $id_anggota, $bulan, $tahun);
             $stmtPot->execute();
-            $resPot = $stmtPot->get_result();
-            if ($r = $resPot->fetch_assoc()) {
-                $potonganAbsensi = floatval($r['potongan_absensi']);
-            }
+            $r = $stmtPot->get_result()->fetch_assoc();
+            $potonganAbsensi = floatval($r['potongan_absensi'] ?? 0);
             $stmtPot->close();
         }
-
-        // 3) Masukkan potongan_absensi ke total deductions
         $totalDeductions += $potonganAbsensi;
 
         // 4) Ambil data anggota
         $stmtEmp = $conn->prepare("
             SELECT gaji_pokok, salary_index_id, no_rekening
               FROM anggota_sekolah
-             WHERE id = ?
-             LIMIT 1
+             WHERE id = ? LIMIT 1
         ");
         $stmtEmp->bind_param("i", $id_anggota);
-        if (!$stmtEmp->execute()) {
-            $stmtEmp->close();
-            send_response(1, 'Gagal mengambil data anggota.');
-        }
-        $resEmp = $stmtEmp->get_result();
-        if ($resEmp->num_rows == 0) {
-            $stmtEmp->close();
-            send_response(1, 'Anggota tidak ditemukan.');
-        }
-        $empData = $resEmp->fetch_assoc();
+        $stmtEmp->execute();
+        $empData = $stmtEmp->get_result()->fetch_assoc();
         $stmtEmp->close();
 
-        $gajiPokokEmployee = floatval($empData['gaji_pokok']);
-        $no_rekening       = $empData['no_rekening'];
-        $salaryIndexBase   = 0;
+        if (!$empData) {
+            send_response(1, 'Anggota tidak ditemukan.');
+        }
+        $basicSalary = floatval($empData['gaji_pokok']);
+        $no_rekening = $empData['no_rekening'];
 
-        // Ambil base_salary dari salary_index jika ada
+        // 5) Ambil base_salary jika ada
+        $salaryIndexAmount = 0;
         if (!empty($empData['salary_index_id'])) {
-            $stmtIndex = $conn->prepare("
+            $stmtIdx = $conn->prepare("
                 SELECT base_salary
                   FROM salary_indices
-                 WHERE id = ?
-                 LIMIT 1
+                 WHERE id = ? LIMIT 1
             ");
-            $stmtIndex->bind_param("i", $empData['salary_index_id']);
-            if ($stmtIndex->execute()) {
-                $resIndex = $stmtIndex->get_result();
-                if ($resIndex->num_rows > 0) {
-                    $rowIndex = $resIndex->fetch_assoc();
-                    $salaryIndexBase = floatval($rowIndex['base_salary']);
-                }
-            }
-            $stmtIndex->close();
+            $stmtIdx->bind_param("i", $empData['salary_index_id']);
+            $stmtIdx->execute();
+            $rowIdx = $stmtIdx->get_result()->fetch_assoc();
+            $salaryIndexAmount = floatval($rowIdx['base_salary'] ?? 0);
+            $stmtIdx->close();
         }
 
-        // 5) Hitung gaji bersih
-        $basicSalary       = $gajiPokokEmployee;
-        $salaryIndexAmount = $salaryIndexBase;
-        $gajiBersih        = $basicSalary
-                            + $salaryIndexAmount
-                            + $totalEarnings
-                            - $totalDeductions;
+        // 6) Hitung gaji bersih
+        $gajiBersih = $basicSalary
+            + $salaryIndexAmount
+            + $totalEarnings
+            - $totalDeductions;
 
-        // 6) Persiapan insert draft payroll
-        $tglPayroll    = date('Y-m-d H:i:s');
-        $catatan       = '';
-        $statusPayroll = 'draft';
+        // 7) Format tanggal payroll
+        $tgl = trim($_POST['tgl_payroll'] ?? '');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', $tgl)) {
+            $tgl = str_replace('T',' ',$tgl).':00';
+        } else {
+            $tgl = date('Y-m-d H:i:s');
+        }
 
-        // Reset revisi → draft
+        // 8) Reset dan hapus draft lama
         $stmtUpd = $conn->prepare("
             UPDATE payroll
                SET status = 'draft'
-             WHERE id_anggota = ?
-               AND bulan      = ?
-               AND tahun      = ?
-               AND status     = 'revisi'
+             WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND status = 'revisi'
         ");
-        $stmtUpd->bind_param("iii", $id_anggota, $bulan, $tahun);
+        $stmtUpd->bind_param("iii", $id_anggota,$bulan,$tahun);
         $stmtUpd->execute();
         $stmtUpd->close();
 
-        // Hapus draft lama
         $stmtDel = $conn->prepare("
             DELETE FROM payroll
-             WHERE id_anggota = ?
-               AND bulan      = ?
-               AND tahun      = ?
-               AND status     = 'draft'
+             WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND status = 'draft'
         ");
-        $stmtDel->bind_param("iii", $id_anggota, $bulan, $tahun);
+        $stmtDel->bind_param("iii", $id_anggota,$bulan,$tahun);
         $stmtDel->execute();
         $stmtDel->close();
 
-        // Insert payroll baru
-        $stmtPayroll = $conn->prepare("
+        // === 9) INSERT PAYROLL via direct query ===
+        $tglEsc   = $conn->real_escape_string($tgl);
+        $noRekEsc = $conn->real_escape_string($no_rekening);
+        $catEsc   = '';  // jika ada catatan, isi variabel ini
+
+        $sqlInsert = "
             INSERT INTO payroll
-                (id_anggota, bulan, tahun, tgl_payroll,
-                 gaji_pokok, salary_index_amount,
-                 total_pendapatan, total_potongan,
-                 potongan_absensi, gaji_bersih, no_rekening,
-                 catatan, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        $stmtPayroll->bind_param(
-            "iiisddddddsss",
-            $id_anggota,
-            $bulan,
-            $tahun,
-            $tglPayroll,
-            $basicSalary,
-            $salaryIndexAmount,
-            $totalEarnings,
-            $totalDeductions,
-            $potonganAbsensi,
-            $gajiBersih,
-            $no_rekening,
-            $catatan,
-            $statusPayroll
-        );
-        if (!$stmtPayroll->execute()) {
-            $stmtPayroll->close();
-            send_response(1, 'Gagal insert payroll (draft): ' . $stmtPayroll->error);
-        }
-        $newPayrollId = $stmtPayroll->insert_id;
-        $stmtPayroll->close();
-
-        // 7) Copy detail payhead ke payroll_detail (status draft)
-        $sqlPH = "
-            SELECT id_payhead, jenis, amount
-              FROM employee_payheads
-             WHERE id_anggota = ?
-               AND status IN ('draft','revisi')
-               AND IFNULL(is_rapel,0) = 0
+              (id_anggota, bulan, tahun, tgl_payroll,
+               gaji_pokok, salary_index_amount,
+               total_pendapatan, total_potongan,
+               honor_jam_lebih, potongan_absensi,
+               gaji_bersih, no_rekening, catatan, status)
+            VALUES (
+              ".(int)$id_anggota.", ".(int)$bulan.", ".(int)$tahun.",
+              '{$tglEsc}', ".(float)$basicSalary.",
+              ".(float)$salaryIndexAmount.", ".(float)$totalEarnings.",
+              ".(float)$totalDeductions.", ".(float)$honorJamLebih.",
+              ".(float)$potonganAbsensi.", ".(float)$gajiBersih.",
+              '{$noRekEsc}', '{$catEsc}', 'draft'
+            )
         ";
-        $stmtPH = $conn->prepare($sqlPH);
-        $stmtPH->bind_param("i", $id_anggota);
-        if (!$stmtPH->execute()) {
-            $stmtPH->close();
-            send_response(1, 'Gagal menyalin payheads ke payroll_detail: ' . $stmtPH->error);
+        if (!$conn->query($sqlInsert)) {
+            send_response(1, 'Gagal insert payroll: '.$conn->error);
         }
-        $resPH = $stmtPH->get_result();
-        $stmtPH->close();
+        $newPayrollId = $conn->insert_id;
 
-        $sqlInsDetail = "
-            INSERT INTO payroll_detail (id_payroll, id_anggota, id_payhead, jenis, amount)
-            VALUES (?, ?, ?, ?, ?)
-        ";
-        $stmtDet = $conn->prepare($sqlInsDetail);
-        while ($ph = $resPH->fetch_assoc()) {
-            $stmtDet->bind_param(
-                "iiisd",
-                $newPayrollId,
-                $id_anggota,
-                $ph['id_payhead'],
-                $ph['jenis'],
-                floatval($ph['amount'])
-            );
-            $stmtDet->execute();
-        }
-        $stmtDet->close();
+        // 10) Copy detail payhead ke payroll_detail
+        // 10) Copy detail payhead ke payroll_detail
+$stmtPH = $conn->prepare("
+    SELECT id_payhead, jenis, amount
+      FROM employee_payheads
+     WHERE id_anggota = ? 
+       AND status IN ('draft','revisi') 
+       AND IFNULL(is_rapel,0)=0 
+       AND id_payhead<>7
+");
+$stmtPH->bind_param("i", $id_anggota);
+$stmtPH->execute();
+$resPH = $stmtPH->get_result();
+$stmtPH->close();
 
-        // 8) Audit log
-        $user_nip   = $_SESSION['nip'] ?? '';
-        $detailsLog = "SDM memproses payroll => draft, anggota ID = $id_anggota (payroll_id=$newPayrollId)";
-        add_audit_log($conn, $user_nip, 'ProcessPayroll', $detailsLog);
+$stmtDet = $conn->prepare("
+    INSERT INTO payroll_detail 
+      (id_payroll, id_anggota, id_payhead, jenis, amount)
+    VALUES (?,?,?,?,?)
+");
 
-        // 9) Kirim notifikasi ke keuangan & superadmin
-        if ($_SESSION['role'] === 'sdm') {
-            $sqlNotif = "SELECT id, nip FROM anggota_sekolah WHERE role IN ('keuangan','superadmin')";
-            $resNotif = $conn->query($sqlNotif);
+while ($ph = $resPH->fetch_assoc()) {
+    // Siapkan variabel ATAU passed-by-reference
+    $bind_id_payhead = (int)   $ph['id_payhead'];
+    $bind_jenis      = (string)$ph['jenis'];
+    $bind_amount     = (float) $ph['amount'];
+
+    // Sekarang bind_param hanya menerima variabel
+    $stmtDet->bind_param(
+        "iiisd",
+        $newPayrollId,
+        $id_anggota,
+        $bind_id_payhead,
+        $bind_jenis,
+        $bind_amount
+    );
+    $stmtDet->execute();
+}
+$stmtDet->close();
+
+
+        // 11) Audit log & notifikasi…
+        $user_nip = $_SESSION['nip'] ?? '';
+        add_audit_log($conn,$user_nip,'ProcessPayroll',"Payroll draft anggota=$id_anggota");
+
+        if ($_SESSION['role']==='sdm') {
+            $resNotif = $conn->query("SELECT id,nip FROM anggota_sekolah WHERE role IN ('keuangan','superadmin')");
             while ($u = $resNotif->fetch_assoc()) {
-                $msg    = "Payroll (draft) untuk anggota ID $id_anggota telah diproses oleh SDM.";
-                $target = 'keuangan';
-                $stmtN  = $conn->prepare("
-                    INSERT INTO notifications (user_id, message, is_read, role_target)
-                    VALUES (?, ?, 0, ?)
+                $msg = "Payroll draft untuk anggota $id_anggota diproses SDM.";
+                $stmtN = $conn->prepare("
+                    INSERT INTO notifications (user_id,message,is_read,role_target)
+                    VALUES (?,?,0,?)
                 ");
-                $stmtN->bind_param("iss", $u['id'], $msg, $target);
+                $roleT = 'keuangan';
+                $stmtN->bind_param("iss",$u['id'],$msg,$roleT);
                 $stmtN->execute();
                 $stmtN->close();
             }
         }
 
-        // 10) Respon sukses
+        // 12) Respon sukses
         send_response(0, 'Payroll berhasil diproses (status draft).');
     }
 }
+
 
 
 if (!function_exists('CheckPayrollCompletion')) {

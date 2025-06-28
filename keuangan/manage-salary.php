@@ -2,6 +2,10 @@
 // File: /payroll_absensi_v2/keuangan/manage-salary.php
 $pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require_once __DIR__ . '/../helpers.php';
 start_session_safe();
 init_error_handling();
@@ -174,10 +178,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         // 1) Ambil salary_index_amount
         $salary_index_amount = 0;
         $stmtIdx = $conn->prepare("
-            SELECT COALESCE(si.base_salary,0) AS base_idx
-              FROM anggota_sekolah a
-         LEFT JOIN salary_indices si ON a.salary_index_id=si.id
-             WHERE a.id=? LIMIT 1
+        SELECT COALESCE(si.base_salary,0) AS base_idx
+          FROM anggota_sekolah a
+     LEFT JOIN salary_indices si ON a.salary_index_id=si.id
+         WHERE a.id=? LIMIT 1
         ");
         $stmtIdx->bind_param("i", $id_anggota);
         $stmtIdx->execute();
@@ -186,6 +190,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         }
         $stmtIdx->close();
 
+        // === Ambil honor_jam_lebih ===
+        $honor_jam_lebih = 0.0;
+        $stmtJamLebih = $conn->prepare("
+    SELECT IFNULL(SUM(total_honor),0) AS honor
+    FROM kelebihan_jam_mengajar
+    WHERE id_anggota = ? AND bulan = ? AND tahun = ?
+");
+
+        $stmtJamLebih->bind_param("iii", $id_anggota, $bulan_int, $tahun);
+        $stmtJamLebih->execute();
+        $resJamLebih = $stmtJamLebih->get_result()->fetch_assoc();
+        $honor_jam_lebih = floatval($resJamLebih['honor'] ?? 0);
+        $stmtJamLebih->close();
+
+
         // siapkan nilai sementara agar bind_param menerima variabel
         $temp_earnings   = 0.0;
         $temp_deductions = 0.0;
@@ -193,9 +212,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
 
         // Reset revisi → draft
         $stmtReset = $conn->prepare("
-            UPDATE payroll
-               SET status='draft'
-             WHERE id_anggota=? AND bulan=? AND tahun=? AND status='revisi'
+        UPDATE payroll
+           SET status='draft'
+         WHERE id_anggota=? AND bulan=? AND tahun=? AND status='revisi'
         ");
         $stmtReset->bind_param("iii", $id_anggota, $bulan_int, $tahun);
         $stmtReset->execute();
@@ -204,31 +223,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         // 2) INSERT sementara ke payroll
         $status = 'final';
         $stmtPayroll = $conn->prepare("
-            INSERT INTO payroll
-              (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok,
-               salary_index_amount, total_pendapatan, total_potongan,
-               potongan_absensi, potongan_koperasi, gaji_bersih,
-               no_rekening, catatan, id_rekap_absensi, status)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO payroll
+          (id_anggota, bulan, tahun, tgl_payroll, gaji_pokok,
+           salary_index_amount, total_pendapatan, total_potongan,
+           potongan_absensi, potongan_koperasi, gaji_bersih,
+           no_rekening, catatan, id_rekap_absensi, status, honor_jam_lebih)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ");
         $stmtPayroll->bind_param(
-            "iiisdddddddssis",
-            $id_anggota,
-            $bulan_int,
-            $tahun,
-            $tgl_payroll,
-            $gaji_pokok,
-            $salary_index_amount,
-            $temp_earnings,
-            $temp_deductions,
-            $potongan_absensi,
-            $potongan_koperasi,
-            $temp_bersih,
-            $no_rekening,
-            $catatan,
-            $id_rekap_absensi,
-            $status
+            "iiisdddddddssisd",  // ← 16 chars now
+            $id_anggota,        // i
+            $bulan_int,         // i
+            $tahun,             // i
+            $tgl_payroll,       // s
+            $gaji_pokok,        // d
+            $salary_index_amount, // d
+            $temp_earnings,     // d
+            $temp_deductions,   // d
+            $potongan_absensi,  // d
+            $potongan_koperasi, // d
+            $temp_bersih,       // d
+            $no_rekening,       // s
+            $catatan,           // s
+            $id_rekap_absensi,  // i
+            $status,            // s
+            $honor_jam_lebih    // d
         );
+
         if (!$stmtPayroll->execute()) {
             throw new Exception("Gagal insert payroll: " . $stmtPayroll->error);
         }
@@ -238,9 +259,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         // 3) Copy detail payhead → payroll_detail
         if (!empty($_POST['payheads_ids'])) {
             $stmtDetail = $conn->prepare("
-                INSERT INTO payroll_detail
-                    (id_payroll, id_anggota, id_payhead, jenis, amount, status)
-                VALUES (?,?,?,?,?, 'final')
+            INSERT INTO payroll_detail
+                (id_payroll, id_anggota, id_payhead, jenis, amount, status)
+            VALUES (?,?,?,?,?, 'final')
             ");
             foreach ($_POST['payheads_ids'] as $i => $ph_id) {
                 $ph_id_int = intval($ph_id);
@@ -256,15 +277,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
 
         // 4) Hitung total pendapatan & potongan
         $stmtSum = $conn->prepare("
-            SELECT
-              SUM(CASE WHEN pd.jenis='earnings'   THEN pd.amount ELSE 0 END) AS total_earnings,
-              SUM(CASE WHEN pd.jenis='deductions' THEN pd.amount ELSE 0 END) AS total_deductions
-            FROM payroll_detail pd
-            LEFT JOIN employee_payheads ep
-                   ON ep.id_anggota = pd.id_anggota
-                  AND ep.id_payhead = pd.id_payhead
-            WHERE pd.id_payroll = ?
-              AND IFNULL(ep.is_rapel,0)=0
+        SELECT
+          SUM(CASE WHEN pd.jenis='earnings'   THEN pd.amount ELSE 0 END) AS total_earnings,
+          SUM(CASE WHEN pd.jenis='deductions' THEN pd.amount ELSE 0 END) AS total_deductions
+        FROM payroll_detail pd
+        LEFT JOIN employee_payheads ep
+               ON ep.id_anggota = pd.id_anggota
+              AND ep.id_payhead = pd.id_payhead
+        WHERE pd.id_payroll = ?
+          AND IFNULL(ep.is_rapel,0)=0
         ");
         $stmtSum->bind_param("i", $newPayrollId);
         $stmtSum->execute();
@@ -274,32 +295,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['ajax'])) {
         $total_earnings   = floatval($resSum['total_earnings']   ?? 0);
         $total_deductions = floatval($resSum['total_deductions'] ?? 0);
         $gaji_bersih      = $gaji_pokok
-                          + $salary_index_amount
-                          + $total_earnings
-                          - $total_deductions
-                          - $potongan_koperasi;
+            + $salary_index_amount
+            + $honor_jam_lebih          // <----- tambahkan honor_jam_lebih di hitung bersih
+            + $total_earnings
+            - $total_deductions
+            - $potongan_koperasi;
 
         // 5) UPDATE payroll dengan nilai final
         $stmtUpdate = $conn->prepare("
-    UPDATE payroll
-       SET total_pendapatan    = ?,
-           total_potongan      = ?,
-           potongan_absensi    = ?,
-           potongan_koperasi   = ?,
-           gaji_bersih         = ?,
-           salary_index_amount = ?
-     WHERE id = ?
-");
-$stmtUpdate->bind_param(
-    "ddddddi",
-    $total_earnings,    // d
-    $total_deductions,  // d
-    $potongan_absensi,  // d  ← ini!
-    $potongan_koperasi, // d
-    $gaji_bersih,       // d
-    $salary_index_amount,// d
-    $newPayrollId       // i
-);
+        UPDATE payroll
+           SET total_pendapatan    = ?,
+               total_potongan      = ?,
+               potongan_absensi    = ?,
+               potongan_koperasi   = ?,
+               gaji_bersih         = ?,
+               salary_index_amount = ?,
+               honor_jam_lebih     = ?
+         WHERE id = ?
+        ");
+        $stmtUpdate->bind_param(
+            "dddddddi",
+            $total_earnings,    // d
+            $total_deductions,  // d
+            $potongan_absensi,  // d
+            $potongan_koperasi, // d
+            $gaji_bersih,       // d
+            $salary_index_amount, // d
+            $honor_jam_lebih,   // d
+            $newPayrollId       // i
+        );
         if (!$stmtUpdate->execute()) {
             throw new Exception("Gagal update payroll: " . $stmtUpdate->error);
         }
@@ -307,10 +331,10 @@ $stmtUpdate->bind_param(
 
         // 6) INSERT atau UPDATE ke payroll_final
         $stmtExists = $conn->prepare("
-            SELECT id
-              FROM payroll_final
-             WHERE id_payroll_asal = ?
-             LIMIT 1
+        SELECT id
+          FROM payroll_final
+         WHERE id_payroll_asal = ?
+         LIMIT 1
         ");
         $stmtExists->bind_param("i", $newPayrollId);
         $stmtExists->execute();
@@ -319,20 +343,26 @@ $stmtUpdate->bind_param(
         if ($stmtExists->num_rows > 0) {
             $stmtExists->bind_result($id_payroll_final);
             $stmtExists->fetch();
+            // Update honor_jam_lebih jika perlu
             $stmtExists->close();
+
+            $stmtUpdatePf = $conn->prepare("UPDATE payroll_final SET honor_jam_lebih=? WHERE id=?");
+            $stmtUpdatePf->bind_param("di", $honor_jam_lebih, $id_payroll_final);
+            $stmtUpdatePf->execute();
+            $stmtUpdatePf->close();
         } else {
             $stmtExists->close();
             $stmtPf = $conn->prepare("
-                INSERT INTO payroll_final
-                  (id_payroll_asal, id_anggota, bulan, tahun, tgl_payroll,
-                   gaji_pokok, salary_index_amount,
-                   total_pendapatan, total_potongan, potongan_absensi,
-                   potongan_koperasi, gaji_bersih,
-                   no_rekening, catatan, id_rekap_absensi)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO payroll_final
+              (id_payroll_asal, id_anggota, bulan, tahun, tgl_payroll,
+               gaji_pokok, salary_index_amount, honor_jam_lebih,
+               total_pendapatan, total_potongan, potongan_absensi,
+               potongan_koperasi, gaji_bersih,
+               no_rekening, catatan, id_rekap_absensi)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ");
             $stmtPf->bind_param(
-                "iiiisddddddssis",
+                "iiiisddddddddssi",
                 $newPayrollId,
                 $id_anggota,
                 $bulan_int,
@@ -340,6 +370,7 @@ $stmtUpdate->bind_param(
                 $tgl_payroll,
                 $gaji_pokok,
                 $salary_index_amount,
+                $honor_jam_lebih,
                 $total_earnings,
                 $total_deductions,
                 $potongan_absensi,
@@ -349,6 +380,7 @@ $stmtUpdate->bind_param(
                 $catatan,
                 $id_rekap_absensi
             );
+
             if (!$stmtPf->execute()) {
                 throw new Exception("Gagal insert payroll_final: " . $stmtPf->error);
             }
@@ -358,16 +390,16 @@ $stmtUpdate->bind_param(
 
         // 7) Snapshot detail ke payroll_detail_final
         $stmtSnap = $conn->prepare("
-            INSERT IGNORE INTO payroll_detail_final
-            (id_payroll_final, id_payhead, nama_payhead, jenis, amount, is_rapel)
-            SELECT
-              ?, pd.id_payhead, ph.nama_payhead, pd.jenis, pd.amount, IFNULL(ep.is_rapel,0)
-            FROM payroll_detail pd
-            JOIN payheads ph ON ph.id = pd.id_payhead
-            LEFT JOIN employee_payheads ep
-              ON ep.id_payhead = pd.id_payhead
-             AND ep.id_anggota = pd.id_anggota
-            WHERE pd.id_payroll = ?
+        INSERT IGNORE INTO payroll_detail_final
+        (id_payroll_final, id_payhead, nama_payhead, jenis, amount, is_rapel)
+        SELECT
+          ?, pd.id_payhead, ph.nama_payhead, pd.jenis, pd.amount, IFNULL(ep.is_rapel,0)
+        FROM payroll_detail pd
+        JOIN payheads ph ON ph.id = pd.id_payhead
+        LEFT JOIN employee_payheads ep
+          ON ep.id_payhead = pd.id_payhead
+         AND ep.id_anggota = pd.id_anggota
+        WHERE pd.id_payroll = ?
         ");
         $stmtSnap->bind_param("ii", $id_payroll_final, $newPayrollId);
         if (!$stmtSnap->execute()) {
@@ -377,7 +409,6 @@ $stmtUpdate->bind_param(
 
         // 8) Commit & notifikasi
         $conn->commit();
-
 
         // Ambil data karyawan untuk notifikasi
         $stmtKar = $conn->prepare("SELECT nama, no_hp FROM anggota_sekolah WHERE id=? LIMIT 1");
@@ -392,6 +423,7 @@ $stmtUpdate->bind_param(
         $details  = "Finalisasi Payroll untuk Anggota $id_anggota periode $bulan_int-$tahun. "
             . "Pendapatan: " . formatNominal($total_earnings)
             . ", Potongan: " . formatNominal($total_deductions)
+            . ", Honor Kelebihan Jam: " . formatNominal($honor_jam_lebih)
             . ", Pot. Koperasi: " . formatNominal($potongan_koperasi)
             . ", Gaji Bersih: " . formatNominal($gaji_bersih);
         add_audit_log($conn, $user_nip, 'InsertPayroll', $details);
@@ -418,6 +450,7 @@ $stmtUpdate->bind_param(
         die("Error: " . $e->getMessage());
     }
 }
+
 
 
 /**
@@ -447,18 +480,23 @@ if ($bulan <= 0 || $tahun <= 0) {
 
 
 // Cek payroll, ambil juga potongan_koperasi
+// Ambil payroll draft terbaru untuk anggota ini
 $stmtCheck = $conn->prepare("
-  SELECT id, status, potongan_koperasi, potongan_absensi
+  SELECT id, status, potongan_koperasi, potongan_absensi, honor_jam_lebih
     FROM payroll
    WHERE id_anggota=? AND bulan=? AND tahun=?
+     AND status = 'draft'
+   ORDER BY tgl_payroll DESC
    LIMIT 1
 ");
+
 $stmtCheck->bind_param("iii", $id_anggota, $bulan, $tahun);
 $stmtCheck->execute();
 $resCheck = $stmtCheck->get_result();
 if ($resCheck->num_rows > 0) {
     $payroll = $resCheck->fetch_assoc();
     $stmtCheck->close();
+    $honor_jam_lebih = floatval($payroll['honor_jam_lebih'] ?? 0);
     $potongan_absensi  = floatval($payroll['potongan_absensi']  ?? 0);
     $potongan_koperasi = floatval($payroll['potongan_koperasi'] ?? 0);
     if ($payroll['status'] === 'final') {
@@ -470,6 +508,7 @@ if ($resCheck->num_rows > 0) {
     $stmtCheck->close();
     die("Payroll belum diproses oleh SDM.");
 }
+
 
 
 // Pastikan rekap_absensi ada
@@ -523,7 +562,6 @@ $totalPotongan   = 0;
 
 while ($r = $resPH->fetch_assoc()) {
     $payheads[] = $r;
-    // Jika rapel => skip
     if (!empty($r['is_rapel']) && $r['is_rapel'] == 1) {
         continue;
     }
@@ -533,7 +571,18 @@ while ($r = $resPH->fetch_assoc()) {
         $totalPotongan += floatval($r['amount'] ?? 0);
     }
 }
+
+// ------------------------------------
+// TAMBAHKAN BAGIAN INI
+// Honor Kelebihan Jam Mengajar = pendapatan (earnings)
+$totalPendapatan += floatval($honor_jam_lebih ?? 0);
+
+// Potongan Absensi = potongan (deductions)
+$totalPotongan += floatval($potongan_absensi ?? 0);
+// ------------------------------------
+
 $stmtPH->close();
+
 
 // Ambil data karyawan
 $stmtKar = $conn->prepare("SELECT * FROM anggota_sekolah WHERE id=? LIMIT 1");
@@ -621,6 +670,12 @@ $stmtKG->close();
         /* Ukuran font sedikit diperkecil */
         body {
             font-size: 0.8rem;
+        }
+
+        td.text-danger,
+        .table td.text-danger {
+            color: #dc3545 !important;
+            font-weight: bold !important;
         }
 
         #main-content {
@@ -781,21 +836,19 @@ $stmtKG->close();
                                         value="<?= number_format($salary_index_amount, 0, ',', '.') ?>" readonly>
                                 </div>
                                 <div class="mb-3">
-                                    <label><strong>Total Pendapatan (Payheads)</strong></label>
-                                    <input type="text" id="inputTotalEarnings" class="form-control currency-input non-editable" value="<?= htmlspecialchars($totalPendapatan); ?>" readonly>
+                                    <label><strong>Kelebihan Jam Mengajar</strong></label>
+                                    <input type="text" id="inputHonorJamLebih" class="form-control currency-input non-editable"
+                                        value="<?= number_format($honor_jam_lebih, 0, ',', '.'); ?>" readonly>
                                 </div>
-                                <div class="mb-3">
-                                    <label><strong>Total Potongan</strong></label>
-                                    <input type="text" id="inputTotalDeductions" class="form-control currency-input non-editable" value="<?= htmlspecialchars($totalPotongan); ?>" readonly>
-                                </div>
+
                                 <div class="mb-3">
                                     <label><strong>Potongan Absensi</strong></label>
                                     <input
-  type="text"
-  id="inputPotonganAbsensi"
-  class="form-control currency-input non-editable"
-  value="<?= htmlspecialchars($potongan_absensi); ?>"
-  readonly>
+                                        type="text"
+                                        id="inputPotonganAbsensi"
+                                        class="form-control currency-input non-editable"
+                                        value="<?= htmlspecialchars($potongan_absensi); ?>"
+                                        readonly>
                                 </div>
 
                                 <div class="mb-3">
@@ -806,6 +859,15 @@ $stmtKG->close();
                                         class="form-control currency-input"
                                         value="<?= htmlspecialchars(number_format($potongan_koperasi, 0, ',', '.')); ?>">
                                 </div>
+                                <div class="mb-3">
+                                    <label><strong>Total Pendapatan (Payheads)</strong></label>
+                                    <input type="text" id="inputTotalEarnings" class="form-control currency-input non-editable" value="<?= htmlspecialchars($totalPendapatan); ?>" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label><strong>Total Potongan</strong></label>
+                                    <input type="text" id="inputTotalDeductions" class="form-control currency-input non-editable text-danger fw-bold" value="<?= htmlspecialchars($totalPotongan); ?>" readonly>
+                                </div>
+
                                 <div class="mb-3">
                                     <label><strong>Estimasi Gaji Bersih</strong></label>
                                     <input type="text" id="inputNetSalary" class="form-control currency-input non-editable" value="<?= htmlspecialchars($gaji_bersih); ?>" readonly>
@@ -876,7 +938,9 @@ $stmtKG->close();
                                                 <tr>
                                                     <td class="non-editable"><?= htmlspecialchars($ph['nama_payhead']); ?></td>
                                                     <td class="non-editable"><?= htmlspecialchars(ucfirst($ph['jenis'])); ?></td>
-                                                    <td><?= number_format($ph['amount'], 0, ',', '.'); ?></td>
+                                                    <td class="<?= $ph['jenis'] === 'deductions' ? 'text-danger fw-bold' : ''; ?>">
+                                                        <?= number_format($ph['amount'], 0, ',', '.'); ?>
+                                                    </td>
                                                     <td class="non-editable"><?= htmlspecialchars($ph['status']); ?></td>
                                                     <td class="non-editable">
                                                         <?php if (!empty($ph['remarks'])): ?>
@@ -915,6 +979,7 @@ $stmtKG->close();
                                                         <?php endif; ?>
                                                     </td>
                                                 </tr>
+
                                             <?php endforeach; ?>
                                         </tbody>
 
@@ -1112,6 +1177,7 @@ $stmtKG->close();
             function recalcNetSalary() {
                 let gajiPokok = parseFloat(anGajiPokok.getNumber()) || 0;
                 let salaryIndex = parseFloat($('#inputSalaryIndex').val().replace(/\./g, '')) || 0;
+                let honorJamLebih = parseFloat($('#inputHonorJamLebih').val().replace(/\./g, '').replace(',', '.')) || 0;
                 let totalEarnings = parseFloat(anTotalEarnings.getNumber()) || 0;
                 let totalDeductions = parseFloat(anTotalDeductions.getNumber()) || 0;
                 let potAbsen = parseFloat(anPotAbsen.getNumber()) || 0;
@@ -1119,6 +1185,7 @@ $stmtKG->close();
 
                 let netSalary = gajiPokok +
                     salaryIndex +
+                    honorJamLebih + // <-- tambahkan ini!
                     totalEarnings -
                     totalDeductions -
                     potAbsen -
@@ -1126,6 +1193,7 @@ $stmtKG->close();
 
                 anNetSalary.set(netSalary);
             }
+
             $('#inputPotonganKoperasi').on('input', recalcNetSalary);
             recalcNetSalary();
 

@@ -337,14 +337,19 @@ function renderCollapseMenu(string $id, string $iconClass, string $title, array 
                         <i class="fas fa-users-cog"></i><span>Kelola Guru/Karyawan</span>
                     </a>
                 </li>
+                <li class="nav-item <?= isActive('/sdm/payheads.php'); ?>">
+                    <a class="nav-link" href="<?= getBaseUrl(); ?>/sdm/payheads.php">
+                        <i class="fas fa-layer-group"></i><span>Komponen Gaji</span>
+                    </a>
+                </li>
                 <li class="nav-item <?= isActive('/sdm/employees.php'); ?>">
                     <a class="nav-link" href="<?= getBaseUrl(); ?>/sdm/employees.php">
                         <i class="fas fa-money-check-alt"></i><span>Payroll Anggota</span>
                     </a>
                 </li>
-                <li class="nav-item <?= isActive('/sdm/payheads.php'); ?>">
-                    <a class="nav-link" href="<?= getBaseUrl(); ?>/sdm/payheads.php">
-                        <i class="fas fa-layer-group"></i><span>Komponen Gaji</span>
+                <li class="nav-item <?= isActive('/sdm/kelebihan_jam_mengajar.php'); ?>">
+                    <a class="nav-link" href="<?= getBaseUrl(); ?>/sdm/kelebihan_jam_mengajar.php">
+                        <i class="fas fa-layer-group"></i><span>Kelebihan Jam Mengajar</span>
                     </a>
                 </li>
                 <li class="nav-item <?= isActive('/sdm/laporan_pengajuan_ijin.php'); ?>">
