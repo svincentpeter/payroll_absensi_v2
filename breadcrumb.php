@@ -34,7 +34,7 @@ $menuStructure = [
         'items' => [
             'Dashboard SDM'           => '/sdm/dashboard_sdm.php',
             'Audit Logs SDM'          => '/sdm/audit_logs_sdm.php',
-            'Dashboard Employees'     => '/sdm/employees.php',
+            'Payroll Anggota'         => '/sdm/employees.php',
             'History Anggota Sekolah' => '/sdm/history_anggota_sekolah.php',
             'Holidays'                => '/sdm/holidays.php',
             'Input Jadwal Piket Guru' => '/sdm/input_jadwal_piket_guru.php',
@@ -45,7 +45,8 @@ $menuStructure = [
             'Manage Groups'           => '/sdm/manage_groups.php',
             'Manage Guru Karyawan'    => '/sdm/manage_guru_karyawan.php',
             'Manage Salary Indices'   => '/sdm/manage_salary_indices.php',
-            'Payheads'                => '/sdm/payheads.php',
+            'Komponen Gaji'            => '/sdm/payheads.php',
+            'Kelebihan Jam Mengajar'  => '/sdm/kelebihan_jam_mengajar.php',
             'Payroll Page'            => '/sdm/payroll_page.php',
             'Pembuatan Surat'         => '/sdm/pembuatan_surat.php',
             'Template Surat'          => '/sdm/template_surat.php',
@@ -65,6 +66,8 @@ $menuStructure = [
             'Rekap Payroll'            => '/keuangan/rekap_payroll.php',
             'Rekap Payroll Details'    => '/keuangan/rekap_payroll_details.php',
             'Rekap Payroll Jenjang'    => '/keuangan/rekap_payroll_jenjang.php',
+            'Potongan Ketidakhadiran'    => '/keuangan/potongan_tidak_hadir.php',
+            'Manage Ranking Kenaikan Gaji'    => '/keuangan/manage_ranking_kenaikan.php',
         ],
     ],
     'Anggota' => [

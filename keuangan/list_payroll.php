@@ -692,14 +692,6 @@ if ($stmtRole) {
                     <!-- End Grid Container -->
                 </div> <!-- End .container-fluid -->
             </div> <!-- End #content -->
-
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>&copy; <?= date("Y"); ?> Payroll Management System</span>
-                    </div>
-                </div>
-            </footer>
         </div> <!-- End #content-wrapper -->
     </div> <!-- End #wrapper -->
 

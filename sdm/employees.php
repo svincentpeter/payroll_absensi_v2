@@ -511,13 +511,6 @@ if (isset($_GET['empcode']) && intval($_GET['empcode']) > 0) {
                     </div>
                 </div><!-- /.container-fluid -->
             </div><!-- /#content -->
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
-                    </div>
-                </div>
-            </footer>
         </div><!-- /#content-wrapper -->
     </div><!-- /#wrapper -->
 

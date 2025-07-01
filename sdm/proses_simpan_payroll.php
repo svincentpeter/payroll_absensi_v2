@@ -9,8 +9,8 @@ init_error_handling();
 authorize(['M:SDM']);
 
 function getJenisPayhead($id_payhead, $conn) {
-    $jenis = null;
-    $stmt = $conn->prepare("SELECT jenis FROM payheads WHERE id = ?");
+    $jenis = null;                    // ← add this line
+    $stmt  = $conn->prepare("SELECT jenis FROM payheads WHERE id = ?");
     $stmt->bind_param("i", $id_payhead);
     $stmt->execute();
     $stmt->bind_result($jenis);
@@ -19,66 +19,86 @@ function getJenisPayhead($id_payhead, $conn) {
     return $jenis;
 }
 
-$id_anggota   = intval($_POST['empcode']);
-$bulan        = intval($_POST['selectedMonth']);
-$tahun        = intval($_POST['selectedYear']);
-$no_rekening  = trim($_POST['no_rekening'] ?? '');
-$catatan      = trim($_POST['catatan'] ?? '');
 
-// **Perubahan: jika tgl_payroll kosong atau tidak dikirim, gunakan waktu sekarang**
+// 1. Ambil input dasar
+$id_anggota      = intval($_POST['empcode']       ?? 0);
+$bulan           = intval($_POST['selectedMonth'] ?? 0);
+$tahun           = intval($_POST['selectedYear']  ?? 0);
+$no_rekening     = trim($_POST['no_rekening']     ?? '');
+$catatan         = trim($_POST['catatan']         ?? '');
+
+// Tanggal payroll: pakai POST atau sekarang
 if (!empty($_POST['tgl_payroll']) && trim($_POST['tgl_payroll']) !== '') {
     $tgl_payroll = trim($_POST['tgl_payroll']);
 } else {
     $tgl_payroll = date('Y-m-d H:i:s');
 }
 
-// Tambahan: parsing potongan_absensi dari POST
-$potongan_absensi = 0;
-if (isset($_POST['potongan_absensi'])) {
-    $potongan_absensi = intval(str_replace('.', '', $_POST['potongan_absensi']));
-}
+// Potongan absensi (hilangkan titik ribuan)
+$potongan_absensi = isset($_POST['potongan_absensi'])
+    ? intval(str_replace('.', '', $_POST['potongan_absensi']))
+    : 0;
 
-// 1. Upsert payroll DRAFT, tambahkan potongan_absensi
-$q = "INSERT INTO payroll (id_anggota, bulan, tahun, no_rekening, catatan, tgl_payroll, potongan_absensi, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'draft')
-      ON DUPLICATE KEY UPDATE 
-        no_rekening=VALUES(no_rekening), 
-        catatan=VALUES(catatan), 
-        tgl_payroll=VALUES(tgl_payroll), 
-        potongan_absensi=VALUES(potongan_absensi),
-        status='draft'";
-$stmt = $conn->prepare($q);
-$stmt->bind_param('iiisssi',
-    $id_anggota,       // i
-    $bulan,            // i
-    $tahun,            // i
-    $no_rekening,      // s
-    $catatan,          // s
-    $tgl_payroll,      // s
-    $potongan_absensi  // i
+// 2. Upsert payroll DRAFT
+//   asumsi sudah ada UNIQUE KEY (id_anggota,bulan,tahun,status)
+$sql = "
+  INSERT INTO payroll
+    (id_anggota, bulan, tahun,
+     no_rekening, catatan, tgl_payroll,
+     potongan_absensi, status)
+  VALUES
+    (?, ?, ?, ?, ?, ?, ?, 'draft')
+  ON DUPLICATE KEY UPDATE
+    no_rekening      = VALUES(no_rekening),
+    catatan          = VALUES(catatan),
+    tgl_payroll      = VALUES(tgl_payroll),
+    potongan_absensi = VALUES(potongan_absensi),
+    status           = 'draft'
+";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param(
+  'iiisssi',
+  $id_anggota,
+  $bulan,
+  $tahun,
+  $no_rekening,
+  $catatan,
+  $tgl_payroll,
+  $potongan_absensi
 );
 $stmt->execute();
 $stmt->close();
 
-// 2. Ambil ID payroll draft
+// 3. Ambil ID payroll draft (insert_id = 0 jika update)
 $id_payroll = $conn->insert_id;
-if ($id_payroll == 0) {
-    $rs = $conn->query("SELECT id FROM payroll WHERE id_anggota=$id_anggota AND bulan=$bulan AND tahun=$tahun AND status='draft'");
-    $row = $rs->fetch_assoc();
-    $id_payroll = intval($row['id'] ?? 0);
+if ($id_payroll === 0) {
+    $rs = $conn->prepare("
+      SELECT id FROM payroll
+       WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND status = 'draft'
+       LIMIT 1
+    ");
+    $rs->bind_param('iii', $id_anggota, $bulan, $tahun);
+    $rs->execute();
+    $rs->bind_result($id_payroll);
+    $rs->fetch();
+    $rs->close();
 }
 
-// 3. Simpan Employee Payheads
+// 4. Simpan komponen payheads DRAFT
 $pay_amounts = json_decode($_POST['pay_amounts'], true) ?? [];
-$remarks     = $_POST['remarks'] ?? [];
+$remarks     = $_POST['remarks']     ?? [];
 $rapels      = json_decode($_POST['rapels'], true) ?? [];
 
 if ($id_payroll > 0) {
-    // Hapus dulu data lama (draft)
-    $conn->query("DELETE FROM employee_payheads WHERE id_anggota=$id_anggota AND status='draft'");
+    // Hapus dulu semua draft lama
+    $conn->query("
+      DELETE FROM employee_payheads
+       WHERE id_anggota = {$id_anggota}
+         AND status     = 'draft'
+    ");
 
-    // Path upload
-    $uploadRoot = dirname(__DIR__, 1) . "/uploads/payroll_docs";
+    // Siapkan direktori upload
+    $uploadRoot = __DIR__ . "/../../uploads/payroll_docs";
     $dbRoot     = "/uploads/payroll_docs";
 
     foreach ($pay_amounts as $id_payhead => $amount) {
@@ -86,117 +106,127 @@ if ($id_payroll > 0) {
         $remark   = trim($remarks[$id_payhead] ?? '');
         $is_rapel = intval($rapels[$id_payhead] ?? 0);
 
-        // Upload handling
-        $uploadDir   = "{$uploadRoot}/{$id_anggota}/{$tahun}_{$bulan}/";
-        $dbUploadDir = "{$dbRoot}/{$id_anggota}/{$tahun}_{$bulan}/";
-
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0775, true);
+        // Persiapkan path
+        $dirLocal  = "{$uploadRoot}/{$id_anggota}/{$tahun}_{$bulan}/";
+        $dirDB     = "{$dbRoot}/{$id_anggota}/{$tahun}_{$bulan}/";
+        if (!is_dir($dirLocal)) {
+            mkdir($dirLocal, 0775, true);
         }
 
         $docPath = null;
-        if (!empty($_FILES["upload_file"]["name"][$id_payhead])) {
-            $filename   = basename($_FILES["upload_file"]["name"][$id_payhead]);
-            $ext        = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-            $unique     = time() . rand(1000, 9999);
-            $newName    = "payhead_{$id_anggota}_{$id_payhead}_{$tahun}{$bulan}_{$unique}.{$ext}";
-            $targetFile = $uploadDir . $newName;
-            if (move_uploaded_file($_FILES["upload_file"]["tmp_name"][$id_payhead], $targetFile)) {
-                $docPath = $dbUploadDir . $newName;
+        if (!empty($_FILES['upload_file']['name'][$id_payhead])) {
+            $fn      = basename($_FILES['upload_file']['name'][$id_payhead]);
+            $ext     = strtolower(pathinfo($fn, PATHINFO_EXTENSION));
+            $uniq    = time() . rand(1000,9999);
+            $newName = "payhead_{$id_anggota}_{$id_payhead}_{$tahun}{$bulan}_{$uniq}.{$ext}";
+            $tolocal = $dirLocal . $newName;
+            if (move_uploaded_file($_FILES['upload_file']['tmp_name'][$id_payhead], $tolocal)) {
+                $docPath = $dirDB . $newName;
             }
         }
 
-        $q2 = "INSERT INTO employee_payheads 
-               (id_anggota, id_payhead, jenis, amount, status, remarks, support_doc_path, is_rapel)
-               VALUES (?, ?, ?, ?, 'draft', ?, ?, ?)";
-        $stmt2 = $conn->prepare($q2);
-        $stmt2->bind_param('iisdsis',
-            $id_anggota,
-            $id_payhead,
-            $jenis,
-            $amount,
-            $remark,
-            $docPath,
-            $is_rapel
+        $sql2 = "
+          INSERT INTO employee_payheads
+            (id_anggota, id_payhead, jenis, amount,
+             status, remarks, support_doc_path, is_rapel)
+          VALUES
+            (?, ?, ?, ?, 'draft', ?, ?, ?)
+        ";
+        $st2 = $conn->prepare($sql2);
+        $st2->bind_param(
+          'iisdsis',
+          $id_anggota,
+          $id_payhead,
+          $jenis,
+          $amount,
+          $remark,
+          $docPath,
+          $is_rapel
         );
-        $stmt2->execute();
-        $stmt2->close();
+        $st2->execute();
+        $st2->close();
     }
 }
 
-// 4. Simpan Kenaikan Gaji Tahunan
-if (isset($_POST['chkKenaikanGajiTahunan'])) {
-    $nama_kenaikan = trim($_POST['nama_kenaikan'] ?? '');
-    $nominal_kenaikan = floatval(str_replace(['.', ','], ['', '.'], $_POST['nominal_kenaikan'] ?? 0));
-    $tanggal_mulai = sprintf('%04d-%02d-01', $tahun, $bulan);
-    $tanggal_berakhir = date('Y-m-d', strtotime('+1 year -1 day', strtotime($tanggal_mulai)));
-
-    $stmtCek = $conn->prepare("
-        SELECT id 
-          FROM kenaikan_gaji_tahunan 
-         WHERE id_anggota=? 
-           AND status='aktif' 
-           AND tanggal_mulai<=? 
-           AND tanggal_berakhir>=? 
-         LIMIT 1
+// 5. Simpan Kenaikan Gaji Tahunan (cek dulu ada yg aktif?)
+if (!empty($_POST['chkKenaikanGajiTahunan'])) {
+    $rid = intval($_POST['ranking_id'] ?? 0);
+    if ($rid <= 0) {
+        send_response(1, 'Ranking kenaikan wajib dipilih.');
+    }
+    // cek duplikasi
+    $tglMulai = date('Y-m-d', strtotime($tgl_payroll));
+    $tglAkhir = date('Y-m-d', strtotime("$tglMulai +1 year -1 day"));
+    $chk = $conn->prepare("
+      SELECT id FROM kenaikan_gaji_tahunan
+       WHERE id_anggota = ? AND status='aktif'
+         AND tanggal_mulai <= ? AND tanggal_berakhir >= ?
+       LIMIT 1
     ");
-    $stmtCek->bind_param('iss', $id_anggota, $tanggal_mulai, $tanggal_mulai);
-    $stmtCek->execute();
-    $stmtCek->store_result();
-
-    if ($stmtCek->num_rows == 0) {
-        $stmtIns = $conn->prepare("
-            INSERT INTO kenaikan_gaji_tahunan 
-            (id_anggota, nama_kenaikan, jumlah, tanggal_mulai, tanggal_berakhir, status, dibuat_pada) 
-            VALUES (?, ?, ?, ?, ?, 'aktif', NOW())
+    $chk->bind_param('iss', $id_anggota, $tglAkhir, $tglMulai);
+    $chk->execute();
+    $chk->store_result();
+    if ($chk->num_rows === 0) {
+        // ambil nama & jumlah dari ranking
+        $row = $conn->query("SELECT nama_ranking, jumlah FROM ranking_kenaikan WHERE id={$rid} LIMIT 1")
+                    ->fetch_assoc();
+        if (!$row) {
+            send_response(1, 'Ranking tidak valid.');
+        }
+        $nama  = $conn->real_escape_string($row['nama_ranking']);
+        $jumlah= floatval($row['jumlah']);
+        $ins = $conn->prepare("
+          INSERT INTO kenaikan_gaji_tahunan
+            (id_anggota, nama_kenaikan, jumlah,
+             tanggal_mulai, tanggal_berakhir,
+             status, ranking_id, dibuat_pada)
+          VALUES
+            (?, ?, ?, ?, ?, 'aktif', ?, NOW())
         ");
-        $stmtIns->bind_param('isdss', $id_anggota, $nama_kenaikan, $nominal_kenaikan, $tanggal_mulai, $tanggal_berakhir);
-        $stmtIns->execute();
-        $stmtIns->close();
-    } else {
-        $stmtUpd = $conn->prepare("
-            UPDATE kenaikan_gaji_tahunan 
-               SET nama_kenaikan=?, jumlah=? 
-             WHERE id_anggota=? 
-               AND status='aktif' 
-               AND tanggal_mulai<=? 
-               AND tanggal_berakhir>=?
-        ");
-        $stmtUpd->bind_param('sdiss', $nama_kenaikan, $nominal_kenaikan, $id_anggota, $tanggal_mulai, $tanggal_mulai);
-        $stmtUpd->execute();
-        $stmtUpd->close();
+        $ins->bind_param(
+          'isssii',
+          $id_anggota,
+          $nama,
+          $jumlah,
+          $tglMulai,
+          $tglAkhir,
+          $rid
+        );
+        $ins->execute();
+        $ins->close();
     }
-    $stmtCek->close();
+    $chk->close();
 }
 
-// 5. Update honor_jam_lebih dari tabel kelebihan_jam_mengajar (DRAFT payroll)
-// --------------- MODIFIKASI DIMULAI DI SINI ---------------
-$honorJamLebih = 0;
-$stmtHon = $conn->prepare("
-    SELECT SUM(total_honor) AS honor_jam_lebih
+// 6. Update honor_jam_lebih di header payroll
+$stmtH = $conn->prepare("
+  SELECT SUM(total_honor) AS honor_jam_lebih
     FROM kelebihan_jam_mengajar
-    WHERE id_anggota = ?
-      AND bulan = ?
-      AND tahun = ?
-      AND is_final = 1
+   WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND is_final = 1
 ");
-$stmtHon->bind_param("iii", $id_anggota, $bulan, $tahun);
-$stmtHon->execute();
-$resHon = $stmtHon->get_result();
-if ($rowHon = $resHon->fetch_assoc()) {
-    $honorJamLebih = floatval($rowHon['honor_jam_lebih']);
-}
-$stmtHon->close();
+$stmtH->bind_param('iii', $id_anggota, $bulan, $tahun);
+$stmtH->execute();
+$resH = $stmtH->get_result()->fetch_assoc();
+$stmtH->close();
 
-$stmtUpd = $conn->prepare("
-    UPDATE payroll
-       SET honor_jam_lebih = ?
-     WHERE id = ?
+$hjl = floatval($resH['honor_jam_lebih'] ?? 0);
+$upd = $conn->prepare("
+  UPDATE payroll
+     SET honor_jam_lebih = ?
+   WHERE id = ?
 ");
-$stmtUpd->bind_param('di', $honorJamLebih, $id_payroll);
-$stmtUpd->execute();
-$stmtUpd->close();
-// --------------- MODIFIKASI SELESAI DI SINI ---------------
+$upd->bind_param('di', $hjl, $id_payroll);
+$upd->execute();
+$upd->close();
 
-// 6. Return success
-echo json_encode(['code' => 0, 'result' => 'Payroll draft berhasil disimpan!']);
+// 7. Generate semua detail (panggil SP)
+$sp = $conn->prepare("CALL sp_generate_payroll(?,?)");
+$sp->bind_param('ii', $bulan, $tahun);
+$sp->execute();
+$sp->close();
+
+// 8. Selesai
+echo json_encode([
+    'code'   => 0,
+    'result' => 'Payroll draft berhasil disimpan!'
+]);

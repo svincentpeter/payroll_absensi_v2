@@ -227,9 +227,6 @@ if (isset($_GET['ajax']) && $_GET['ajax']=='1') {
 
     </div>
     </div>
-    <footer class="sticky-footer bg-white py-2">
-        <div class="container text-center"><small>&copy; <?= date('Y') ?> Payroll System</small></div>
-    </footer>
 </div>
 </div>
 <div id="loadingSpinner"><div class="spinner-border text-primary"></div></div>

@@ -770,11 +770,6 @@ if (!empty($paramsKal)) {
 
         </div>
       </div>
-      <footer class="sticky-footer bg-white">
-        <div class="container my-auto text-center">
-          <span>&copy; <?= date("Y"); ?> Sistem Nusaputera</span>
-        </div>
-      </footer>
     </div>
   </div>
 

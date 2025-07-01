@@ -344,13 +344,6 @@ function DeletePotonganTidakHadir($conn)
     </div>
 </div>
 </div>
-<footer class="sticky-footer bg-white">
-    <div class="container my-auto">
-        <div class="copyright text-center my-auto">
-            <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
-        </div>
-    </div>
-</footer>
 </div>
 </div>
 

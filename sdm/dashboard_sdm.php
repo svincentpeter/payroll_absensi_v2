@@ -373,12 +373,6 @@ $monthNames = [
           </div>
         </div> <!-- /.container-fluid -->
       </div> <!-- /#content -->
-
-      <footer class="sticky-footer bg-white">
-        <div class="container text-center my-auto">
-          &copy; <?= date("Y") ?> Payroll Management System | Developed By [Nama Anda]
-        </div>
-      </footer>
     </div> <!-- /#content-wrapper -->
   </div> <!-- /#wrapper -->
 

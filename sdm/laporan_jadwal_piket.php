@@ -422,10 +422,6 @@
 
         </div>
         </div>
-
-        <footer class="sticky-footer bg-white py-2">
-        <div class="container text-center"><small>&copy; <?= date('Y') ?> Payroll System</small></div>
-        </footer>
     </div>
     </div>
 

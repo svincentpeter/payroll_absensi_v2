@@ -363,14 +363,6 @@ add_audit_log($conn, $user_nip, 'AccessAuditLogs', 'Mengakses halaman Audit Logs
             </div>
             <!-- End of Main Content -->
 
-            <!-- Footer -->
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>&copy; <?php echo date("Y"); ?> Payroll Management System</span>
-                    </div>
-                </div>
-            </footer>
         </div>
         <!-- End of Content Wrapper -->
     </div>

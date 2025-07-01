@@ -316,9 +316,6 @@ function DeleteRanking($conn)
         </div>
       </div>
     </div>
-    <footer class="sticky-footer bg-white">
-      <div class="container text-center">&copy; <?= date('Y') ?> Payroll System</div>
-    </footer>
   </div>
 </div>
 

@@ -572,17 +572,6 @@ $gajiBulananBersih_json  = json_encode($gajiBulananBersih, JSON_UNESCAPED_SLASHE
                 </div>
                 <!-- /.container-fluid -->
             </div>
-            <!-- End of Main Content -->
-
-            <!-- Footer -->
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>&copy; <?= date("Y") ?> Payroll Management System | Developed By [Nama Anda]</span>
-                    </div>
-                </div>
-            </footer>
-            <!-- End of Footer -->
         </div>
         <!-- End of Content Wrapper -->
     </div>
