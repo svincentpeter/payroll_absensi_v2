@@ -2,6 +2,10 @@
     // File: helpers.php
     require_once __DIR__ . '/sdm/includes/mgk_salary_handler.php';
     require_once __DIR__ . '/sdm/includes/mgk_date_utils.php';
+
+    if (!defined('PAYHEAD_ANNUAL_INC')) {
+    define('PAYHEAD_ANNUAL_INC','ANNUAL_INC');
+}
     // Warna untuk semua badge, terpusat di satu tempat:
     $GLOBALS['BADGE_COLORS'] = [
         'status_kerja' => [

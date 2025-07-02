@@ -572,14 +572,19 @@ while ($r = $resPH->fetch_assoc()) {
     }
 }
 
-// ------------------------------------
-// TAMBAHKAN BAGIAN INI
-// Honor Kelebihan Jam Mengajar = pendapatan (earnings)
-$totalPendapatan += floatval($honor_jam_lebih ?? 0);
 
-// Potongan Absensi = potongan (deductions)
-$totalPotongan += floatval($potongan_absensi ?? 0);
 // ------------------------------------
+// Honor Kelebihan Jam Mengajar = earnings (sudah ada)
+$totalPendapatan  += floatval($honor_jam_lebih ?? 0);
+// Potongan Absensi = deductions (sudah ada)
+$totalPotongan    += floatval($potongan_absensi ?? 0);
+
+// **Tambahkan Kenaikan Gaji Tahunan**:
+if (!empty($kgData['jumlah'])) {
+    $totalPendapatan += floatval($kgData['jumlah']);
+}
+// ------------------------------------
+
 
 $stmtPH->close();
 
@@ -650,6 +655,13 @@ $stmtKG->execute();
 $resultKG = $stmtKG->get_result();
 $kgData    = $resultKG->fetch_assoc();
 $stmtKG->close();
+
+// Baru hitung pendapatan + potongan:
+$totalPendapatan  += floatval($honor_jam_lebih);
+$totalPotongan    += floatval($potongan_absensi);
+if (!empty($kgData['jumlah'])) {
+    $totalPendapatan += floatval($kgData['jumlah']);
+}
 
 ?>
 <!DOCTYPE html>
@@ -754,6 +766,7 @@ $stmtKG->close();
         const TOTAL_EARNINGS = <?= $totalPendapatan; ?>;
         const TOTAL_DEDUCTIONS = <?= $totalPotongan; ?>;
     </script>
+    
 </head>
 
 <body data-page="<?= htmlspecialchars($pageId); ?>">
@@ -1030,6 +1043,13 @@ $stmtKG->close();
                 </div>
             </div><!-- /.container-fluid -->
         </div><!-- /#content -->
+        <footer class="sticky-footer bg-white">
+            <div class="container my-auto">
+                <div class="copyright text-center my-auto">
+                    <span>&copy; <?= date("Y"); ?> Payroll Management System | Developed By [Nama Anda]</span>
+                </div>
+            </div>
+        </footer>
     </div><!-- /#content-wrapper -->
 
     <!-- MODAL: Edit Payhead -->
@@ -1172,13 +1192,16 @@ $stmtKG->close();
                 let salaryIndex = parseFloat($('#inputSalaryIndex').val().replace(/\./g, '')) || 0;
                 let honorJamLebih = parseFloat($('#inputHonorJamLebih').val().replace(/\./g, '').replace(',', '.')) || 0;
                 let totalEarnings = parseFloat(anTotalEarnings.getNumber()) || 0;
+                let kenaikanTahunan = <?= floatval($kgData['jumlah'] ?? 0) ?>; // <— tambahkan ini
                 let totalDeductions = parseFloat(anTotalDeductions.getNumber()) || 0;
                 let potAbsen = parseFloat(anPotAbsen.getNumber()) || 0;
                 let potKoperasi = parseFloat(anPotKop.getNumber()) || 0;
 
                 let netSalary = gajiPokok +
                     salaryIndex +
-                    honorJamLebih + // <-- tambahkan ini!
+                    honorJamLebih +
+                    kenaikanTahunan // <— disini
+                    +
                     totalEarnings -
                     totalDeductions -
                     potAbsen -
@@ -1186,6 +1209,7 @@ $stmtKG->close();
 
                 anNetSalary.set(netSalary);
             }
+
 
             $('#inputPotonganKoperasi').on('input', recalcNetSalary);
             recalcNetSalary();

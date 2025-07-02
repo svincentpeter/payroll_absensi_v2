@@ -3,16 +3,6 @@
 
 require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/../koneksi.php';
-
-// Ambil ID payhead untuk Kenaikan Gaji Tahunan (code = 'ANNUAL_INC')
-$rowInc = $conn->query("
-    SELECT id 
-      FROM payheads 
-     WHERE code = 'ANNUAL_INC' 
-     LIMIT 1
-")->fetch_assoc();
-$annualIncPayheadId = intval($rowInc['id'] ?? 0);
-
 start_session_safe();
 init_error_handling();
 generate_csrf_token();
@@ -56,15 +46,16 @@ if ($empcode > 0) {
 
     // 3. Cek kenaikan gaji tahunan aktif (hanya yang aktif & masa berlaku masih berlaku)
     // GUNAKAN TANGGAL PERIODE PAYROLL (BUKAN SEKARANG)
-    $periodePayroll = sprintf('%04d-%02d-01', $selectedYear, $selectedMonth);
-    $stmtKg = $conn->prepare("SELECT * FROM kenaikan_gaji_tahunan 
-    WHERE id_anggota = ? AND status = 'aktif' 
-    AND tanggal_mulai <= ? AND tanggal_berakhir >= ?
-    ORDER BY tanggal_mulai DESC LIMIT 1");
-    $stmtKg->bind_param('iss', $empcode, $periodePayroll, $periodePayroll);
-    $stmtKg->execute();
-    $kgData = $stmtKg->get_result()->fetch_assoc();
-    $stmtKg->close();
+$periodePayroll = sprintf('%04d-%02d-01', $selectedYear, $selectedMonth);
+$stmtKg = $conn->prepare("SELECT * FROM kenaikan_gaji_tahunan 
+   WHERE id_anggota = ? AND status = 'aktif' 
+   AND tanggal_mulai <= ? AND tanggal_berakhir >= ?
+   ORDER BY tanggal_mulai DESC LIMIT 1");
+$stmtKg->bind_param('iss', $empcode, $periodePayroll, $periodePayroll);
+$stmtKg->execute();
+$kgData = $stmtKg->get_result()->fetch_assoc();
+$stmtKg->close();
+
 }
 
 // 4. Ambil data anggota
@@ -114,12 +105,13 @@ if ($empcode > 0) {
     FROM kelebihan_jam_mengajar
     WHERE id_anggota=? AND bulan=? AND tahun=? AND is_final=1
 ");
-    $qJam->bind_param("iii", $empcode, $selectedMonth, $selectedYear);
-    $qJam->execute();
-    $resJam = $qJam->get_result()->fetch_assoc();
-    $totalJamExtra = floatval($resJam['total_jam'] ?? 0);
-    $totalHonorJamLebih = floatval($resJam['total_honor'] ?? 0);
-    $qJam->close();
+$qJam->bind_param("iii", $empcode, $selectedMonth, $selectedYear);
+$qJam->execute();
+$resJam = $qJam->get_result()->fetch_assoc();
+$totalJamExtra = floatval($resJam['total_jam'] ?? 0);
+$totalHonorJamLebih = floatval($resJam['total_honor'] ?? 0);
+$qJam->close();
+
 }
 
 $estimasiHonorJamLebih = $totalHonorJamLebih;
@@ -266,14 +258,13 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
         }
     </style>
     <script>
-        const CSRF_TOKEN = <?= json_encode($csrf_token) ?>;
+        const CSRF_TOKEN = '<?= htmlspecialchars($csrf_token); ?>';
         // Prefill data dari PHP (sudah di-escape json)
         const payrollDraft = <?= json_encode($payrollDraft); ?>;
         const payheadDraft = <?= json_encode($payheadDraft); ?>;
         const kgData = <?= json_encode($kgData); ?>;
         const anggota = <?= json_encode($anggota); ?>;
         const daftarRanking = <?= json_encode($daftarRanking); ?>;
-        const ANNUAL_INC_ID = <?= json_encode($annualIncPayheadId) ?>;
     </script>
 
 </head>
@@ -329,18 +320,21 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                                                     <input type="text" class="form-control" id="fieldMasaKerja" value="<?= htmlspecialchars($anggota['masa_kerja'] ?? '') ?>" readonly>
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label>No. Rekening</label>
-                                                    <input type="text" class="form-control" id="inputNoRek" name="no_rekening" value="<?= htmlspecialchars($payroll['no_rekening'] ?? $anggota['no_rekening'] ?? '') ?>">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label>Tanggal Payroll</label>
-                                                    <input type="datetime-local" class="form-control" id="inputTanggalPayroll" name="tgl_payroll"
-                                                        value="<?= htmlspecialchars($tgl_payroll_value) ?>" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label>Catatan Payroll</label>
-                                                    <textarea class="form-control" id="inputDescription" name="catatan" rows="3" placeholder="Tambahkan catatan..."><?= htmlspecialchars($payroll['catatan'] ?? '') ?></textarea>
-                                                </div>
+  <label>No. Rekening</label>
+  <input type="text" class="form-control" id="inputNoRek" name="no_rekening"
+      value="<?= htmlspecialchars($payrollDraft['no_rekening'] ?? $anggota['no_rekening'] ?? '') ?>">
+</div>
+
+                                               <div class="mb-3">
+  <label>Tanggal Payroll</label>
+  <input type="datetime-local" class="form-control" id="inputTanggalPayroll" name="tgl_payroll"
+      value="<?= htmlspecialchars($tgl_payroll_value) ?>" required>
+</div>
+                                                <!-- Catatan Payroll -->
+<div class="mb-3">
+  <label>Catatan Payroll</label>
+  <textarea class="form-control" id="inputDescription" name="catatan" rows="3" placeholder="Tambahkan catatan..."><?= htmlspecialchars($payrollDraft['catatan'] ?? '') ?></textarea>
+</div>
                                             </div>
                                         </div>
                                     </div>
@@ -370,9 +364,10 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                                                 </div>
 
                                                 <div class="mb-3">
-                                                    <label class="text-danger">Potongan Tidak Hadir</label>
-                                                    <input type="text" class="form-control" id="inputPotonganAbsensi" value="<?= number_format($payrollDraft['potongan_absensi'] ?? 0, 0, ',', '.') ?>" readonly>
-                                                </div>
+  <label class="text-danger">Potongan Tidak Hadir</label>
+  <input type="text" class="form-control" id="inputPotonganAbsensi"
+      value="<?= number_format($payrollDraft['potongan_absensi'] ?? 0, 0, ',', '.') ?>" readonly>
+</div>
                                                 <div class="mb-3">
                                                     <label class="text-success">Total Pendapatan</label>
                                                     <input type="text" class="form-control" id="inputTotalEarnings" value="<?= number_format($payroll['total_pendapatan'] ?? 0, 0, ',', '.') ?>" readonly>
@@ -404,12 +399,15 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                                             <label class="form-check-label fw-bold ms-1" for="chkKenaikanGajiTahunan" style="font-size:13px;">
                                                 Aktifkan Kenaikan Gaji Tahunan
                                             </label>
-                                            <?php if (isset($kgData['status']) && $kgData['status'] === 'aktif'): ?>
-                                                <!-- Hidden field untuk memastikan nilai ikut terkirim meski checkbox disable -->
-                                                <input type="hidden" name="chkKenaikanGajiTahunan" value="1">
-                                                <input type="hidden" name="nama_kenaikan" value="<?= htmlspecialchars($kgData['nama_kenaikan'] ?? '') ?>">
-                                                <input type="hidden" name="nominal_kenaikan" value="<?= $kgData['jumlah'] ?? 0 ?>">
-                                            <?php endif; ?>
+                                           <?php if (isset($kgData['status']) && $kgData['status'] === 'aktif'): ?>
+    <input type="hidden" name="chkKenaikanGajiTahunan" value="1">
+    <input type="hidden" name="nama_kenaikan" value="<?= htmlspecialchars($kgData['nama_kenaikan'] ?? '') ?>">
+    <input type="hidden" name="nominal_kenaikan" value="<?= $kgData['jumlah'] ?? 0 ?>">
+    <input type="hidden" name="tanggal_mulai"  value="<?= htmlspecialchars($kgData['tanggal_mulai']) ?>">
+    <input type="hidden" name="tanggal_berakhir" value="<?= htmlspecialchars($kgData['tanggal_berakhir']) ?>">
+
+<?php endif; ?>
+
 
                                         </div>
                                         <div id="kenaikanGajiTahunanFields" style="display:<?= (isset($kgData['status']) && $kgData['status'] === 'aktif') ? 'block' : 'none' ?>;">
@@ -418,8 +416,7 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                                                     <label class="mb-0" style="font-size:13px;">Judul Kenaikan</label>
                                                     <input type="text" class="form-control form-control-sm"
                                                         id="inputNamaKenaikan" name="nama_kenaikan"
-                                                        value="<?= htmlspecialchars($judulPrefill) ?>"
-                                                        <?= $isAktif ? 'readonly' : '' ?>>
+                                                        value="<?= htmlspecialchars($judulPrefill) ?>" <?= $isAktif ? 'readonly' : '' ?>>
                                                 </div>
                                                 <div class="col-md-4 mb-2">
                                                     <label class="mb-0" style="font-size:13px;">Pilih Ranking</label>
@@ -435,14 +432,14 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                                                         <?php endforeach; ?>
                                                     </select>
                                                 </div>
-                                                <div class="col-md-3 mb-2">
-                                                    <label class="mb-0" style="font-size:13px;">Nominal Kenaikan</label>
-                                                    <input type="text" class="form-control form-control-sm currency-input"
-                                                        id="inputNominalKenaikan" name="nominal_kenaikan"
-                                                        value="<?= number_format($kgData['jumlah'] ?? 0, 0, ',', '.') ?>"
-                                                        placeholder="0"
-                                                        readonly>
-                                                </div>
+                                                <div class="col-md-4 mb-2">
+    <label class="mb-0" style="font-size:13px;">Nominal Kenaikan</label>
+    <input type="text" class="form-control form-control-sm" id="inputNominalKenaikan"
+        name="nominal_kenaikan"
+        value="<?= isset($kgData['jumlah']) ? number_format($kgData['jumlah'], 0, ',', '.') : '0' ?>"
+        readonly>
+</div>
+
                                             </div>
                                             <?php if (isset($kgData['tanggal_mulai'])): ?>
                                                 <div class="mt-1 small text-muted">
@@ -594,57 +591,51 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
         // Set tampilan
         $("#inputHonorJam").val("Rp " + window.honorJamGlobal.toLocaleString('id-ID'));
 
-        const daftarRanking = <?= json_encode($daftarRanking, JSON_NUMERIC_CHECK) ?>;
+function findRankingById(id) {
+    return (daftarRanking || []).find(r => r.id == id);
+}
 
-        function findRankingById(id) {
-            return (daftarRanking || []).find(r => r.id == id);
-        }
-
-        function updateNominalFromRanking() {
+function updateNominalFromRanking() {
     const rid = $('#selectRanking').val();
     if (!rid) {
-        // Cukup return, jangan clear value
+        $('#inputNominalKenaikan').val('');
         return;
     }
     const ranking = findRankingById(rid);
     if (ranking) {
-        anNominalInc.set(ranking.jumlah);
+        $('#inputNominalKenaikan').val(parseInt(ranking.jumlah).toLocaleString('id-ID'));
     }
 }
 
+// Di mode apapun, update value ketika ranking berubah
+$('#selectRanking').on('change', updateNominalFromRanking);
+// Prefill jika ada ranking aktif (atau terpilih dari awal)
+if ($('#selectRanking').val()) updateNominalFromRanking();
 
-
-        // di luar ready()
-        let anNominalInc;
-
-        // di dalam $(document).ready(...)
-        anNominalInc = new AutoNumeric('#inputNominalKenaikan', {
-            digitGroupSeparator: '.',
-            decimalCharacter: ',',
-            decimalPlaces: 0,
-            unformatOnSubmit: true
-        });
-
-        $('#selectRanking').on('change', updateNominalFromRanking);
-        // Prefill jika ada ranking aktif
-        if ($('#selectRanking').val()) updateNominalFromRanking();
-
-        // Prefill payrollDraft
-        if (payrollDraft && typeof payrollDraft === 'object') {
-            $("#inputNoRek").val(payrollDraft.no_rekening || "");
-            $("#inputTanggalPayroll").val(payrollDraft.tgl_payroll ? toDatetimeLocal(payrollDraft.tgl_payroll) : "");
-            $("#inputDescription").val(payrollDraft.catatan || "");
-        }
-
-
-        // Prefill kenaikan gaji tahunan
-        if (kgData && kgData.status === "aktif") {
-    $("#chkKenaikanGajiTahunan").prop("checked", true).prop("disabled", true).trigger("change");
-    $("#inputNamaKenaikan").val(kgData.nama_kenaikan).prop("readonly", true);
-    if (anNominalInc && kgData.jumlah) anNominalInc.set(kgData.jumlah);
-    $("#inputNominalKenaikan").prop("readonly", true);
+// Prefill payrollDraft
+if (payrollDraft && typeof payrollDraft === 'object') {
+    $("#inputNoRek").val(payrollDraft.no_rekening || "");
+    $("#inputTanggalPayroll").val(payrollDraft.tgl_payroll ? toDatetimeLocal(payrollDraft.tgl_payroll) : "");
+    $("#inputDescription").val(payrollDraft.catatan || "");
 }
 
+// Prefill kenaikan gaji tahunan
+if (kgData && kgData.status === "aktif") {
+    $("#chkKenaikanGajiTahunan").prop("checked", true).prop("disabled", true).trigger("change");
+    $("#inputNamaKenaikan").val(kgData.nama_kenaikan).prop("readonly", true);
+    // -- Kunci: tetep update value, walaupun readonly!
+    // Ambil nominal dari ranking_kenaikan
+    if (kgData.ranking_id) {
+        const ranking = findRankingById(kgData.ranking_id);
+        if (ranking) {
+            $('#inputNominalKenaikan').val(parseInt(ranking.jumlah).toLocaleString('id-ID')).prop("readonly", true);
+        } else {
+            $('#inputNominalKenaikan').val(kgData.jumlah).prop("readonly", true);
+        }
+    } else {
+        $('#inputNominalKenaikan').val(kgData.jumlah).prop("readonly", true);
+    }
+}
 
 
         // Initialize a SweetAlert2 Toast
@@ -759,10 +750,7 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                         assignedIds = window.assignedPayheads.map(ph => parseInt(ph.id_payhead, 10));
                     }
                     // Filter payheads yang belum diassign:
-                    let availablePayheads = resp.result.filter(ph =>
-                        ph.id !== ANNUAL_INC_ID &&
-                        !assignedIds.includes(parseInt(ph.id, 10))
-                    );
+                    let availablePayheads = resp.result.filter(ph => !assignedIds.includes(parseInt(ph.id, 10)));
                     renderAllPayheads(availablePayheads);
                 } else {
                     console.error('Gagal mengambil semua payheads:', resp.result);
@@ -772,6 +760,7 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                 console.error('Error saat ambil payheads:', error);
             }
         });
+
 
         $('#chkKenaikanGajiTahunan').on('change', function() {
             if ($(this).is(':checked')) {
@@ -884,17 +873,17 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                 let labelText = namaAsli + ' (' + ph.jenis_payhead_idn + ')';
                 let textColor = (ph.jenis_payhead === 'earnings') ? 'text-success' : 'text-danger';
                 let itemHtml = `
-                <div class="payhead-item d-flex align-items-center mb-1"
-                    data-id="${ph.id}"
-                    data-nominal="${ph.nominal}"
-                    data-type="${ph.jenis_payhead}"
-                    data-nama="${namaAsli}">
-                    <button type="button" class="btn btn-sm btn-primary btnAddPayhead me-2">
-                        <i class="bi bi-plus"></i>
-                    </button>
-                    <span class="payhead-name ${textColor}">${labelText}</span>
-                </div>
-            `;
+            <div class="payhead-item d-flex align-items-center mb-1"
+                 data-id="${ph.id}"
+                 data-nominal="${ph.nominal}"
+                 data-type="${ph.jenis_payhead}"
+                 data-nama="${namaAsli}">
+                <button type="button" class="btn btn-sm btn-primary btnAddPayhead me-2">
+                    <i class="bi bi-plus"></i>
+                </button>
+                <span class="payhead-name ${textColor}">${labelText}</span>
+            </div>
+        `;
                 container.append(itemHtml);
             });
         }
@@ -916,12 +905,12 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                 if (supportDocPath) {
                     const fileName = supportDocPath.split('/').pop();
                     fileHtml = `
-                    <div class="uploaded-file-info mb-1">
-                        <a href="${supportDocPath}" target="_blank" class="btn btn-info btn-sm mb-1">Lihat File</a>
-                        <span class="text-muted small">${fileName}</span>
-                        <button type="button" class="btn btn-danger btn-sm btn-remove-uploaded-file ms-1" data-payhead="${payheadId}">Hapus</button>
-                    </div>
-                `;
+                <div class="uploaded-file-info mb-1">
+                    <a href="${supportDocPath}" target="_blank" class="btn btn-info btn-sm mb-1">Lihat File</a>
+                    <span class="text-muted small">${fileName}</span>
+                    <button type="button" class="btn btn-danger btn-sm btn-remove-uploaded-file ms-1" data-payhead="${payheadId}">Hapus</button>
+                </div>
+            `;
                 }
                 // Badge sesuai jenis payhead
                 let badgeHTML = (payheadType === 'earnings') ?
@@ -930,69 +919,65 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                 const rapelChecked = isRapel ? "checked" : "";
                 const disabledAttr = isRapel ? "disabled" : "";
                 const removeButtonHtml = isRapel ? "" : `
-                <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
-                    <i class="bi bi-dash"></i>
-                </button>
-            `;
+            <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
+                <i class="bi bi-dash"></i>
+            </button>
+        `;
                 // Kolom upload file
                 const uploadHtml = `
-                <div class="input-group">
-                    <input type="file" name="upload_file[${payheadId}]" class="file-input d-none" id="upload_file_${payheadId}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                    <label for="upload_file_${payheadId}" class="btn btn-sm btn-info file-label me-2">
-                        Pilih File
-                    </label>
-                    <button type="button" class="btn btn-sm btn-danger btn-clear-file">
-                        Hapus
-                    </button>
-                </div>
-                ${fileHtml}
-            `;
+            <div class="input-group">
+                <input type="file" name="upload_file[${payheadId}]" class="file-input d-none" id="upload_file_${payheadId}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                <label for="upload_file_${payheadId}" class="btn btn-sm btn-info file-label me-2">
+                    Pilih File
+                </label>
+                <button type="button" class="btn btn-sm btn-danger btn-clear-file">
+                    Hapus
+                </button>
+            </div>
+            ${fileHtml}
+        `;
                 // Row HTML
                 const rowHtml = `
-                <tr data-id="${payheadId}" data-type="${ph.jenis_payhead}" data-nama="${ph.nama_payhead}">
-                    <td>${index + 1}</td>
-                    <td>
-                        ${badgeHTML}<span class="payhead-text">${ph.nama_payhead}</span>
-                    </td>
-                    <td>
-                        <input type="text" name="pay_amounts[${payheadId}]"
-                            class="form-control currency-input"
-                            value="${defaultAmt}"
-                            ${disabledAttr} required>
-                    </td>
-                    <td>
-                        <textarea name="remarks[${payheadId}]"
-                            class="form-control"
-                            ${disabledAttr}>${isRapel ? "Rapel" : remarksVal}</textarea>
-                    </td>
-                    <td>
-                        <input type="checkbox" name="rapel[${payheadId}]"
-                            class="rapel-checkbox" ${rapelChecked}>
-                    </td>
-                    <td>
-                        ${uploadHtml}
-                    </td>
-                    <td>
-                        ${removeButtonHtml}
-                    </td>
-                </tr>
-            `;
+            <tr data-id="${payheadId}" data-type="${ph.jenis_payhead}" data-nama="${ph.nama_payhead}">
+                <td>${index + 1}</td>
+                <td>
+                    ${badgeHTML}<span class="payhead-text">${ph.nama_payhead}</span>
+                </td>
+                <td>
+                    <input type="text" name="pay_amounts[${payheadId}]"
+                        class="form-control currency-input"
+                        value="${defaultAmt}"
+                        ${disabledAttr} required>
+                </td>
+                <td>
+                    <textarea name="remarks[${payheadId}]"
+                        class="form-control"
+                        ${disabledAttr}>${isRapel ? "Rapel" : remarksVal}</textarea>
+                </td>
+                <td>
+                    <input type="checkbox" name="rapel[${payheadId}]"
+                        class="rapel-checkbox" ${rapelChecked}>
+                </td>
+                <td>
+                    ${uploadHtml}
+                </td>
+                <td>
+                    ${removeButtonHtml}
+                </td>
+            </tr>
+        `;
                 const $row = $(rowHtml);
                 $row.find('.currency-input').each(function() {
-    // Jika sudah ada instance, destroy dulu
-    const anElem = AutoNumeric.getAutoNumericElement(this);
-    if (anElem) anElem.remove();
-    new AutoNumeric(this, {
-        digitGroupSeparator: '.',
-        decimalCharacter: ',',
-        decimalPlaces: 0,
-        unformatOnSubmit: true
-    });
-});
-
-        tbody.append($row);
-    });
-    recalcPayheadsTotals();
+                    new AutoNumeric(this, {
+                        digitGroupSeparator: '.',
+                        decimalCharacter: ',',
+                        decimalPlaces: 0,
+                        unformatOnSubmit: true
+                    });
+                });
+                tbody.append($row);
+            });
+            recalcPayheadsTotals();
         }
 
 
@@ -1077,44 +1062,44 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                 }
                 // Buat row dengan data-nama (nama asli) sebagai data attribute
                 const rowHtml = `
-            <tr data-id="${payheadId}" data-type="${payType}" data-nama="${payheadName}">
-                <td>${newIndex + 1}</td>
-                <td>${badgeHTML}<span class="payhead-text">${payheadName}</span></td>
-                <td>
-                <input type="text" name="pay_amounts[${payheadId}]"
-                        class="form-control currency-input" 
-                        value="${defaultAmt}" required>
-                </td>
-                <td>
-                <textarea name="remarks[${payheadId}]"
-                            class="form-control"></textarea>
-                </td>
-                <td>
-                <input type="checkbox" name="rapel[${payheadId}]"
-                        class="rapel-checkbox">
-                </td>
-                <td>
-                <div class="input-group">
-                    <input type="file" name="upload_file[${payheadId}]"
-                        class="file-input d-none"
-                        id="upload_file_${payheadId}"
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                    <label for="upload_file_${payheadId}"
-                        class="btn btn-sm btn-info file-label me-2">
-                        Pilih File
-                    </label>
-                    <button type="button" class="btn btn-sm btn-danger btn-clear-file">
-                    Hapus
-                    </button>
-                </div>
-                </td>
-                <td>
-                <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
-                    <i class="bi bi-dash"></i>
+          <tr data-id="${payheadId}" data-type="${payType}" data-nama="${payheadName}">
+            <td>${newIndex + 1}</td>
+            <td>${badgeHTML}<span class="payhead-text">${payheadName}</span></td>
+            <td>
+              <input type="text" name="pay_amounts[${payheadId}]"
+                     class="form-control currency-input" 
+                     value="${defaultAmt}" required>
+            </td>
+            <td>
+              <textarea name="remarks[${payheadId}]"
+                        class="form-control"></textarea>
+            </td>
+            <td>
+              <input type="checkbox" name="rapel[${payheadId}]"
+                     class="rapel-checkbox">
+            </td>
+            <td>
+              <div class="input-group">
+                <input type="file" name="upload_file[${payheadId}]"
+                       class="file-input d-none"
+                       id="upload_file_${payheadId}"
+                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                <label for="upload_file_${payheadId}"
+                       class="btn btn-sm btn-info file-label me-2">
+                       Pilih File
+                </label>
+                <button type="button" class="btn btn-sm btn-danger btn-clear-file">
+                  Hapus
                 </button>
-                </td>
-            </tr>
-            `;
+              </div>
+            </td>
+            <td>
+              <button type="button" class="btn btn-danger btn-sm btnRemoveRow">
+                <i class="bi bi-dash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
                 const $newRow = $(rowHtml);
                 $newRow.find('.currency-input').each(function() {
                     new AutoNumeric(this, {
@@ -1153,15 +1138,15 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
             // Tambahkan item ke daftar available hanya jika belum ada
             if ($("#all_payheads").find(`[data-id="${payheadId}"]`).length === 0) {
                 const availableItem = $(`
-                <div class="payhead-item d-flex align-items-center mb-1" data-id="${payheadId}" data-nominal="${defaultAmt}" data-type="${payheadType}" data-nama="${payheadName}">
-                    <button type="button" class="btn btn-sm btn-primary btnAddPayhead me-2">
-                        <i class="bi bi-plus"></i>
-                    </button>
-                    <span class="payhead-name ${payheadType === 'earnings' ? 'text-success' : 'text-danger'}">
-                        ${labelText}
-                    </span>
-                </div>
-            `);
+            <div class="payhead-item d-flex align-items-center mb-1" data-id="${payheadId}" data-nominal="${defaultAmt}" data-type="${payheadType}" data-nama="${payheadName}">
+                <button type="button" class="btn btn-sm btn-primary btnAddPayhead me-2">
+                    <i class="bi bi-plus"></i>
+                </button>
+                <span class="payhead-name ${payheadType === 'earnings' ? 'text-success' : 'text-danger'}">
+                    ${labelText}
+                </span>
+            </div>
+        `);
                 $("#all_payheads").append(availableItem);
                 sortAvailablePayheads();
             }
@@ -1416,13 +1401,23 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                                         return parseInt(ph.id_payhead, 10);
                                     });
                                     var availablePayheads = allPayheadsList.filter(function(ph) {
-                                        return ph.id !== ANNUAL_INC_ID &&
-                                            !assignedIds.includes(parseInt(ph.id, 10));
+                                        return !assignedIds.includes(parseInt(ph.id, 10));
                                     });
                                     const availableDiv = $("#all_payheads");
                                     availableDiv.empty();
                                     availablePayheads.forEach(function(ph) {
-                                        // … render …
+                                        const labelText = ph.nama_payhead + ' (' + ph.jenis_payhead_idn + ')';
+                                        const item = $(`
+                                      <div class="payhead-item d-flex align-items-center mb-1" data-id="${ph.id}" data-nominal="${ph.nominal}" data-type="${ph.jenis_payhead}">
+                                        <button type="button" class="btn btn-sm btn-primary btnAddPayhead me-2">
+                                          <i class="bi bi-plus"></i>
+                                        </button>
+                                        <span class="payhead-name ${ph.jenis_payhead === 'earnings' ? 'text-success' : 'text-danger'}">
+                                          ${labelText}
+                                        </span>
+                                      </div>
+                                    `);
+                                        availableDiv.append(item);
                                     });
                                     renderAssignedPayheads(assignedPayheads);
                                     recalcPayheadsTotals();
@@ -1597,8 +1592,7 @@ $estimasiHonorJamLebih = $totalHonorJamLebih;
                     selectedMonth: selectedMonth,
                     selectedYear: selectedYear,
                     potongan_absensi: window.potonganAbsensiGlobal,
-                    ranking_id: $('#selectRanking').val(),
-                    csrf_token: CSRF_TOKEN
+                    csrf_token: '<?= htmlspecialchars($csrf_token); ?>'
                 },
                 success: function(resp) {
                     if (resp.code === 0) {
