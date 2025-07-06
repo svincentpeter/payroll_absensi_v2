@@ -2,9 +2,20 @@
 // File: /payroll_absensi_v2/sdm/includes/employees_payhead.php
 
 // di bagian atas AssignPayheadsToEmployee(), setelah validasi $empcode:
-$selectedMonth    = isset($_POST['selectedMonth'])     ? intval($_POST['selectedMonth'])  : date('n');
-$selectedYear     = isset($_POST['selectedYear'])      ? intval($_POST['selectedYear'])   : date('Y');
+$selectedMonth    = isset($_POST['selectedMonth'])     ? intval($_POST['selectedMonth'])      : date('n');
+$selectedYear     = isset($_POST['selectedYear'])      ? intval($_POST['selectedYear'])       : date('Y');
 $potonganAbsensi  = isset($_POST['potongan_absensi'])  ? floatval($_POST['potongan_absensi']) : 0;
+
+// *** PERBAIKAN ***: ambil ranking_id dari form
+$ranking_id       = isset($_POST['ranking_id'])        ? intval($_POST['ranking_id'])         : 0;
+
+function cekRankingValid(mysqli $c, int $id): bool {
+    $st = $c->prepare("SELECT 1 FROM ranking_kenaikan WHERE id=? AND is_aktif=1");
+    $st->bind_param("i", $id);
+    $st->execute();
+    $st->store_result();
+    return $st->num_rows > 0;
+}
 
 // Semua fungsi terkait payhead karyawan
 if (!function_exists('GetAllPayheads')) {
@@ -45,9 +56,12 @@ if (!function_exists('AssignPayheadsToEmployee')) {
         $user_nip = $_SESSION['nip'] ?? '';
         $detailsLog = "AssignPayheadsToEmployee: empcode=$empcode, total payheads=" . count($payheads);
         add_audit_log($conn, $user_nip, 'AssignPayheadsToEmployee', $detailsLog);
-        $selectedMonth = isset($_POST['selectedMonth']) ? intval($_POST['selectedMonth']) : date('n');
-        $selectedYear = isset($_POST['selectedYear']) ? intval($_POST['selectedYear']) : date('Y');
-        $potonganAbsensi = isset($_POST['potongan_absensi']) ? intval($_POST['potongan_absensi']) : 0; // <<=== TAMBAHKAN INI
+
+        // *** PERBAIKAN ***: ambil kembali ranking_id di dalam fungsi
+        $selectedMonth    = isset($_POST['selectedMonth'])     ? intval($_POST['selectedMonth'])      : date('n');
+        $selectedYear     = isset($_POST['selectedYear'])      ? intval($_POST['selectedYear'])       : date('Y');
+        $potonganAbsensi  = isset($_POST['potongan_absensi'])  ? floatval($_POST['potongan_absensi']) : 0;
+        $ranking_id       = isset($_POST['ranking_id'])        ? intval($_POST['ranking_id'])         : 0;
 
         if ($empcode <= 0) {
             send_response(1, 'ID anggota tidak valid.');
@@ -88,42 +102,60 @@ if (!function_exists('AssignPayheadsToEmployee')) {
 
         $conn->begin_transaction();
         try {
-            // Kenaikan Gaji Tahunan
-            // --- Kenaikan Gaji Tahunan ---
             if (!empty($_POST['chkKenaikanGajiTahunan'])) {
-                $namaKenaikan     = trim($_POST['nama_kenaikan'] ?? '');
-                $nominalKenaikan  = floatval(str_replace(['.', ','], ['', '.'], $_POST['nominal_kenaikan'] ?? '0'));
-                $tglPayroll       = $_POST['tgl_payroll'] ?? date('Y-m-d H:i:s');
-                // normalize T pada input datetime-local
-                if (strpos($tglPayroll, 'T') !== false) {
-                    $tglPayroll = str_replace('T', ' ', $tglPayroll) . ':00';
-                }
-                $startDate = date('Y-m-01', strtotime($tglPayroll));
-                $endDate   = date('Y-m-d', strtotime('+1 year -1 day', strtotime($startDate)));
+
+    $namaKenaikan    = trim($_POST['nama_kenaikan'] ?? '');
+    $nominalKenaikan = floatval(str_replace(['.', ','], ['', '.'], $_POST['nominal_kenaikan'] ?? '0'));
+
+    /*  ❱❱ Ganti penentuan periode: pakai bulan & tahun payroll  ❰❰ */
+    // $tglPayroll sudah tidak dipakai lagi
+    $startDate = sprintf('%04d-%02d-01', $selectedYear, $selectedMonth);        // 2025-07-01
+    $endDate   = date('Y-m-d', strtotime('+1 year -1 day', strtotime($startDate))); // 2026-06-30
+
+    // --- validasi ----------------------------------------------------------
+    if ($nominalKenaikan <= 0) {
+        throw new Exception('Nominal kenaikan harus lebih besar dari 0');
+    }
+    if (!cekRankingValid($conn, $ranking_id)) {
+        throw new Exception('Ranking tidak valid');
+    }
 
                 // pastikan hanya satu aktif per periode
                 $stmtCek = $conn->prepare("
-        SELECT id FROM kenaikan_gaji_tahunan 
-         WHERE id_anggota=? AND status='aktif' 
-           AND tanggal_mulai<=? AND tanggal_berakhir>=?
-    ");
+                    SELECT id FROM kenaikan_gaji_tahunan 
+                     WHERE id_anggota=? AND status='aktif' 
+                       AND tanggal_mulai<=? AND tanggal_berakhir>=?
+                ");
                 $stmtCek->bind_param("iss", $empcode, $startDate, $startDate);
                 $stmtCek->execute();
                 $stmtCek->store_result();
                 if ($stmtCek->num_rows === 0) {
-                    $stmtKG = $conn->prepare("
-            INSERT INTO kenaikan_gaji_tahunan
-              (id_anggota,nama_kenaikan,jumlah,tanggal_mulai,tanggal_berakhir,status,dibuat_pada)
-            VALUES (?,?,?,?,?,'aktif',NOW())
-        ");
-                    $stmtKG->bind_param("isdss", $empcode, $namaKenaikan, $nominalKenaikan, $startDate, $endDate);
-                    $stmtKG->execute();
-                    $stmtKG->close();
-                }
-                $stmtCek->close();
+    // INSERT baru (tetap seperti sekarang)
+    $stmtKG = $conn->prepare("
+        INSERT INTO kenaikan_gaji_tahunan
+          (id_anggota,nama_kenaikan,jumlah,tanggal_mulai,tanggal_berakhir,
+           status,ranking_id,dibuat_pada)
+        VALUES (?,?,?,?,?,'aktif',?,NOW())");
+    $stmtKG->bind_param("isdssi",
+        $empcode,$namaKenaikan,$nominalKenaikan,$startDate,$endDate,$ranking_id);
+    $stmtKG->execute();
+    $stmtKG->close();
+} else {
+    // 🔴 **tambahkan blok UPDATE**  ➜ sinkronkan nilai lama
+    $stmtKG = $conn->prepare("
+        UPDATE kenaikan_gaji_tahunan
+           SET nama_kenaikan = ?, jumlah = ?, ranking_id = ?
+         WHERE id_anggota = ? AND status='aktif'
+           AND tanggal_mulai <= ? AND tanggal_berakhir >= ?");
+    $stmtKG->bind_param("sdiiss",
+        $namaKenaikan,$nominalKenaikan,$ranking_id,
+        $empcode,$startDate,$startDate);
+    $stmtKG->execute();
+    $stmtKG->close();
+}
+$stmtCek->close();
 
-                // tambahkan juga sebagai payhead (misal id=100)
-                // Tambahkan payhead khusus ID=100
+                // tambahkan juga sebagai payhead khusus ID=100
                 $idPayheadKenaikan = 100;
                 $earningStr        = 'earnings';
                 $support           = '';
@@ -133,7 +165,7 @@ if (!function_exists('AssignPayheadsToEmployee')) {
                 if (!isset($oldPayheads[$idPayheadKenaikan])) {
                     // INSERT baru
                     $stmtIns->bind_param(
-                        "iisdssbi",
+                        "iisdssbi", 
                         $empcode,
                         $idPayheadKenaikan,
                         $earningStr,
@@ -160,16 +192,18 @@ if (!function_exists('AssignPayheadsToEmployee')) {
                 }
             }
 
-
             // Hapus payhead yang tidak dipilih lagi
-            foreach ($oldPayheads as $oldPid => $oldRow) {
-                if (!in_array($oldPid, $payheads)) {
-                    $stmtDel = $conn->prepare("DELETE FROM employee_payheads WHERE id_anggota = ? AND id_payhead = ?");
-                    $stmtDel->bind_param("ii", $empcode, $oldPid);
-                    $stmtDel->execute();
-                    $stmtDel->close();
+            foreach ($oldPayheads as $oldPid => $_) {
+                if (!in_array($oldPid, $payheads, true)) {
+                    $del = $conn->prepare(
+                        "DELETE FROM employee_payheads WHERE id_anggota=? AND id_payhead=?"
+                    );
+                    $del->bind_param("ii", $empcode, $oldPid);
+                    $del->execute();
+                    $del->close();
                 }
             }
+            
 
             // Simpan/Update semua payhead yang dipilih
             foreach ($payheads as $pid) {
@@ -301,29 +335,17 @@ if (!function_exists('GetPayheadById')) {
     {
         verify_csrf_token($_POST['csrf_token'] ?? '');
         $id = intval($_POST['id'] ?? 0);
-        if ($id <= 0) {
-            send_response(1, 'ID payhead tidak valid.');
-        }
-        $stmt = $conn->prepare("SELECT id, nama_payhead, jenis AS jenis_payhead
-                            FROM payheads
-                            WHERE id = ? LIMIT 1");
-        if (!$stmt) {
-            send_response(1, 'Prepare failed GetPayheadById: ' . $conn->error);
-        }
+        if ($id <= 0) send_response(1, 'ID payhead tidak valid.');
+        $stmt = $conn->prepare("SELECT id, nama_payhead, jenis FROM payheads WHERE id=? LIMIT 1");
         $stmt->bind_param("i", $id);
-        if (!$stmt->execute()) {
-            send_response(1, 'Execute failed GetPayheadById: ' . $stmt->error);
-        }
+        $stmt->execute();
         $res = $stmt->get_result();
-        if ($res->num_rows > 0) {
-            $payhead = $res->fetch_assoc();
-            $payhead['jenis_payhead_idn'] = translateJenis($payhead['jenis_payhead']);
-            // [Audit log baru]
-            $user_nip = $_SESSION['nip'] ?? '';
-            add_audit_log($conn, $user_nip, 'GetPayheadById', "Payhead ID=$id");
-            send_response(0, $payhead);
-        } else {
-            send_response(1, 'Payhead tidak ditemukan.');
+        if ($res->num_rows) {
+            $ph = $res->fetch_assoc();
+            $ph['jenis_payhead_idn'] = translateJenis($ph['jenis']);
+            add_audit_log($conn, $_SESSION['nip'] ?? '', 'GetPayheadById', "Payhead ID=$id");
+            send_response(0, $ph);
         }
+        send_response(1, 'Payhead tidak ditemukan.');
     }
 }

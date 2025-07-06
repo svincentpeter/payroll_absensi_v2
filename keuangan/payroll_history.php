@@ -1,6 +1,5 @@
 <?php
 // File: /payroll_absensi_v2/keuangan/payroll_history.php
-
 $pageId = basename(__DIR__) . '_' . pathinfo(__FILE__, PATHINFO_FILENAME);
 
 require_once __DIR__ . '/../helpers.php';
@@ -8,162 +7,127 @@ start_session_safe();
 init_error_handling();
 authorize(['M:Keuangan']);
 require_once __DIR__ . '/../koneksi.php';
+
 $jenjangList = getOrderedJenjang($conn);
 generate_csrf_token();
 $csrf_token = $_SESSION['csrf_token'];
 $nonce = '';
 
-// Ambil mapping kode => nama jenjang
+/* ───────── Mapping jenjang ──────── */
 $jenjangMap = [];
-$res = $conn->query("SELECT kode_jenjang, nama_jenjang FROM jenjang_sekolah");
-while ($row = $res->fetch_assoc()) {
-    $jenjangMap[$row['kode_jenjang']] = $row['nama_jenjang'];
-}
+$res = $conn->query("SELECT kode_jenjang,nama_jenjang FROM jenjang_sekolah");
+while ($row = $res->fetch_assoc()) $jenjangMap[$row['kode_jenjang']]=$row['nama_jenjang'];
+if (ob_get_length()) ob_end_clean();
 
-if (ob_get_length()) {
-    ob_end_clean();
-}
-
-// =========================
-// 1. Handle AJAX
-// =========================
-if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $case = isset($_POST['case']) ? sanitize_input($_POST['case']) : '';
-        switch ($case) {
-            case 'LoadingPayrollHistory':
-                LoadingPayrollHistory($conn, $jenjangMap);
-                break;
-            case 'ViewPayrollDetail':
-                ViewPayrollDetail($conn, $jenjangMap);
-                break;
-            default:
-                send_response(404, 'Kasus tidak ditemukan.');
-        }
-    } else {
-        send_response(405, 'Metode Permintaan Tidak Diizinkan.');
+/* ───────── AJAX ──────── */
+if (isset($_GET['ajax']) && $_GET['ajax']=='1') {
+    if ($_SERVER['REQUEST_METHOD']!=='POST') send_response(405,'Metode tidak diizinkan');
+    switch (sanitize_input($_POST['case']??'')) {
+        case 'LoadingPayrollHistory': LoadingPayrollHistory($conn,$jenjangMap); break;
+        case 'ViewPayrollDetail'   : ViewPayrollDetail   ($conn,$jenjangMap); break;
+        default: send_response(404,'Kasus tidak ditemukan.');
     }
     exit();
 }
 
-// =========================
-// 2. Fungsi-Fungsi
-// =========================
+/* ════════════════════════════════════════════════
+ *  LoadingPayrollHistory
+ * ════════════════════════════════════════════════ */
+function LoadingPayrollHistory(mysqli $conn,array $jenjangMap){
+    $draw   = intval($_POST['draw']  ??0);
+    $start  = intval($_POST['start'] ??0);
+    $length = intval($_POST['length']??10);
+    $search = sanitize_input($_POST['search']['value']??'');
+    $jenjang= sanitize_input($_POST['jenjang']??'');
+    $bulan  = intval($_POST['bulan'] ??0);
+    $tahun  = intval($_POST['tahun'] ??0);
 
-function LoadingPayrollHistory($conn, $jenjangMap)
-{
-    $draw    = intval($_POST['draw']   ?? 0);
-    $start   = intval($_POST['start']  ?? 0);
-    $length  = intval($_POST['length'] ?? 10);
-    $search  = sanitize_input($_POST['search']['value'] ?? '');
-    $jenjang = sanitize_input($_POST['jenjang']  ?? '');
-    $bulan   = intval($_POST['bulan']   ?? 0);
-    $tahun   = intval($_POST['tahun']   ?? 0);
-
-    // 1) Bangun JOIN + WHERE terpisah
+    /* join + where dinamis */
     $baseJoins = "
-        FROM payroll_final p
-        JOIN anggota_sekolah a ON p.id_anggota = a.id
-        LEFT JOIN (
-          SELECT id_anggota, SUM(jumlah) AS total_lain_lain
-            FROM kenaikan_gaji_tahunan
-           WHERE pindah_ke_lain_lain=1
-           GROUP BY id_anggota
-        ) kg ON p.id_anggota = kg.id_anggota
+      FROM payroll_final p
+      JOIN anggota_sekolah a ON a.id=p.id_anggota
+      LEFT JOIN (
+        SELECT id_anggota,SUM(jumlah) total_lain_lain
+          FROM kenaikan_gaji_tahunan
+         WHERE pindah_ke_lain_lain=1
+         GROUP BY id_anggota
+      ) kg ON kg.id_anggota=p.id_anggota
     ";
     $baseWhere = "WHERE 1=1";
-    $params    = [];
-    $types     = '';
+    $params=[]; $types='';
 
-    if ($jenjang !== '') {
-        $baseWhere .= " AND a.jenjang = ?";
-        $params[] = $jenjang; $types .= 's';
-    }
-    if ($bulan > 0) {
-        $baseWhere .= " AND p.bulan = ?";
-        $params[] = $bulan; $types .= 'i';
-    }
-    if ($tahun > 0) {
-        $baseWhere .= " AND p.tahun = ?";
-        $params[] = $tahun; $types .= 'i';
-    }
-    if ($search !== '') {
-        $baseWhere .= " AND (
-            CAST(p.id AS CHAR) LIKE ? OR
-            a.nama LIKE ? OR
-            CAST(p.bulan AS CHAR) LIKE ? OR
-            CAST(p.tahun AS CHAR) LIKE ?
-        )";
-        for ($i=0; $i<4; $i++) {
-            $params[] = "%{$search}%"; $types .= 's';
-        }
+    if ($jenjang!==''){ $baseWhere.=" AND a.jenjang=?"; $params[]=$jenjang; $types.='s';}
+    if ($bulan>0)     { $baseWhere.=" AND p.bulan=?";   $params[]=$bulan ; $types.='i';}
+    if ($tahun>0)     { $baseWhere.=" AND p.tahun=?";   $params[]=$tahun ; $types.='i';}
+    if ($search!==''){
+        $baseWhere.=" AND (CAST(p.id AS CHAR) LIKE ? OR a.nama LIKE ? OR CAST(p.bulan AS CHAR) LIKE ? OR CAST(p.tahun AS CHAR) LIKE ?)";
+        for($i=0;$i<4;$i++){ $params[]="%$search%"; $types.='s'; }
     }
 
-    // 2) Hitung filtered & total
-    $stmtF = $conn->prepare("SELECT COUNT(*) AS total $baseJoins $baseWhere");
-    if ($types) $stmtF->bind_param($types, ...$params);
+    /* hitung total filter */
+    $stmtF=$conn->prepare("SELECT COUNT(*) total $baseJoins $baseWhere");
+    if($types) $stmtF->bind_param($types,...$params);
     $stmtF->execute();
-    $totalFiltered = intval($stmtF->get_result()->fetch_assoc()['total'] ?? 0);
+    $totalFiltered=intval($stmtF->get_result()->fetch_assoc()['total']??0);
     $stmtF->close();
 
-    $recordsTotal = intval($conn->query("SELECT COUNT(*) AS total FROM payroll_final")
-                         ->fetch_assoc()['total'] ?? 0);
+    $recordsTotal=intval($conn->query("SELECT COUNT(*) total FROM payroll_final")->fetch_assoc()['total']??0);
 
-    // 3) Ambil data paging
-    $sql = "
-      SELECT
-        p.id                     AS id,
-        a.nama                   AS nama,
-        a.jenjang                AS jenjang,
-        p.bulan,
-        p.tahun,
-        p.gaji_pokok             AS gaji_pokok,
-        p.salary_index_amount    AS salary_index,
-        p.honor_jam_lebih        AS honor_jam_lebih,
-        p.potongan_absensi       AS potongan_absensi,
-        p.total_pendapatan       AS total_pendapatan,
-        IFNULL(kg.total_lain_lain,0) AS total_lain_lain,
-        p.potongan_koperasi      AS potongan_koperasi,
-        p.total_potongan         AS total_potongan,
-        p.gaji_bersih            AS gaji_bersih
+    /* ambil data + hitung kgt aktif */
+    $sql="
+      SELECT p.*,a.nama,a.jenjang,
+             IFNULL(kg.total_lain_lain,0) total_lain_lain,
+             /* ambil KGT aktf yang masih berlaku */
+             (
+               SELECT IFNULL(SUM(jumlah),0)
+                 FROM kenaikan_gaji_tahunan k
+                WHERE k.id_anggota=p.id_anggota
+                  AND k.status='aktif'
+                  AND k.pindah_ke_lain_lain=0
+                  AND p.tgl_payroll BETWEEN k.tanggal_mulai AND k.tanggal_berakhir
+             ) AS kgt_aktif
       $baseJoins
       $baseWhere
       ORDER BY p.id DESC
-      LIMIT ?, ?
+      LIMIT ?,?
     ";
-    $params[] = $start; $params[] = $length;
-    $types   .= 'ii';
+    $params[]=$start; $params[]=$length; $types.='ii';
 
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $res = $stmt->get_result();
+    $stmt=$conn->prepare($sql);
+    $stmt->bind_param($types,...$params);
+    $stmt->execute(); $res=$stmt->get_result();
 
-    $data = [];
-    while ($r = $res->fetch_assoc()) {
-        $data[] = [
-            'id'                  => $r['id'],
-            'nama'                => htmlspecialchars($r['nama']),
-            'jenjang'             => htmlspecialchars($jenjangMap[$r['jenjang']] ?? $r['jenjang']),
-            'bulan'               => getIndonesianMonthName($r['bulan']),
-            'tahun'               => $r['tahun'],
-            'gaji_pokok'          => formatNominal($r['gaji_pokok']),
-            'salary_index'        => formatNominal($r['salary_index']),
-            'honor_jam_lebih'     => formatNominal($r['honor_jam_lebih']),
-            'potongan_absensi'    => formatNominal($r['potongan_absensi']),
-            'total_pendapatan'    => formatNominal($r['total_pendapatan']),
-            'total_lain_lain'     => formatNominal($r['total_lain_lain']),
-            'potongan_koperasi'   => formatNominal($r['potongan_koperasi']),
-            'total_potongan'      => formatNominal($r['total_potongan']),
-            'gaji_bersih'         => formatNominal($r['gaji_bersih']),
-            'aksi'                => '
+    $data=[];
+    while($r=$res->fetch_assoc()){
+        $totalPendapatan = $r['total_pendapatan'] + $r['kgt_aktif'];
+        /* gaji bersih tampilan = gaji_bersih DB + kgt_aktif */
+        $gajiBersihTampil = $r['gaji_bersih']
+                  + $r['kgt_aktif']
+                  - $r['potongan_absensi'];
+
+        $data[]=[
+            'id'               =>$r['id'],
+            'nama'             =>htmlspecialchars($r['nama']),
+            'jenjang'          =>htmlspecialchars($jenjangMap[$r['jenjang']]??$r['jenjang']),
+            'bulan'            =>getIndonesianMonthName($r['bulan']),
+            'tahun'            =>$r['tahun'],
+            'gaji_pokok'       =>formatNominal($r['gaji_pokok']),
+            'salary_index'     =>formatNominal($r['salary_index_amount']),
+            'honor_jam_lebih'  =>formatNominal($r['honor_jam_lebih']),
+            'potongan_absensi' =>formatNominal($r['potongan_absensi']),
+            'total_pendapatan' =>formatNominal($totalPendapatan),
+            'total_lain_lain'  =>formatNominal($r['total_lain_lain']),
+            'potongan_koperasi'=>formatNominal($r['potongan_koperasi']),
+            'total_potongan'   =>formatNominal($r['total_potongan']),
+            'gaji_bersih'      =>formatNominal($gajiBersihTampil),
+            'aksi'=>'
               <div class="dropdown">
                 <button class="btn" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
                 <ul class="dropdown-menu">
-                  <li><a class="dropdown-item" href="payroll-details.php?id_payroll=' . $r['id'] . '">
+                  <li><a class="dropdown-item" href="payroll-details.php?id_payroll='.$r['id'].'">
                         <i class="fas fa-file-invoice"></i> Lihat Payroll
                       </a></li>
-                  <li><a class="dropdown-item btn-view-full-detail" href="#" data-id="' . $r['id'] . '">
+                  <li><a class="dropdown-item btn-view-full-detail" href="#" data-id="'.$r['id'].'">
                         <i class="fas fa-eye"></i> View Detail
                       </a></li>
                 </ul>
@@ -173,90 +137,109 @@ function LoadingPayrollHistory($conn, $jenjangMap)
     $stmt->close();
 
     echo json_encode([
-        'draw'            => $draw,
-        'recordsTotal'    => $recordsTotal,
-        'recordsFiltered' => $totalFiltered,
-        'data'            => $data
-    ], JSON_UNESCAPED_UNICODE);
+        'draw'=>$draw,
+        'recordsTotal'=>$recordsTotal,
+        'recordsFiltered'=>$totalFiltered,
+        'data'=>$data
+    ],JSON_UNESCAPED_UNICODE);
     exit();
 }
 
-function ViewPayrollDetail($conn, $jenjangMap)
-{
-    $id_payroll_final = isset($_POST['id_payroll']) ? intval($_POST['id_payroll']) : 0;
-    if ($id_payroll_final <= 0) {
-        send_response(1, 'ID Payroll Final tidak valid.');
-    }
+/* ════════════════════════════════════════════════
+ *  ViewPayrollDetail
+ * ════════════════════════════════════════════════ */
+function ViewPayrollDetail(mysqli $conn, array $jenjangMap) {
+    $id = intval($_POST['id_payroll'] ?? 0);
+    if ($id <= 0) send_response(1, 'ID Payroll Final tidak valid.');
 
-    // 1. Ambil data ringkasan dari payroll_final
     $stmt = $conn->prepare("
-        SELECT p.*,
-               a.uid, a.nip, a.nama, a.jenjang, a.role, a.job_title, a.status_kerja,
-               a.masa_kerja_tahun, a.masa_kerja_bulan, a.no_rekening, a.email, a.jenis_kelamin, a.agama,
-               si.level AS salary_index_level, si.base_salary AS salary_index_base
+        SELECT p.*, a.uid, a.nip, a.nama, a.jenjang, a.role, a.job_title, a.status_kerja,
+               a.masa_kerja_tahun, a.masa_kerja_bulan, a.no_rekening, a.email,
+               a.jenis_kelamin, a.agama
           FROM payroll_final p
-          JOIN anggota_sekolah a ON p.id_anggota = a.id
-     LEFT JOIN salary_indices si ON a.salary_index_id = si.id
-         WHERE p.id = ?
+          JOIN anggota_sekolah a ON a.id = p.id_anggota
+         WHERE p.id = ? LIMIT 1
+    ");
+    $stmt->bind_param("i", $id); $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc(); $stmt->close();
+    if (!$row) send_response(1, 'Payroll final tidak ditemukan.');
+
+    // --- KGT aktif
+    $stmtK = $conn->prepare("
+        SELECT nama_kenaikan, jumlah
+          FROM kenaikan_gaji_tahunan
+         WHERE id_anggota = ? AND status = 'aktif' AND pindah_ke_lain_lain = 0
+           AND ? BETWEEN tanggal_mulai AND tanggal_berakhir
          LIMIT 1
     ");
-    if (!$stmt) {
-        send_response(1, 'Prepare failed: ' . $conn->error);
+    $stmtK->bind_param("is", $row['id_anggota'], $row['tgl_payroll']);
+    $stmtK->execute();
+    $incName = ''; $incAmt = 0;
+    if ($k = $stmtK->get_result()->fetch_assoc()) {
+        $incName = $k['nama_kenaikan'] ?: 'Kenaikan Gaji Tahunan';
+        $incAmt = floatval($k['jumlah']);
     }
-    $stmt->bind_param("i", $id_payroll_final);
-    if (!$stmt->execute()) {
-        send_response(1, 'Execute failed: ' . $stmt->error);
-    }
-    $result = $stmt->get_result();
-    if ($result->num_rows === 0) {
-        send_response(1, 'Payroll final tidak ditemukan.');
-    }
-    $row = $result->fetch_assoc();
-    $stmt->close();
+    $stmtK->close();
 
-    $row['gaji_pokok']        = formatNominal($row['gaji_pokok']);
-    $row['salary_index_amount'] = formatNominal($row['salary_index_amount']);
-    $row['honor_jam_lebih']   = formatNominal($row['honor_jam_lebih'] ?? 0);
-    $row['potongan_absensi']  = formatNominal($row['potongan_absensi'] ?? 0);
-    $row['total_pendapatan']  = formatNominal($row['total_pendapatan']);
-    $row['total_potongan']    = formatNominal($row['total_potongan']);
-    $row['potongan_koperasi'] = formatNominal($row['potongan_koperasi']);
-    $row['gaji_bersih']       = formatNominal($row['gaji_bersih']);
-    $row['bulan']            = getIndonesianMonthName((int)$row['bulan']);
-    $row['jenjang'] = $jenjangMap[$row['jenjang']] ?? $row['jenjang'];
-
-    $masaKerja = "";
-    if ($row['masa_kerja_tahun'] > 0) $masaKerja .= $row['masa_kerja_tahun'] . " Thn ";
-    if ($row['masa_kerja_bulan'] > 0) $masaKerja .= $row['masa_kerja_bulan'] . " Bln";
-    $row['masa_kerja'] = trim($masaKerja) ?: "-";
-
-    $sqlPDF = "
-        SELECT pdf.id_payhead,
-               pdf.nama_payhead,
-               pdf.jenis,
-               pdf.amount
-          FROM payroll_detail_final pdf
-         WHERE pdf.id_payroll_final = ?
-         ORDER BY pdf.id
-    ";
-    $stmtPD = $conn->prepare($sqlPDF);
-    if (!$stmtPD) send_response(1, 'Prepare detail failed: ' . $conn->error);
-    $stmtPD->bind_param("i", $id_payroll_final);
-    if (!$stmtPD->execute()) send_response(1, 'Execute detail failed: ' . $stmtPD->error);
+    // --- Detail payhead
+    $stmtPD = $conn->prepare("
+        SELECT id_payhead, nama_payhead, jenis, amount
+          FROM payroll_detail_final
+         WHERE id_payroll_final = ?
+         ORDER BY id
+    "); $stmtPD->bind_param("i", $id); $stmtPD->execute();
+    $dets = []; $hasKGT = false;
     $resPD = $stmtPD->get_result();
-
-    $payheads_detail = [];
-    while ($rowPD = $resPD->fetch_assoc()) {
-        $payheads_detail[] = [
-            'id_payhead'   => $rowPD['id_payhead'],
-            'nama_payhead' => $rowPD['nama_payhead'],
-            'jenis'        => $rowPD['jenis'],
-            'amount'       => $rowPD['amount']
-        ];
+    while ($d = $resPD->fetch_assoc()) {
+        if (stripos($d['nama_payhead'], 'kenaikan gaji') !== false) $hasKGT = true;
+        $dets[] = $d;
     }
     $stmtPD->close();
 
-    $row['payheads_detail'] = $payheads_detail;
+    if ($incAmt > 0 && !$hasKGT) {
+        $dets[] = [
+            'id_payhead' => null,
+            'nama_payhead' => $incName,
+            'jenis' => 'earnings',
+            'amount' => $incAmt
+        ];
+    }
+$total_pendapatan    = floatval($row['total_pendapatan']) + $incAmt;
+$total_potongan      = floatval($row['total_potongan']);
+$potongan_koperasi   = floatval($row['potongan_koperasi']);
+$potongan_absensi    = floatval($row['potongan_absensi']);
+$gaji_pokok          = floatval($row['gaji_pokok']);
+$salary_index_amount = floatval($row['salary_index_amount']);
+$honor_jam_lebih     = floatval($row['honor_jam_lebih']);
+$total_lain_lain     = floatval($row['total_lain_lain'] ?? 0);
+
+// Kalkulasi ulang gaji bersih:
+$gaji_bersih = $gaji_pokok
+             + $salary_index_amount
+             + $honor_jam_lebih
+             + $total_pendapatan
+             + $total_lain_lain
+             - $total_potongan
+             - $potongan_koperasi
+             - $potongan_absensi;
+
+$row['total_pendapatan'] = formatNominal($total_pendapatan);
+$row['gaji_bersih']      = formatNominal($gaji_bersih);
+
+
+    // Format kolom angka
+    $numCols = ['gaji_pokok', 'salary_index_amount', 'honor_jam_lebih',
+        'potongan_absensi', 'potongan_koperasi', 'total_potongan'];
+    foreach ($numCols as $c) $row[$c] = formatNominal($row[$c]);
+    $row['bulan'] = getIndonesianMonthName((int)$row['bulan']);
+    $row['jenjang'] = $jenjangMap[$row['jenjang']] ?? $row['jenjang'];
+    $masa = '';
+    if ($row['masa_kerja_tahun'] > 0) $masa .= $row['masa_kerja_tahun'] . ' Thn ';
+    if ($row['masa_kerja_bulan'] > 0) $masa .= $row['masa_kerja_bulan'] . ' Bln';
+    $row['masa_kerja'] = trim($masa) ?: '-';
+    $row['total_lain_lain'] = formatNominal($row['total_lain_lain'] ?? 0);
+    $row['payheads_detail'] = $dets;
+
     send_response(0, $row);
 }
 ?>

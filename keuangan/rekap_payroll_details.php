@@ -28,6 +28,15 @@ add_audit_log(
     "Mengakses Detail Rekap Payroll jenjang '{$jenjang}'."
 );
 
+// ====== 2. Definisi Kolom Tetap & Komponen ======
+$fixedEarnings = [
+  '__kgt_active'      => "Kenaikan Gaji " . date('Y') . '/' . (date('Y')+1),
+  '__honor_jam_lebih' => "Honor Kelebihan Jam"
+];
+$fixedDeductions = [
+  '__pot_absensi'     => "Potongan Absensi"
+];
+
 // Ambil header payheads untuk <th>
 $earningHeaderPayheads = [];
 $resE = $conn->query("
@@ -53,19 +62,22 @@ while ($r = $resD->fetch_assoc()) {
 }
 $resD->free();
 
+// Gabung semua untuk DataTables/Query
+$allPayheads = array_merge($earningHeaderPayheads, $deductionHeaderPayheads);
+
 // =============================================================================
-// 2. AJAX handler untuk DataTables
+// 3. AJAX handler untuk DataTables
 // =============================================================================
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        LoadingPayrollDetails($conn, $jenjang);
+        LoadingPayrollDetails($conn, $jenjang, $earningHeaderPayheads, $deductionHeaderPayheads, $fixedEarnings, $fixedDeductions);
     } else {
         send_response(405, 'Metode Permintaan Tidak Diizinkan.');
     }
     exit();
 }
 
-function LoadingPayrollDetails($conn, $jenjang)
+function LoadingPayrollDetails($conn, $jenjang, $earningHeaderPayheads, $deductionHeaderPayheads, $fixedEarnings, $fixedDeductions)
 {
     // DataTables params
     $draw   = intval($_POST['draw']   ?? 0);
@@ -105,16 +117,8 @@ function LoadingPayrollDetails($conn, $jenjang)
     $recordsFiltered = intval($stmtF->get_result()->fetch_assoc()['total'] ?? 0);
     $stmtF->close();
 
-    // daftar payheads
-    $payheads = [];
-    $res1 = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='earnings' ORDER BY nama_payhead");
-    while ($r = $res1->fetch_assoc()) $payheads[] = $r['nama_payhead'];
-    $res1->free();
-    $res2 = $conn->query("SELECT DISTINCT nama_payhead FROM payroll_detail_final WHERE jenis='deductions' ORDER BY nama_payhead");
-    while ($r = $res2->fetch_assoc()) $payheads[] = $r['nama_payhead'];
-    $res2->free();
-
-    // subselect CASE untuk setiap payhead
+    // Subselect payhead
+    $payheads = array_merge($earningHeaderPayheads, $deductionHeaderPayheads);
     $subCases = [];
     foreach ($payheads as $ph) {
         $esc   = $conn->real_escape_string($ph);
@@ -123,14 +127,14 @@ function LoadingPayrollDetails($conn, $jenjang)
     }
     $subSelect = $subCases ? implode(", ", $subCases) : '0 AS dummy';
 
-    // outer select untuk payhead columns
+    // Outer select untuk payhead columns
     $outerCols = '';
     foreach ($payheads as $ph) {
         $alias = 'ph_' . substr(md5($ph),0,8);
         $outerCols .= ", IFNULL(det.`$alias`,0) AS `$alias`";
     }
 
-    // query utama
+    // Query utama
     $sql = "
         SELECT
           p.id                   AS id_payroll,
@@ -139,10 +143,21 @@ function LoadingPayrollDetails($conn, $jenjang)
           p.tahun,
           MAX(p.gaji_pokok)          AS total_gaji_pokok,
           MAX(p.salary_index_amount) AS total_salary_index,
-          p.potongan_koperasi    AS total_potongan_koperasi
+          MAX(
+            (SELECT IFNULL(SUM(k.jumlah),0)
+               FROM kenaikan_gaji_tahunan k
+              WHERE k.id_anggota = a.id
+                AND k.status='aktif'
+                AND k.pindah_ke_lain_lain=0
+                AND p.tgl_payroll BETWEEN k.tanggal_mulai AND k.tanggal_berakhir
+            )
+          ) AS kgt_active,
+          MAX(p.honor_jam_lebih) AS honor_jam_lebih
           $outerCols,
+          MAX(p.potongan_absensi) AS pot_absensi,
+          MAX(p.potongan_koperasi) AS total_potongan_koperasi,
           IFNULL(kg.total_lain_lain,0) AS total_lain_lain,
-          p.gaji_bersih          AS total_gaji_bersih
+          MAX(p.gaji_bersih)     AS total_gaji_bersih
         FROM payroll_final p
         JOIN anggota_sekolah a ON p.id_anggota=a.id
         LEFT JOIN (
@@ -186,9 +201,16 @@ function LoadingPayrollDetails($conn, $jenjang)
             'tahun'                => $r['tahun'],
             'total_gaji_pokok'     => formatNominal($r['total_gaji_pokok']),
             'total_salary_index'   => formatNominal($r['total_salary_index']),
-            'total_potongan_koperasi' => formatNominal($r['total_potongan_koperasi']),
+            'kgt_active'           => formatNominal($r['kgt_active']),
+            'honor_jam_lebih'      => formatNominal($r['honor_jam_lebih']),
         ];
-        foreach ($payheads as $ph) {
+        foreach ($earningHeaderPayheads as $ph) {
+            $alias = 'ph_' . substr(md5($ph),0,8);
+            $row[$alias] = formatNominal($r[$alias] ?? 0);
+        }
+        $row['pot_absensi'] = formatNominal($r['pot_absensi']);
+        $row['total_potongan_koperasi'] = formatNominal($r['total_potongan_koperasi']);
+        foreach ($deductionHeaderPayheads as $ph) {
             $alias = 'ph_' . substr(md5($ph),0,8);
             $row[$alias] = formatNominal($r[$alias] ?? 0);
         }
@@ -200,7 +222,6 @@ function LoadingPayrollDetails($conn, $jenjang)
             <i class="fas fa-file-invoice"></i>
           </a>';
         $data[] = $row;
-        
     }
     $stmt->close();
 
@@ -232,25 +253,24 @@ function LoadingPayrollDetails($conn, $jenjang)
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <style>
     body{padding-top:20px;}
-    /* ===== Page Title Styling ===== */
-.page-title {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    font-size: 2.5rem;
-    color: #0d47a1;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 3px solid #1976d2;
-    padding-bottom: 0.3rem;
-    margin-bottom: 1.5rem;
-    animation: fadeInSlide 0.5s ease-in-out both;
-}
-.page-title i {
-    color: #1976d2;
-    font-size: 2.8rem;
-}
+    .page-title {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 2.5rem;
+      color: #0d47a1;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 3px solid #1976d2;
+      padding-bottom: 0.3rem;
+      margin-bottom: 1.5rem;
+      animation: fadeInSlide 0.5s ease-in-out both;
+    }
+    .page-title i {
+      color: #1976d2;
+      font-size: 2.8rem;
+    }
     .card-header{background:linear-gradient(45deg,#0d47a1,#42a5f5);color:#fff;}
     .table-responsive{overflow-x:auto;}
     table.dataTable th, table.dataTable td{white-space:nowrap;}
@@ -262,9 +282,9 @@ function LoadingPayrollDetails($conn, $jenjang)
       <i class="fas fa-arrow-left"></i> Kembali
     </a>
 
-<h1 class="page-title">
-        <i class="fas fa-file-invoice"></i>
-  Detail Rekap – <?= htmlspecialchars($jenjang) ?>
+    <h1 class="page-title">
+      <i class="fas fa-file-invoice"></i>
+      Detail Rekap – <?= htmlspecialchars($jenjang) ?>
     </h1>
     
     <div class="card shadow mb-4">
@@ -282,16 +302,17 @@ function LoadingPayrollDetails($conn, $jenjang)
                 <th>Tahun</th>
                 <th>Gaji Pokok</th>
                 <th>Salary Index</th>
-                <!-- PAYHEAD LAMA -->
+                <th><?= $fixedEarnings['__kgt_active'] ?></th>
+                <th><?= $fixedEarnings['__honor_jam_lebih'] ?></th>
                 <?php foreach($earningHeaderPayheads as $ph): ?>
                   <th><?= htmlspecialchars($ph) ?></th>
                 <?php endforeach; ?>
-                <th>Lain‑lain</th>
+                <th><?= $fixedDeductions['__pot_absensi'] ?></th>
                 <th>Potongan Koperasi</th>
-                <!-- PAYHEAD DEDUCTIONS -->
                 <?php foreach($deductionHeaderPayheads as $ph): ?>
                   <th><?= htmlspecialchars($ph) ?></th>
                 <?php endforeach; ?>
+                <th>Lain‑lain</th>
                 <th>Gaji Bersih</th>
                 <th>Aksi</th>
               </tr>
@@ -317,7 +338,6 @@ function LoadingPayrollDetails($conn, $jenjang)
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    // build dynamic columns
     let dynEarn = [], dynDeduct = [];
     <?php foreach($earningHeaderPayheads as $ph):
       $a = 'ph_'.substr(md5($ph),0,8);
@@ -355,15 +375,18 @@ function LoadingPayrollDetails($conn, $jenjang)
           { data:'bulan' },
           { data:'tahun' },
           { data:'total_gaji_pokok' },
-          { data:'total_salary_index' }
+          { data:'total_salary_index' },
+          { data:'kgt_active' },
+          { data:'honor_jam_lebih' }
         ]
         .concat(dynEarn)
         .concat([
-          { data:'total_lain_lain' },
+          { data:'pot_absensi' },
           { data:'total_potongan_koperasi' }
         ])
         .concat(dynDeduct)
         .concat([
+          { data:'total_lain_lain' },
           { data:'total_gaji_bersih' },
           { data:'aksi', orderable:false, searchable:false }
         ]),

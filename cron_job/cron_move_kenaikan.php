@@ -30,10 +30,40 @@ try {
         WHERE id = ?
     ");
 
+
+
     $stmtInsertHistory = $conn->prepare("
-        INSERT INTO salary_history (id_anggota, jenis, amount, effective_date, created_by)
-        VALUES (?, 'increment', ?, CURDATE(), 'cron')
+  INSERT INTO salary_history
+    (id_anggota, jenis, amount, effective_date, created_by)
+  VALUES (?, 'increment', ?, CURDATE(), 'cronjob')
+");
+
+    $stmtDelPayhead = $conn->prepare("
+        DELETE FROM employee_payheads
+        WHERE id_anggota = ? AND id_payhead = 100
     ");
+
+    while ($row = $result->fetch_assoc()) {
+        $idKG = $row['id'];
+        $idAnggota = $row['id_anggota'];
+        $jumlah = $row['jumlah'];
+
+        /* 1. tandai selesai */
+        $stmtUpdateKG->bind_param("i", $idKG);
+        $stmtUpdateKG->execute();
+
+        /* 2. naikkan gaji pokok */
+        $stmtUpdateGaji->bind_param("di", $jumlah, $idAnggota);
+        $stmtUpdateGaji->execute();
+
+        /* 3. hapus payhead 100 draft/aktif */
+        $stmtDelPayhead->bind_param("i", $idAnggota);
+        $stmtDelPayhead->execute();
+
+        /* 4. catat history */
+        $stmtInsertHistory->bind_param("id", $idAnggota, $jumlah);
+        $stmtInsertHistory->execute();
+    }
 
     while ($row = $result->fetch_assoc()) {
         $idKG      = $row['id'];
@@ -74,7 +104,6 @@ try {
 
     $conn->commit();
     echo "✅ Cron selesai. Semua kenaikan gaji telah difinalisasi.\n";
-
 } catch (Exception $e) {
     $conn->rollback();
     error_log("[CRON ERROR] " . $e->getMessage());

@@ -14,7 +14,6 @@ $search = sanitize_input($_POST['search']['value'] ?? '');
 
 // Build WHERE & params
 if (strtolower($jenjang) === 'semua') {
-  // Mode ini TIDAK AKAN dipanggil dari sini, karena sudah handle di file utama.
   send_response(400, 'Permintaan tidak valid untuk mode semua jenjang.');
 } else {
   $sqlWhere = "WHERE a.jenjang=? AND a.kategori=? AND a.role <> 'M' AND pf.bulan=? AND pf.tahun=?";
@@ -66,6 +65,11 @@ foreach ($PAYHEAD_GROUPS as $grp) {
 $subSelect   = implode(",\n    ", array_merge($subCasesPH, $subCasesGR));
 $outerSelect = implode(" ", array_merge($outerColsPH, $outerColsGR));
 
+// Hash untuk kolom tetap (harus sama dengan frontend!)
+$hashKgtActive = substr(md5('__kgt_active'),0,8);
+$hashHonorJamLebih = substr(md5('__honor_jam_lebih'),0,8);
+$hashPotAbsensi = substr(md5('__pot_absensi'),0,8);
+
 // Query utama
 $sqlData = "
   SELECT
@@ -77,6 +81,13 @@ $sqlData = "
     $outerSelect,
     pf.honor_jam_lebih     AS honor_jam_lebih,
     pf.potongan_absensi    AS pot_absensi,
+    IFNULL((
+      SELECT SUM(jumlah)
+        FROM kenaikan_gaji_tahunan kt
+       WHERE kt.id_anggota = a.id
+         AND kt.status     = 'aktif'
+         AND pf.tgl_payroll BETWEEN kt.tanggal_mulai AND kt.tanggal_berakhir
+    ),0)                    AS kgt_active,
     pf.potongan_koperasi   AS pot_koperasi,
     pf.gaji_bersih
   FROM payroll_final pf
@@ -106,6 +117,7 @@ while ($r = $res->fetch_assoc()) {
   $honorJam    = (float)$r['honor_jam_lebih'];
   $potAbsen    = (float)$r['pot_absensi'];
   $potKoperasi = (float)$r['pot_koperasi'];
+  $kgtActive   = (float)$r['kgt_active'];
 
   $sumEarningsPH = 0;
   foreach ($earningPayheads as $ph) {
@@ -115,49 +127,54 @@ while ($r = $res->fetch_assoc()) {
   $sumGroupPH = 0;
   foreach ($PAYHEAD_GROUPS as $grp) {
     $alias = 'gr_' . substr(md5($grp), 0, 8);
-    $sumGroupPH += (float)$r[$alias];
+    $sumGroupPH += (float)($r[$alias] ?? 0);
   }
-
-  // Hitung totalPendapatan dan totalPotongan
-  $totalPendapatan = $gajiPokok + $idxAmount + $sumEarningsPH + $sumGroupPH + $honorJam;
-  $maxPotKop = $totalPendapatan * 0.65;
   $sumDeductionPH = 0;
   foreach ($deductionPayheads as $ph) {
     $alias = 'ph_' . substr(md5($ph), 0, 8);
     $sumDeductionPH += (float)$r[$alias];
   }
+
+  $totalPendapatan = $gajiPokok + $idxAmount + $sumEarningsPH + $sumGroupPH + $kgtActive + $honorJam;
   $totalPotongan = $potKoperasi + $potAbsen + $sumDeductionPH;
+  $maxPotKop = $totalPendapatan * 0.65;
   $netReceived = $totalPendapatan - $totalPotongan;
   $rounded = round($netReceived / 100) * 100;
 
+  // Output row sesuai kolom frontend!
   $row = [
-    'nip'               => htmlspecialchars($r['nip']),
-    'nama'              => htmlspecialchars($r['nama']),
-    'keterangan'        => htmlspecialchars($r['keterangan']),
-    'gaji_pokok'        => formatNominal($gajiPokok),
-    'idx_amount'        => formatNominal($idxAmount)
+    'nip'        => htmlspecialchars($r['nip']),
+    'nama'       => htmlspecialchars($r['nama']),
+    'keterangan' => htmlspecialchars($r['keterangan']),
+    'gaji_pokok' => formatNominal($gajiPokok),
+    'idx_amount' => formatNominal($idxAmount),
+    // Fixed earning (kenaikan gaji tahunan & honor jam lebih)
+    'ph_'.$hashKgtActive      => formatNominal($kgtActive),
+    'ph_'.$hashHonorJamLebih  => formatNominal($honorJam)
   ];
-  foreach ($earningPayheads as $ph) {
-    $alias = 'ph_' . substr(md5($ph), 0, 8);
-    $row[$alias] = formatNominal($r[$alias] ?? 0);
-  }
   foreach ($PAYHEAD_GROUPS as $grp) {
     $alias = 'gr_' . substr(md5($grp), 0, 8);
     $row[$alias] = formatNominal($r[$alias] ?? 0);
   }
-  $row['honor_jam_lebih'] = formatNominal($honorJam);
-  $row['pot_absensi']     = formatNominal($potAbsen);
-  foreach ($deductionPayheads as $ph) {
+  foreach ($earningPayheads as $ph) {
     $alias = 'ph_' . substr(md5($ph), 0, 8);
     $row[$alias] = formatNominal($r[$alias] ?? 0);
   }
-  $row['pembulatan']       = formatNominal($rounded);
-  $row['total_pendapatan'] = formatNominal($totalPendapatan);
-  $row['max_pot_kop']      = formatNominal($maxPotKop);
-  $row['pot_koperasi']     = formatNominal($potKoperasi);
-  $row['total_potongan']   = formatNominal($totalPotongan);
-  $row['net_received']     = formatNominal($netReceived);
-
+  // Fixed deduction (potongan absensi)
+  $row['d_'.$hashPotAbsensi] = formatNominal($potAbsen);
+  foreach ($deductionPayheads as $ph) {
+    $alias = 'd_' . substr(md5($ph), 0, 8);
+    // Ambil dari kolom payhead (harus prefix d_, bukan ph_)
+    $row[$alias] = formatNominal($r['ph_' . substr(md5($ph), 0, 8)] ?? 0);
+  }
+  $row += [
+    'pembulatan'       => formatNominal($rounded),
+    'total_pendapatan' => formatNominal($totalPendapatan),
+    'max_pot_kop'      => formatNominal($maxPotKop),
+    'pot_koperasi'     => formatNominal($potKoperasi),
+    'total_potongan'   => formatNominal($totalPotongan),
+    'net_received'     => formatNominal($netReceived)
+  ];
   $data[] = $row;
 }
 $stmt->close();

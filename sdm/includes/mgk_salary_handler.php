@@ -314,6 +314,18 @@ if (!function_exists('updateSalaryIndexForAll')) {
             return false;
         }
         while ($row = $res->fetch_assoc()) {
+    $uid = intval($row['id']);
+
+    // ← **Penambahan**: lewati user yang sudah dapat kenaikan tahunan
+    if (hasRecentIncrement($conn, $uid)) {
+        // catat di log agar audit jelas
+        file_put_contents(__DIR__ . "/log_test.txt",
+            date('Y-m-d H:i:s')
+            ." | SKIP recent increment id=$uid\n",
+            FILE_APPEND
+        );
+        continue;
+    }
             $ok = updateSalaryIndexForUser($conn, intval($row['id']));
             if (!$ok) {
                 // LOG lebih detail user dan data terkait
@@ -336,6 +348,31 @@ if (!function_exists('updateSalaryIndexForAll')) {
     }
 }
 
+if (!function_exists('hasRecentIncrement')) {
+    /**
+     * @param mysqli $conn
+     * @param int    $id_anggota
+     * @return bool  true jika ada salary_history dengan effective_date >= 1 tahun lalu
+     */
+    function hasRecentIncrement(mysqli $conn, int $id_anggota): bool
+    {
+        $sql = "
+          SELECT 1
+            FROM salary_history
+           WHERE id_anggota = ?
+             AND effective_date >= (CURDATE() - INTERVAL 1 YEAR)
+           LIMIT 1
+        ";
+        $st = $conn->prepare($sql);
+        if (!$st) return false;
+        $st->bind_param("i", $id_anggota);
+        $st->execute();
+        $st->store_result();
+        $has = $st->num_rows > 0;
+        $st->close();
+        return $has;
+    }
+}
 
 /* ================================================================
  * 4. Admin – Update tabel Gaji Pokok
@@ -415,24 +452,24 @@ if (!function_exists('syncAllGajiPokokToStrata')) {
      * Update massal gaji pokok semua anggota agar sesuai strata & jenjang
      */
     function syncAllGajiPokokToStrata(mysqli $conn): array
-    {
-        $res = $conn->query("SELECT id, role, pendidikan, jenjang FROM anggota_sekolah WHERE is_delete=0");
-        if (!$res) return ['ok'=>false, 'total'=>0, 'updated'=>0];
-        $total = 0;
-        $updated = 0;
-        while ($row = $res->fetch_assoc()) {
-            $total++;
-            $gaji_pokok = hitungGajiPokok($conn, $row['role'], $row['pendidikan'], $row['jenjang']);
-            $u = $conn->prepare("UPDATE anggota_sekolah SET gaji_pokok=? WHERE id=?");
-            if ($u) {
-                $u->bind_param("di", $gaji_pokok, $row['id']);
-                if ($u->execute()) $updated++;
-                $u->close();
-            }
+{
+    $res = $conn->query("SELECT id, role, pendidikan, jenjang FROM anggota_sekolah WHERE is_delete=0");
+    if (!$res) return ['ok'=>false, 'total'=>0, 'updated'=>0];
+    $total = 0;
+    $updated = 0;
+    while ($row = $res->fetch_assoc()) {
+        $total++;
+        $gaji_pokok = hitungGajiPokok($conn, $row['role'], $row['pendidikan'], $row['jenjang']);
+        $u = $conn->prepare("UPDATE anggota_sekolah SET gaji_strata=? WHERE id=?");
+        if ($u) {
+            $u->bind_param("di", $gaji_pokok, $row['id']);
+            if ($u->execute()) $updated++;
+            $u->close();
         }
-        return ['ok'=>true, 'total'=>$total, 'updated'=>$updated];
     }
+    return ['ok'=>true, 'total'=>$total, 'updated'=>$updated];
 }
+
 
 
 /* ================================================================
@@ -463,5 +500,6 @@ if (!function_exists('_runStrataUpdate')) {
         $st->close();
         return $all;
     }
+}
 }
 }

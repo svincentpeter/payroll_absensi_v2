@@ -125,13 +125,32 @@ if (!function_exists('ProcessPayroll')) {
         $stmtUpd->execute();
         $stmtUpd->close();
 
-        $stmtDel = $conn->prepare("
-            DELETE FROM payroll
-             WHERE id_anggota = ? AND bulan = ? AND tahun = ? AND status = 'draft'
-        ");
-        $stmtDel->bind_param("iii", $id_anggota,$bulan,$tahun);
-        $stmtDel->execute();
-        $stmtDel->close();
+        /***** 8a. Hapus detail payroll draft lebih dulu *****/
+$stmtDelDet = $conn->prepare("
+    DELETE pd
+      FROM payroll_detail  pd
+      JOIN payroll         p  ON p.id = pd.id_payroll
+     WHERE p.id_anggota = ? 
+       AND p.bulan      = ? 
+       AND p.tahun      = ? 
+       AND p.status     = 'draft'
+");
+$stmtDelDet->bind_param("iii", $id_anggota, $bulan, $tahun);
+$stmtDelDet->execute();
+$stmtDelDet->close();
+
+/***** 8b. Baru hapus header payroll draft *****/
+$stmtDelPay = $conn->prepare("
+    DELETE FROM payroll
+     WHERE id_anggota = ? 
+       AND bulan      = ? 
+       AND tahun      = ? 
+       AND status     = 'draft'
+");
+$stmtDelPay->bind_param("iii", $id_anggota, $bulan, $tahun);
+$stmtDelPay->execute();
+$stmtDelPay->close();
+
 
         // === 9) INSERT PAYROLL via direct query ===
         $tglEsc   = $conn->real_escape_string($tgl);

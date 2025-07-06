@@ -473,15 +473,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               <i class="fas fa-layer-group"></i> Kelola Jenjang
             </a>
 
-            <!-- Tombol Sinkron Gaji Massal -->
-            <button
-              class="btn btn-sm"
-              id="btnSyncAllGajiPokok"
-              title="Update semua gaji pokok anggota agar sesuai dengan Strata dan Jenjang"
-              style="background:#ffccbc; color:#111; border:none;">
-              <i class="fas fa-sync-alt"></i> Sinkron Gaji Massal
-            </button>
-
             <!-- Tombol Import Excel -->
             <a href="import_anggota_sekolah.php"
               class="btn btn-sm"
@@ -997,6 +988,30 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
               <div class="col-md-4">
                 <label for="editJoinStart">Tanggal Bergabung</label>
                 <input type="date" name="join_start" id="editJoinStart" class="form-control">
+              </div>
+            </div>
+
+            <!-- SECTION: Gaji Pokok & Salary Index Level -->
+            <div class="alert alert-primary fw-bold mb-3" role="alert">
+              Gaji Pokok & Salary Index Level
+            </div>
+            <div class="row mb-2">
+              <div class="col-md-6">
+                <label for="editGajiPokok">Gaji Pokok (Rp)</label>
+                <input type="number" min="0" name="gaji_pokok" id="editGajiPokok" class="form-control" required>
+                <div class="invalid-feedback">Gaji Pokok wajib diisi.</div>
+              </div>
+              <div class="col-md-6">
+                <label for="editSalaryLevel">Salary Index Level</label>
+                <input type="number" min="1" max="99" name="salary_level" id="editSalaryLevel" class="form-control" required>
+                <div class="invalid-feedback">Salary Index wajib diisi.</div>
+              </div>
+            </div>
+            <!-- History -->
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label>Riwayat Perubahan Gaji & Level</label>
+                <div id="editSalaryHistory" class="bg-light border rounded px-2 py-2" style="min-height:40px;font-size:0.99em;max-height:140px;overflow:auto"></div>
               </div>
             </div>
 
@@ -1580,26 +1595,26 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     /* ============================================================
        =============== [2] SYNC STRATA DROPDOWN ===================
        ============================================================ */
-    function syncStrataOptions(jenjang, role, prefix = '', callback = null) {
-      let sel = $(`#${prefix}Strata`);
+    function syncStrataOptions(jenjang, role, prefix = '', cb = null) {
+      const sel = $(`#${prefix}Strata`);
       sel.empty().append('<option value="">-- Pilih Strata --</option>');
 
       jenjang = (jenjang || '').trim().toUpperCase();
       role = (role || '').trim();
 
       let arr = [];
-      if (role === 'P' && GURU_CONFIG[jenjang]) {
-        arr = GURU_CONFIG[jenjang];
-      }
-      if ((role === 'TK' || role === 'M') && KARYAWAN_CONFIG[jenjang]) {
+      if (role === 'P' && GURU_CONFIG[jenjang]) arr = GURU_CONFIG[jenjang];
+      if ((role === 'TK' || role === 'M') && KARYAWAN_CONFIG[jenjang])
         arr = KARYAWAN_CONFIG[jenjang];
-      }
+
+      /*  ➜ fallback sederhana */
+      if (arr.length === 0) arr = ['D3', 'S1', 'S2', 'S3'];
 
       arr.forEach(s => sel.append(`<option value="${s}">${s}</option>`));
 
-      // Jalankan callback jika ada, setelah semua option selesai di-append
-      if (typeof callback === 'function') callback();
+      if (typeof cb === 'function') cb(); // callback tetap jalan
     }
+
 
 
 
@@ -1630,13 +1645,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
       // Untuk form EDIT
       $('#editJenjang, #editRole').change(function() {
         syncStrataOptions($('#editJenjang').val(), $('#editRole').val(), 'edit');
-      });
-      $('#modalEdit').on('shown.bs.modal', function() {
-        syncStrataOptions($('#editJenjang').val(), $('#editRole').val(), 'edit');
-        // Set value strata lama jika sedang edit (opsional)
-        setTimeout(() => {
-          $('#editStrata').val($('#editStrata').data('old') || $('#editStrata').val() || '');
-        }, 100);
       });
 
 
@@ -1684,16 +1692,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
 
           // Badge untuk jenjang
           let jenjangBadge = '';
-if (item.jenjang) {
-  if (item.jenjang.toUpperCase() === 'UMUM') {
-    jenjangBadge = `<span class="badge bg-secondary me-1">Umum</span>`;
-  } else {
-    // Pakai warna dari backend (dari DB)
-    let bg = item.jenjang_bg || '#ececec';
-    let fg = item.jenjang_fg || '#333';
-    jenjangBadge = `<span class="badge me-1" style="background:${bg};color:${fg};">${item.jenjang}</span>`;
-  }
-}
+          if (item.jenjang) {
+            if (item.jenjang.toUpperCase() === 'UMUM') {
+              jenjangBadge = `<span class="badge bg-secondary me-1">Umum</span>`;
+            } else {
+              // Pakai warna dari backend (dari DB)
+              let bg = item.jenjang_bg || '#ececec';
+              let fg = item.jenjang_fg || '#333';
+              jenjangBadge = `<span class="badge me-1" style="background:${bg};color:${fg};">${item.jenjang}</span>`;
+            }
+          }
 
           // Badge untuk unit penempatan (khusus UMUM)
           let unitBadge = '';
@@ -1897,7 +1905,10 @@ if (item.jenjang) {
               $('#detailRole').text(r.role);
               $('#detailStatusKerja').html(getStatusBadge(r.status_kerja));
               $('#detailGajiPokok').text(r.gaji_pokok);
-              $('#detailSalaryLevel').text(r.salary_level);
+              $('#detailSalaryLevel').text(
+                r.salary_level ? 'Level ' + r.salary_level : '-'
+              );
+
               $('#detailLamaKontrak').text(r.lama_kontrak ? r.lama_kontrak + ' Bln' : '-');
               $('#detailTglSelesai').text(r.tgl_kontrak_selesai || '-');
               if (r.status_kerja === 'Tetap') $('#detailLamaKontrakRow,#detailTglSelesaiRow').hide();
@@ -1992,6 +2003,32 @@ if (item.jenjang) {
               if (r.status_kerja === 'Kontrak') $('#editLamaKontrak').val(r.lama_kontrak || '12');
               else $('#editLamaKontrak').val('');
 
+              $('#editGajiPokok').val(r.gaji_pokok || 0);
+              $('#editSalaryLevel').val(
+                (r.salary_level !== null && r.salary_level !== undefined) ? r.salary_level : ''
+              );
+              // History (jika backend return field "salary_history")
+              const rupiah = v =>
+                (isFinite(v) ? Number(v) : 0).toLocaleString('id-ID');
+
+              let historyHtml = "";
+              r.salary_history.forEach(h => {
+                historyHtml += `
+    <div class="mb-1">
+      <span class="badge bg-secondary me-1">
+        ${h.created_at ?? '-'}
+      </span>
+      ${h.jenis === 'increment' ? 'Kenaikan Tahunan' : h.jenis}
+      &nbsp;+ Rp ${rupiah(h.amount)}
+      <small class="text-muted ms-2">
+        (efektif ${h.effective_date ?? '-'})
+      </small>
+      <i class="ms-1">oleh ${h.created_by ?? '-'}</i>
+    </div>`;
+              });
+              $('#editSalaryHistory').html(historyHtml || "<i>Belum ada riwayat.</i>");
+
+
               // Jenjang dan Role DULU!
               $('#editJenjang').val(r.jenjang || '');
               $('#editUnitPenempatan').val(r.unit_penempatan || '');
@@ -1999,10 +2036,16 @@ if (item.jenjang) {
               $('#editRole').val(r.role || '');
 
               // Generate ulang dropdown Strata
+
               syncStrataOptions(r.jenjang, r.role, 'edit', function() {
-                // Setelah opsi Strata sudah ada, baru set nilainya
-                $('#editStrata').val((r.strata || '').trim().toUpperCase());
+                const val = (r.strata || '').trim().toUpperCase();
+                /* tambahkan kalau belum ada */
+                if (val && $('#editStrata option[value="' + val + '"]').length === 0) {
+                  $('#editStrata').append(`<option value="${val}">${val}</option>`);
+                }
+                $('#editStrata').val(val);
               });
+
 
               $('#editUnitPenempatan').val(r.unit_penempatan || '');
               // Field lain
@@ -2253,45 +2296,6 @@ if (item.jenjang) {
         $('#content-wrapper').fadeOut(300, () => window.location.href = $(this).data('href'));
       });
 
-      $('#btnSyncAllGajiPokok').on('click', function() {
-        Swal.fire({
-          title: 'Sinkronisasi Gaji Pokok',
-          text: 'Semua anggota akan diupdate sesuai data Strata & Jenjang terbaru. Lanjutkan?',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Ya, Sinkronkan!',
-          cancelButtonText: 'Batal',
-          reverseButtons: true
-        }).then((result) => {
-          if (result.isConfirmed) {
-            let btn = $('#btnSyncAllGajiPokok');
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Memproses...');
-            $.post('includes/proses_update_gaji_strata.php', function(resp) {
-              // Pastikan response format: { code: 0/1, result: "Pesan..." }
-              if (resp.code === 0) {
-                Toast.fire({
-                  icon: 'success',
-                  title: resp.result || 'Berhasil update semua gaji pokok!'
-                });
-              } else {
-                Toast.fire({
-                  icon: 'error',
-                  title: resp.result || 'Gagal sinkronisasi!'
-                });
-              }
-            }, 'json').fail(function() {
-              Toast.fire({
-                icon: 'error',
-                title: 'Terjadi kesalahan pada server.'
-              });
-            }).always(function() {
-              btn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Sinkron Gaji Semua');
-              // Optional: location.reload();
-            });
-          }
-        });
-
-      });
 
       /* ============================================================
    =============== [2.1] TOGGLE UNIT PENEMPATAN ================

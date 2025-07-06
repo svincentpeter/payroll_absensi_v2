@@ -562,29 +562,14 @@ $totalPotongan   = 0;
 
 while ($r = $resPH->fetch_assoc()) {
     $payheads[] = $r;
-    if (!empty($r['is_rapel']) && $r['is_rapel'] == 1) {
-        continue;
-    }
-    if ($r['jenis'] === 'earnings') {
-        $totalPendapatan += floatval($r['amount'] ?? 0);
+    if (!empty($r['is_rapel']) && $r['is_rapel'] == 1) continue;
+
+   if ($r['jenis'] === 'earnings') {
+        $totalPendapatan += floatval($r['amount']);
     } else {
-        $totalPotongan += floatval($r['amount'] ?? 0);
+        $totalPotongan   += floatval($r['amount']);
     }
 }
-
-
-// ------------------------------------
-// Honor Kelebihan Jam Mengajar = earnings (sudah ada)
-$totalPendapatan  += floatval($honor_jam_lebih ?? 0);
-// Potongan Absensi = deductions (sudah ada)
-$totalPotongan    += floatval($potongan_absensi ?? 0);
-
-// **Tambahkan Kenaikan Gaji Tahunan**:
-if (!empty($kgData['jumlah'])) {
-    $totalPendapatan += floatval($kgData['jumlah']);
-}
-// ------------------------------------
-
 
 $stmtPH->close();
 
@@ -657,10 +642,10 @@ $kgData    = $resultKG->fetch_assoc();
 $stmtKG->close();
 
 // Baru hitung pendapatan + potongan:
-$totalPendapatan  += floatval($honor_jam_lebih);
-$totalPotongan    += floatval($potongan_absensi);
+$totalPendapatan += (float) $honor_jam_lebih;
+$totalPotongan   += (float) $potongan_absensi;
 if (!empty($kgData['jumlah'])) {
-    $totalPendapatan += floatval($kgData['jumlah']);
+    $totalPendapatan += (float) $kgData['jumlah'];
 }
 
 ?>
@@ -859,7 +844,7 @@ if (!empty($kgData['jumlah'])) {
                                     <input
                                         type="text"
                                         id="inputPotonganAbsensi"
-                                        class="form-control currency-input non-editable"
+                                        class="form-control currency-input non-editable text-danger fw-bold"
                                         value="<?= htmlspecialchars($potongan_absensi); ?>"
                                         readonly>
                                 </div>
@@ -869,7 +854,7 @@ if (!empty($kgData['jumlah'])) {
                                     <input
                                         type="text"
                                         id="inputPotonganKoperasi"
-                                        class="form-control currency-input"
+                                        class="form-control currency-input text-danger fw-bold"
                                         value="<?= htmlspecialchars(number_format($potongan_koperasi, 0, ',', '.')); ?>">
                                 </div>
                                 <div class="mb-3">
@@ -1187,28 +1172,18 @@ if (!empty($kgData['jumlah'])) {
             });
 
             // Fungsi perhitungan ulang gaji bersih
-            function recalcNetSalary() {
-                let gajiPokok = parseFloat(anGajiPokok.getNumber()) || 0;
-                let salaryIndex = parseFloat($('#inputSalaryIndex').val().replace(/\./g, '')) || 0;
-                let honorJamLebih = parseFloat($('#inputHonorJamLebih').val().replace(/\./g, '').replace(',', '.')) || 0;
-                let totalEarnings = parseFloat(anTotalEarnings.getNumber()) || 0;
-                let kenaikanTahunan = <?= floatval($kgData['jumlah'] ?? 0) ?>; // <— tambahkan ini
-                let totalDeductions = parseFloat(anTotalDeductions.getNumber()) || 0;
-                let potAbsen = parseFloat(anPotAbsen.getNumber()) || 0;
-                let potKoperasi = parseFloat(anPotKop.getNumber()) || 0;
+            function recalcNetSalary(){
+    const gajiPokok      = anGajiPokok.getNumber() || 0;
+    const salaryIndex    = parseFloat($('#inputSalaryIndex').val().replace(/[.\s]/g,'')) || 0;
+    const totalEarnings  = anTotalEarnings.getNumber()  || 0; // sudah termasuk honor & kenaikan
+    const totalDeductions= anTotalDeductions.getNumber()|| 0; // sudah termasuk potongan absensi
+    const potKoperasi    = anPotKop.getNumber()          || 0;
 
-                let netSalary = gajiPokok +
-                    salaryIndex +
-                    honorJamLebih +
-                    kenaikanTahunan // <— disini
-                    +
-                    totalEarnings -
-                    totalDeductions -
-                    potAbsen -
-                    potKoperasi;
+    const net = gajiPokok + salaryIndex + totalEarnings
+                - totalDeductions - potKoperasi;
 
-                anNetSalary.set(netSalary);
-            }
+    anNetSalary.set(net);
+}
 
 
             $('#inputPotonganKoperasi').on('input', recalcNetSalary);

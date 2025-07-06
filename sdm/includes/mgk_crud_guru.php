@@ -123,34 +123,34 @@ LIMIT ?, ?
     // 6. Ambil data dan format
     $data = [];
     while ($row = $res->fetch_assoc()) {
-    $masa = $row['masa_kerja_tahun'] . ' Thn ' . $row['masa_kerja_bulan'] . ' Bln';
-    $data[] = [
-        "id"           => $row['id'],
-        "uid"          => htmlspecialchars($row['uid'] ?? ''),
-        "nip"          => htmlspecialchars($row['nip'] ?? ''),
-        "nama"         => htmlspecialchars($row['nama'] ?? ''),
-        "jenjang"      => $row['jenjang'],
-        'unit_penempatan' => $row['unit_penempatan'],
-        "jenjang_badge" => getBadgeJenjang($row['jenjang'], $conn),
-        "jenjang_bg"   => $row['jenjang_bg'] ?? null,   // <- Tambahkan ini
-        "jenjang_fg"   => $row['jenjang_fg'] ?? null,   // <- Tambahkan ini
-        "job_title"    => htmlspecialchars($row['job_title'] ?? ''),
-        "role"         => $row['role'],
-        "status_kerja" => $row['status_kerja'],
-        "join_start"   => $row['join_start'],
-        "lama_kontrak" => $row['lama_kontrak'],
-        "tgl_kontrak_selesai" => $row['tgl_kontrak_selesai'],
-        "masa_kerja"   => $masa,
-        "pendidikan"   => htmlspecialchars($row['pendidikan'] ?? ''),
-        "email"        => htmlspecialchars($row['email'] ?? ''),
-        "no_hp"        => htmlspecialchars($row['no_hp'] ?? ''),
-        "foto_profil"  => getProfilePhotoUrl($row['foto_profil']),
-        "foto_ktp"     => getKtpPhotoUrl($row['foto_ktp']),
-        "faskes_bpjs"     => $row['faskes_bpjs'],
-        "faskes_inhealth" => $row['faskes_inhealth'],
-        "faskes_ket"      => $row['faskes_ket'],
-    ];
-}
+        $masa = $row['masa_kerja_tahun'] . ' Thn ' . $row['masa_kerja_bulan'] . ' Bln';
+        $data[] = [
+            "id"           => $row['id'],
+            "uid"          => htmlspecialchars($row['uid'] ?? ''),
+            "nip"          => htmlspecialchars($row['nip'] ?? ''),
+            "nama"         => htmlspecialchars($row['nama'] ?? ''),
+            "jenjang"      => $row['jenjang'],
+            'unit_penempatan' => $row['unit_penempatan'],
+            "jenjang_badge" => getBadgeJenjang($row['jenjang'], $conn),
+            "jenjang_bg"   => $row['jenjang_bg'] ?? null,   // <- Tambahkan ini
+            "jenjang_fg"   => $row['jenjang_fg'] ?? null,   // <- Tambahkan ini
+            "job_title"    => htmlspecialchars($row['job_title'] ?? ''),
+            "role"         => $row['role'],
+            "status_kerja" => $row['status_kerja'],
+            "join_start"   => $row['join_start'],
+            "lama_kontrak" => $row['lama_kontrak'],
+            "tgl_kontrak_selesai" => $row['tgl_kontrak_selesai'],
+            "masa_kerja"   => $masa,
+            "pendidikan"   => htmlspecialchars($row['pendidikan'] ?? ''),
+            "email"        => htmlspecialchars($row['email'] ?? ''),
+            "no_hp"        => htmlspecialchars($row['no_hp'] ?? ''),
+            "foto_profil"  => getProfilePhotoUrl($row['foto_profil']),
+            "foto_ktp"     => getKtpPhotoUrl($row['foto_ktp']),
+            "faskes_bpjs"     => $row['faskes_bpjs'],
+            "faskes_inhealth" => $row['faskes_inhealth'],
+            "faskes_ket"      => $row['faskes_ket'],
+        ];
+    }
     $stmt->close();
 
     // 7. Kirim hasil
@@ -198,13 +198,13 @@ function CreateGuru(mysqli $conn)
     $lama_kontrak = ($status_kerja === 'Kontrak') ? intval($_POST['lama_kontrak'] ?? 12) : null;
     [$masa_tahun, $masa_bulan, $masa_eff] = calcMasaKerja($join_start);
     $tgl_kontrak  = ($status_kerja === 'Kontrak' && $join_start)
-    ? hitungTanggalSelesaiKontrak($join_start, $lama_kontrak)
-    : null;
+        ? hitungTanggalSelesaiKontrak($join_start, $lama_kontrak)
+        : null;
 
-// Tambahan patch agar tidak error jika hanya tahun
-if ($tgl_kontrak && preg_match('/^\d{4}$/', $tgl_kontrak)) {
-    $tgl_kontrak = $tgl_kontrak . '-12-31';
-}
+    // Tambahan patch agar tidak error jika hanya tahun
+    if ($tgl_kontrak && preg_match('/^\d{4}$/', $tgl_kontrak)) {
+        $tgl_kontrak = $tgl_kontrak . '-12-31';
+    }
 
     $pendidikan  = bersihkan_input($_POST['pendidikan'] ?? '');
     $gaji_pokok  = hitungGajiPokok($conn, $role, $pendidikan, $jenjang);
@@ -246,7 +246,7 @@ if ($tgl_kontrak && preg_match('/^\d{4}$/', $tgl_kontrak)) {
     $sudah_kontrak = 0; // default (harus isi, INT!)
 
     // 43 kolom
-$sql = "INSERT INTO anggota_sekolah (
+    $sql = "INSERT INTO anggota_sekolah (
     uid, nip, password, nama, jenjang, unit_penempatan, strata, job_title, status_kerja,
     join_start, lama_kontrak, tgl_kontrak_selesai, sudah_kontrak,
     masa_kerja_tahun, masa_kerja_bulan, masa_kerja_efektif,
@@ -260,35 +260,69 @@ $sql = "INSERT INTO anggota_sekolah (
     ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )";
 
-// types urut: s=string, i=integer, d=double
-$types =
-    'ssssssssss'   // 10×string
-  . 'isiii'        //  5×: lama_kontrak(int), tgl_kontrak_selesai(string), sudah_kontrak(int), masa_kerja_tahun(int), masa_kerja_bulan(int)
-  . 'd'         // 1: masa_kerja_efektif(double)
-  . 'sssssis'     // 7: remark, jenis_kelamin, tanggal_lahir, usia(int), agama, alamat_domisili, alamat_ktp
-  . 'ssssss'      // 6: no_rekening, no_hp, pendidikan, status_perkawinan, email, nama_pasangan
-  . 'i'           // 1: jumlah_anak(int)
-  . 'sss'         // 3: nama_anak_1, nama_anak_2, nama_anak_3
-  . 'idsssssii'   // 9: salary_index_id(int), gaji_pokok(double), foto_profil, foto_ktp, role, kategori, faskes_bpjs(int), faskes_inhealth(int), faskes_ket
-;
+    // types urut: s=string, i=integer, d=double
+    $types =
+        'ssssssssss'   // 10×string
+        . 'isiii'        //  5×: lama_kontrak(int), tgl_kontrak_selesai(string), sudah_kontrak(int), masa_kerja_tahun(int), masa_kerja_bulan(int)
+        . 'd'         // 1: masa_kerja_efektif(double)
+        . 'sssssis'     // 7: remark, jenis_kelamin, tanggal_lahir, usia(int), agama, alamat_domisili, alamat_ktp
+        . 'ssssss'      // 6: no_rekening, no_hp, pendidikan, status_perkawinan, email, nama_pasangan
+        . 'i'           // 1: jumlah_anak(int)
+        . 'sss'         // 3: nama_anak_1, nama_anak_2, nama_anak_3
+        . 'idsssssii'   // 9: salary_index_id(int), gaji_pokok(double), foto_profil, foto_ktp, role, kategori, faskes_bpjs(int), faskes_inhealth(int), faskes_ket
+    ;
 
-// Jumlahnya harus 43
+    // Jumlahnya harus 43
 
-$stmt = $conn->prepare($sql);
-if (!$stmt) {
-    send_response(1, 'Query error: ' . $conn->error);
-}
-$stmt->bind_param(
-    $types,
-    $uid, $nip, $defaultPass, $nama, $jenjang, $unit_penempatan, $strata, $job_title, $status_kerja, $join_start,
-    $lama_kontrak, $tgl_kontrak, $sudah_kontrak, $masa_tahun, $masa_bulan, $masa_eff,
-    $remark, $jk, $tgl_lahir, $usia, $religion,
-    $alamat_domisili, $alamat_ktp, $no_rekening, $no_hp, $pendidikan,
-    $status_perkawinan, $email, $nama_pasangan, $jumlah_anak,
-    $nama_anak_1, $nama_anak_2, $nama_anak_3,
-    $salary_index_id, $gaji_pokok, $foto_profil_url, $foto_ktp_url, $role, $kategori,
-    $faskes_bpjs, $faskes_inhealth, $faskes_ket
-);
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        send_response(1, 'Query error: ' . $conn->error);
+    }
+    $stmt->bind_param(
+        $types,
+        $uid,
+        $nip,
+        $defaultPass,
+        $nama,
+        $jenjang,
+        $unit_penempatan,
+        $strata,
+        $job_title,
+        $status_kerja,
+        $join_start,
+        $lama_kontrak,
+        $tgl_kontrak,
+        $sudah_kontrak,
+        $masa_tahun,
+        $masa_bulan,
+        $masa_eff,
+        $remark,
+        $jk,
+        $tgl_lahir,
+        $usia,
+        $religion,
+        $alamat_domisili,
+        $alamat_ktp,
+        $no_rekening,
+        $no_hp,
+        $pendidikan,
+        $status_perkawinan,
+        $email,
+        $nama_pasangan,
+        $jumlah_anak,
+        $nama_anak_1,
+        $nama_anak_2,
+        $nama_anak_3,
+        $salary_index_id,
+        $gaji_pokok,
+        $foto_profil_url,
+        $foto_ktp_url,
+        $role,
+        $kategori,
+        $faskes_bpjs,
+        $faskes_inhealth,
+        $faskes_ket
+    );
 
 
     if (!$stmt->execute()) {
@@ -374,7 +408,7 @@ function GetGuruDetail(mysqli $conn): array
         send_response(1, 'ID tidak valid.');
     }
 
-    // 1. Ambil data beserta salary index
+    // 1. Ambil data utama beserta salary index
     $stmt = $conn->prepare("
         SELECT a.*,
                si.level       AS salary_level,
@@ -390,6 +424,7 @@ function GetGuruDetail(mysqli $conn): array
     $res = $stmt->get_result();
 
     if (! $row = $res->fetch_assoc()) {
+        $stmt->close();
         send_response(2, 'Data tidak ditemukan.');
     }
     $stmt->close();
@@ -436,8 +471,54 @@ function GetGuruDetail(mysqli $conn): array
     $row['faskes_inhealth'] = intval($row['faskes_inhealth'] ?? 0);
     $row['faskes_ket']      = $row['faskes_ket'] ?? '';
 
+    // 7. Gaji Pokok & Salary Level
+    $row['gaji_pokok']   = isset($row['gaji_pokok']) ? floatval($row['gaji_pokok']) : 0;
+    if (isset($row['salary_level']) && $row['salary_level'] !== null) {
+        // level ketemu dari tabel salary_indices
+        if ($row['salary_level'] === null) {
+            // biarkan null, front-end akan menampilkan “-”
+        } else {
+            $tmp = trim($row['salary_level']);
+            if (is_numeric($tmp)) {
+                $row['salary_level'] = intval($tmp);
+            } elseif (preg_match('/(\d+)/', $tmp, $m)) {
+                $row['salary_level'] = intval($m[1]);   // “Level 4” → 4
+            } else {
+                $row['salary_level'] = null;            // format aneh, kosongkan saja
+            }
+        }
+    }
+    // 8. Tambahkan salary_history (ambil 10 terakhir)
+    $salary_history = [];
+    $stmt2 = $conn->prepare("
+    SELECT jenis, amount, effective_date, created_by, created_at
+      FROM salary_history
+     WHERE id_anggota = ?
+     ORDER BY created_at DESC
+     LIMIT 10
+");
+
+    $stmt2->bind_param("i", $id);
+    $stmt2->execute();
+    $res2 = $stmt2->get_result();
+    $salary_history = [];
+    while ($h = $res2->fetch_assoc()) {
+        $salary_history[] = [
+            'jenis'          => $h['jenis'],
+            'amount'         => (float)$h['amount'],          // ⬅️  angka murni!
+            'effective_date' => $h['effective_date'],
+            'created_by'     => $h['created_by'],
+            'created_at'     => date('d/m/Y H:i', strtotime($h['created_at'])),
+        ];
+    }
+    $stmt2->close();
+    $row['salary_history'] = $salary_history;
+
+
     send_response(0, $row);
 }
+
+
 
 function UpdateGuru(mysqli $conn)
 {

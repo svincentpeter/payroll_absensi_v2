@@ -49,12 +49,33 @@ try {
     $stmtFinal->close();
 
     $nama_karyawan  = $payrollFinal['nama_karyawan'] ?? '-';
-$email_karyawan = $payrollFinal['email'] ?? '-';
-$role_karyawan  = $payrollFinal['role'] ?? '-';
+    $email_karyawan = $payrollFinal['email'] ?? '-';
+    $role_karyawan  = $payrollFinal['role'] ?? '-';
 
     // Ambil honor kelebihan jam & potongan absensi
     $potongan_absensi = floatval($payrollFinal['potongan_absensi'] ?? 0);
-    $honor_jam_lebih = floatval($payrollFinal['honor_jam_lebih'] ?? 0);
+    $honor_jam_lebih  = floatval($payrollFinal['honor_jam_lebih'] ?? 0);
+
+    /* === Ambil data kenaikan gaji tahunan (KGT) yang masih aktif === */
+    $increment_amt  = 0.0;
+    $increment_name = '';
+    $stmtKG = $conn->prepare("
+        SELECT nama_kenaikan, jumlah
+          FROM kenaikan_gaji_tahunan
+         WHERE id_anggota = ?
+           AND status     = 'aktif'
+           AND ? BETWEEN tanggal_mulai AND tanggal_berakhir
+         ORDER BY tanggal_mulai DESC
+         LIMIT 1
+    ");
+    $stmtKG->bind_param("is", $payrollFinal['id_anggota'], $payrollFinal['tgl_payroll']);
+    $stmtKG->execute();
+    $resKG = $stmtKG->get_result();
+    if ($rowKG = $resKG->fetch_assoc()) {
+        $increment_amt  = floatval($rowKG['jumlah']);
+        $increment_name = $rowKG['nama_kenaikan'] ?: 'Kenaikan Gaji Tahunan';
+    }
+    $stmtKG->close();
 
     // 3. Ambil detail payhead final (skip rapel)
     $stmtDetailF = $conn->prepare("
@@ -102,23 +123,24 @@ $role_karyawan  = $payrollFinal['role'] ?? '-';
         }
     }
 
-    // PATCH: Rumus transparan untuk slip
+    // Rumus transparan untuk slip
     $gaji_pokok_base   = $gaji_pokok_db > 0 ? $gaji_pokok_db : $gaji_pokok_employee;
     $salary_index_amt  = $salary_index_amount;
     $subtotal_gaji     = $gaji_pokok_base + $salary_index_amt;
 
     $total_pendapatan_payheads = $total_pendapatan_db > 0 ? $total_pendapatan_db : $calcEarnings;
-    $total_pendapatan_slip = $total_pendapatan_payheads + $honor_jam_lebih;
-    $total_potongan    = $total_potongan_db   > 0 ? $total_potongan_db   : $calcDeductions;
+    $total_pendapatan_slip     = $total_pendapatan_payheads + $honor_jam_lebih + $increment_amt;
+    $total_potongan            = $total_potongan_db   > 0 ? $total_potongan_db   : $calcDeductions;
 
-    // PATCH: Honor kelebihan jam ditampilkan eksplisit, tidak pernah double
-    $gaji_bersih_calculated = $gaji_pokok_base
-        + $salary_index_amt
-        + $total_pendapatan_payheads
-        + $honor_jam_lebih
-        - $total_potongan
-        - $potongan_koperasi
-        - $potongan_absensi;
+    $gaji_bersih_calculated =
+      $gaji_pokok_base
+    + $salary_index_amt
+    + $total_pendapatan_payheads   // semua payhead (earnings)
+    + $honor_jam_lebih             // honor jam  lebih (bukan payhead)
+    + $increment_amt               // KGT (bukan payhead)
+    - $total_potongan              // semua payhead (deductions)
+    - $potongan_koperasi
+    - $potongan_absensi; 
 
     // 7. Masa kerja
     $masa_kerja_tahun = (int)$payrollFinal['masa_kerja_tahun'];
@@ -140,15 +162,15 @@ $role_karyawan  = $payrollFinal['role'] ?? '-';
                  . "(Anggota {$payrollFinal['id_anggota']}, Periode: $bulan-$tahun).";
     add_audit_log($conn, $user_id, 'ViewPayrollDetailsFinal', $log_details);
 
-    // PATCH: Cek honor kelebihan jam sudah di detail payhead?
-    $adaHonorJamLebih = false;
+    // Deteksi apakah sudah ada honor & KGT di detail
+    $adaHonorJamLebih = $adaIncrementKGT = false;
     foreach ($details as $det) {
-        if (
-            stripos($det['nama_payhead'], 'kelebihan jam') !== false
-            || stripos($det['nama_payhead'], 'honor lebih') !== false
-        ) {
+        $namaPH = strtolower($det['nama_payhead']);
+        if (strpos($namaPH, 'kelebihan jam') !== false || strpos($namaPH, 'honor lebih') !== false) {
             $adaHonorJamLebih = true;
-            break;
+        }
+        if (strpos($namaPH, 'kenaikan gaji') !== false) {
+            $adaIncrementKGT = true;
         }
     }
 
@@ -326,6 +348,12 @@ $conn->close();
         <td>Honor Kelebihan Jam Mengajar</td>
         <td style="text-align:right;">Rp <?= number_format($honor_jam_lebih, 0, ',', '.') ?></td>
       </tr>
+      <?php if ($increment_amt > 0): ?>
+      <tr class="details">
+        <td><?= htmlspecialchars($increment_name) ?></td>
+        <td style="text-align:right;">Rp <?= number_format($increment_amt, 0, ',', '.') ?></td>
+      </tr>
+      <?php endif; ?>
       <tr class="item">
         <td>Total Pendapatan (Payheads)</td>
         <td style="text-align:right;">Rp <?= number_format($total_pendapatan_payheads, 0, ',', '.') ?></td>
@@ -381,6 +409,16 @@ $conn->close();
             <td class="left-align">Honor Kelebihan Jam Mengajar</td>
             <td>Pendapatan</td>
             <td>Rp <?= number_format($honor_jam_lebih, 0, ',', '.') ?></td>
+            <td>-</td>
+          </tr>
+          <?php $no++; ?>
+        <?php endif; ?>
+        <?php if ($increment_amt > 0 && !$adaIncrementKGT): ?>
+          <tr>
+            <td><?= $no ?></td>
+            <td class="left-align"><?= htmlspecialchars($increment_name) ?></td>
+            <td>Pendapatan</td>
+            <td>Rp <?= number_format($increment_amt, 0, ',', '.') ?></td>
             <td>-</td>
           </tr>
         <?php endif; ?>
