@@ -32,8 +32,8 @@
 !helpers.php
 !login.php
 !logout.php
-!payroll_ujicoba.sql
-!payroll_ujicoba (Struktur).sql
+!payroll_absensi.sql
+!payroll_absensi (Struktur).sql
 !payroll_absensi_dummy.sql
 !sidebar.php
 !navbar_tabler.php
